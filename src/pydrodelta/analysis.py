@@ -1072,13 +1072,13 @@ class Topology():
         f.write(self.outputToCSV(pivot))
         f.close
         return
-    def uploadData(self):
+    def uploadData(self,include_prono):
         """
         Uploads analysis data of all nodes as a5 observaciones
         """
         created = []
         for node in self.nodes:
-            obs_created = node.uploadData()
+            obs_created = node.uploadData(include_prono=include_prono)
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
@@ -1295,7 +1295,7 @@ def run_analysis(self,config_file,csv,json,pivot,upload,include_prono,verbose,up
     if json is not None:
         topology.saveData(json,format="json",pivot=pivot)
     if upload:
-        uploaded = topology.uploadData()
+        uploaded = topology.uploadData(include_prono=include_prono)
     if upload_series_prono:
         if upload_series_output_as_prono:
             topology.uploadDataAsProno(True,True)
