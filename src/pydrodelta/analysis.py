@@ -720,7 +720,7 @@ class Node:
         for variable in self.variables.values():
             output_list = variable.outputToList(flatten=flatten)
             if output_list is not None:
-                list.append(output_list)
+                list.extend(output_list)
         return list
     def variablesPronoToList(self,flatten=True):
         """
