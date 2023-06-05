@@ -52,6 +52,22 @@ class NodeSerie():
         self.metadata = None
         self.outliers_data = None
         self.jumps_data = None
+    def __str__(self):
+        return str(self.toDict())
+    def __dict__(self):
+        return {
+            "series_id": self.series_id,
+            "type": self.type,
+            "lim_outliers": self.lim_outliers,
+            "lim_jump": self.lim_jump,
+            "x_offset": self.x_offset,
+            "y_offset": self.y_offset,
+            "moving_average": self.moving_average,
+            "data": self.data.reset_index().values.tolist() if self.data is not None else None,
+            "metadata": self.metadata,
+            "outliers_data": self.outliers_data,
+            "jumps_data": self.jumps_data
+        }
     def loadData(self,timestart,timeend):
         logging.debug("Load data for series_id: %i" % (self.series_id))
         self.metadata = input_crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)

@@ -9,3 +9,4 @@ tmp
 share
 __pycache__
 src/pydrodelta.egg-info
+log/analysis.log
