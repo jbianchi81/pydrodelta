@@ -8,4 +8,5 @@ modelo_uruguay
 tmp
 share
 __pycache__
+pydrodelta/__pycache__
 src/pydrodelta.egg-info
