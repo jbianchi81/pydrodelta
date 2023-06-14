@@ -10,3 +10,4 @@ share
 __pycache__
 pydrodelta/__pycache__
 src/pydrodelta.egg-info
+log/analysis.log

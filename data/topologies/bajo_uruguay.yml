@@ -8,6 +8,7 @@ forecast_timeend:
 time_offset_start:
   hours: 0
 report_file: data/reports/bajo_uruguay.json
+cal_id: 495
 nodes:
 - id: 1
   name: Salto Grande - Flow hydrograph - 1H
@@ -72,6 +73,7 @@ nodes:
       y_offset: 0
     series_prono:
     - series_id: 26203
+      qualifier: main
       lim_outliers:
       - -1.7
       - 3.42
@@ -80,7 +82,7 @@ nodes:
       y_offset: 0.0275
       comment: N Palmira prono regre
       cal_id: 433
-      adjust: true
+      adjust: false
     series_sim:
     - series_id: 31594
     - series_id: 31595

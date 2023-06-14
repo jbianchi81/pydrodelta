@@ -52,6 +52,22 @@ class NodeSerie():
         self.metadata = None
         self.outliers_data = None
         self.jumps_data = None
+    def __str__(self):
+        return str(self.toDict())
+    def __dict__(self):
+        return {
+            "series_id": self.series_id,
+            "type": self.type,
+            "lim_outliers": self.lim_outliers,
+            "lim_jump": self.lim_jump,
+            "x_offset": self.x_offset,
+            "y_offset": self.y_offset,
+            "moving_average": self.moving_average,
+            "data": self.data.reset_index().values.tolist() if self.data is not None else None,
+            "metadata": self.metadata,
+            "outliers_data": self.outliers_data,
+            "jumps_data": self.jumps_data
+        }
     def loadData(self,timestart,timeend):
         logging.debug("Load data for series_id: %i" % (self.series_id))
         self.metadata = input_crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
@@ -720,7 +736,7 @@ class Node:
         for variable in self.variables.values():
             output_list = variable.outputToList(flatten=flatten)
             if output_list is not None:
-                list.append(output_list)
+                list.extend(output_list)
         return list
     def variablesPronoToList(self,flatten=True):
         """
@@ -1072,13 +1088,13 @@ class Topology():
         f.write(self.outputToCSV(pivot))
         f.close
         return
-    def uploadData(self):
+    def uploadData(self,include_prono):
         """
         Uploads analysis data of all nodes as a5 observaciones
         """
         created = []
         for node in self.nodes:
-            obs_created = node.uploadData()
+            obs_created = node.uploadData(include_prono=include_prono)
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
@@ -1295,7 +1311,7 @@ def run_analysis(self,config_file,csv,json,pivot,upload,include_prono,verbose,up
     if json is not None:
         topology.saveData(json,format="json",pivot=pivot)
     if upload:
-        uploaded = topology.uploadData()
+        uploaded = topology.uploadData(include_prono=include_prono)
     if upload_series_prono:
         if upload_series_output_as_prono:
             topology.uploadDataAsProno(True,True)
