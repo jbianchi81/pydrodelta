@@ -84,7 +84,7 @@ extract content into $PROJECT_DIR
 
     pydrodelta run-plan data/plans/dummy_polynomial.yml -c tmp/boundaries.csv -e tmp/corrida.json
 
-    # dummy run form csv data. Outputs json and pivot csv 
+    # dummy run from csv data. Outputs json and pivot csv 
     pydrodelta run-plan data/plans/from_csv.yml -e tmp/from_csv.json -E tmp/from_csv.csv -p
 
 #### References
