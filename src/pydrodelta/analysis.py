@@ -52,6 +52,7 @@ class NodeSerie():
         self.metadata = None
         self.outliers_data = None
         self.jumps_data = None
+        self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],params["csv_file"]) if "csv_file" in params else None
     def __str__(self):
         return str(self.toDict())
     def __dict__(self):
@@ -69,15 +70,21 @@ class NodeSerie():
             "jumps_data": self.jumps_data
         }
     def loadData(self,timestart,timeend):
-        logging.debug("Load data for series_id: %i" % (self.series_id))
-        self.metadata = input_crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
-        if len(self.metadata["observaciones"]):
-            self.data = a5.observacionesListToDataFrame(self.metadata["observaciones"],tag="obs")
+        if(self.csv_file is not None):
+            logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.csv_file))
+            data = util.readDataFromCsvFile(self.csv_file,self.series_id,timestart,timeend)
+            self.data = a5.observacionesListToDataFrame(data,tag="obs")
+            self.metadata = {"id": self.series_id, "tipo": self.type}
         else:
-            logging.warning("No data found for series_id=%i" % self.series_id)
-            self.data = a5.createEmptyObsDataFrame(extra_columns={"tag":"str"})
-        self.original_data = self.data.copy(deep=True)
-        del self.metadata["observaciones"]
+            logging.debug("Load data for series_id: %i from a5 api" % (self.series_id))
+            self.metadata = input_crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
+            if len(self.metadata["observaciones"]):
+                self.data = a5.observacionesListToDataFrame(self.metadata["observaciones"],tag="obs")
+            else:
+                logging.warning("No data found for series_id=%i" % self.series_id)
+                self.data = a5.createEmptyObsDataFrame(extra_columns={"tag":"str"})
+            self.original_data = self.data.copy(deep=True)
+            del self.metadata["observaciones"]
     def getThresholds(self):
         if self.metadata is None:
             logging.warn("Metadata missing, unable to set thesholds")
@@ -589,10 +596,9 @@ class ObservedNodeVariable(NodeVariable):
                 try:
                     serie.loadData(timestart,timeend)
                 except Exception as e:
-                    raise "Node %s, Variable: %i, series_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,str(e))
+                    raise Exception("Node %s, Variable: %i, series_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,str(e)))
         elif self.derived_from is not None:
             self.series = []
-            # self.series[0] = util.se
         if include_prono and self.series_prono is not None and len(self.series_prono):
             for serie in self.series_prono:
                 if forecast_timeend is not None:
@@ -909,8 +915,8 @@ class Topology():
         self.forecast_timeend = util.tryParseAndLocalizeDate(params["forecast_timeend"]) if "forecast_timeend" in params else None
         self.time_offset_start = util.interval2timedelta(params["time_offset_start"]) if "time_offset_start" in params else util.interval2timedelta(params["time_offset"]) if "time_offset" in params else timedelta(hours=0)
         self.time_offset_end = util.interval2timedelta(params["time_offset_end"]) if "time_offset_end" in params else util.interval2timedelta(params["time_offset"]) if "time_offset" in params else timedelta(hours=datetime.now().hour)
-        self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start
-        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end
+        self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(params["timestart"]) == dict else self.timestart
+        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(params["timeend"]) == dict else self.timeend
         if self.timestart >= self.timeend:
             raise("Bad timestart, timeend parameters. timestart must be before timeend")
         self.interpolation_limit = None if "interpolation_limit" not in params else util.interval2timedelta(params["interpolation_limit"]) if isinstance(params["interpolation_limit"],dict) else params["interpolation_limit"]
@@ -1136,13 +1142,15 @@ class Topology():
         for node in nodes:
             for variable in node.variables.values():
                 if variable.data is not None and len(variable.data):
-                    rsuffix = "_%i_%i" % (variable.series_output[0].series_id,variable.id) if use_output_series_id and variable.series_output is not None else "_%s_%i" % (str(node.id),variable.id) if use_node_id else "_%s_%i" % (node.name,variable.id) 
+                    rsuffix = "_%i" % (variable.series_output[0].series_id) if use_output_series_id and variable.series_output is not None else "_%s_%i" % (str(node.id),variable.id) if use_node_id else "_%s_%i" % (node.name,variable.id) 
                     # if include_prono:
                     #     node_data = node.concatenateProno(inline=False)
                     #     data = data.join(node_data[columns][node_data.valor.notnull()],how='outer',rsuffix=rsuffix,sort=True) # data.join(node.series[0].data[["valor",]][node.series[0].data.valor.notnull()],how='outer',rsuffix="_%s" % node.name,sort=True)    
                     # else:
                     data = data.join(variable.data[columns][variable.data.valor.notnull()],how='outer',rsuffix=rsuffix,sort=True) # data.join(node.series[0].data[["valor",]][node.series[0].data.valor.notnull()],how='outer',rsuffix="_%s" % node.name,sort=True)
-                    if (not use_output_series_id or variable.series_output is None) and use_node_id:
+                    if use_output_series_id and variable.series_output is not None:
+                        data = data.rename(columns={"valor_%i" % (variable.series_output[0].series_id) : str(variable.series_output[0].series_id)})
+                    elif use_node_id:
                         data = data.rename(columns={"valor_%s_%i" % (str(node.id),variable.id) : node.id})
         for column in columns:
             del data[column]

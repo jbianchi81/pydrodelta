@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import logging
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
+import csv
+import os.path
 
 def interval2timedelta(interval):
     days = 0
@@ -55,10 +57,12 @@ def interval2epoch(interval):
             seconds = seconds + interval[k] * 86400 * 365
     return seconds
 
-def tryParseAndLocalizeDate(date_string,timezone='America/Argentina/Buenos_Aires'):
+def tryParseAndLocalizeDate(date_string,timezone='America/Argentina/Buenos_Aires') -> datetime:
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
+    is_from_interval = False
     if isinstance(date,dict):
         date = datetime.now() + interval2timedelta(date)
+        is_from_interval = True
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
             date = pytz.timezone(timezone).localize(date)
@@ -67,7 +71,7 @@ def tryParseAndLocalizeDate(date_string,timezone='America/Argentina/Buenos_Aires
             return None
     else:
         date = date.astimezone(pytz.timezone(timezone))
-    return date
+    return date # , is_from_interval
 
 def roundDownDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=None) -> datetime:
     if timeInterval.microseconds == 0:
@@ -502,3 +506,41 @@ def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):
         return param_set[param_name]
     else:
         return default
+
+def readCsvFile(csv_file):
+    if not os.path.exists(csv_file):
+        raise Exception("csv file %s not found" % csv_file)
+    with open(csv_file, newline='') as csvfile:
+        return [row for row in csv.DictReader(csvfile)]
+
+def readDataFromCsvFile(csv_file: str,series_id: int,timestart=None,timeend=None) -> list:
+    """reads from csv_file and returns list of observaciones (dicts). series_id must be present in the header. timestart column must be in iso format. Other columns are ignored"""
+    observaciones = readCsvFile(csv_file)
+    data = []
+    for o in observaciones:
+        parsed_timestart = tryParseAndLocalizeDate(o["timestart"])
+        if timestart is not None and parsed_timestart < timestart:
+            continue
+        if timeend is not None and parsed_timestart > timeend:
+            continue
+        parsed_valor = tryParseFloat(o[str(series_id)])
+        data.append({"series_id": series_id, "timestart": parsed_timestart, "valor": parsed_valor})
+    return data
+
+def tryParseFloat(value,allow_none=True):
+    if type(value) == str:
+        if len(value):
+            try:
+                parsed_float = float(value)
+            except ValueError:
+                raise(ValueError)
+        elif allow_none:
+            parsed_float = None
+        else:
+            raise(ValueError("Invalid float: empty string"))
+    else:
+        try:
+            parsed_float = float(value)
+        except ValueError:
+            raise(ValueError)
+    return parsed_float

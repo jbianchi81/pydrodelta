@@ -115,6 +115,7 @@ class Plan():
                         if pivot:
                             suffix = "_%i" % serie.series_id
                             corrida = corrida.join(serie.data,rsuffix=suffix,how="outer")
+                            corrida = corrida.rename(columns={"valor_%i" % serie.series_id: str(serie.series_id)})
                         else:
                             data = serie.data.copy()
                             data["series_id"] = serie.series_id
