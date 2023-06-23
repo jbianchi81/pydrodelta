@@ -289,6 +289,9 @@
         },
         "moving_average": {
           "$ref": "timeinterval.json"
+        },
+        "csv_file": {
+          "type": "string"
         }
       },
       "required": [
