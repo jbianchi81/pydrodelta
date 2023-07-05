@@ -87,6 +87,9 @@ extract content into $PROJECT_DIR
     # dummy run from csv data. Outputs json and pivot csv 
     pydrodelta run-plan data/plans/from_csv.yml -e tmp/from_csv.json -E tmp/from_csv.csv -p
 
+    # dummy P-Q from csv
+    pydrodelta run-plan data/plans/dummy_grp_from_csv.yml -E tmp/grp_out.csv -p
+
 #### References
 
 Instituto Nacional del Agua

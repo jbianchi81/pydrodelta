@@ -1247,8 +1247,8 @@ class Serie():
 class Observacion():
     def __init__(self,params):
         # json_validate(params,"Observacion")
-        self.timestart = params["timestart"] if isinstance(params["timestart"],datetime) else util.tryParseAndLocalizeDate(params["timestart"])
-        self.timeend = None if "timeend" not in params else params["timeend"] if isinstance(params["timeend"],datetime) else util.tryParseAndLocalizeDate(params["timeend"])
+        self.timestart= util.tryParseAndLocalizeDate(params["timestart"])
+        self.timeend = (None, False) if "timeend" not in params else util.tryParseAndLocalizeDate(params["timeend"])
         self.valor = params["valor"]
         self.series_id = params["series_id"] if "series_id" in params else None
         self.tipo = params["tipo"] if "tipo" in params else "puntual"

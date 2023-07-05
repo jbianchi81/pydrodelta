@@ -13,6 +13,7 @@ import dateutil.parser
 import sys
 import click
 from pathlib import Path
+from pydrodelta.series_data import SeriesData
 
 schema = open("%s/data/schemas/json/topology.json" % os.environ["PYDRODELTA_DIR"])
 #schema = open("%s/data/schemas/yaml/topology.yml" % os.environ["PYDRODELTA_DIR"])
@@ -35,10 +36,6 @@ output_crud = a5.Crud(config["output_api"])
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
 
-class SeriesData(pandas.DataFrame):
-    def __init__(self, *args, **kwargs):
-        super(SeriesData, self).__init__(*args, **kwargs)
-
 class NodeSerie():
     def __init__(self,params):
         self.series_id = params["series_id"]
@@ -53,6 +50,8 @@ class NodeSerie():
         self.outliers_data = None
         self.jumps_data = None
         self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],params["csv_file"]) if "csv_file" in params else None
+    def __repr__(self):
+        return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data if self.data is not None else 0))
     def __str__(self):
         return str(self.toDict())
     def __dict__(self):
@@ -121,7 +120,7 @@ class NodeSerie():
         return row.name + x_offset
     def applyOffset(self):
         if isinstance(self.x_offset,timedelta):
-            self.data.index = self.data.apply(lambda row: self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
+            self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
             self.data.index.rename("timestart",inplace=True)
         elif self.x_offset != 0:
             self.data["valor"] = self.data["valor"].shift(self.x_offset, axis = 0) 
@@ -313,6 +312,9 @@ class NodeVariable:
         self._node = node
         self.name = "%s_%s" % (self._node.name, self.id)
         self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else self._node.time_interval
+    def __repr__(self):
+        series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
+        return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
     def getData(self,include_series_id=False):
         data = self.data[["valor","tag"]] # self.concatenateProno(inline=False) if include_prono else self.data[["valor","tag"]] # self.series[0].data            
         if include_series_id:
@@ -593,10 +595,10 @@ class ObservedNodeVariable(NodeVariable):
         logging.debug("Load data for observed node: %i" % (self.id))
         if self.series is not None:
             for serie in self.series:
-                try:
+                # try:
                     serie.loadData(timestart,timeend)
-                except Exception as e:
-                    raise Exception("Node %s, Variable: %i, series_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,str(e)))
+                # except Exception as e:
+                #     raise Exception("Node %s, Variable: %i, series_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,str(e)))
         elif self.derived_from is not None:
             self.series = []
         if include_prono and self.series_prono is not None and len(self.series_prono):
@@ -710,6 +712,9 @@ class Node:
         if "variables" in params:
             for variable in params["variables"]:
                 self.variables[variable["id"]] = DerivedNodeVariable(variable,self) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(variable,self)
+    def __repr__(self):
+        variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
+        return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
     def createDatetimeIndex(self):
         return util.createDatetimeSequence(None, self.time_interval, self.timestart, self.timeend, self.time_offset)
     def toCSV(self,include_series_id=True,include_header=True):
@@ -926,7 +931,10 @@ class Topology():
         self.cal_id = params["cal_id"] if "cal_id" in params else None
         self.plot_params = params["plot_params"] if "plot_params" in params else None
         self.report_file = params["report_file"] if "report_file" in params else None
-        self._plan = plan 
+        self._plan = plan
+    def __repr__(self):
+        nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
+        return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
     def addNode(self,node,plan=None):
         self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
     def batchProcessInput(self,include_prono=False):
@@ -962,8 +970,11 @@ class Topology():
             f.close()
     def loadData(self,include_prono=True):
         for node in self.nodes:
+            timestart = self.timestart
+            timeend = self.timeend + node.time_interval if node.time_interval is not None else self.timeend
+            forecast_timeend = self.forecast_timeend+node.time_interval if self.forecast_timeend is not None and node.time_interval is not None else self.forecast_timeend
             if hasattr(node,"loadData"):
-                node.loadData(self.timestart,self.timeend,forecast_timeend=self.forecast_timeend,include_prono=include_prono)
+                node.loadData(timestart, timeend, forecast_timeend=forecast_timeend, include_prono=include_prono)
             # for serie in node.series:
             #     if isinstance(serie,NodeSerie):
             #         serie.loadData(self.timestart,self.timeend)

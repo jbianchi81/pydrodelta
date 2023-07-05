@@ -1,272 +1,17 @@
-import pydrodelta.analysis as analysis
-import jsonschema
-import json
-# import pydrodelta.Auto_HECRAS as AutoHEC
-import pydrodelta.util as util
 import logging
-from  pydrodelta.hecras import HecRasProcedureFunction
-from pydrodelta.polynomial import PolynomialTransformationProcedureFunction
-from pydrodelta.muskingumchannel import MuskingumChannelProcedureFunction
 import os
 import yaml
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
-from pydrodelta.a5 import Crud, createEmptyObsDataFrame
-import numpy as np
 import click
 import sys
-from pathlib import Path
-from datetime import datetime 
-from pandas import concat
-
+from pydrodelta.plan import Plan
 
 config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
 config = yaml.load(config_file,yaml.CLoader)
 config_file.close()
 
-output_crud = Crud(config["output_api"])
-
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
-
-
-schemas = {}
-plan_schema = open("%s/data/schemas/json/plan.json" % os.environ["PYDRODELTA_DIR"])
-schemas["plan"] = yaml.load(plan_schema,yaml.CLoader)
-
-base_path = Path("%s/data/schemas/json" % os.environ["PYDRODELTA_DIR"])
-resolver = jsonschema.validators.RefResolver(
-    base_uri=f"{base_path.as_uri()}/",
-    referrer=True,
-)
-
-class Plan():
-    def __init__(self,params):
-        jsonschema.validate(
-            instance=params,
-            schema=schemas["plan"],
-            resolver=resolver
-        )
-        self.name = params["name"]
-        self.id = params["id"]
-        if isinstance(params["topology"],dict):
-            self.topology = analysis.Topology(params["topology"])
-        else:
-            topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],params["topology"])
-            f = open(topology_file_path)
-            self.topology = analysis.Topology(yaml.load(f,yaml.CLoader),plan=self)
-            f.close()
-        self.procedures = [Procedure(x,self) for x in params["procedures"]]
-        self.forecast_date = util.tryParseAndLocalizeDate(params["forecast_date"]) if "forecast_date" in params else datetime.now()
-        self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
-        if self.time_interval is not None:
-            self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
-    def execute(self,include_prono=True,upload=True):
-        """
-        Runs analysis and then each procedure sequentially
-
-        :param include_prono: if True (default), concatenates observed and forecasted boundary conditions. Else, reads only observed data.
-        :type include_prono: bool
-        :returns: None
-        """
-        self.topology.batchProcessInput(include_prono=include_prono)
-        for procedure in self.procedures:
-            procedure.run()
-            procedure.outputToNodes()
-        if upload:
-            self.uploadSim()
-    def toCorrida(self):
-        series_sim = []
-        for node in self.topology.nodes:
-            for variable in node.variables.values():
-                if variable.series_sim is not None:
-                    for serie in variable.series_sim:
-                        if serie.data is None:
-                            logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
-                            continue
-                        series_sim.append({
-                            "series_id": serie.series_id,
-                            "pronosticos": serie.toList(remove_nulls=True)
-                        })
-        return {
-            "cal_id": self.id,
-            "forecast_date": self.forecast_date.isoformat(),
-            "series": series_sim 
-        }
-    def uploadSim(self):
-        corrida = self.toCorrida()
-        return output_crud.createCorrida(corrida)
-    def toCorridaJson(self,filename):
-        """
-        Guarda corrida en archivo .json
-        """
-        corrida = self.toCorrida()
-        f = open(filename,"w")
-        f.write(json.dumps(corrida))
-        f.close()
-    def toCorridaDataFrame(self,pivot=False):
-        corrida = createEmptyObsDataFrame(extra_columns={"tag":"str","series_id":"int"})
-        for node in self.topology.nodes:
-            for variable in node.variables.values():
-                if variable.series_sim is not None:
-                    for serie in variable.series_sim:
-                        if serie.data is None:
-                            logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
-                            continue
-                        if pivot:
-                            suffix = "_%i" % serie.series_id
-                            corrida = corrida.join(serie.data,rsuffix=suffix,how="outer")
-                            corrida = corrida.rename(columns={"valor_%i" % serie.series_id: str(serie.series_id)})
-                        else:
-                            data = serie.data.copy()
-                            data["series_id"] = serie.series_id
-                            corrida = concat([corrida,data])
-        if pivot:
-            del corrida["valor"]
-            del corrida["tag"]
-            del corrida["series_id"]
-        return corrida
-                
-    def toCorridaCsv(self,filename,pivot=False,include_header=True):
-        """
-        Guarda corrida en archivo .csv
-        """
-        corrida = self.toCorridaDataFrame(pivot=pivot)
-        corrida.to_csv(filename,header=include_header)
-
-# def createProcedure(procedure,plan):
-#     if procedure["type"] in procedureClassDict:
-#         return procedureClassDict[procedure["type"]](procedure,plan)
-#     else:
-#         logging.warn("createProcedure: type %s not found. Instantiating base class Procedure" % procedure["type"])
-#         return Procedure(procedure,plan)
-
-# def createProcedure(procedure,plan):
-#     if procedure["type"] in procedureClassDict:
-#         return procedureClassDict[procedure["type"]](procedure,plan)
-#     else:
-#         logging.warn("createProcedure: type %s not found. Instantiating base class Procedure" % procedure["type"])
-#         return Procedure(procedure,plan)
-
-class ProcedureBoundary():
-    """
-    A variable at a node which is used as a procedure boundary condition
-    """
-    def __init__(self,params,plan=None):
-        self.node_id = int(params[0])
-        self.var_id = int(params[1])
-        self.name = str(params[2]) if len(params) > 2 else "%i_%i" % (self.node_id, self.var_id)
-        if plan is not None:
-            self.setNodeVariable(plan)
-        else:
-            self._variable = None
-            self._node = None
-    def setNodeVariable(self,plan):
-        for t_node in plan.topology.nodes:
-            if t_node.id == self.node_id:
-                self._node = t_node
-                if self.var_id in t_node.variables:
-                    self._variable = t_node.variables[self.var_id]
-                    return
-        raise("ProcedureBoundary.setNodeVariable error: node with id: %s , var %i not found in topology" % (str(self.node_id), self.var_id))
-
-class Procedure():
-    """
-    A Procedure defines an hydrological, hydrodinamic or static procedure which takes one or more NodeVariables from the Plan as boundary condition, one or more NodeVariables from the Plan as outputs and a ProcedureFunction. The input is read from the selected boundary NodeVariables and fed into the ProcedureFunction which produces an output, which is written into the output NodeVariables
-    """
-    def __init__(self,params,plan):
-        self.id = params["id"]
-        self._plan = plan
-        self.boundaries = [ProcedureBoundary(boundary,self._plan) for boundary in params["boundaries"]]
-        self.outputs = [ProcedureBoundary(output,self._plan) for output in params["outputs"]]
-        self.initial_states = params["initial_states"] if "initial_states" in params else []
-        if params["function"]["type"] in procedureFunctionDict:
-            self.function_type = procedureFunctionDict[params["function"]["type"]]
-        else:
-            logging.warn("Procedure init: class %s not found. Instantiating abstract class ProcedureFunction" % params["function"]["type"])
-            self.function_type = ProcedureFunction
-        # self.function = self.function_type(params["function"])
-        if isinstance(params["function"],dict): # read params from dict
-            self.function = self.function_type(params["function"],self)
-        else: # if not, read from file
-            f = open(params["function"])
-            self.function = self.function_type(json.load(f),self)
-            f.close()
-        # self.procedure_type = params["procedure_type"]
-        self.parameters = params["parameters"] if "parameters" in params else []
-        self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
-        self.time_offset = util.interval2timedelta(params["time_offset"]) if "time_offset" in params else None
-        self.input = None # <- boundary conditions
-        self.output = None
-        self.states = None
-    def loadInput(self,inline=True,pivot=False):
-        """
-        Carga las variables de borde definidas en self.boundaries. De cada elemento de self.boundaries toma .data y lo concatena en una lista. Si pivot=True, devuelve un DataFrame con 
-        """
-        if pivot:
-            data = createEmptyObsDataFrame(extra_columns={"tag":str})
-            columns = ["valor","tag"]
-            for boundary in self.boundaries:
-                if boundary._variable.data is not None and len(boundary._variable.data):
-                    rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id) 
-                    data = data.join(boundary._variable.data[columns][boundary._variable.data.valor.notnull()],how='outer',rsuffix=rsuffix,sort=True)
-            for column in columns:
-                del data[column]
-            # data = data.replace({np.NaN:None})
-        else:
-            data = [boundary._variable.data.copy() for boundary in self.boundaries]
-        if inline:
-            self.input = data
-        else:
-            return data
-    def run(self,inline=True):
-        """
-        Run self.function.run()
-
-        :param inline: if True, writes output to self.output, else returns output (array of seriesData)
-        """
-        output, procedure_function_results = self.function.run(input=None)
-        if inline:
-            self.output = output
-        else:
-            return output
-    def getOutputNodeData(self,node_id,var_id,tag=None):
-        """
-        Extracts single series from output using node id and variable id
-
-        :param node_id: node id
-        :param var_id: variable id
-        :returns: timeseries dataframe
-        """
-        index = 0
-        for o in self.outputs:
-            if o.var_id == var_id and o.node_id == node_id:
-                if self.output is not None and len(self.output) <= index + 1:
-                    return self.output[index]
-            index = index + 1
-        raise("Procedure.getOutputNodeData error: node with id: %s , var %i not found in output" % (str(node_id), var_id))
-        # col_rename = {}
-        # col_rename[node_id] = "valor"
-        # data = self.output[[node_id]].rename(columns = col_rename)
-        # if tag is not None:
-        #     data["tag"] = tag
-        # return data
-    def outputToNodes(self):
-        if self.output is None:
-            logging.error("Procedure output is None, which means the procedure wasn't run yet. Can't perform outputToNodes.")
-            return
-        # output_columns = self.output.columns
-        index = 0
-        for o in self.outputs:
-            if o._variable.series_sim is None:
-                continue
-            if index + 1 > len(self.output):
-                logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
-                continue
-            for serie in o._variable.series_sim:
-                serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
-                serie.applyOffset()
-            index = index + 1
-    
+  
 # class ProcedureType():
 #     def __init__(self,params):
 #         self.name = params["name"]
@@ -304,18 +49,6 @@ class Procedure():
 #     "Linear": LinearProcedure
 # }
 
-
-procedureFunctionDict = {
-    "ProcedureFunction": ProcedureFunction,
-    "HecRas": HecRasProcedureFunction,
-    "HecRasProcedureFunction": HecRasProcedureFunction,
-    "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,
-    "Polynomial": PolynomialTransformationProcedureFunction,
-    "MuskingumChannel": MuskingumChannelProcedureFunction,
-    "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction
-}
-
-
 @click.command()
 @click.pass_context
 @click.argument('config_file', type=str)
@@ -327,7 +60,8 @@ procedureFunctionDict = {
 @click.option("--upload", "-u", is_flag=True, help="Upload output to database API", default=False, show_default=True)
 @click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=False, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
-def run_plan(self,config_file,csv,json,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose):
+@click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
+def run_plan(self,config_file,csv,json,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats):
     """
     run plan from plan config file
     
@@ -343,6 +77,8 @@ def run_plan(self,config_file,csv,json,export_corrida_json,export_corrida_csv,pi
         root.addHandler(handler)
     t_config = yaml.load(open(config_file),yaml.CLoader)
     plan = Plan(t_config)
+    if output_stats is not None:
+        t_config.output_stats = output_stats
     plan.execute(include_prono=include_prono,upload=False)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)

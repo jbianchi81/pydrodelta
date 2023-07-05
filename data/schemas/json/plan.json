@@ -26,7 +26,7 @@
         "items": {
           "oneOf": [
             {
-              "$ref": "#/$defs/Procedure"
+              "$ref": "procedure.json"
             },
             {
               "type": "string"
@@ -39,6 +39,9 @@
       },
       "time_interval": {
         "$ref": "timeinterval.json"
+      },
+      "output_stats": {
+        "type": "string"
       }
     },
     "required": [
@@ -47,103 +50,5 @@
       "topology",
       "procedures"
     ],
-    "additionalProperties": false,
-    "$defs": {
-      "Procedure": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "oneOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "boundaries": {
-            "description": "Either array of NodeVariables objects or tuple with node id and variable id",
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "$ref": "topology.json#/$defs/NodeVariable"
-                },
-                {
-                  "$ref": "#/$defs/NodeVariableIdTuple"
-                }
-              ]
-            }
-          },
-          "outputs": {
-            "description": "output node variables where to write procedure outcome",
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "$ref": "topology.json#/$defs/NodeVariable"
-                },
-                {
-                  "$ref": "#/$defs/NodeVariableIdTuple"
-                }
-              ]
-            }
-          },
-          "initial_states": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "function": {
-            "anyOf": [
-              {
-                "$ref": "procedurefunction.json"
-              },
-              {
-                "$ref": "hecrasprocedurefunction.json"
-              },
-              {
-                "$ref": "polynomialtransformationprocedurefunction.json"
-              }
-            ]
-          },
-          "parameters": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "time_interval": {
-            "$ref": "timeinterval.json"
-          },
-          "time_offset": {
-            "$ref": "timeinterval.json"
-          }
-        },
-        "required": [
-          "id",
-          "boundaries",
-          "outputs",
-          "function"
-        ]
-      },
-      "NodeVariableIdTuple": {
-        "type": "array",
-        "minItems": 2,
-        "maxItems": 3,
-        "items": {
-          "oneOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    }
-  }
+    "additionalProperties": false
+}
