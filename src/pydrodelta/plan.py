@@ -8,7 +8,7 @@ import logging
 from pandas import concat
 
 from pydrodelta.a5 import Crud, createEmptyObsDataFrame
-import pydrodelta.analysis as analysis
+from pydrodelta.topology import Topology
 import pydrodelta.util as util
 from pydrodelta.procedure import Procedure
 
@@ -38,11 +38,11 @@ class Plan():
         self.name = params["name"]
         self.id = params["id"]
         if isinstance(params["topology"],dict):
-            self.topology = analysis.Topology(params["topology"])
+            self.topology = Topology(params["topology"])
         else:
             topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],params["topology"])
             f = open(topology_file_path)
-            self.topology = analysis.Topology(yaml.load(f,yaml.CLoader),plan=self)
+            self.topology = Topology(yaml.load(f,yaml.CLoader),plan=self)
             f.close()
         self.procedures = [Procedure(x,self) for x in params["procedures"]]
         self.forecast_date = util.tryParseAndLocalizeDate(params["forecast_date"]) if "forecast_date" in params else datetime.now()
@@ -50,10 +50,14 @@ class Plan():
         if self.time_interval is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
         self.output_stats = []
-        if params["output_stats"]:
+        if "output_stats" in params:
             self.output_stats_file = params["output_stats"]
         else:
             self.output_stats_file = None
+        if "output_analysis" in params:
+            self.output_analysis = params["output_analysis"]
+        else:
+            self.output_analysis = None
     def execute(self,include_prono=True,upload=True):
         """
         Runs analysis and then each procedure sequentially
@@ -63,6 +67,9 @@ class Plan():
         :returns: None
         """
         self.topology.batchProcessInput(include_prono=include_prono)
+        if self.output_analysis is not None:
+            with open(self.output_analysis,'w') as analysisfile:
+                json.dump(self.topology.toList(),analysisfile)
         for procedure in self.procedures:
             procedure.run()
             procedure.outputToNodes()

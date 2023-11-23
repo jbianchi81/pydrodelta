@@ -17,6 +17,9 @@ dependencies = [
     "pyyaml"
 ]
 
+[project.scripts]
+pydrodelta = "pydrodelta:cli"
+
 [tool.setuptools]
 include-package-data = true
 

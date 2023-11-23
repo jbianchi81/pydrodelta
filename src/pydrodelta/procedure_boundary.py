@@ -1,4 +1,4 @@
-from pydrodelta.analysis import NodeVariable 
+# from pydrodelta.node_variable import NodeVariable 
 
 class ProcedureBoundary():
     """

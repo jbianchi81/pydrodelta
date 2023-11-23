@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=../schemas/json/plan.json
+---
+  name: from_csv
+  id: 555
+  topology: # data/topologies/from_csv.yml
+    timestart: "2023-04-23 00:00:00-03:00"
+    timeend: "2023-06-25 01:00:00-03:00"
+    interpolation_limit:
+      minutes: 30 
+    nodes:
+    - id: 1
+      name: sample node 1
+      time_interval:
+        hours: 1
+      downstream_node: 2
+      variables:
+      - id: 2
+        series:
+        - series_id: 1
+          comment: sample series 1
+          csv_file: data/csv/csv_file_sample.csv
+        series_sim:
+        - series_id: 3
+    - id: 2
+      name: sample node 2
+      time_interval:
+        hours: 1
+      variables:
+      - id: 2
+        series:
+        - series_id: 2
+          comment: Sample series 2
+          csv_file: data/csv/csv_file_sample.csv
+        series_sim:
+        - series_id: 4
+  forecast_date:
+    hours: 0
+  time_interval:
+    hours: 1
+  procedures:
+  - id: 1
+    function:
+      type: ProcedureFunction
+      boundaries:
+        input: [1, 2]
+      outputs:
+        output: [1, 2]
+  - id: 2
+    function:
+      type: Polynomial
+      intercept: 22.0
+      coefficients: [2.0]
+      boundaries:
+        input: [1, 2]
+      outputs:
+        output: [1, 2]
+  - id: 3
+    function:
+      type: Polynomial
+      intercept: -20.0
+      coefficients: [-0.5]
+      boundaries:
+        input: [2, 2]
+      outputs:
+        output: [2, 2]

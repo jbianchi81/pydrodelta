@@ -54,6 +54,7 @@ logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filen
 @click.argument('config_file', type=str)
 @click.option("--csv", "-c", help="Save result of analysis as .csv file", type=str)
 @click.option("--json", "-j", help="Save result of analysis to .json file", type=str)
+@click.option("--graph_file", "-g", help="Print topology graph in .png file", type=str)
 @click.option("--export_corrida_json", "-e", help="Save result of simulation to .json file", type=str)
 @click.option("--export_corrida_csv", "-E", help="Save result of simulation to .csv file", type=str)
 @click.option("--pivot", "-p", is_flag=True, help="Pivot output table", default=False,show_default=True)
@@ -61,7 +62,7 @@ logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filen
 @click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=False, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
-def run_plan(self,config_file,csv,json,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats):
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats):
     """
     run plan from plan config file
     
@@ -92,3 +93,6 @@ def run_plan(self,config_file,csv,json,export_corrida_json,export_corrida_csv,pi
         plan.toCorridaJson(export_corrida_json)
     if export_corrida_csv is not None:
         plan.toCorridaCsv(export_corrida_csv,pivot=pivot)
+    if graph_file is not None:
+        plan.topology.printGraph(output_file=graph_file)
+
