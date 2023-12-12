@@ -14,7 +14,8 @@ dependencies = [
     "pytz",
     "sklearn",
     "jsonschema",
-    "pyyaml"
+    "pyyaml",
+    "isodate"
 ]
 
 [project.scripts]

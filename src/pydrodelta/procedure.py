@@ -107,6 +107,7 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
+            o._variable.concatenate(self.output[index])
             for serie in o._variable.series_sim:
                 # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
@@ -117,6 +118,7 @@ from pydrodelta.hecras import HecRasProcedureFunction
 from pydrodelta.polynomial import PolynomialTransformationProcedureFunction
 from pydrodelta.muskingumchannel import MuskingumChannelProcedureFunction
 from pydrodelta.grp import GRPProcedureFunction
+from pydrodelta.linear_combination import LinearCombinationProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -127,5 +129,6 @@ procedureFunctionDict = {
     "MuskingumChannel": MuskingumChannelProcedureFunction,
     "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
     "GRP": GRPProcedureFunction,
-    "GRPProcedureFunction": GRPProcedureFunction
+    "GRPProcedureFunction": GRPProcedureFunction,
+    "LinearCombination": LinearCombinationProcedureFunction
 }

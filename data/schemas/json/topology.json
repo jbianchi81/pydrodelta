@@ -107,6 +107,19 @@
             "CondBorde"
           ],
           "additionalProperties": false
+        },
+        "downstream_node": {
+          "oneOf": [
+            { 
+              "type": "number"
+            },{
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "id of the downstream node(s), if it exists"
         }
       },
       "required": [

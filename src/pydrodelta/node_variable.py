@@ -9,6 +9,7 @@ import logging
 import json
 from datetime import timedelta
 import matplotlib.pyplot as plt
+import isodate
 
 config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
 config = yaml.load(config_file,yaml.CLoader)
@@ -49,6 +50,39 @@ class NodeVariable:
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
+    def toDict(self):
+        return {
+            "id": self.id,
+            "metadata": self.metadata,
+            "fill_value": self.fill_value,
+            "series_output": [serie.toDict() for serie in self.series_output] if self.series_output is not None else None,
+            "series_sim": [serie.toDict() for serie in self.series_sim] if self.series_sim is not None else None,
+            "time_support": isodate.duration_isoformat(self.time_support) if self.time_support is not None else None, 
+            "adjust_from": self.adjust_from,
+            "linear_combination": self.linear_combination,
+            "interpolation_limit": self.interpolation_limit,
+            "data": self.dataAsDict(),
+            "original_data": self.originalDataAsDict(),
+            "adjust_results": self.adjust_results,
+            "name": self.name,
+            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None
+        }
+    def toJSON(self):
+        return json.dumps(self.toDict())
+    def dataAsDict(self):
+        if self.data is None:
+            return None
+        data = self.data.reset_index().to_dict("records") 
+        for row in data:
+            row["timestart"] = row["timestart"].isoformat()
+        return data
+    def originalDataAsDict(self):
+        if self.original_data is None:
+            return None
+        data = self.original_data.reset_index().to_dict("records") 
+        for row in data:
+            row["timestart"] = row["timestart"].isoformat()
+        return data
     def getData(self,include_series_id=False):
         data = self.data[["valor","tag"]] # self.concatenateProno(inline=False) if include_prono else self.data[["valor","tag"]] # self.series[0].data            
         if include_series_id:
@@ -242,6 +276,24 @@ class NodeVariable:
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
+    def concatenate(self,data: pandas.DataFrame, inline=True):
+        """
+        Concatenates self.data with data
+
+        :param data: DataFrame
+        :param inline: Boolean, save result into self.data 
+        : returns: nothing is inline=True, else DataFrame
+        """
+        if self.data is None:
+            raise Exception("NodeVariable.data is not defined. Can´t concatenate")
+        data["tag"] = "sim"
+        concatenated_data = serieFillNulls(self.data,data,extend=True,tag_column="tag")
+        if inline:
+            self.data = concatenated_data
+            return
+        else:
+            return concatenated_data
+
     def concatenateProno(self,inline=True,ignore_warmup=True):
         """
         Fills nulls of data with prono 

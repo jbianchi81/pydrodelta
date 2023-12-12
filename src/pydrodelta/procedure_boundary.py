@@ -6,6 +6,7 @@ class ProcedureBoundary():
     """
     def __init__(self,params,plan=None,optional=False):
         self.optional = optional
+        print("params: %s" % str(params))
         self.node_id = int(params[0])
         self.var_id = int(params[1])
         self.name = str(params[2]) if len(params) > 2 else "%i_%i" % (self.node_id, self.var_id)

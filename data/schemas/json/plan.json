@@ -41,7 +41,12 @@
         "$ref": "timeinterval.json"
       },
       "output_stats": {
-        "type": "string"
+        "type": "string",
+        "description": "statistics output file"
+      },
+      "output_analysis": {
+        "type": "string",
+        "description": "analysis output file"
       }
     },
     "required": [

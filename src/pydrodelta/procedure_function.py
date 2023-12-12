@@ -24,9 +24,12 @@ class ProcedureFunction:
         self.boundaries = []
         for b in self.__class__._boundaries:
             if b.name in boundaries:
+                if len(boundaries[b.name]) < 3:
+                    boundaries[b.name].append(b.name)
+                print("%s" % str(boundaries[b.name]))
                 self.boundaries.append(ProcedureBoundary(boundaries[b.name],self._procedure._plan,b.optional))
             else:
-                raise Exception("Missing NodeVariableIdTuple for boundary %i" % b.name)
+                raise Exception("Missing NodeVariableIdTuple for boundary %s" % str(b.name))
     def setOutputs(self,outputs:dict={}):
         for b in self.__class__._outputs:
             if b.name in outputs:
