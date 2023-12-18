@@ -14,8 +14,12 @@ dependencies = [
     "pytz",
     "sklearn",
     "jsonschema",
-    "pyyaml"
+    "pyyaml",
+    "isodate"
 ]
+
+[project.scripts]
+pydrodelta = "pydrodelta:cli"
 
 [tool.setuptools]
 include-package-data = true

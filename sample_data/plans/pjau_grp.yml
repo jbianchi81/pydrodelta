@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=../schemas/json/plan.json
+---
+  name: grp_dummy_from_csv
+  id: 666
+  topology: # data/topologies/from_csv.yml
+    timestart: "2023-01-01 00:00:00-03:00"
+    timeend:
+      days: 6
+    time_offset_start:
+      hours: 9
+    interpolation_limit:
+      hours: 12 
+    nodes:
+    - id: 1
+      name: pma
+      time_interval:
+        days: 1
+      variables:
+      - id: 1
+        series:
+        - series_id: 245
+          tipo: areal 
+          comment: luján jáuregui pma media areal diaria campo
+        - series_id: 21
+          tipo: areal
+          comment: luján jáuregui pma media areal diaria CPC
+        - series_id: 189
+          tipo: areal
+          comment: luján jáuregui pma media areal diaria pronosticada GFS
+        - series_id: 5081
+          tipo: areal
+          comment: luján jáuregui pma media areal diaria pronosticada COSMO
+    - id: 2
+      name: etp
+      time_interval:
+        days: 1
+      variables:
+      - id: 15
+        series:
+        - series_id: 133
+          tipo: areal
+          comment: luján jáuregui evapotranspiración potencial climatológica          
+    - id: 3
+      name: q_obs
+      time_interval:
+        days: 1
+      variables:
+      - id: 4
+        series:
+        - series_id: 34844
+          tipo: puntual
+          comment: Luján Jáuregui caudal medio diario
+        series_sim:
+        - series_id: 34845
+          tipo: puntual
+    - id: 4
+      name: smc_obs
+      time_interval:
+        days: 1
+      variables:
+      - id: 20
+        series:
+        - series_id: 1667
+          tipo: areal
+          comment: Luján Jáuregui humedad del suelo diaria
+        series_sim:
+        - series_id: 6712
+          tipo: areal
+  forecast_date:
+    hours: 0
+  time_interval:
+    days: 1
+  procedures:
+  - id: 1
+    function:
+      type: GRP
+      init_states:
+        Sk: 50
+        Rk: 5
+      parameters:
+        X0: 106.576
+        X1: 1101.94
+        X2: 1.20439
+        X3: 8.11073
+        area: 16095267887.9854
+        wp: 0.03
+        rho: 0.5
+      boundaries:
+        pma: [1, 1]
+        etp: [2, 15]
+        q_obs: [3, 4]
+        smc_obs: [4, 20]
+      outputs:
+        q_sim: [3, 4]
+        smc_sim: [4, 20]
+  output_stats: tmp/grp_stats.json

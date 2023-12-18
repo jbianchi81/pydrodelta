@@ -8,6 +8,7 @@ from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionRe
 # import jsonschema
 # import yaml
 from pydrodelta.validation import getSchema, validate
+from pydrodelta.function_boundary import FunctionBoundary
 
 # schemas = {}
 # plan_schema = open("%s/data/schemas/json/polynomialtransformationprocedurefunction.json" % os.environ["PYDRODELTA_DIR"])
@@ -22,6 +23,12 @@ schemas, resolver = getSchema("PolynomialTransformationProcedureFunction","data/
 schema = schemas["PolynomialTransformationProcedureFunction"]
 
 class PolynomialTransformationProcedureFunction(ProcedureFunction):
+    _boundaries = [
+        FunctionBoundary({"name": "input"})
+    ]
+    _outputs = [
+        FunctionBoundary({"name": "output"})
+    ]
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.

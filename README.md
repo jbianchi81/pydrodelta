@@ -80,12 +80,20 @@ extract content into $PROJECT_DIR
 
 #### CLI
 
-    pydrodelta run_analysis pydrodelta_config/288_bordes_curados.json -u -p -c bordes_288.csv
+    source bin/activate
 
-    pydrodelta run-plan data/plans/dummy_polynomial.yml -c tmp/boundaries.csv -e tmp/corrida.json
+    pydrodelta run-analysis data/topologies/288_bordes_curados15d.yml -u -p -c tmp/288_bordes_curados15d_output.csv
 
-    # dummy run from csv data. Outputs json and pivot csv 
-    pydrodelta run-plan data/plans/from_csv.yml -e tmp/from_csv.json -E tmp/from_csv.csv -p
+    pydrodelta run-plan data/plans/dummy_polynomial.yml -c tmp/boundaries.csv -e tmp/corrida.json -E tmp/corrida.csv
+
+    # dummy run from csv data. Outputs json and pivot csv plus topology graph 
+    pydrodelta run-plan data/plans/from_csv.yml -e tmp/from_csv.json -E tmp/from_csv.csv -p -g
+
+    # dummy P-Q from csv
+    pydrodelta run-plan data/plans/dummy_grp_from_csv_one_node.yml -E tmp/grp_out.csv -p
+
+    # P-Q from a5
+    pydrodelta run-plan data/plans/pjau_grp.yml -E tmp/grp_out.csv -p
 
 #### References
 

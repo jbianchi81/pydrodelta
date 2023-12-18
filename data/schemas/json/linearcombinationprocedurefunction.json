@@ -1,0 +1,59 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "linearcombinationprocedurefunction.json",
+    "title": "LinearCombinationProcedureFunction",
+    "type": "object",
+    "description": "Multivariable linear combination procedure function - one linear combination for each forecast horizon. Being x [, y, ...] the boundary series, for each forecast time step t it returns intercept[t] + [ x[-l] * coefficients[t]boundaries['x'][l] for l in 1..lookback_steps ] and so on for additional boundaries and lookback steps.",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LinearCombination"
+            ]
+        },
+        "forecast_steps": {
+            "type": "integer"
+        },
+        "lookback_steps": {
+            "type": "integer"
+        },
+        "coefficients": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "intercept": {
+                        "type": "number"
+                    },
+                    "boundaries": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "values": {
+                                    "type": "array"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "description": "List of objects where each item represents a forecast time step (index 0 is first step). Each object has 'intercept' <number> and 'boundaries' <array>. Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
+            "minItems": 1
+        }
+    },
+    "required": [
+        "type",
+        "coefficients",
+        "forecast_steps",
+        "lookback_steps"
+    ]
+}
