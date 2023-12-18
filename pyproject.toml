@@ -15,7 +15,8 @@ dependencies = [
     "sklearn",
     "jsonschema",
     "pyyaml",
-    "isodate"
+    "isodate",
+    "networkx"
 ]
 
 [project.scripts]
