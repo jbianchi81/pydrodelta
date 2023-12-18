@@ -139,7 +139,8 @@ class GRPProcedureFunction(QPProcedureFunction):
         })
         return [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results 
     
-    def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> tuple[float,float,float]:
+    # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> tuple[float,float,float]:
+    def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:
         Pn = pma - etp if pma >= etp else 0
         Ps = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0
         Es = Sk*(2-Sk/self.X0)*tanh((etp-pma)/self.X0)/(1+(1-Sk/self.X0)*tanh((etp-pma)/self.X0)) if Pn == 0 else 0
