@@ -59,7 +59,8 @@ class GRPProcedureFunction(QPProcedureFunction):
             t = t + 1
         return UH1, SH1
 
-    def run(self,input: Optional[list[SeriesData]]=None) -> tuple[list[SeriesData], ProcedureFunctionResults]:
+    # def run(self,input: Optional[list[SeriesData]]=None) -> tuple[list[SeriesData], ProcedureFunctionResults]:
+    def run(self,input=None) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
