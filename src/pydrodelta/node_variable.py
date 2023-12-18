@@ -132,7 +132,7 @@ class NodeVariable:
         data.loc[:,"timeend"] = [x + self.time_support for x in data["timestart"]] if self.time_support is not None else data["timestart"]
         data.loc[:,"timestart"] = [x.isoformat() for x in data["timestart"]]
         data.loc[:,"timeend"] = [x.isoformat() for x in data["timeend"]]
-        if include_series_id:
+        if len(data) and include_series_id:
             data.loc[:,"series_id"] = self._node.id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
         return data.to_dict(orient="records")
     def outputToList(self,flatten=True):

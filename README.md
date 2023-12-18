@@ -95,6 +95,9 @@ extract content into $PROJECT_DIR
     # P-Q from a5
     pydrodelta run-plan data/plans/pjau_grp.yml -E tmp/grp_out.csv -p
 
+    # linear combination
+    bin/pydrodelta run-plan data/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png
+
 #### References
 
 Instituto Nacional del Agua

@@ -247,7 +247,7 @@ class Topology():
             if self._plan is not None:
                  cal_id = self._plan.id
             else:
-                raise Exception("Missing required parameter cal_id")
+                raise Exception("upload analysis: Missing required parameter cal_id")
         else:
             cal_id = self.cal_id
         prono = {
