@@ -103,6 +103,7 @@ class Procedure():
         index = 0
         for o in self.function.outputs:
             if o._variable.series_sim is None:
+                logging.warn("series_sim not defined for output %s" % o.name)
                 continue
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
