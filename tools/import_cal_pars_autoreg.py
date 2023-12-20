@@ -2,8 +2,14 @@ import json
 import yaml
 file = open("tmp/cal_286.json","r")
 calibrado = json.load(file)
-valores = [p["valor"] for p in calibrado["parametros"]]
-boundary_names = ["input_1","input_2"]
+def sort_key(p):
+    return p["orden"]
+
+calibrado[0]["parametros"].sort(key=sort_key)
+valores = [p["valor"] for p in calibrado[0]["parametros"]]
+
+
+boundary_names = ["input_1","input_2","input_3","input_4","input_5"]
 n = valores[0]
 m = valores[1]
 N = valores[2]

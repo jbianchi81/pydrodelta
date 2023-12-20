@@ -36,9 +36,11 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "input_1"}),
         FunctionBoundary({"name": "input_2", "optional": True})
     ]
+    _additional_boundaries = True
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
+    _additional_outputs = False
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.

@@ -418,7 +418,8 @@ class Topology():
         return report    
     def printGraph(self,nodes=None,output_file=None):
         DG = self.toGraph(nodes)
-        nx.draw_shell(DG, with_labels=True, font_weight='bold')
+        labels = nx.get_node_attributes(DG, 'name') 
+        nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels)
         if output_file is not None:
             plt.savefig(output_file, format='png')
             plt.close()
