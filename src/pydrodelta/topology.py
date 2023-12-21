@@ -418,8 +418,13 @@ class Topology():
         return report    
     def printGraph(self,nodes=None,output_file=None):
         DG = self.toGraph(nodes)
-        labels = nx.get_node_attributes(DG, 'name') 
-        nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels)
+        attrs = nx.get_node_attributes(DG, 'object') 
+        labels = {}
+        colors = []
+        for key in attrs:
+            labels[key] = attrs[key].name
+            colors.append("blue" if attrs[key].node_type == "basin" else "red")
+        nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors)
         if output_file is not None:
             plt.savefig(output_file, format='png')
             plt.close()
@@ -430,7 +435,7 @@ class Topology():
         for node in nodes:
             DG.add_node(node.id,object=node)
             if node.downstream_node is not None:
-                if type(node.downstream_node) == "list":
+                if type(node.downstream_node) is list:
                     for id in node.downstream_node:
                         DG.add_edge(node.id,id)
                 else:

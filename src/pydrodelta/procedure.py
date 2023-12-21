@@ -120,6 +120,7 @@ from pydrodelta.polynomial import PolynomialTransformationProcedureFunction
 from pydrodelta.muskingumchannel import MuskingumChannelProcedureFunction
 from pydrodelta.grp import GRPProcedureFunction
 from pydrodelta.linear_combination import LinearCombinationProcedureFunction
+from pydrodelta.expression import ExpressionProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -131,5 +132,6 @@ procedureFunctionDict = {
     "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
     "GRP": GRPProcedureFunction,
     "GRPProcedureFunction": GRPProcedureFunction,
-    "LinearCombination": LinearCombinationProcedureFunction
+    "LinearCombination": LinearCombinationProcedureFunction,
+    "Expression": ExpressionProcedureFunction
 }

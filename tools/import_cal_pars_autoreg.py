@@ -1,6 +1,6 @@
 import json
 import yaml
-file = open("tmp/cal_286.json","r")
+file = open("tmp/cal_231.json","r")
 calibrado = json.load(file)
 def sort_key(p):
     return p["orden"]
@@ -9,13 +9,13 @@ calibrado[0]["parametros"].sort(key=sort_key)
 valores = [p["valor"] for p in calibrado[0]["parametros"]]
 
 
-boundary_names = ["input_1","input_2","input_3","input_4","input_5"]
-n = valores[0]
-m = valores[1]
-N = valores[2]
+boundary_names = ["input_1","input_2"]
+m = int(valores[0])
+n = int(valores[1])
+N = 2 # int(valores[2])
 # (len(calibrado["parametros"]) - 3)
 coefficients = list()
-index = 3
+index = 2
 for i in range(n):
     step = {
         "intercept": valores[index],
@@ -30,5 +30,6 @@ for i in range(n):
         })
         index = index + m
     coefficients.append(step)
+   
 
-yaml.dump(coefficients,open("tmp/286_coefficients.yml","w"))
+yaml.dump(coefficients,open("tmp/231_coefficients.yml","w"))

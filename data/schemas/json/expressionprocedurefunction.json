@@ -1,0 +1,28 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "expressionprocedurefunction.json",
+    "title": "ExpressionProcedureFunction",
+    "type": "object",
+    "description": "Expression procedure function. It evaluates each the given python expression replacing 'value' placeholder for the given input value. ",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "Expression"
+            ]
+        },
+        "expression": {
+            "type": "string",
+            "description": "python expression. Each occurence of 'value' will be replaced with the given input value"
+        }
+    },
+    "required": [
+        "type",
+        "expression"
+    ]
+}

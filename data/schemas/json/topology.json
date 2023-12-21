@@ -120,6 +120,11 @@
             }
           ],
           "description": "id of the downstream node(s), if it exists"
+        },
+        "node_type": {
+          "description": "Type of node. 'station' or 'basin'",
+          "type": "string",
+          "enum": ["station","basin"]
         }
       },
       "required": [
