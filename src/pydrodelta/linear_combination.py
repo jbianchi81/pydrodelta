@@ -85,7 +85,9 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 for c_index, coefficient in enumerate(boundary.values):
                     lookback_date = self._procedure._plan.forecast_date - c_index * self._procedure._plan.time_interval
                     if lookback_date not in input[b_index].index:
-                        raise Exception("Missing value at %s for %s" % (str(lookback_date), boundary.name))
+                        raise Exception("Procedure %s: missing index at %s for %s" % (str(self._procedure.id),str(lookback_date), boundary.name))
+                    if input[b_index].at[lookback_date,"valor"] is None:
+                        raise Exception("Procedure %s: missing value at %s for %s" % (str(self._procedure.id),str(lookback_date), boundary.name))
                     result = result + coefficient * float(input[b_index].at[lookback_date,"valor"])
             output.append({
                 "timestamp": forecast_date,

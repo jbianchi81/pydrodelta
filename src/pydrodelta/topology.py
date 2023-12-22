@@ -48,6 +48,7 @@ class Topology():
         if self.timestart >= self.timeend:
             raise("Bad timestart, timeend parameters. timestart must be before timeend")
         self.interpolation_limit = None if "interpolation_limit" not in params else interval2timedelta(params["interpolation_limit"]) if isinstance(params["interpolation_limit"],dict) else params["interpolation_limit"]
+        self.extrapolate = None if "extrapolate" not in params else bool(params["extrapolate"])
         self.nodes = []
         for node in params["nodes"]:
             self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
@@ -83,7 +84,7 @@ class Topology():
         logging.debug("derive")
         self.derive()
         logging.debug("interpolate")
-        self.interpolate(limit=self.interpolation_limit)
+        self.interpolate(limit=self.interpolation_limit,extrapolate=self.extrapolate)
         self.setOutputData()
         self.plotProno()
         if(self.report_file is not None):
@@ -148,9 +149,9 @@ class Topology():
             for variable in node.variables.values():
                 if variable.series_prono is not None:
                     variable.concatenateProno()
-    def interpolate(self,limit=None):
+    def interpolate(self,limit=None,extrapolate=None):
         for node in self.nodes:
-            node.interpolate(limit=limit)
+            node.interpolate(limit=limit,extrapolate=extrapolate)
     def setOutputData(self):
         for node in self.nodes:
             node.setOutputData()

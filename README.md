@@ -81,6 +81,8 @@ extract content into $PROJECT_DIR
 #### CLI
 
     source bin/activate
+    
+    export PYDRODELTA_DIR=$PWD
 
     pydrodelta run-analysis data/topologies/288_bordes_curados15d.yml -u -p -c tmp/288_bordes_curados15d_output.csv
 
@@ -96,7 +98,7 @@ extract content into $PROJECT_DIR
     pydrodelta run-plan data/plans/pjau_grp.yml -E tmp/grp_out.csv -p
 
     # linear combination
-    bin/pydrodelta run-plan data/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png
+    bin/pydrodelta run-plan data/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png -c tmp/paraguay.csv --pivot
 
 #### References
 

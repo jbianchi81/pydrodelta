@@ -43,6 +43,12 @@
     },
     "plot_params": {
       "href": "#/$defs/PlotParams"
+    },
+    "interpolation_limit": {
+      "type": "number"
+    },
+    "extrapolate": {
+      "type": "boolean"
     }
   },
   "required": [
@@ -65,9 +71,6 @@
         },
         "time_interval": {
           "$ref": "timeinterval.json"
-        },
-        "interpolation_limit": {
-          "type": "number"
         },
         "variables": {
           "description": "Variables observed or estimated at this node",
@@ -271,6 +274,12 @@
         },
         "time_interval": {
           "$ref": "timeinterval.json"
+        },
+        "interpolation_limit": {
+          "type": "number"
+        },
+        "extrapolate": {
+          "type": "boolean"
         }
       },
       "required": [

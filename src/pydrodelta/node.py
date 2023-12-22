@@ -129,7 +129,7 @@ class Node:
             for variable in self.variables.values():
                 data = data.append(variable.concatenateProno(inline=False,ignore_warmup=ignore_warmup))
             return data
-    def interpolate(self,limit : timedelta=None,extrapolate=False):
+    def interpolate(self,limit : timedelta=None,extrapolate=None):
         for variable in self.variables.values():
                 variable.interpolate(limit=limit,extrapolate=extrapolate)
     def plot(self):

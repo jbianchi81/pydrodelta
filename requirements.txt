@@ -4,7 +4,7 @@ numpy
 matplotlib
 pandas
 pytz
-sklearn
+scikit-learn
 jsonschema
 pyyaml
 click

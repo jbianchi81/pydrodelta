@@ -39,6 +39,7 @@ class NodeVariable:
         self.adjust_from = params["adjust_from"] if "adjust_from" in params else None
         self.linear_combination = params["linear_combination"] if "linear_combination" in params else None
         self.interpolation_limit = params["interpolation_limit"] if "interpolation_limit" in params else None # in rows
+        self.extrapolate = params["extrapolate"] if "extrapolate" in params else False
         if self.interpolation_limit is not None and self.interpolation_limit <= 0:
             raise("Invalid interpolation_limit: must be greater than 0")
         self.data = None
@@ -318,9 +319,11 @@ class NodeVariable:
             logging.warning("No series_prono data found for node %i" % self.id)
             if not inline:
                 return self.data
-    def interpolate(self,limit : timedelta=None,extrapolate=False):
-        interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if limit is not None else self.interpolation_limit 
+    def interpolate(self,limit : timedelta=None,extrapolate=None):
+        extrapolate = extrapolate if extrapolate is not None else self.extrapolate
+        interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
         logging.info("interpolation limit:%s" % str(interpolation_limit))
+        logging.info("extrapolate:%s" % str(extrapolate))
         if interpolation_limit is not None and interpolation_limit <= 0:
             return
         self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)
