@@ -62,8 +62,9 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         self.par_fg = par_fg(self.parameters["par_fg"],self.area) if "par_fg" in self.parameters else None
         # max substeps
         self.max_npasos = self.parameters["max_npasos"] if "max_npasos" in self.parameters else None
-        self.no_check1 = self.parameteres["no_check1"] if "no_check1" in self.parameters else False
-        self.no_check2 = self.parameteres["no_check2"] if "no_check2" in self.parameters else False
+        self.no_check1 = self.parameters["no_check1"] if "no_check1" in self.parameters else False
+        self.no_check2 = self.parameters["no_check2"] if "no_check2" in self.parameters else False
+        self.rk2 = self.parameters["rk2"] if "rk2" in self.parameters else None
     
     def constraint(self,value,name):
         if name == 'x1':
@@ -136,8 +137,8 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         return (n1, n2)
 
     def advance_substep(self, x_n, p, pet, npasos):
-        x_ = x_n			# @x_n: estados iniciales @x_: estados intermedios
-        X = []					# @X: derivadas
+        x_ = x_n            # @x_n: estados iniciales @x_: estados intermedios
+        X = []                    # @X: derivadas
         rk = 0
         while rk <= 3:
             sr = p * (x_[0] / self.x1_0)**self.m1
@@ -151,62 +152,42 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
             X[rk][1] = pc - et2 - gw
             X[rk][2] = sr + bf- x_[2] * self.alfa;
             X[rk][3] = x_[2] * self.alfa - x_[3] * self.alfa;
-            
-            
             rk = rk + 1
-
-        	my $sr=$p*($x_[0]/$x1_0)**$m1;
-		my $et1=$pet*($x_[0]/$x1_0);
-		my $int=$c1*$x_[0];
-		my $pc=$c3*$x2_0*(1+$c2*(1-$x_[1]/$x2_0)**$m2)*($x_[0]/$x1_0);
-		#~ $pc = ($pc/$_[6] > $x_[0] + ($p + $sr - $et1 - $int)/$_[6]) ? $x_[0] + ($p + $sr - $et1 - $int)/$_[6] : $pc;
-		 ### min($c3*$x2_0*(1+$c2*(1-$x_[1]/$x2_0)**$m2)*($x_[0]/$x1_0),$x_[0]+$p/$npasos-$sr/$npasos-$et1/$npasos-$int/$npasos);
-		my $et2=($pet-$et1)*($x_[1]/$x2_0)**$m3;
-		my $gw=$c3*$x_[1];
-		my $bf=(1+$mu)**(-1)*$gw+$int;
-		$X[$rk][0]=$p-$sr-$pc-$et1-$int;
-		$X[$rk][1]=$pc-$et2-$gw;
-		$X[$rk][2]=$sr+$bf-$x_[2]*$alfa;
-		$X[$rk][3]=$x_[2]*$alfa-$x_[3]*$alfa;
-		printf $rk_out "%s	%.2f	%d	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f\n",  $gl_date, $gl_mjd, $rk, $p, $pet, $x_[0], $x_[1], $x_[2], $x_[3], $sr, $et1, $int, $pc, $et2, $gw, $bf, $X[$rk][0],  $X[$rk][1],  $X[$rk][2],  $X[$rk][3];
-	### if rk2
-		if($input->{extra_pars}->{rk2}) {
-			if($rk==0) {
-				for(my $i=0;$i<=3;$i++)
-				{
-					$x_[$i]=&constraint($x_n[$i]+$X[$rk][$i]/$_[6],$statenames[$i]);
-				}
-			} else {
-				my @out;
-				for(my $k=0;$k<=3;$k++)
-				{
-					$out[$k]=&constraint($x_n[$k]+($X[0][$k]+$X[1][$k])/2/$_[6],$statenames[$k]);
-				}
-				#~ @x = @out;
-				return $out[0],$out[1],$out[2],$out[3];						
-				#~ last;
-			}
-		} else {    #### rk4
-			if($rk<3)
-			{
-				for($i=0;$i<=3;$i++)
-				{
-					$x_[$i]=&constraint($x_n[$i]+$X[$rk][$i]/$denom_rk[$rk]/$_[6],$statenames[$i]);
-				}
-			}
-			else
-			{
-				my @out;
-				my @max=($x1_0,$x2_0);
-				for(my $k=0;$k<=3;$k++)
-				{
-					$out[$k]=&constraint($_[$k]+($X[0][$k]+2*$X[1][$k]+2*$X[2][$k]+$X[3][$k])/6/$_[6],$statenames[$k]);
-				}
-				return $out[0],$out[1],$out[2],$out[3];
-			}
-		}
-	}
-}
+            sr = p * (x_[0] / self.x1_0) ** self.m1
+            et1 = pet * (x_[0] / self.x1_0)
+            int = self.c1 * x_[0]
+            pc = self.c3 * self.x2_0 * (1 + self.c2 * ( 1 - x_[1] / self.x2_0) ** self.m2) * (x_[0] / self.x1_0)
+            #~ $pc = ($pc/$_[6] > $x_[0] + ($p + $sr - $et1 - $int)/$_[6]) ? $x_[0] + ($p + $sr - $et1 - $int)/$_[6] : $pc;
+            ### min($c3*$x2_0*(1+$c2*(1-$x_[1]/$x2_0)**$m2)*($x_[0]/$x1_0),$x_[0]+$p/$npasos-$sr/$npasos-$et1/$npasos-$int/$npasos);
+            et2 = (pet - et1) * (x_[1] / self.x2_0) ** self.m3
+            gw = self.c3 * x_[1]
+            bf = (1 + self.mu) ** (-1) * gw + int
+            X[rk][0] = p - sr - pc - et1 - int
+            X[rk][1] = pc - et2 - gw
+            X[rk][2] = sr + bf - x_[2] * self.alfa
+            X[rk][3] = x_[2] * self.alfa - x_[3] * self.alfa
+            # printf $rk_out "%s    %.2f    %d    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n",  $gl_date, $gl_mjd, $rk, $p, $pet, $x_[0], $x_[1], $x_[2], $x_[3], $sr, $et1, $int, $pc, $et2, $gw, $bf, $X[$rk][0],  $X[$rk][1],  $X[$rk][2],  $X[$rk][3];
+            ### if rk2
+            if self.rk2 is not None and rk == 0:
+                for i in range(4):
+                    x_[i] = self.constraint(x_n[i] + X[rk][i]/npasos,self.statenames[i])         
+            else:
+                out = []
+                for k in range(4):
+                    out[k] = self.constraint(x_n[k] + (X[0][k] + X[1][k]) / 2 / npasos,self.statenames[k])
+                #~ @x = @out;
+                return out[0], out[1], out[2], out[3]                        
+                #~ last;
+        else:    #### rk4
+            if rk < 3:
+                for i in range(4):
+                    x_[i] = self.constraint(x_n[i] + X[rk][i] / self.denom_rk[rk]/npasos,self.statenames[i])
+            else:
+                out = []
+                max = (self.x1_0,self.x2_0)
+                for k in range(4):
+                    out[k] = self.constraint(x_n[k] + (X[0][k] + 2 * X[1][k] + 2 * X[2][k] + X[3][k]) / 6 / npasos, self.statenames[k])
+                return out[0], out[1], out[2], out[3]
 
 
     def advance_step(self,x,pma,etp):
@@ -225,13 +206,10 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         while(l <= npasos):
             gl_mjd += 1/npasos
             x = self.advance_substep(x, pma, etp, npasos)
-            printf $super_out "%s	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f	%.2f\n", $gl_date, $gl_mjd, $_[4]/$npasos, $_[5]/$npasos, @x;
+            # printf $super_out "%s    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n", $gl_date, $gl_mjd, $_[4]/$npasos, $_[5]/$npasos, @x;
             l = l + 1
 
-        }
-	return ($x[0],$x[1],$x[2],$x[3]);
-}
-
+        return x[0], x[1], x[2], x[3]
 
     def run(self,input: Optional[list[SeriesData]]=None) -> tuple[list[SeriesData], ProcedureFunctionResults]:
         """
@@ -279,7 +257,7 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
             etp = input[1].loc[[i]].valor.item()
             q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
             smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
-            smc = (self.rho-self.wp)*Sk/self.X0+self.wp
+            smc = (self.rho - self.wp) * self.Sk / self.X0 + self.wp
             if pma is None:
                 if self.fillnulls:
                     logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
@@ -361,10 +339,10 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         R1 = max(0, Rk+Quh)
         # update with q_obs (disabled by default)
         if q_obs is not None and self.update:
-            Qt = q_obs*1000*24*60*60*self.dt/self.area/self.ae
-            R1 = ((Qt**2+4*self.X1*Qt)**0.5+Qt)/2
-        Qr = R1**2/(R1+self.X1)
-        Qk = Qr/1000/24/60/60/self.dt*self.area*self.ae
+            Qt = q_obs * 1000 * 24 * 60 * 60 * self.dt / self.area / self.ae
+            R1 = ((Qt ** 2 + 4 * self.X1 * Qt) ** 0.5 + Qt) / 2
+        Qr = R1 ** 2 / (R1 + self.X1)
+        Qk = Qr / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae
         Rk_ = R1 - Qr
         return Sk_, Rk_, Qk
 

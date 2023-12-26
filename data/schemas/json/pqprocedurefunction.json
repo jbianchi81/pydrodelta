@@ -16,7 +16,8 @@
                 "PQ",
                 "PQProcedureFunction",
                 "GRP",
-                "GRPProcedureFunction"
+                "GRPProcedureFunction",
+                "SacramentoSimplified"
             ]
         },
         "init_states": {
