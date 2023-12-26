@@ -102,7 +102,7 @@ extract content into $PROJECT_DIR
 
 #### TODO list
 
-[ ] Color plan.topology.plotVariable() according to tag (obs,sim)
+[x] Color plan.topology.plotVariable() according to tag (obs,sim)
 
 #### References
 
