@@ -100,6 +100,10 @@ extract content into $PROJECT_DIR
     # linear combination
     bin/pydrodelta run-plan data/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png -c tmp/paraguay.csv --pivot
 
+#### TODO list
+
+[ ] Color plan.topology.plotVariable() according to tag (obs,sim)
+
 #### References
 
 Instituto Nacional del Agua

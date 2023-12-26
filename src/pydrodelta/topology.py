@@ -15,6 +15,7 @@ from pydrodelta.util import getParamOrDefaultTo
 from pydrodelta.observed_node_variable import ObservedNodeVariable
 from pydrodelta.derived_node_variable import DerivedNodeVariable
 import networkx as nx
+import matplotlib.backends.backend_pdf
 
 schema = open("%s/data/schemas/json/topology.json" % os.environ["PYDRODELTA_DIR"])
 #schema = open("%s/data/schemas/yaml/topology.yml" % os.environ["PYDRODELTA_DIR"])
@@ -301,21 +302,38 @@ class Topology():
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
         # data = data.replace({np.NaN:None})
         return data
-    def plotNodes(self,timestart:datetime=None,timeend:datetime=None):
+    def plotVariable(self,var_id,timestart:datetime=None,timeend:datetime=None,output=None):
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange"}
+        if output is not None:
+            matplotlib.use('pdf')
+            pdf = matplotlib.backends.backend_pdf.PdfPages(output)
+        else:
+            matplotlib.use(os.environ["MPLBACKEND"])
         for node in self.nodes:
             # if hasattr(node.series[0],"data"):
-            if node.data is not None and len(node.data):
-                data = node.data.reset_index() # .plot(y="valor")
+            if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
+                data = node.variables[var_id].data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
                 if timestart is not None:
                     data = data[data["timestart"] >= timestart]
                 if timeend is not None:
                     data = data[data["timestart"] <= timeend]
                 # data = node.series[0].data.reset_index() # .plot(y="valor")
-                ax = data.plot(kind="scatter",x="timestart",y="valor",title=node.name, figsize=(20,8),grid=True)
+                # data.plot(kind="scatter",x="timestart",y="valor",title=node.name, figsize=(20,8),grid=True)
+                fig, ax = plt.subplots(figsize=(20,8))
+                grouped = data.groupby('tag')
+                for key, group in grouped:
+                    group.plot(ax=ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
                 if hasattr(node,"max_obs_date"):
-                    ax.axvline(node.max_obs_date, color='k', linestyle='--')
-        plt.show()
+                    plt.axvline(node.max_obs_date, color='k', linestyle='--')
+                if output is not None:
+                    pdf.savefig()
+            else:
+                logging.warn("topology.plotVariable: Skipping node %s" % str(node.id))
+        if output is not None:
+            pdf.close()
+        else:
+            plt.show()
     def plotProno(self,output_dir:str=None,figsize=None,title=None,markersize=None,obs_label=None,tz=None,prono_label=None,footnote=None,errorBandLabel=None,obsLine=None,prono_annotation=None,obs_annotation=None,forecast_date_annotation=None,ylim=None,datum_template_string=None,title_template_string=None,x_label=None,y_label=None,xlim=None,text_xoffset=None):
         output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
         footnote = getParamOrDefaultTo("footnote",footnote,self.plot_params)

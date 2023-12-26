@@ -62,7 +62,8 @@ logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filen
 @click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=False, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats):
+@click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var):
     """
     run plan from plan config file
     
@@ -95,4 +96,9 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         plan.toCorridaCsv(export_corrida_csv,pivot=pivot)
     if graph_file is not None:
         plan.topology.printGraph(output_file=graph_file)
+    if plot_var is not None:
+        for var_tuple in plot_var:
+            var_id, filename = var_tuple
+            logging.info("plotVariable: var_id: %s, filename: %s" % (var_id, filename))
+            plan.topology.plotVariable(var_id,output=filename)
 

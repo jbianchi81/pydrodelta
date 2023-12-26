@@ -35,7 +35,8 @@ from pydrodelta.topology import Topology
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--upload_series_prono","-U", is_flag=True, help="upload [adusted] series_prono as pronosticos", type=bool, default=False, show_default=True)
 @click.option("--upload_series_output_as_prono","-o", is_flag=True, help="upload series_output as pronosticos", type=bool, default=False, show_default=True)
-def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono):
+@click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
+def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono,plot_var):
     """
     run analysis of border conditions from topology file
     
@@ -67,4 +68,10 @@ def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono
         topology.uploadDataAsProno(True,False)
     if graph_file is not None:
         topology.printGraph(output_file=graph_file)
+    if plot_var is not None:
+        for var_tuple in plot_var:
+            var_id, filename = var_tuple
+            logging.info("plotVariable: var_id: %s, filename: %s" % (var_id, filename))
+            topology.plotVariable(var_id,output=filename)
+
 
