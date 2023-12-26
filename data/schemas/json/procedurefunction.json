@@ -1,54 +1,104 @@
 {
-    "$id": "procedurefunction.json",
-    "$schema":"https://json-schema.org/draft/2020-12/schema",
-    "title": "ProcedureFunction",
-    "type": "object",
-    "description": "The transformation function of the procedure",
-    "properties": {
-      "type": {
-        "description": "The id or class name of the procedureFunction type. One of 'ProcedureFunction', 'HecRasProcedureFunction', 'HecRas'",
-        "type": "string",
-        "enum": [
-          "ProcedureFunction",
-          "HecRasProcedureFunction",
-          "HecRas",
-          "Polynomial",
-          "PolynomialTransformationProcedureFunction",
-          "MuskingumChannel",
-          "MuskingumChannelProcedureFunction"
-        ]
-      },
-      "parameters": {
-        "description": "list of function parameter values",
-        "type": "array",
-        "items": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
+  "$id": "procedurefunction.json",
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title": "ProcedureFunction",
+  "type": "object",
+  "description": "The transformation function of the procedure",
+  "properties": {
+    "type": {
+      "description": "The id or class name of the procedureFunction type. One of 'ProcedureFunction', 'HecRasProcedureFunction', 'HecRas'",
+      "type": "string"
+    },
+    "parameters": {
+      "description": "list of function parameter values",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        {
+          "type": "object"
         }
-      },
-      "initial_states": {
-        "description": "list of function initial state values",
-        "type": "array",
-        "items": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
+      ]
+    },
+    "initial_states": {
+      "description": "list of function initial state values",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "boundaries": {
+      "description": "List of boundary conditions. Each item has a name <string> and a node_variable <NodeVariableIdTuple>",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "$ref": "#/$defs/ProcedureBoundary"
+          }
         }
       }
     },
-    "required": [
-      "type"
-    ]
-  }
+    "outputs": {
+      "description": "list of procedure outputs. Each item has a name <string> and a node_variable tuple <NodeVariableIdTuple>",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProcedureBoundary"
+      }
+    }
+  },
+  "required": [
+    "type",
+    "boundaries",
+    "outputs"
+  ],
+  "$defs": {
+    "ProcedureBoundary": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "node_variable": {
+          "$ref": "#/$defs/NodeVariableIdTuple"
+        }
+      },
+      "required": ["name","node_variable"]
+    },
+    "NodeVariableIdTuple": {
+      "description": "first element is node id, second element is variable id. Must map to procedure.boundaries",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "integer"
+      }
+    }
+  } 
+}
+
   

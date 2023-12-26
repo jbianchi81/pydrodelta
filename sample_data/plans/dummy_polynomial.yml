@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=../schemas/json/plan.json
+---
+name: dummy_polynomial
+id: 2346524646
+topology:
+  timestart:
+    days: -90
+  timeend:
+    hours: -6
+  nodes:
+  - id: 1
+    name: san fernando
+    time_interval:
+      hours: 1
+    variables:
+    - id: 85
+      series:
+      - series_id: 31605
+      series_sim:
+      - series_id: 31554
+procedures:
+- id: 1
+  function:
+    type: Polynomial
+    intercept: 22.0
+    coefficients: [4.0]
+    boundaries:
+      input: [1,85]
+    outputs:
+      output: [1,85]
+output_analysis: tmp/dummy_polynomial_analysis.json

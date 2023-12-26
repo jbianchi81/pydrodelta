@@ -1,0 +1,58 @@
+{
+    "$id": "procedure.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "initial_states": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "function": {
+        "anyOf": [
+          {
+            "$ref": "procedurefunction.json"
+          },
+          {
+            "$ref": "hecrasprocedurefunction.json"
+          },
+          {
+            "$ref": "polynomialtransformationprocedurefunction.json"
+          },
+          {
+            "$ref": "pqprocedurefunction.json"
+          },
+          {
+            "$ref": "expressionprocedurefunction.json"
+          }
+        ]
+      },
+      "parameters": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "time_interval": {
+        "$ref": "timeinterval.json"
+      },
+      "time_offset": {
+        "$ref": "timeinterval.json"
+      }
+    },
+    "required": [
+      "id",
+      "function"
+    ]
+}
