@@ -103,6 +103,8 @@ extract content into $PROJECT_DIR
 #### TODO list
 
 [x] Color plan.topology.plotVariable() according to tag (obs,sim)
+[ ] SacramentoSimplified procedure function
+[ ] procedure function schemas: harmonize initial conditions (init_states vs initial_states, array vs object)
 
 #### References
 

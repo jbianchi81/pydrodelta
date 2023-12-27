@@ -1,0 +1,139 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sacramentosimplifiedprocedurefunction.json",
+    "title": "SacramentoSimplifiedProcedureFunction",
+    "type": "object",
+    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation",
+    "allOf": [
+        {
+            "$ref": "pqprocedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": ["SacramentoSimplified"]
+        },
+        "initial_states": {
+            "type": "array",
+            "description": "Initial storages: [x1,x2,x3,x4]",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+                "type": "number"
+            }
+        },
+        "parameters": {
+            "type": "object",
+            "description": "Model parameters",
+            "properties": {
+                "x1_0": {
+                    "type": "number"
+                },
+                "x2_0": {
+                    "type": "number"
+                },
+                "m1": {
+                    "type": "number"
+                },
+                "c1": {
+                    "type": "number"
+                },
+                "c2": {
+                    "type": "number"
+                },
+                "c3": {
+                    "type": "number"
+                },
+                "mu": {
+                    "type": "number"
+                },
+                "alfa": {
+                    "type": "number"
+                },
+                "m2": {
+                    "type": "number"
+                },
+                "m3": {
+                    "type": "number"
+                },
+                "windowsize": {
+                    "type": "integer"
+                },
+                "dt": {
+                    "$ref": "timeinterval.json"
+                },
+                "rho":  {
+                    "type": "number",
+                    "description": "soil porosity (0-1)"
+                },
+                "area": {
+                    "type": "number",
+                    "description": "basin area in square meters"
+                },
+                "ae": {
+                    "type": "number",
+                    "description": "effective area (0-1)"
+                },
+                "wp": {
+                    "type": "number",
+                    "description": "wilting point of soil (0-1)"
+                },
+                "sm_transform": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "Linear transformation parameters for soil moisture [intercept, coefficient]",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "par_fg": {
+                    "description": "flood guidance parameters",
+                    "type": "object",
+                    "properties": {
+                        "CN2": {
+                            "type": "number",
+                            "description": "Curve number for moisture condition 2"
+                        },
+                        "hp1dia": {
+                            "type": "number"
+                        },
+                        "hp2dias": {
+                            "type": "number"
+                        },
+                        "Qbanca": {
+                            "type": "number",
+                            "description": "bankfull discharge"
+                        }
+                    },
+                    "required": ["CN2", "hp1dia", "hp2dias", "Qbanca"],
+                    "additionalProperties": false
+                },
+                "max_npasos": {
+                    "type": "integer",
+                    "description": "Maximum number of substeps"
+                },
+                "no_check1": {
+                    "type": "boolean",
+                    "description": "skip numeric stability check 1"
+                },
+                "no_check2": {
+                    "type": "boolean",
+                    "description": "skip numeric stability check 2"
+                },
+                "rk2": {
+                    "type": "boolean",
+                    "description": "Use Runge-Kutta 2 instead of default Runge-Kutta 4"
+                }      
+            },
+            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "type",
+        "parameters",
+        "init_states"
+    ]
+}

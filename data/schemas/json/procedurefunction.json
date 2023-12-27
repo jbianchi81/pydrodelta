@@ -6,7 +6,7 @@
   "description": "The transformation function of the procedure",
   "properties": {
     "type": {
-      "description": "The id or class name of the procedureFunction type. One of 'ProcedureFunction', 'HecRasProcedureFunction', 'HecRas'",
+      "description": "The id or class name of the procedureFunction type. Either 'ProcedureFunction' or a derived type identifier",
       "type": "string"
     },
     "parameters": {

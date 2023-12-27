@@ -22,19 +22,22 @@
       "function": {
         "anyOf": [
           {
-            "$ref": "procedurefunction.json"
-          },
-          {
             "$ref": "hecrasprocedurefunction.json"
           },
           {
             "$ref": "polynomialtransformationprocedurefunction.json"
           },
           {
+            "$ref": "expressionprocedurefunction.json"
+          },
+          {
+            "$ref": "sacramentosimplifiedprocedurefunction.json"
+          },
+          {
             "$ref": "pqprocedurefunction.json"
           },
           {
-            "$ref": "expressionprocedurefunction.json"
+            "$ref": "procedurefunction.json"
           }
         ]
       },

@@ -78,9 +78,9 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         handler.setFormatter(formatter)
         root.addHandler(handler)
     t_config = yaml.load(open(config_file),yaml.CLoader)
-    plan = Plan(t_config)
     if output_stats is not None:
-        t_config.output_stats = output_stats
+        t_config["output_stats"] = output_stats
+    plan = Plan(t_config)
     plan.execute(include_prono=include_prono,upload=False)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)

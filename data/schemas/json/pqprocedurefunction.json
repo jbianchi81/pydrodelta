@@ -27,43 +27,6 @@
         "parameters": {
             "type": "object",
             "description": "Model parameters"
-        },
-        "boundaries": {
-          "description": "object for mapping boundary conditions with node variable tuples. keys must be boundary condition names and values should be NodeVariableIdTuples.",
-          "type": "object",
-          "properties": {
-            "pma": {
-                "description": "mean areal precipitation",
-                "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-            },
-            "etp": {
-                "description": "mean areal potential evapotranspiration",
-                "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-            },
-            "q_obs": {
-                "description": "observed discharge (optional)",
-                "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-            },
-            "smc_obs": {
-                "description": "observed soil moisture (optional)",
-                "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-            }
-          },
-          "required": ["pma", "etp"]
-        },
-        "outputs": {
-            "description": "object for mapping procedure outputs with node variable tuples. Keys must be output names and values must be NodeVariableIdTuples",
-            "type": "object",
-            "properties": {
-                "q_sim": {
-                    "description": "simulated discharge",
-                    "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-                },
-                "smc_sim": {
-                    "description": "simulated soil moisture",
-                    "$ref": "procedurefunction.json#/$defs/NodeVariableIdTuple"
-                }
-            }
         }
     },
     "required": [

@@ -121,6 +121,7 @@ from pydrodelta.muskingumchannel import MuskingumChannelProcedureFunction
 from pydrodelta.grp import GRPProcedureFunction
 from pydrodelta.linear_combination import LinearCombinationProcedureFunction
 from pydrodelta.expression import ExpressionProcedureFunction
+from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -133,5 +134,6 @@ procedureFunctionDict = {
     "GRP": GRPProcedureFunction,
     "GRPProcedureFunction": GRPProcedureFunction,
     "LinearCombination": LinearCombinationProcedureFunction,
-    "Expression": ExpressionProcedureFunction
+    "Expression": ExpressionProcedureFunction,
+    "SacramentoSimplified": SacramentoSimplifiedProcedureFunction
 }
