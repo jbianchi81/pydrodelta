@@ -1,0 +1,117 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sacenkfprocedurefunction.json",
+    "title": "SacEnKFProcedureFunction",
+    "type": "object",
+    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation - ensemble with data assimilation",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": ["SacEnKF"]
+        },
+        "initial_states": {
+            "type": "array",
+            "description": "Initial storages: [x1,x2,x3,x4]",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+                "type": "number"
+            }
+        },
+        "parameters": {
+            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+        },
+        "extra_pars": {
+            "$ref": "#/$defs/ExtraPars"
+        }
+    },
+    "required": [
+        "type",
+        "parameters",
+        "extra_pars",
+        "initial_states"
+    ],
+    "$defs": {
+        "ExtraPars": {
+            "type": "object",
+            "allOf": [
+                {
+                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+                }
+            ],
+            "properties": {
+               "stddev_forzantes": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number"
+                    }
+               },
+                "stddev_estados": {
+                    "type": "number"
+                },
+                "var_innov": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "string",
+                        "enum": ["reg", "rule"]
+                    }
+                },
+                "trim_sm":{
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "boolean"
+                    }
+                },
+                "rule": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "asim": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": ["string", "null"]
+                    },
+                    "update": {
+                        "type": "array",
+                        "minLength": 4,
+                        "maxLength": 4,
+                        "items": {
+                            "type": ["string", null]
+                        }
+                    },
+                    "xpert": {
+                        "type": "boolean"
+                    },
+                    "replicates": {
+                        "type": "integer"
+                    },
+                    "windowsize":  {
+                        "type": "integer"
+                    }
+                }
+            },
+            "required": ["area"]
+        }
+    }
+}

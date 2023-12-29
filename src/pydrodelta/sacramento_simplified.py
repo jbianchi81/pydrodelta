@@ -86,6 +86,7 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
             FG1 = 0.5 * (Th_R1 + 0.4 * S + sqrt((Th_R1 + 0.4 * S)**2 - 4 * (0.04 * S**2 - 0.8 * S * Th_R1)))
             FG2 = 0.5 * (Th_R2 + 0.4 * S+sqrt((Th_R2 + 0.4 * S)**2 - 4 * (0.04 * S**2 - 0.8 * S * Th_R2)))
             return (FG1,FG2)
+        return None, None
 
     def check3(self, x1n, X0, c):
         nn = 1

@@ -133,6 +133,7 @@ from pydrodelta.grp import GRPProcedureFunction
 from pydrodelta.linear_combination import LinearCombinationProcedureFunction
 from pydrodelta.expression import ExpressionProcedureFunction
 from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from pydrodelta.sac_enkf import SacEnkfProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -146,5 +147,6 @@ procedureFunctionDict = {
     "GRPProcedureFunction": GRPProcedureFunction,
     "LinearCombination": LinearCombinationProcedureFunction,
     "Expression": ExpressionProcedureFunction,
-    "SacramentoSimplified": SacramentoSimplifiedProcedureFunction
+    "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
+    "SacEnKF": SacEnkfProcedureFunction
 }
