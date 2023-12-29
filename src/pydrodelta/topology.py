@@ -183,7 +183,7 @@ class Topology():
         
         pivot: boolean              pivot observations on index (timestart)
         use_node_id: boolean    uses node.id as series_id instead of node.output_series[0].id
-        flatten: boolean        if set to false, returns list of series objects:[{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True)
+        flatten: boolean        if set to False, returns list of series objects:[{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True)
         """
         if pivot:
             data = self.pivotData()
