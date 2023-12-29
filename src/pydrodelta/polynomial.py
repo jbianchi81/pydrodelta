@@ -63,4 +63,4 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
             output_serie = serie.copy()
             output_serie.valor = [self.transformation_function(valor) for valor in output_serie.valor]
             output.append(output_serie)
-        return output, ProcedureFunctionResults()
+        return output, ProcedureFunctionResults(), None

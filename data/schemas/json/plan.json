@@ -47,6 +47,10 @@
       "output_analysis": {
         "type": "string",
         "description": "analysis output file"
+      },
+      "pivot": {
+        "type": "boolean",
+        "description": "Print output grouped by index (timestart)"
       }
     },
     "required": [

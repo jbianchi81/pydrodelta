@@ -63,7 +63,9 @@ logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filen
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
 @click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var):
+@click.option("--pretty", "-r", is_flag=True, help="json pretty print", default=False, show_default=True)
+@click.option("--output-analysis", "-a", help="output analysis result (json)", type=str, default=None)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis):
     """
     run plan from plan config file
     
@@ -80,18 +82,22 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
     t_config = yaml.load(open(config_file),yaml.CLoader)
     if output_stats is not None:
         t_config["output_stats"] = output_stats
+    if output_analysis is not None:
+        t_config["output_analysis"] = output_analysis
+    if pivot is not None:
+        t_config["pivot"] = pivot
     plan = Plan(t_config)
-    plan.execute(include_prono=include_prono,upload=False)
+    plan.execute(include_prono=include_prono,upload=False,pretty=pretty)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)
     if json is not None:
-        plan.topology.saveData(json,format="json",pivot=pivot)
+        plan.topology.saveData(json,format="json",pivot=pivot,pretty=pretty)
     if upload:
         plan.topology.uploadData()
         if include_prono:
             plan.topology.uploadDataAsProno()
     if export_corrida_json is not None:
-        plan.toCorridaJson(export_corrida_json)
+        plan.toCorridaJson(export_corrida_json,pretty=pretty)
     if export_corrida_csv is not None:
         plan.toCorridaCsv(export_corrida_csv,pivot=pivot)
     if graph_file is not None:

@@ -6,7 +6,7 @@
     "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation",
     "allOf": [
         {
-            "$ref": "pqprocedurefunction.json"
+            "$ref": "procedurefunction.json"
         }
     ],
     "properties": {
@@ -24,39 +24,70 @@
             }
         },
         "parameters": {
+            "$ref": "#/$defs/Parameters"
+        },
+        "extra_pars": {
+            "$ref": "#/$defs/ExtraPars"
+        }
+    },
+    "required": [
+        "type",
+        "parameters",
+        "extra_pars",
+        "initial_states"
+    ],
+    "$defs": {
+        "Parameters": {
             "type": "object",
             "description": "Model parameters",
             "properties": {
                 "x1_0": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "top soil layer storage capacity [L]"
                 },
                 "x2_0": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "bottom soil layer storage capacity [L]"
                 },
                 "m1": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "runoff function exponent [-]"
                 },
                 "c1": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "interflow function coefficient [1/T]"
                 },
                 "c2": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "percolation function coefficient [-]"
                 },
                 "c3": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "base flow recession rate [1/T]"
                 },
                 "mu": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "base flow/deep percolation partition parameter [-]"
                 },
                 "alfa": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "linear reservoir coefficient [1/T]"
                 },
                 "m2": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "percolation function exponent [-]"
                 },
                 "m3": {
-                    "type": "number"
-                },
+                    "type": "number",
+                    "description": "evapotranspiration function exponent [-]"
+                }     
+            },
+            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "additionalProperties": false
+        },
+        "ExtraPars": {
+            "type": "object",
+            "properties": {
                 "windowsize": {
                     "type": "integer"
                 },
@@ -89,26 +120,7 @@
                     }
                 },
                 "par_fg": {
-                    "description": "flood guidance parameters",
-                    "type": "object",
-                    "properties": {
-                        "CN2": {
-                            "type": "number",
-                            "description": "Curve number for moisture condition 2"
-                        },
-                        "hp1dia": {
-                            "type": "number"
-                        },
-                        "hp2dias": {
-                            "type": "number"
-                        },
-                        "Qbanca": {
-                            "type": "number",
-                            "description": "bankfull discharge"
-                        }
-                    },
-                    "required": ["CN2", "hp1dia", "hp2dias", "Qbanca"],
-                    "additionalProperties": false
+                    "$ref": "#/$defs/ParFG"
                 },
                 "max_npasos": {
                     "type": "integer",
@@ -125,15 +137,31 @@
                 "rk2": {
                     "type": "boolean",
                     "description": "Use Runge-Kutta 2 instead of default Runge-Kutta 4"
-                }      
+                }
             },
-            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "required": ["area"]
+        },
+        "ParFG": {
+            "description": "flood guidance parameters",
+            "type": "object",
+            "properties": {
+                "CN2": {
+                    "type": "number",
+                    "description": "Curve number for moisture condition 2"
+                },
+                "hp1dia": {
+                    "type": "number"
+                },
+                "hp2dias": {
+                    "type": "number"
+                },
+                "Qbanca": {
+                    "type": "number",
+                    "description": "bankfull discharge"
+                }
+            },
+            "required": ["CN2", "hp1dia", "hp2dias", "Qbanca"],
             "additionalProperties": false
         }
-    },
-    "required": [
-        "type",
-        "parameters",
-        "init_states"
-    ]
+    }
 }

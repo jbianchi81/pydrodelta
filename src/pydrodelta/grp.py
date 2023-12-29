@@ -115,7 +115,7 @@ class GRPProcedureFunction(QPProcedureFunction):
         # logging.debug(str(results))
         procedure_results = ProcedureFunctionResults({
             "border_conditions": results[["pma","etp","q_obs","smc_obs"]],
-            "init_states": {
+            "initial_states": {
                 "Sk": self.Sk_init,
                 "Rk": self.Rk_init
             },
@@ -137,7 +137,7 @@ class GRPProcedureFunction(QPProcedureFunction):
                 "compute": True
             }
         })
-        return [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results 
+        return [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results, None
     
     # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> tuple[float,float,float]:
     def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:

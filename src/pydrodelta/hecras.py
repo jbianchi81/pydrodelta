@@ -152,7 +152,7 @@ class HecRasProcedureFunction(ProcedureFunction):
         # Guarda en CSV
         output.to_csv(self.workspace+'Salidas.csv', index=False, sep=',')
 
-        return output, ProcedureFunctionResults()
+        return output, ProcedureFunctionResults(), None
 
 
 

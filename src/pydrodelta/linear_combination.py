@@ -95,4 +95,4 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             })
         output = pandas.DataFrame(output)
         output = output.set_index("timestamp")
-        return [output], ProcedureFunctionResults()
+        return [output], ProcedureFunctionResults(), None

@@ -20,4 +20,4 @@ class QPProcedureFunction(ProcedureFunction):
         super(ProcedureFunction,self).__init__(params,procedure)
         validate(params,schema,resolver)
         # self.parameters = params["parameters"] if "parameters" in params else {}
-        # self.init_states = params["init_states"] if "init_states" in params else {}
+        # self.initial_states = params["initial_states"] if "initial_states" in params else {}

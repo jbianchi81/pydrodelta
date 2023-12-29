@@ -31,6 +31,7 @@ class ResultStatistics:
         self.stdev_diff = self.stdev_sim - self.stdev_obs
         self.obs = [v for v in df["obs"]]
         self.sim = [v for v in df["sim"]]
+        self.nse = 1 - self.mse / self.stdev_obs
     def toDict(self):
         dict = self.__dict__
         # dict["obs"] = [v  if not math.isnan(v) else None for v in dict["obs"]]

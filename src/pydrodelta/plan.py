@@ -58,7 +58,8 @@ class Plan():
             self.output_analysis = params["output_analysis"]
         else:
             self.output_analysis = None
-    def execute(self,include_prono=True,upload=True):
+        self.pivot = params["pivot"] if "pivot" in params else False
+    def execute(self,include_prono=True,upload=True,pretty=False):
         """
         Runs analysis and then each procedure sequentially
 
@@ -69,7 +70,10 @@ class Plan():
         self.topology.batchProcessInput(include_prono=include_prono)
         if self.output_analysis is not None:
             with open(self.output_analysis,'w') as analysisfile:
-                json.dump(self.topology.toList(),analysisfile)
+                if pretty:
+                    json.dump(self.topology.toList(pivot=self.pivot),analysisfile,indent=4)
+                else:
+                    json.dump(self.topology.toList(pivot=self.pivot),analysisfile)
         for procedure in self.procedures:
             procedure.run()
             procedure.outputToNodes()
@@ -100,13 +104,16 @@ class Plan():
     def uploadSim(self):
         corrida = self.toCorrida()
         return output_crud.createCorrida(corrida)
-    def toCorridaJson(self,filename):
+    def toCorridaJson(self,filename,pretty=False):
         """
         Guarda corrida en archivo .json
         """
         corrida = self.toCorrida()
         f = open(filename,"w")
-        f.write(json.dumps(corrida))
+        if pretty:
+            f.write(json.dumps(corrida,indent=4))
+        else:
+            f.write(json.dumps(corrida))
         f.close()
     def toCorridaDataFrame(self,pivot=False):
         corrida = createEmptyObsDataFrame(extra_columns={"tag":"str","series_id":"int"})

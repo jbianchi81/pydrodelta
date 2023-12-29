@@ -1,5 +1,4 @@
 import logging
-from numpy import tanh
 from typing import Optional
 from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
@@ -51,21 +50,21 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         # self.max_npasos
         self.sm_obs = []
         self.sm_sim = []
-        self.windowsize = self.parameters["windowsize"] if "windowsize" in self.parameters else None
-        self.dt_sec = interval2timedelta(self.parameters["dt"]).total_seconds() if "dt" in self.parameters else 24*60*60
-        self.rho = self.parameters["rho"] if "rho" in self.parameters else 0.5
-        self.area = self.parameters["area"]
-        self.ae = self.parameters["ae"] if "ae" in self.parameters else 1
-        self.wp = self.parameters["wp"] if "wp" in self.parameters else 0.03
-        self.sm_transform = sm_transform(self.parameters["sm_transform"]) if "sm_transform" in self.parameters else sm_transform([1,0])
+        self.windowsize = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
+        self.dt_sec = interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
+        self.rho = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
+        self.area = self.extra_pars["area"]
+        self.ae = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
+        self.wp = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
+        self.sm_transform = sm_transform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else sm_transform([1,0])
         self.x = [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
         # FLOOD GUIDANCE
-        self.par_fg = par_fg(self.parameters["par_fg"],self.area) if "par_fg" in self.parameters else None
+        self.par_fg = par_fg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
         # max substeps
-        self.max_npasos = self.parameters["max_npasos"] if "max_npasos" in self.parameters else None
-        self.no_check1 = self.parameters["no_check1"] if "no_check1" in self.parameters else False
-        self.no_check2 = self.parameters["no_check2"] if "no_check2" in self.parameters else False
-        self.rk2 = self.parameters["rk2"] if "rk2" in self.parameters else False
+        self.max_npasos = self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
+        self.no_check1 = self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
+        self.no_check2 = self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
+        self.rk2 = self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
     
     def constraint(self,value,name):
         if name == 'x1':
@@ -304,7 +303,7 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         # logging.debug(str(results))
         procedure_results = ProcedureFunctionResults({
             "border_conditions": results[["pma","etp","q_obs","smc_obs"]],
-            "init_states": self.initial_states,
+            "initial_states": self.initial_states,
             "states": results[["x0","x1","x2","x3"]],
             "parameters": self.parameters,
             "statistics": {
@@ -313,5 +312,5 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
                 "compute": True
             }
         })
-        return [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results 
+        return [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results, results
     

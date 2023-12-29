@@ -211,20 +211,26 @@ class Topology():
         for node in self.nodes:
             obs_list.extend(node.variablesOutputToList(flatten=flatten))
         return obs_list
-    def saveData(self,file : str,format="csv",pivot=False):
+    def saveData(self,file : str,format="csv",pivot=False,pretty=False):
         f = open(file,"w")
         if format == "json":
-            obs_json = json.dumps(self.toList(pivot),ensure_ascii=False)
+            if pretty:
+                obs_json = json.dumps(self.toList(pivot),ensure_ascii=False,indent=4)
+            else:
+                obs_json = json.dumps(self.toList(pivot),ensure_ascii=False)
             f.write(obs_json)
             f.close()
             return
         f.write(self.toCSV(pivot))
         f.close
         return
-    def saveOutputData(self,file : str,format="csv",pivot=False):
+    def saveOutputData(self,file : str,format="csv",pivot=False,pretty=False):
         f = open(file,"w")
         if format == "json":
-            obs_json = json.dumps(self.outputToList(pivot),ensure_ascii=False)
+            if pretty:
+                obs_json = json.dumps(self.outputToList(pivot),ensure_ascii=False,indent=4)
+            else:
+                obs_json = json.dumps(self.outputToList(pivot),ensure_ascii=False)
             f.write(obs_json)
             f.close()
             return

@@ -33,6 +33,7 @@ class Procedure():
         self.output = None
         self.states = None
         self.procedure_function_results = None
+        self.save_raw = params["save_raw"] if "save_raw" in params else None
     def loadInput(self,inline=True,pivot=False):
         """
         Carga las variables de borde definidas en self.boundaries. De cada elemento de self.boundaries toma .data y lo concatena en una lista. Si pivot=True, devuelve un DataFrame con 
@@ -60,13 +61,14 @@ class Procedure():
             self.input = data
         else:
             return data
-    def run(self,inline=True):
+    def run(self,inline=True,save_raw=None):
         """
         Run self.function.run()
 
         :param inline: if True, writes output to self.output, else returns output (array of seriesData)
         """
-        output, procedure_function_results = self.function.run(input=None)
+        save_raw = save_raw if save_raw is not None else self.save_raw
+        output, procedure_function_results, raw_results = self.function.run(input=None)
         self.procedure_function_results = procedure_function_results
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
@@ -74,6 +76,15 @@ class Procedure():
             self.output = output
         else:
             return output
+        if save_raw is not None:
+            if raw_results is not None:
+                try:
+                    with open(save_raw, 'w') as f:
+                        raw_results.to_csv(f)
+                except IOError as e:
+                    print(f"Couldn't write to file ({e})")
+            else:
+                logging.warn("Procedure function produced no raw_results. Skipping save_raw")
     def getOutputNodeData(self,node_id,var_id,tag=None):
         """
         Extracts single series from output using node id and variable id

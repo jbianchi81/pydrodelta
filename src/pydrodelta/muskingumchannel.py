@@ -25,4 +25,4 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
             input = self._procedure.loadInput(inline=False,pivot=False)
         muskingum_channel = MuskingumChannel([self.K, self.X], input[0]["valor"].to_list(),self.initial_states,self.Proc)
         muskingum_channel.computeOutFlow()
-        return [DataFrame({"valor": muskingum_channel.Outflow},index=input[0].index)], ProcedureFunctionResults()
+        return [DataFrame({"valor": muskingum_channel.Outflow},index=input[0].index)], ProcedureFunctionResults(), None

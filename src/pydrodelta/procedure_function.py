@@ -24,6 +24,7 @@ class ProcedureFunction:
         self.outputs = []
         self.setOutputs(params["outputs"])
         self.input = None
+        self.extra_pars = params["extra_pars"] if "extra_pars" in params else dict()
     def setBoundaries(self,boundaries:dict={}):
         self.boundaries = []
         for b in self.__class__._boundaries:
@@ -63,10 +64,10 @@ class ProcedureFunction:
         Placeholder dummy method to be overwritten by actual procedures
 
         :param input: array of seriesData
-        :returns [seriesData], procedureFunctionResults
+        :returns [seriesData], procedureFunctionResults, JSONSerializable
         """
         if input is None:
             input = self._procedure.loadInput(inline=False)
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
-        return input, ProcedureFunctionResults({"init_states": input})
+        return input, ProcedureFunctionResults({"initial_states": input}), None
     
