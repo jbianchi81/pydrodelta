@@ -28,6 +28,9 @@
             "$ref": "polynomialtransformationprocedurefunction.json"
           },
           {
+            "$ref": "linearcombinationprocedurefunction.json"
+          },
+          {
             "$ref": "expressionprocedurefunction.json"
           },
           {

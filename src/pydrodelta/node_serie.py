@@ -123,6 +123,8 @@ class NodeSerie():
             return data.to_csv()
         return self.data.to_csv()
     def toList(self,include_series_id=False,timeSupport=None,remove_nulls=False,max_obs_date:datetime=None):
+        if self.data is None:
+            return list()
         data = self.data[self.data.index <= max_obs_date] if max_obs_date is not None else self.data.copy(deep=True)
         data["timestart"] = data.index
         data["timeend"] = [x + timeSupport for x in data["timestart"]] if timeSupport is not None else data["timestart"]

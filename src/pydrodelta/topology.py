@@ -15,6 +15,7 @@ from pydrodelta.util import getParamOrDefaultTo
 from pydrodelta.observed_node_variable import ObservedNodeVariable
 from pydrodelta.derived_node_variable import DerivedNodeVariable
 import networkx as nx
+from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 
 schema = open("%s/data/schemas/json/topology.json" % os.environ["PYDRODELTA_DIR"])
@@ -449,6 +450,7 @@ class Topology():
         for key in attrs:
             labels[key] = attrs[key].name
             colors.append("blue" if attrs[key].node_type == "basin" else "red")
+        logging.debug("attrs: %s, labels: %s, colors: %s" % (str(attrs), str(labels), str(colors)))
         nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors)
         if output_file is not None:
             plt.savefig(output_file, format='png')
@@ -458,7 +460,7 @@ class Topology():
             nodes = self.nodes
         DG = nx.DiGraph()
         for node in nodes:
-            DG.add_node(node.id,object=node)
+            DG.add_node(node.id,object=node.toDict())
             if node.downstream_node is not None:
                 if type(node.downstream_node) is list:
                     for id in node.downstream_node:
@@ -466,3 +468,12 @@ class Topology():
                 else:
                     DG.add_edge(node.id,node.downstream_node)
         return DG
+    def exportGraph(self,nodes=None,output_file=None):
+        DG = self.toGraph(nodes)
+        # NLD = nx.node_link_data(DG)
+        if output_file is not None:
+            with open(output_file,"w") as f:
+                f.write(json.dumps(json_graph.node_link_data(DG),indent=4)) # json.dumps(NLD,indent=4))
+                f.close()
+        else:
+            return json.dumps(json_graph.node_link_data(DG),indent=4)

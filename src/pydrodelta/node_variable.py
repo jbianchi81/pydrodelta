@@ -75,14 +75,14 @@ class NodeVariable:
             return None
         data = self.data.reset_index().to_dict("records") 
         for row in data:
-            row["timestart"] = row["timestart"].isoformat()
+            row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
         return data
     def originalDataAsDict(self):
         if self.original_data is None:
             return None
         data = self.original_data.reset_index().to_dict("records") 
         for row in data:
-            row["timestart"] = row["timestart"].isoformat()
+            row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
         return data
     def getData(self,include_series_id=False):
         data = self.data[["valor","tag"]] # self.concatenateProno(inline=False) if include_prono else self.data[["valor","tag"]] # self.series[0].data            

@@ -1302,7 +1302,7 @@ class Crud():
             proxies = self.proxy_dict if use_proxy else None
         )
         if response.status_code != 200:
-            raise Exception("request failed: %s" % response.text)
+            raise Exception("request failed for series tipo: %s, id: %s. message: %s" % (tipo, series_id, response.text))
         json_response = response.json()
         return json_response
 

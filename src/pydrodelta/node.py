@@ -5,6 +5,7 @@ from pydrodelta.a5 import createEmptyObsDataFrame
 import pandas
 import json
 from datetime import timedelta
+import isodate
 
 class Node:
     def __init__(self,params,timestart=None,timeend=None,forecast_timeend=None,plan=None,time_offset=None,topology=None):
@@ -34,6 +35,23 @@ class Node:
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
         return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
+    def __dict__(self):
+        return self.toDict()
+    def toDict(self):
+        return {
+            "id": self.id,
+            "tipo": self.tipo,
+            "name": self.name,
+            "timestart": self.timestart.isoformat() if self.timestart is not None else None,
+            "timeend": self.timeend.isoformat() if self.timeend is not None else None,
+            "forecast_timeend": self.forecast_timeend.isoformat() if self.forecast_timeend is not None else None,
+            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None,
+            "time_offset": isodate.duration_isoformat(self.time_offset) if self.time_offset is not None else None,
+            "hec_node": dict(self.hec_node) if self.hec_node is not None else None,
+            "variables": [self.variables[key].toDict() for key in self.variables], 
+            "downstream_node": self.downstream_node,
+            "node_type": self.node_type
+        }
     def createDatetimeIndex(self):
         return createDatetimeSequence(None, self.time_interval, self.timestart, self.timeend, self.time_offset)
     def toCSV(self,include_series_id=True,include_header=True):
