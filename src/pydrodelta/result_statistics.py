@@ -21,6 +21,9 @@ class ResultStatistics:
         df["errors"] = df["sim"] - df["obs"]
         self.errors = [v for v in df["errors"]]
         self.n = len(df["errors"])
+        if len(self.errors) == 0:
+            logging.warn("No obs/sim pairs found for error calculation")
+            return
         self.mse = sum([ e**2 for e in self.errors]) / len(self.errors)
         self.rmse = self.mse ** 0.5
         self.bias =  sum(self.errors) / self.n

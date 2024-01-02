@@ -78,7 +78,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         sum1 = 0
         sum2 = 0
         for i in range(self.replicates):
-            logging.debug("sum: %s, self.ens[i][index]: %s" % (str(sum),str(self.ens[i][index])))
+            # logging.debug("sum: %s, self.ens[i][index]: %s" % (str(sum),str(self.ens[i][index])))
             sum += self.ens[i][index]
             sum1 += self.ens1[i][index]
             sum2 += self.ens2[i][index]
@@ -98,7 +98,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
 
     def q(self,value):
         for R in self.Rqobs:
-            logging.debug("R: %s, value: %s" % (str(R), str(value)))
+            # logging.debug("R: %s, value: %s" % (str(R), str(value)))
             if value >= R[0]:
                 return R[1], R[2]
         return None, None
@@ -130,14 +130,14 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         # self.xsinpert = list(x)
         if self.xpert:
             x = self.pertX(x)
-        return (x[0],x[1],x[2],x[3]), npasos
+        return [x[0],x[1],x[2],x[3]], npasos
     
     def pertX(self,x):
         x[0] = self.xnoise(x[0],'x1')
         x[1] = self.xnoise(x[1],'x2')
         x[2] = self.xnoise(x[2],'x3')
         x[3] = self.xnoise(x[3],'x4')
-        return (x[0],x[1],x[2],x[3])
+        return [x[0],x[1],x[2],x[3]]
 
     def setH(self):
         self.H = list()
@@ -211,9 +211,9 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         #~ print "h:$h\n";
         c = np.array(C)
         #~ print "c:$c\n";
-        logging.info("R: %s" % str(R))
+        # logging.info("R: %s" % str(R))
         r = np.array(R)
-        logging.info("r: %s" % str(r)) #~ print "r:$r\n";
+        # logging.info("r: %s" % str(r)) #~ print "r:$r\n";
         hT = h.transpose()
         #~ print "hT:$hT\n";
         product1 = np.matmul(c,hT)
@@ -273,14 +273,15 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             "x1": Series(dtype='float'),
             "x2": Series(dtype='float'),
             "x3": Series(dtype='float'),
+            "x4": Series(dtype='float'),
             "q4": Series(dtype='float'),
             "smc": Series(dtype='float')
         })
-        results.set_index("timestart", inplace=True)
+        # results.set_index("timestart", inplace=True)
         return results
 
     def newResultsRow(self,timestart=None,x1=None,x2=None,x3=None,x4=None,q4=None,smc=None):
-        return DataFrame([[timestart, x1, x2, x3, x4, q4, smc]], columns= ["timestart", "x0", "x1", "x2", "x3", "q4", "smc"])
+        return DataFrame([[timestart, x1, x2, x3, x4, q4, smc]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc"])
 
     def run(self,input: Optional[list[SeriesData]]=None) -> tuple[list[SeriesData], ProcedureFunctionResults]:
         """
@@ -302,10 +303,10 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             "q_obs": Series(dtype='float'),
             "smc_obs": Series(dtype='float'),
             "smc_var": Series(dtype='float'),
-            "x0": Series(dtype='float'),
             "x1": Series(dtype='float'),
             "x2": Series(dtype='float'),
             "x3": Series(dtype='float'),
+            "x4": Series(dtype='float'),
             "q3": Series(dtype='float'),
             "q4": Series(dtype='float'),
             "smc": Series(dtype='float'),
@@ -319,15 +320,10 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         results.set_index("timestart", inplace=True)
         results_al = DataFrame({
             "timestart": Series(dtype='datetime64[ns]'),
-            "pma": Series(dtype='float'),
-            "etp": Series(dtype='float'),
-            "q_obs": Series(dtype='float'),
-            "smc_obs": Series(dtype='float'),
-            "smc_var": Series(dtype='float'),
-            "x0": Series(dtype='float'),
             "x1": Series(dtype='float'),
             "x2": Series(dtype='float'),
             "x3": Series(dtype='float'),
+            "x4": Series(dtype='float'),
             "q4": Series(dtype='float'),
             "smc": Series(dtype='float'),
             "substeps": Series(dtype='int')
@@ -343,13 +339,13 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
 
         k = -1
         # iterate series using pma's index:
-        for i, row in input[0].iterrows():
+        for timestart, row in input[0].iterrows():
             k = k + 1
             pma = row["valor"]
-            etp = input[1].loc[[i]].valor.item()
-            q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
-            smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
-            smc_var = input[4].loc[[i]].valor.item() if len(input) > 4 else None
+            etp = input[1].loc[[timestart]].valor.item()
+            q_obs = input[2].loc[[timestart]].valor.item() if len(input) > 2 else None
+            smc_obs = input[3].loc[[timestart]].valor.item() if len(input) > 3 else None
+            smc_var = input[4].loc[[timestart]].valor.item() if len(input) > 4 else None
             smc = (self.rho - self.wp) * x[0] / self.x1_0 + self.wp
 
             innov = dict()
@@ -392,9 +388,9 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             # q_f = list()
             q_minx = list()
             j = 0
-            new_row_min = self.newResultsRow(i)
-            new_row_h1 = self.newResultsRow(i)
-            new_row_h2 = self.newResultsRow(i)
+            new_row_min = self.newResultsRow(timestart)
+            new_row_h1 = self.newResultsRow(timestart)
+            new_row_h2 = self.newResultsRow(timestart)
             self.mediassinpert = list()
             for i in range(4):
                 media_f = self.media(i)
@@ -432,7 +428,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                 KG_j = None
             
             KG_list.append({
-                "timestart": i,
+                "timestart": timestart,
                 "KG": KG_j
             })
             
@@ -462,16 +458,16 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
 
 
             # write row
-            new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, smc_var, estados_prom[0], estados_prom[1], estados_prom[2], estados_prom[3], Q3_plus, Q_out_plus, sm_out_plus, k, fg1, fg2, q_minx[0], q_minx[1], q_minx[2]]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "smc_var", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","q4_min","q4_h1","q4_h2"])
-            new_row_al = DataFrame([[i, pma, etp, q_obs, smc_obs, smc_var, x_al[0], x_al[1], x_al[2], x_al[3], q_al, sm_al, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "smc_var", "x0", "x1", "x2", "x3", "q4", "smc","substeps"])
+            new_row = DataFrame([[timestart, pma, etp, q_obs, smc_obs, smc_var, estados_prom[0], estados_prom[1], estados_prom[2], estados_prom[3], Q3_plus, Q_out_plus, sm_out_plus, k, fg1, fg2, q_minx[0], q_minx[1], q_minx[2]]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "smc_var", "x1", "x2", "x3", "x4", "q3", "q4", "smc", "k", "fg1", "fg2","q4_min","q4_h1","q4_h2"])
+            new_row_al = DataFrame([[timestart, x_al[0], x_al[1], x_al[2], x_al[3], q_al, sm_al, None]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc","substeps"])
 
             ##################  CORRE PASO MODELO   #########################
             for j in range(self.replicates):
                 p_alt = max(pma + np.random.normal(0,self.p_stddev * pma),0)
                 pet_alt = max(etp + np.random.normal(0,self.pet_stddev),0)
-                self.ens[j] = self.advance_step(list(self.ens[j]),p_alt,pet_alt)
-                self.ens1[j] = self.advance_step(list(self.ens1[j]),p_alt,pet_alt)
-                self.ens2[j] = self.advance_step(list(self.ens2[j]),p_alt,pet_alt)
+                self.ens[j], npasos = self.advance_step(list(self.ens[j]),p_alt,pet_alt)
+                self.ens1[j], npasos = self.advance_step(list(self.ens1[j]),p_alt,pet_alt)
+                self.ens2[j], npasos = self.advance_step(list(self.ens2[j]),p_alt,pet_alt)
             x_al, npasos = self.advance_step_and_pert(list(x_al),pma,etp)
             # $json_al .= ",\"n_pasos\":$npasos},"; #print $salida_al "$npasos\n";
             # $json_plus .= ",\"n_pasos\":$npasos,\"qobs\":" . ((defined $q) ? $q : "null") . ",\"smcobs\":" . ((defined $smc) ? $smc : "null") . "},";
@@ -487,19 +483,35 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                 sim.append(Q_out_plus)
                 obs.append(q_obs)
 
-        results = results.set_index("timestart")
-        results_al = results_al.set_index("timestart")
+        results.set_index("timestart",inplace=True)
+        results_al.set_index("timestart",inplace=True)
+        results_min.set_index("timestart",inplace=True)
+        results_h1.set_index("timestart",inplace=True)
+        results_h2.set_index("timestart",inplace=True)
         # logging.debug(str(results))
+        results_no_na = results[["q_obs","q4"]].dropna()
         procedure_results = ProcedureFunctionResults({
             "border_conditions": results[["pma","etp","q_obs","smc_obs","smc_var"]],
             "initial_states": self.initial_states,
-            "states": results[["x0","x1","x2","x3"]],
+            "states": results[["x1","x2","x3","x4"]],
             "parameters": self.parameters,
             "statistics": {
-                "obs": obs,
-                "sim": sim,
+                "obs": results_no_na["q_obs"].tolist(),
+                "sim": results_no_na["q4"].tolist(),
                 "compute": True
             }
         })
-        return [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results, {"results": results, "results_al": results_al, "results_min": results_min, "results_h1": results_h1, "results_h2": results_h2, "KG": KG_list}
-    
+        return (
+            [
+                results[["q4"]].rename(columns={"q4":"valor"}),
+                results[["smc"]].rename(columns={"smc":"valor"})
+            ],
+            procedure_results, 
+            results.join([
+                results_al.rename(columns={"x1":"x1_al","x2":"x2_al","x3":"x3_al","x4":"x4_al","q3":"q3_al","q4":"q4_al","smc":"smc_al"}), 
+                results_min.rename(columns={"x1":"x1_min","x2":"x2_min","x3":"x3_min","x4":"x4_min","q4":"q4_min","smc":"smc_min"}), 
+                results_h1.rename(columns={"x1":"x1_h1","x2":"x2_h1","x3":"x3_h1","x4":"x4_h1","q4":"q4_h1","smc":"smc_h1"}), 
+                results_h2.rename(columns={"x1":"x1_h2","x2":"x2_h2","x3":"x3_h2","x4":"x4_h2","q4":"q4_h2","smc":"smc_h2"}), 
+                DataFrame(KG_list).set_index("timestart")
+            ])
+        )

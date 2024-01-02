@@ -103,13 +103,16 @@ extract content into $PROJECT_DIR
     # sacramento simplified
     bin/pydrodelta run-plan data_/plans/cal_132.yml -j tmp/132.json --pretty -c tmp/132.csv --pivot -e tmp/prono_132.json -s tmp/132_stats.json -V 40 tmp/132_40.pdf -a tmp/132_analysis.json
 
+    # sacramento simplified with ensemble kalman filter
+    bin/pydrodelta run-plan data_/plans/cal_32.yml -j tmp/32.json --pretty -c tmp/32.csv -a tmp/32_analysis.json --pivot -s tmp/32_stats.json -g tmp/32_graph.png -V 1 tmp/32_pma.pdf -V 40 tmp/32_q.pdf
+
 ### TODO list
 
 - [x] Color plan.topology.plotVariable() according to tag (obs,sim)
 - [x] SacramentoSimplified procedure function
 - [x] procedure function schemas: harmonize initial conditions (init_states vs initial_states, array vs object)
 - [ ] nelder-mead parameter optimization
-- [ ] sacramento simplified with ensemble kalman filter
+- [x] sacramento simplified with ensemble kalman filter
 
 ### References
 
