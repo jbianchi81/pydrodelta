@@ -58,6 +58,7 @@ class Topology():
         self.plot_params = params["plot_params"] if "plot_params" in params else None
         self.report_file = params["report_file"] if "report_file" in params else None
         self._plan = plan
+        self.graph = self.toGraph()
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
@@ -448,9 +449,9 @@ class Topology():
         labels = {}
         colors = []
         for key in attrs:
-            labels[key] = attrs[key].name
-            colors.append("blue" if attrs[key].node_type == "basin" else "red")
-        logging.debug("attrs: %s, labels: %s, colors: %s" % (str(attrs), str(labels), str(colors)))
+            labels[key] = attrs[key]["name"] if "name" in attrs[key] else attrs[key]["id"] if "id" in attrs[key] else "N"
+            colors.append("blue" if attrs[key]["node_type"] == "basin" else "red")
+        logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
         nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors)
         if output_file is not None:
             plt.savefig(output_file, format='png')
@@ -459,14 +460,21 @@ class Topology():
         if nodes is None:
             nodes = self.nodes
         DG = nx.DiGraph()
+        edges = list()
         for node in nodes:
+            logging.debug("topology.toGraph: adding node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
             DG.add_node(node.id,object=node.toDict())
+            logging.debug("topology.toGraph: added node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
             if node.downstream_node is not None:
                 if type(node.downstream_node) is list:
                     for id in node.downstream_node:
-                        DG.add_edge(node.id,id)
+                        edges.append((node.id,id))
                 else:
-                    DG.add_edge(node.id,node.downstream_node)
+                    edges.append((node.id,node.downstream_node))
+        for edge in edges:
+            if not DG.has_node(edge[1]):
+                raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
+            DG.add_edge(edge[0],edge[1])
         return DG
     def exportGraph(self,nodes=None,output_file=None):
         DG = self.toGraph(nodes)

@@ -4,8 +4,8 @@ import math
 
 class ResultStatistics:
     def __init__(self,params:dict={}):
-        self.obs = params["obs"] if "obs" in params else [] 
-        self.sim = params["sim"] if "sim" in params else []
+        self.obs = list(params["obs"]) if "obs" in params else list() 
+        self.sim = list(params["sim"]) if "sim" in params else list()
         if params["compute"]:
             self.compute()
 
@@ -34,7 +34,7 @@ class ResultStatistics:
         self.stdev_diff = self.stdev_sim - self.stdev_obs
         self.obs = [v for v in df["obs"]]
         self.sim = [v for v in df["sim"]]
-        self.nse = 1 - self.mse / self.stdev_obs
+        self.nse = 1 - self.mse / self.stdev_obs if self.stdev_obs != 0 else None
     def toDict(self):
         dict = self.__dict__
         # dict["obs"] = [v  if not math.isnan(v) else None for v in dict["obs"]]

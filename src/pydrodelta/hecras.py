@@ -104,7 +104,7 @@ class HecRasProcedureFunction(ProcedureFunction):
         # df_SeccSalidas = pd.read_csv(self.workspace+'2_Lista_Salidas.csv',sep=',')
         # df_SeccSalidas['River_Stat'] = df_SeccSalidas['River_Stat'].astype(int)
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=True)
+            input = self._procedure.loadInput(inplace=False,pivot=True)
         
         # df_base = pd.DataFrame()
         for boundary in self._procedure.boundaries: #df_ListaCB.iterrows():
@@ -152,7 +152,10 @@ class HecRasProcedureFunction(ProcedureFunction):
         # Guarda en CSV
         output.to_csv(self.workspace+'Salidas.csv', index=False, sep=',')
 
-        return output, ProcedureFunctionResults(), None
+        return (
+            output, 
+            ProcedureFunctionResults()
+        )
 
 
 

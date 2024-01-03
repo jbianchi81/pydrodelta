@@ -31,10 +31,13 @@ class ExpressionProcedureFunction(ProcedureFunction):
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=False)
+            input = self._procedure.loadInput(inplace=False,pivot=False)
         output  = []
         for serie in input:
             output_serie = serie.copy()
             output_serie.valor = [self.transformation_function(valor) for valor in output_serie.valor]
             output.append(output_serie)
-        return output, ProcedureFunctionResults(), None
+        return (
+            output, 
+            ProcedureFunctionResults()
+        )

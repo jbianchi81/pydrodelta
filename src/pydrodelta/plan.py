@@ -77,12 +77,12 @@ class Plan():
         for procedure in self.procedures:
             procedure.run()
             procedure.outputToNodes()
-            self.output_stats.append(procedure.procedure_function_results)
+            self.output_stats.append(procedure.procedure_function_results.statistics)
         if upload:
             self.uploadSim()
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w") as outfile:
-                json.dump([o.statistics.toDict() if o.statistics is not None else None for o in self.output_stats],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+                json.dump([o.toDict() if o is not None else None for o in self.output_stats],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
     def toCorrida(self):
         series_sim = []
         for node in self.topology.nodes:

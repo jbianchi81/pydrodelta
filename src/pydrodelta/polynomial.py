@@ -51,16 +51,34 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
             result = result + value**exponent * c
             exponent = exponent + 1
         return result
-    def run(self,input=None):
+    def run(self,input=None,output_obs=None):
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=False)
+            input = self._procedure.loadInput(inplace=False,pivot=False)
+        if output_obs is None:
+            output_obs = self._procedure.loadOutputObs(inplace=False,pivot=True)
         output  = []
-        for serie in input:
+        results_data = output_obs[["output"]].rename(columns={"output":"obs"})
+        for i, serie in enumerate(input):
             output_serie = serie.copy()
             output_serie.valor = [self.transformation_function(valor) for valor in output_serie.valor]
             output.append(output_serie)
-        return output, ProcedureFunctionResults(), None
+            colname = "input_%i" % (i + 1)
+            results_data = results_data.join(serie.rename(columns={"valor": colname}))
+            colname = "output_%i" % (i + 1)
+            results_data = results_data.join(output_serie.rename(columns={"valor": colname}))
+        data_for_stats = results_data[["obs","output_1"]].rename(columns={"output_1": "sim"}).dropna
+        return (
+            output, 
+            ProcedureFunctionResults({
+                "data": results_data,
+                "statistics": {
+                    "obs": data_for_stats["obs"].values,
+                    "sim": data_for_stats["sim"].values,
+                    "compute": True
+                }
+            })
+        )

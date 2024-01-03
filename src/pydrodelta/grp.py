@@ -66,7 +66,7 @@ class GRPProcedureFunction(QPProcedureFunction):
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=False)
+            input = self._procedure.loadInput(inplace=False,pivot=False)
         results = DataFrame({
             "timestart": Series(dtype='datetime64[ns]'),
             "pma": Series(dtype='float'),
@@ -135,9 +135,13 @@ class GRPProcedureFunction(QPProcedureFunction):
                 "obs": obs,
                 "sim": sim,
                 "compute": True
-            }
+            },
+            "data": results
         })
-        return [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results, None
+        return (
+            [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
+            procedure_results
+        )
     
     # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> tuple[float,float,float]:
     def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:

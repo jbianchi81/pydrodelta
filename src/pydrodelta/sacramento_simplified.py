@@ -218,7 +218,7 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=False)
+            input = self._procedure.loadInput(inplace=False,pivot=False)
         results = DataFrame({
             "timestart": Series(dtype='datetime64[ns]'),
             "pma": Series(dtype='float'),
@@ -311,7 +311,10 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
                 "obs": obs,
                 "sim": sim,
                 "compute": True
-            }
+            },
+            "data": results    
         })
-        return [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})], procedure_results, results
-    
+        return (
+            [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
+            procedure_results
+        )

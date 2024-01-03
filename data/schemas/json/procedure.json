@@ -41,6 +41,9 @@
           },
           {
             "$ref": "sacenkfprocedurefunction.json"
+          },
+          {
+            "$ref": "junctionprocedurefunction.json"
           }
         ]
       },

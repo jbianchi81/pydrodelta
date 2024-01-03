@@ -3,6 +3,7 @@ import pandas
 # import numpy as np
 # import matplotlib.pyplot as plt
 # import os
+import logging
 from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
 # from pathlib import Path
 # import jsonschema
@@ -34,7 +35,7 @@ class ForecastStep():
 class LinearCombinationProcedureFunction(ProcedureFunction):
     _boundaries = [
         FunctionBoundary({"name": "input_1"}),
-        FunctionBoundary({"name": "input_2", "optional": True})
+        # FunctionBoundary({"name": "input_2", "optional": True})
     ]
     _additional_boundaries = True
     _outputs = [
@@ -70,13 +71,15 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     #         result = result + value**exponent * c
     #         exponent = exponent + 1
     #     return result
-    def run(self,input=None):
+    def run(self,input=None,output_obs=None):
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False,pivot=False)
+            input = self._procedure.loadInput(inplace=False,pivot=False)
+        if output_obs is None:
+            output_obs = self._procedure.loadOutputObs(inplace=False,pivot=True)
         output = []
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = self._procedure._plan.forecast_date + t_index * self._procedure._plan.time_interval
@@ -90,9 +93,22 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                         raise Exception("Procedure %s: missing value at %s for %s" % (str(self._procedure.id),str(lookback_date), boundary.name))
                     result = result + coefficient * float(input[b_index].at[lookback_date,"valor"])
             output.append({
-                "timestamp": forecast_date,
+                "timestart": forecast_date,
                 "valor": result 
             })
         output = pandas.DataFrame(output)
-        output = output.set_index("timestamp")
-        return [output], ProcedureFunctionResults(), None
+        output = output.set_index("timestart")
+        data_for_stats = output[["valor"]].rename(columns={"valor":"sim"}).join(output_obs.rename(columns={"valor_1": "obs"}),how="inner")
+        logging.debug("output_obs columns: %s" % output_obs.columns)
+        results_data = output.join(output_obs.rename(columns={"valor_1": "obs"}),how="outer")
+        for i, input_ in enumerate(input):
+            colname = "input_%i" % (i + 1)
+            results_data = results_data.join(input_[["valor"]].rename(columns={"valor": colname}),how="outer")
+        return [output], ProcedureFunctionResults({
+            "data": results_data,
+            "statistics": {
+                "obs": data_for_stats["obs"].values,
+                "sim": data_for_stats["sim"].values,
+                "compute": True
+            }
+        })

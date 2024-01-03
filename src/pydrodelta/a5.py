@@ -1483,7 +1483,7 @@ def createEmptyObsDataFrame(extra_columns : dict=None):
             data[cname] = pandas.Series(dtype=extra_columns[cname])
             cnames.append(cname)
     data.index = data["timestart"]
-    return data [cnames]
+    return data[cnames]
 
 ## EJEMPLO
 '''

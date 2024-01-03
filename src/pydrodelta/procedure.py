@@ -30,11 +30,12 @@ class Procedure():
         self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
         self.time_offset = util.interval2timedelta(params["time_offset"]) if "time_offset" in params else None
         self.input = None # <- boundary conditions
-        self.output = None
+        self.output = None # <- outputs
+        self.output_obs = None # <- observed values for error calculation
         self.states = None
         self.procedure_function_results = None
-        self.save_raw = params["save_raw"] if "save_raw" in params else None
-    def loadInput(self,inline=True,pivot=False):
+        self.save_results = params["save_results"] if "save_results" in params else None
+    def loadInput(self,inplace=True,pivot=False):
         """
         Carga las variables de borde definidas en self.boundaries. De cada elemento de self.boundaries toma .data y lo concatena en una lista. Si pivot=True, devuelve un DataFrame con 
         """
@@ -57,34 +58,50 @@ class Procedure():
                     except AssertionError as e:
                         raise Exception("load input error at node %i, variable, %i: %s" % (boundary.node_id, boundary.var_id, str(e)))
                 data.append(boundary._variable.data.copy())
-        if inline:
+        if inplace:
             self.input = data
         else:
             return data
-    def run(self,inline=True,save_raw=None):
+    def loadOutputObs(self,inplace=True,pivot=False):
+        """
+            Carga las variables de output definidas en self.outputs. Para cálculo de error.
+        """
+        if pivot:
+            data = createEmptyObsDataFrame()
+            for i, output in enumerate(self.function.outputs):
+                if output._variable.data is not None and len(output._variable.data):
+                    colname = "valor_%i" % (i + 1) 
+                    data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
+                else:
+                    logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.name,i))
+            logging.debug("loadOutputObs: columns: %s" % (data.columns))
+            if "valor" in data.columns:
+                data.drop(columns="valor",inplace=True)
+        else:
+            data = []
+            for output in self.function.outputs:
+                data.append(output._variable.data[["valor"]].dropna())
+        if inplace:
+            self.output_obs = data
+        else:
+            return data
+    def run(self,inplace=True,save_results=None):
         """
         Run self.function.run()
 
         :param inline: if True, writes output to self.output, else returns output (array of seriesData)
         """
-        save_raw = save_raw if save_raw is not None else self.save_raw
-        output, procedure_function_results, raw_results = self.function.run(input=None)
+        save_results = save_results if save_results is not None else self.save_results
+        output, procedure_function_results = self.function.run(input=None)
         self.procedure_function_results = procedure_function_results
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
-        if inline:
+        if inplace:
             self.output = output
         else:
             return output
-        if save_raw is not None:
-            if raw_results is not None:
-                try:
-                    with open(save_raw, 'w') as f:
-                        raw_results.to_csv(f)
-                except IOError as e:
-                    print(f"Couldn't write to file ({e})")
-            else:
-                logging.warn("Procedure function produced no raw_results. Skipping save_raw")
+        if save_results is not None:
+            self.procedure_function_results.save(output=save_results)
     def getOutputNodeData(self,node_id,var_id,tag=None):
         """
         Extracts single series from output using node id and variable id
@@ -134,6 +151,7 @@ from pydrodelta.linear_combination import LinearCombinationProcedureFunction
 from pydrodelta.expression import ExpressionProcedureFunction
 from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFunction
 from pydrodelta.sac_enkf import SacEnkfProcedureFunction
+from pydrodelta.junction import JunctionProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -148,5 +166,6 @@ procedureFunctionDict = {
     "LinearCombination": LinearCombinationProcedureFunction,
     "Expression": ExpressionProcedureFunction,
     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
-    "SacEnKF": SacEnkfProcedureFunction
+    "SacEnKF": SacEnkfProcedureFunction,
+    "Junction": JunctionProcedureFunction
 }

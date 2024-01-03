@@ -201,7 +201,7 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
 
     si extend=True el índice del dataframe resultante será la unión de los índices de data y other_data (caso contrario será igual al índice de data)
     """
-    logging.debug("before. data.index.name: %s. other_data.index.name: %s" % (data.index.name, other_data.index.name))
+    # logging.debug("before. data.index.name: %s. other_data.index.name: %s" % (data.index.name, other_data.index.name))
     mapper = {}
     mapper[other_column] = "valor_fillnulls"
     how = "outer" if extend else "left"
@@ -221,7 +221,7 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
         del data["valor_fillnulls"]
         if fill_value is not None:
             data[column] = data[column].fillna(fill_value)
-    logging.debug("after. data.index.name: %s. other_data.index.name: %s" % (data.index.name, other_data.index.name))
+    # logging.debug("after. data.index.name: %s. other_data.index.name: %s" % (data.index.name, other_data.index.name))
     return data
 
 def serieMovingAverage(obs_df : pandas.DataFrame,offset : timedelta, column : str="valor", tag_column : str=None):

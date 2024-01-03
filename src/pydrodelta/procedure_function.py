@@ -67,7 +67,7 @@ class ProcedureFunction:
         :returns [seriesData], procedureFunctionResults, JSONSerializable
         """
         if input is None:
-            input = self._procedure.loadInput(inline=False)
+            input = self._procedure.loadInput(inplace=False)
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
-        return input, ProcedureFunctionResults({"initial_states": input}), None
+        return input, ProcedureFunctionResults({"initial_states": input})
     
