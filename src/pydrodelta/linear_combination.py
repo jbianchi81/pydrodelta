@@ -34,7 +34,7 @@ class ForecastStep():
 
 class LinearCombinationProcedureFunction(ProcedureFunction):
     _boundaries = [
-        FunctionBoundary({"name": "input_1"}),
+        FunctionBoundary({"name": "input_1", "warmup_only": True}),
         # FunctionBoundary({"name": "input_2", "optional": True})
     ]
     _additional_boundaries = True

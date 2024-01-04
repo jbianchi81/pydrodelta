@@ -4,9 +4,10 @@ import math
 
 class ResultStatistics:
     def __init__(self,params:dict={}):
-        self.obs = list(params["obs"]) if "obs" in params else list() 
-        self.sim = list(params["sim"]) if "sim" in params else list()
-        if params["compute"]:
+        self.obs = list(params["obs"]) if "obs" in params and params["obs"] is not None else list() 
+        self.sim = list(params["sim"]) if "sim" in params and params["sim"] is not None else list()
+        self.metadata = dict(params["metadata"]) if "metadata" in params else None
+        if "compute" in params and params["compute"]:
             self.compute()
 
     def compute(self):
@@ -14,7 +15,8 @@ class ResultStatistics:
             logging.warn("No values found for statistics computation, skipping")
             return
         if len(self.obs) != len(self.sim):
-            raise Exception("Length of obs and sim lists must be equal")
+            logging.warn("Length of obs and sim lists must be equal. No computation performed")
+            return
         df = DataFrame({"obs":self.obs,"sim":self.sim})
         df = df.dropna()
         self.errors = [self.sim[i] - self.obs[i] for i in range(0,len(self.sim))]

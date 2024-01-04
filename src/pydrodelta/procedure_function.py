@@ -2,19 +2,19 @@ from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
 
 class ProcedureFunction:
-    """ static list of function boundaries (of class pydrodelta.function_boundary)
-    """
-    _boundaries = [] 
-    """ static list of function outputs (of class pydrodelta.function_boundary)
-    """
-    _outputs = [] 
-    """ set to true to allow for additional boundaries """
-    _additional_boundaries = False
-    """ set to true to allow for additional outputs"""
-    _additional_outputs = False
     """
     Abstract class to represent the transformation function of the procedure. It is instantiation, 'params' should be a dictionary which may contain an array of numerical or string 'parameters', an array of numerical or string 'initial_states', whereas 'procedure' must be the Procedure element which contains the function. The .run() method should accept an optional array of seriesData as 'input' and return an array of seriesData and a procedureFunctionResults object. When extending this class, any additional parameters may be added to 'params'.
     """
+    _boundaries = [] 
+    """ static list of function boundaries (of class function_boundary.FunctionBoundary)
+    """
+    _outputs = [] 
+    """ static list of function outputs (of class function_boundary.FunctionBoundary)
+    """
+    _additional_boundaries = False
+    """ set to true to allow for additional boundaries """
+    _additional_outputs = False
+    """ set to true to allow for additional outputs"""
     def __init__(self,params,procedure):
         self._procedure = procedure
         self.parameters = params["parameters"] if "parameters" in params else []
@@ -33,7 +33,7 @@ class ProcedureFunction:
                 #     boundaries[b.name].append(b.name)
                 # print("%s" % str(boundaries[b.name]))
                 boundary = [boundary for boundary in boundaries if boundary["name"] == b.name][0]
-                self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan,b.optional))
+                self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan,b.optional,b.warmup_only))
             else:
                 raise Exception("Missing NodeVariableIdTuple for boundary %s of procedure %s" % (str(b.name), str(self._procedure.id)))
         if self.__class__._additional_boundaries:
@@ -49,7 +49,7 @@ class ProcedureFunction:
                 # if len(outputs[b.name]) < 3:
                 #     outputs[b.name].append(b.name)
                 output = [o for o in outputs if o["name"] == b.name][0]
-                self.outputs.append(ProcedureBoundary(output,self._procedure._plan,b.optional))
+                self.outputs.append(ProcedureBoundary(output,self._procedure._plan,b.optional,compute_statistics=b.compute_statistics))
             else:
                 raise Exception("Missing nodeVariable for output %s of procedure %s" % (str(b.name), str(self._procedure.id)))
         if self.__class__._additional_outputs:

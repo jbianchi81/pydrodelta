@@ -44,6 +44,9 @@
           },
           {
             "$ref": "junctionprocedurefunction.json"
+          },
+          {
+            "$ref": "linearchannelprocedurefunction.json"
           }
         ]
       },

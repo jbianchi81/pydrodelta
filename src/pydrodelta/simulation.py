@@ -9,9 +9,18 @@ config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src
 config = yaml.load(config_file,yaml.CLoader)
 config_file.close()
 
+
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
-  
+
+root_logger = logging.getLogger()
+# root_logger.setLevel(logging.DEBUG)
+str_handler = logging.StreamHandler(sys.stdout)
+str_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
+str_handler.setFormatter(formatter)
+root_logger.addHandler(str_handler)
+
 # class ProcedureType():
 #     def __init__(self,params):
 #         self.name = params["name"]
@@ -65,20 +74,24 @@ logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filen
 @click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
 @click.option("--pretty", "-r", is_flag=True, help="json pretty print", default=False, show_default=True)
 @click.option("--output-analysis", "-a", help="output analysis result (json)", type=str, default=None)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis):
+@click.option("--quiet", "-q", is_flag=True, help="quiet mode", default=False, show_default=True)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis,quiet):
     """
     run plan from plan config file
     
     config_file: location of plan config file (.json or .yml)
     """
     if verbose:
-        root = logging.getLogger()
-        root.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
+        str_handler.setLevel(logging.DEBUG)
+        # root = logging.getLogger()
+        # root.setLevel(logging.DEBUG)
+        # handler = logging.StreamHandler(sys.stdout)
+        # handler.setLevel(logging.DEBUG)
+        # formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
+        # handler.setFormatter(formatter)
+        # root.addHandler(handler)
+    elif quiet:
+        str_handler.setLevel(logging.ERROR)
     t_config = yaml.load(open(config_file),yaml.CLoader)
     if output_stats is not None:
         t_config["output_stats"] = output_stats

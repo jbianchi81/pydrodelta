@@ -27,6 +27,7 @@ class NodeSerie():
         self.outliers_data = None
         self.jumps_data = None
         self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],params["csv_file"]) if "csv_file" in params else None
+        self.observations = util.parseObservations(params["observations"]) if "observations" in params else None
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data if self.data is not None else 0))
     def __str__(self):
@@ -46,7 +47,11 @@ class NodeSerie():
             "jumps_data": self.jumps_data
         }
     def loadData(self,timestart,timeend):
-        if(self.csv_file is not None):
+        if(self.observations is not None):
+            logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
+            self.data = observacionesListToDataFrame(self.observations,tag="obs")
+            self.metadata = {"id": self.series_id, "tipo": self.type}
+        elif(self.csv_file is not None):
             logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.csv_file))
             data = util.readDataFromCsvFile(self.csv_file,self.series_id,timestart,timeend)
             self.data = observacionesListToDataFrame(data,tag="obs")

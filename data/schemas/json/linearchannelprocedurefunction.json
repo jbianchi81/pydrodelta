@@ -1,0 +1,37 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "linearchannelprocedurefunction.json",
+    "title": "LinearChannelProcedureFunction",
+    "type": "object",
+    "description": "Nash linear channel procedure function",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LinearChannel"
+            ]
+        },
+        "k": {
+            "type": "number",
+            "description": "residence time"
+        },
+        "n": {
+            "type": "number",
+            "description": "number of reservoirs"
+        },
+        "dt": {
+            "type": "number",
+            "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+        }
+    },
+    "required": [
+        "type",
+        "k",
+        "n"
+    ]
+}

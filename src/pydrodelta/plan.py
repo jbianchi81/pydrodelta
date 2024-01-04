@@ -49,7 +49,7 @@ class Plan():
         self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
         if self.time_interval is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
-        self.output_stats = []
+        # self.output_stats = []
         if "output_stats" in params:
             self.output_stats_file = params["output_stats"]
         else:
@@ -77,12 +77,13 @@ class Plan():
         for procedure in self.procedures:
             procedure.run()
             procedure.outputToNodes()
-            self.output_stats.append(procedure.procedure_function_results.statistics)
+            # logging.debug("statistics type: %s" % type(procedure.procedure_function_results.statistics))
+            # self.output_stats.append(procedure.procedure_function_results.statistics)
         if upload:
             self.uploadSim()
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w") as outfile:
-                json.dump([o.toDict() if o is not None else None for o in self.output_stats],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+                json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
     def toCorrida(self):
         series_sim = []
         for node in self.topology.nodes:

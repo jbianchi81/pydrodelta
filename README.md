@@ -106,6 +106,9 @@ extract content into $PROJECT_DIR
     # sacramento simplified with ensemble kalman filter
     bin/pydrodelta run-plan data_/plans/cal_32.yml -j tmp/32.json --pretty -c tmp/32.csv -a tmp/32_analysis.json --pivot -s tmp/32_stats.json -g tmp/32_graph.png -V 1 tmp/32_pma.pdf -V 40 tmp/32_q.pdf
 
+    # linear channel from inline boundary data
+    bin/pydrodelta run-plan data_/plans/linear_channel_dummy.yml -V 40 tmp/lm_q.pdf -g tmp/lm.png -j tmp/lm.json -c tmp/lm.csv --pivot -s tmp/lc_stats.json --pretty 
+
 ### TODO list
 
 - [x] Color plan.topology.plotVariable() according to tag (obs,sim)
@@ -113,6 +116,7 @@ extract content into $PROJECT_DIR
 - [x] procedure function schemas: harmonize initial conditions (init_states vs initial_states, array vs object)
 - [ ] nelder-mead parameter optimization
 - [x] sacramento simplified with ensemble kalman filter
+- [ ] move statistics from ProcedureFunctions to Procedure
 
 ### References
 

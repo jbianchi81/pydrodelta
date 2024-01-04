@@ -3,6 +3,7 @@ import logging
 import json
 import pydrodelta.util as util
 from pydrodelta.a5 import createEmptyObsDataFrame
+from pydrodelta.result_statistics import ResultStatistics
 
 
 class Procedure():
@@ -15,9 +16,11 @@ class Procedure():
         self.initial_states = params["initial_states"] if "initial_states" in params else []
         if params["function"]["type"] in procedureFunctionDict:
             self.function_type = procedureFunctionDict[params["function"]["type"]]
+            self.function_type_name = params["function"]["type"]
         else:
             logging.warn("Procedure init: class %s not found. Instantiating abstract class ProcedureFunction" % params["function"]["type"])
             self.function_type = ProcedureFunction
+            self.function_type_name = "ProcedureFunction"
         # self.function = self.function_type(params["function"])
         if isinstance(params["function"],dict): # read params from dict
             self.function = self.function_type(params["function"],self)
@@ -54,7 +57,8 @@ class Procedure():
             for boundary in self.function.boundaries:
                 if not boundary.optional:
                     try:
-                        boundary.assertNoNaN()
+                        warmup_only = boundary.warmup_only if boundary.warmup_only else False
+                        boundary.assertNoNaN(warmup_only)
                     except AssertionError as e:
                         raise Exception("load input error at node %i, variable, %i: %s" % (boundary.node_id, boundary.var_id, str(e)))
                 data.append(boundary._variable.data.copy())
@@ -73,7 +77,7 @@ class Procedure():
                     colname = "valor_%i" % (i + 1) 
                     data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
-                    logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.name,i))
+                    logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
             logging.debug("loadOutputObs: columns: %s" % (data.columns))
             if "valor" in data.columns:
                 data.drop(columns="valor",inplace=True)
@@ -85,23 +89,66 @@ class Procedure():
             self.output_obs = data
         else:
             return data
+    def computeStatistics(self, obs:list|None=None, sim:list|None=None) -> list[ResultStatistics]:
+        obs = obs if obs is not None else self.output_obs
+        sim = sim if sim is not None else self.output
+        result = list()
+        # if len(obs) < len(sim):
+        #     raise Exception("length of obs must be equal than length of sim")
+        for i, o in enumerate(self.function.outputs):
+            if len(sim) < i + 1:
+                raise Exception("List of sim outputs is shorter than function.outputs (%i < %i" % (len(sim), len(self.function.outputs)))
+            if len(obs) < i + 1:
+                raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
+            inner_join = sim[i][["valor"]].rename(columns={"valor":"sim"}).join(obs[i][["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
+            result.append(ResultStatistics({
+                "obs": inner_join["obs"].values, 
+                "sim": inner_join["sim"].values, 
+                "compute": o.compute_statistics, 
+                "metadata": o.__dict__()
+            }))
+        if self.procedure_function_results is not None:
+            self.procedure_function_results.setStatistics(result)
+        return result
+    
+    def read_statistics(self):
+        return {
+            "procedure_id": self.id,
+            "function_type": self.function_type_name,
+            "results": [x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
+        }
     def run(self,inplace=True,save_results=None):
         """
         Run self.function.run()
 
-        :param inline: if True, writes output to self.output, else returns output (array of seriesData)
+        :param inplace: if True, writes output to self.output, else returns output (array of seriesData)
         """
         save_results = save_results if save_results is not None else self.save_results
-        output, procedure_function_results = self.function.run(input=None)
+        # loads input inplace
+        input = self.loadInput(inplace)
+        # runs procedure function
+        output, procedure_function_results = self.function.run(input=input)
+        # sets procedure_function_results
         self.procedure_function_results = procedure_function_results
+        # loads observed outputs
+        output_obs = self.loadOutputObs(inplace)
+        # sets states
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
+        # compute statistics
         if inplace:
             self.output = output
+            self.computeStatistics()
         else:
-            return output
+            self.computeStatistics(obs=output_obs,sim=output)
+        # saves results to file
         if save_results is not None:
             self.procedure_function_results.save(output=save_results)
+        # returns
+        if inplace:
+            return
+        else:
+            return output
     def getOutputNodeData(self,node_id,var_id,tag=None):
         """
         Extracts single series from output using node id and variable id
@@ -152,6 +199,7 @@ from pydrodelta.expression import ExpressionProcedureFunction
 from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFunction
 from pydrodelta.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.junction import JunctionProcedureFunction
+from pydrodelta.linear_channel import LinearChannelProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -167,5 +215,6 @@ procedureFunctionDict = {
     "Expression": ExpressionProcedureFunction,
     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
     "SacEnKF": SacEnkfProcedureFunction,
-    "Junction": JunctionProcedureFunction
+    "Junction": JunctionProcedureFunction,
+    "LinearChannel": LinearChannelProcedureFunction
 }

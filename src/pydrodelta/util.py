@@ -515,8 +515,29 @@ def readCsvFile(csv_file):
     with open(csv_file, newline='') as csvfile:
         return [row for row in csv.DictReader(csvfile)]
 
+def parseObservations(observations:list) -> list:
+    result = []
+    for i, o in enumerate(observations):
+        # option 1: dict { "timestart": str, "valor": number }
+        if type(o) == dict:
+            if "timestart" not in o:
+                raise Exception("timestart missing from observations item %i" % i)
+            result.append({
+                "timestart": tryParseAndLocalizeDate(o["timestart"]),
+                "valor": float(o["valor"]) if "valor" in o and o["valor"] is not None else None
+            })
+        # option 2: list
+        elif type(o) == list or type(o) == tuple:
+            if len(o) == 0:
+                continue
+            result.append({
+                "timestart": tryParseAndLocalizeDate(o[0]),
+                "valor": float(o[1]) if len(o) > 1 and o[1] is not None else None
+            })
+    return result
+
 def readDataFromCsvFile(csv_file: str,series_id: int,timestart=None,timeend=None) -> list:
-    """reads from csv_file and returns list of observaciones (dicts). series_id must be present in the header. timestart column must be in iso format. Other columns are ignored"""
+    """reads from csv_file and returns list of observaciones (dicts). series_id must be in the header of the column containing the values of the corresponding series. timestart column must be in iso format. Other columns are ignored"""
     observaciones = readCsvFile(csv_file)
     data = []
     for o in observaciones:

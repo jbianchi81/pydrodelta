@@ -85,6 +85,8 @@ class NodeVariable:
             row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
         return data
     def getData(self,include_series_id=False):
+        if self.data is None:
+            return None
         data = self.data[["valor","tag"]] # self.concatenateProno(inline=False) if include_prono else self.data[["valor","tag"]] # self.series[0].data            
         if include_series_id:
             data["series_id"] = self.series_output.series_id if type(self.series_output) == NodeSerie else self.series_output[0].series_id if type(self.series_output) == list else None
@@ -190,11 +192,12 @@ class NodeVariable:
         #self.series[series_index].data.loc[:,"valor"] = util.linearCombination(self.pivotData(),self.linear_combination,plot=plot)
         self.data.loc[:,"valor"],  self.data.loc[:,"tag"] = linearCombination(self.pivotData(),self.linear_combination,plot=plot,tag_column="tag")
     def applyMovingAverage(self):
-        for serie in self.series:
-            if isinstance(serie,NodeSerie) and serie.moving_average is not None:
-                serie.applyMovingAverage()
+        if self.series is not None:
+            for serie in self.series:
+                if isinstance(serie,NodeSerie) and serie.moving_average is not None:
+                    serie.applyMovingAverage()
     def adjustProno(self,error_band=True):
-        if not self.series_prono or not len(self.series_prono) or not len(self.series) or self.series[0].data is None:
+        if not self.series_prono or not len(self.series_prono) or self.series is None or len(self.series) == 0 or self.series[0].data is None:
             return
         truth_data = self.series[0].data
         for serie_prono in [x for x in self.series_prono if x.adjust]:
@@ -213,7 +216,7 @@ class NodeVariable:
                 serie_prono.data.loc[:,"error_band_01"] = adj_serie + serie_prono.adjust_results["quant_Err"][0.001]
                 serie_prono.data.loc[:,"error_band_99"] = adj_serie + serie_prono.adjust_results["quant_Err"][0.999]     
     def setOutputData(self):
-        if self.series_output is not None:
+        if self.series_output is not None and self.data is not None:
             for serie in self.series_output:
                 serie.data = self.data[["valor","tag"]]
                 serie.applyOffset()
@@ -320,13 +323,14 @@ class NodeVariable:
             if not inline:
                 return self.data
     def interpolate(self,limit : timedelta=None,extrapolate=None):
-        extrapolate = extrapolate if extrapolate is not None else self.extrapolate
-        interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
-        logging.info("interpolation limit:%s" % str(interpolation_limit))
-        logging.info("extrapolate:%s" % str(extrapolate))
-        if interpolation_limit is not None and interpolation_limit <= 0:
-            return
-        self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)
+        if self.data is not None:
+            extrapolate = extrapolate if extrapolate is not None else self.extrapolate
+            interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
+            logging.info("interpolation limit:%s" % str(interpolation_limit))
+            logging.info("extrapolate:%s" % str(extrapolate))
+            if interpolation_limit is not None and interpolation_limit <= 0:
+                return
+            self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)
     def saveData(self,output,format="csv"): #,include_prono=False):
         """
         Saves nodevariable.data into file

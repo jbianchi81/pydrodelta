@@ -319,6 +319,19 @@
         },
         "csv_file": {
           "type": "string"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ObservationDict"
+              },
+              {
+                "$ref": "#/$defs/ObservationArray"
+              }
+            ] 
+          }
         }
       },
       "required": [
@@ -470,6 +483,46 @@
           }
         }
       }
+    },
+    "ObservationDict": {
+      "type": "object",
+      "properties": {
+        "timestart": {
+          "type": "string"
+        },
+        "valor": {
+          "oneOf": [
+            {
+            "type": "number"
+            },{
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "timestart", "valor"
+      ],
+      "additionalProperties": false
+    },
+    "ObservationArray": {
+      "type": "array",
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "oneOf": [      
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      ]
     }
   }
 }
