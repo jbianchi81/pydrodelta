@@ -307,11 +307,11 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
             "initial_states": self.initial_states,
             "states": results[["x0","x1","x2","x3"]],
             "parameters": self.parameters,
-            "statistics": {
-                "obs": obs,
-                "sim": sim,
-                "compute": True
-            },
+            # "statistics": {
+            #     "obs": obs,
+            #     "sim": sim,
+            #     "compute": True
+            # },
             "data": results    
         })
         return (

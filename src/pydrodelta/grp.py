@@ -131,11 +131,6 @@ class GRPProcedureFunction(QPProcedureFunction):
                 "wp": self.wp,
                 "ae": self.ae
             },
-            "statistics": {
-                "obs": obs,
-                "sim": sim,
-                "compute": True
-            },
             "data": results
         })
         return (

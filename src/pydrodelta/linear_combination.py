@@ -71,15 +71,13 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     #         result = result + value**exponent * c
     #         exponent = exponent + 1
     #     return result
-    def run(self,input=None,output_obs=None):
+    def run(self,input=None):
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        if output_obs is None:
-            output_obs = self._procedure.loadOutputObs(inplace=False,pivot=True)
         output = []
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = self._procedure._plan.forecast_date + t_index * self._procedure._plan.time_interval
@@ -98,17 +96,15 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             })
         output = pandas.DataFrame(output)
         output = output.set_index("timestart")
-        data_for_stats = output[["valor"]].rename(columns={"valor":"sim"}).join(output_obs.rename(columns={"valor_1": "obs"}),how="inner")
-        logging.debug("output_obs columns: %s" % output_obs.columns)
-        results_data = output.join(output_obs.rename(columns={"valor_1": "obs"}),how="outer")
+        results_data = output[["valor"]] # .join(output_obs.rename(columns={"valor_1": "obs"}),how="outer")
         for i, input_ in enumerate(input):
             colname = "input_%i" % (i + 1)
             results_data = results_data.join(input_[["valor"]].rename(columns={"valor": colname}),how="outer")
         return [output], ProcedureFunctionResults({
             "data": results_data,
-            "statistics": {
-                "obs": data_for_stats["obs"].values,
-                "sim": data_for_stats["sim"].values,
-                "compute": True
+            "parameters": {
+                "forecast_steps": self.forecast_steps,
+                "lookback_steps": self.lookback_steps,
+                "coefficients": self.coefficients 
             }
         })

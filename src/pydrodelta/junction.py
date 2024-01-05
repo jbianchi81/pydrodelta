@@ -21,7 +21,7 @@ class JunctionProcedureFunction(ProcedureFunction):
         """
         super().__init__(params,procedure)
         validate(params,schema,resolver)
-    def run(self,input=None,output_obs=None):
+    def run(self,input=None):
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
@@ -36,19 +36,11 @@ class JunctionProcedureFunction(ProcedureFunction):
             colname = "input_%i" % (i + 1)
             output = output.join(serie[["valor"]].rename(columns={"valor":colname}))
             output["valor"] = output.apply(lambda row: row['valor'] + row[colname] if not np.isnan(row['valor']) and not np.isnan(row[colname]) else None, axis=1)
-        if output_obs is None:
-            output_obs = self._procedure.loadOutputObs(inplace=False,pivot=True)
-        output_for_stats = output[["valor"]].rename(columns={"valor":"sim"}).join(output_obs[["valor_1"]].rename(columns={"valor_1":"obs"}),how="inner")
-        results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
+        # results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
         return (
             [output[["valor"]]], 
             ProcedureFunctionResults({
                 "border_conditions": input,
-                "statistics": {
-                    "obs": output_for_stats["obs"].values,
-                    "sim": output_for_stats["sim"].values,
-                    "compute": True
-                },
-                "data": results_data
+                "data": output
             })
         )

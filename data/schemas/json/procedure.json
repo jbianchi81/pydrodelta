@@ -47,6 +47,9 @@
           },
           {
             "$ref": "linearchannelprocedurefunction.json"
+          },
+          {
+            "$ref": "uhlinearchannelprocedurefunction.json"
           }
         ]
       },

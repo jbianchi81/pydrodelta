@@ -23,5 +23,5 @@ class ProcedureFunctionResults:
             with open(output, 'w') as f:
                 self.data.to_csv(f)
         except IOError as e:
-            print(f"Couldn't write to file ({e})")
+            logging.ERROR(f"Couldn't write to file ({e})")
 

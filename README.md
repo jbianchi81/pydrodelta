@@ -98,7 +98,7 @@ extract content into $PROJECT_DIR
     pydrodelta run-plan data/plans/pjau_grp.yml -E tmp/grp_out.csv -p
 
     # linear combination
-    bin/pydrodelta run-plan data/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png -c tmp/paraguay.csv --pivot
+    bin/pydrodelta run-plan data_/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png -c tmp/paraguay.csv --pivot -s tmp/paraguay_stats.json --pretty -V 40 tmp/paraguay_qmd.pdf -V 39 tmp/paraguay_hmd.pdf
 
     # sacramento simplified
     bin/pydrodelta run-plan data_/plans/cal_132.yml -j tmp/132.json --pretty -c tmp/132.csv --pivot -e tmp/prono_132.json -s tmp/132_stats.json -V 40 tmp/132_40.pdf -a tmp/132_analysis.json
@@ -116,7 +116,9 @@ extract content into $PROJECT_DIR
 - [x] procedure function schemas: harmonize initial conditions (init_states vs initial_states, array vs object)
 - [ ] nelder-mead parameter optimization
 - [x] sacramento simplified with ensemble kalman filter
-- [ ] move statistics from ProcedureFunctions to Procedure
+- [x] move statistics from ProcedureFunctions to Procedure
+- [ ] add hline on forecast date in variable plots
+- [ ] test uh_linear_channel
 
 ### References
 

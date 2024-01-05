@@ -143,6 +143,7 @@ class Procedure():
             self.computeStatistics(obs=output_obs,sim=output)
         # saves results to file
         if save_results is not None:
+            logging.info("Saving procedure '%s' results into %s" % (self.id,save_results))
             self.procedure_function_results.save(output=save_results)
         # returns
         if inplace:
