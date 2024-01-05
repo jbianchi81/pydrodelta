@@ -78,7 +78,7 @@ class Procedure():
                     data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
                     logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
-            logging.debug("loadOutputObs: columns: %s" % (data.columns))
+            # logging.debug("loadOutputObs: columns: %s" % (data.columns))
             if "valor" in data.columns:
                 data.drop(columns="valor",inplace=True)
         else:
@@ -143,7 +143,6 @@ class Procedure():
             self.computeStatistics(obs=output_obs,sim=output)
         # saves results to file
         if save_results is not None:
-            logging.info("Saving procedure '%s' results into %s" % (self.id,save_results))
             self.procedure_function_results.save(output=save_results)
         # returns
         if inplace:
@@ -201,6 +200,7 @@ from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFuncti
 from pydrodelta.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.junction import JunctionProcedureFunction
 from pydrodelta.linear_channel import LinearChannelProcedureFunction
+from pydrodelta.uh_linear_channel import UHLinearChannelProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -217,5 +217,6 @@ procedureFunctionDict = {
     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
     "SacEnKF": SacEnkfProcedureFunction,
     "Junction": JunctionProcedureFunction,
-    "LinearChannel": LinearChannelProcedureFunction
+    "LinearChannel": LinearChannelProcedureFunction,
+    "UHLinearChannel": UHLinearChannelProcedureFunction
 }

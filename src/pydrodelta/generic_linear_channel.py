@@ -40,7 +40,7 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
             raise Exception("NaN values found in input before last date %s" % last_date.isoformat())
         linear_channel = LinearChannel(self.coefficients,linear_channel_input,self.Proc,self.dt)
         linear_channel.computeOutFlow()
-        output = linear_channel.Outflow[:len(data)]
+        output = list(linear_channel.Outflow[:len(data)])
         while len(output) < len(data):
             output.append(np.NaN)
         data["output"] = output

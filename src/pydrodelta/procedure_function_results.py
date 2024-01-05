@@ -17,11 +17,12 @@ class ProcedureFunctionResults:
         self.statistics = [ x if type(x) == ResultStatistics else ResultStatistics(x) for x in result_statistics] if result_statistics is not None else None
     def save(self,output):   
         if self.data is None:
-            logging.warn("Procedure function produced no result to save. Skipping")
+            logging.warn("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
             with open(output, 'w') as f:
                 self.data.to_csv(f)
+            logging.warn("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.ERROR(f"Couldn't write to file ({e})")
 
