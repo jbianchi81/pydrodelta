@@ -25,17 +25,22 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 
 ### installation
 
-download pydrodelta-0.0.1.tar.gz
-extract content into $PROJECT_DIR
-
-    cd $PROJECT_DIR
+    git clone https://github.com/jbianchi81/pydrodelta.git pydrodelta
+    cd pydrodelta
     python3 -m venv myenv
     source myenv/bin/activate
     python3 -m pip -r requirements.txt
     python3 -m pip install .
     export PYDRODELTA_DIR=$PWD
     cp config/config_empty.json config/config.json
-    nano config/config.json # <- input api connection parameters
+    nano config/config.json # <- insert api connection parameters
+
+### test installation
+
+    myenv/bin/python3
+    >>> from pydrodelta.a5 import Crud
+    >>> crud = Crud({"url":"https://alerta.ina.gob.ar/test","token":"my_token"})
+    >>> series = crud.readSeries()
 
 ### use examples
 
