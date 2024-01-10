@@ -16,7 +16,9 @@
                 "PQ",
                 "PQProcedureFunction",
                 "GRP",
-                "GRPProcedureFunction"
+                "GRPProcedureFunction",
+                "GR4J",
+                "GR4JProcedureFunction"
             ]
         },
         "initial_states": {

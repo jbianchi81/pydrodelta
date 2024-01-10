@@ -101,6 +101,12 @@ class NodeSerie():
     def applyTimedeltaOffset(self,row,x_offset):
         return row.name + x_offset
     def applyOffset(self):
+        if self.data is None:
+            logging.warn("applyOffset: self.data is None")
+            return
+        if not len(self.data):
+            logging.warn("applyOffset: self.data is empty")
+            return
         if isinstance(self.x_offset,timedelta):
             self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
             self.data.index.rename("timestart",inplace=True)

@@ -22,7 +22,7 @@ class ProcedureFunctionResults:
         try:
             with open(output, 'w') as f:
                 self.data.to_csv(f)
-            logging.warn("Procedure function results saved into %s" % output)
+            logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.ERROR(f"Couldn't write to file ({e})")
 

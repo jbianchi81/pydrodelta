@@ -51,6 +51,8 @@ class NodeVariable:
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
+    def setOriginalData(self):
+        self.original_data = self.data.copy(deep=True)
     def toDict(self):
         return {
             "id": self.id,

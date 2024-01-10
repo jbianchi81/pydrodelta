@@ -17,6 +17,7 @@ from pydrodelta.derived_node_variable import DerivedNodeVariable
 import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
+from colour import Color
 
 schema = open("%s/data/schemas/json/topology.json" % os.environ["PYDRODELTA_DIR"])
 #schema = open("%s/data/schemas/yaml/topology.yml" % os.environ["PYDRODELTA_DIR"])
@@ -52,7 +53,11 @@ class Topology():
         self.interpolation_limit = None if "interpolation_limit" not in params else interval2timedelta(params["interpolation_limit"]) if isinstance(params["interpolation_limit"],dict) else params["interpolation_limit"]
         self.extrapolate = None if "extrapolate" not in params else bool(params["extrapolate"])
         self.nodes = []
-        for node in params["nodes"]:
+        for i, node in enumerate(params["nodes"]):
+            if "id" not in node:
+                raise Exception("Missing node.id at index %i of topology.nodes" % i)
+            if node["id"] in [n.id for n in self.nodes]:
+                raise Exception("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
             self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
         self.cal_id = params["cal_id"] if "cal_id" in params else None
         self.plot_params = params["plot_params"] if "plot_params" in params else None
@@ -88,6 +93,7 @@ class Topology():
         self.derive()
         logging.debug("interpolate")
         self.interpolate(limit=self.interpolation_limit,extrapolate=self.extrapolate)
+        self.setOriginalData()
         self.setOutputData()
         self.plotProno()
         if(self.report_file is not None):
@@ -115,6 +121,9 @@ class Topology():
                 #                 serie.loadData(self.timestart,self.timeend)
             # if isinstance(node,observedNode):
             #     node.loadData(self.timestart,self.timeend)
+    def setOriginalData(self):
+        for node in self.nodes:
+            node.setOriginalData()
     def removeOutliers(self):
         found_outliers = False
         for node in self.nodes:
@@ -311,7 +320,7 @@ class Topology():
         # data = data.replace({np.NaN:None})
         return data
     def plotVariable(self,var_id,timestart:datetime=None,timeend:datetime=None,output=None):
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green"}
         if output is not None:
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(output)
@@ -330,8 +339,20 @@ class Topology():
                 fig, ax = plt.subplots(figsize=(20,8))
                 grouped = data.groupby('tag')
                 for key, group in grouped:
-                    group.plot(ax=ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
+                    group.plot(ax=ax,kind='line', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
+                original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
+                if len(original_data.dropna()["valor"]):
+                    logging.debug("Add original data to plot at node %s" % str(node.name))
+                    original_data.plot(ax=ax,kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
+                if node.variables[var_id].series_sim is not None and len(node.variables[var_id].series_sim):
+                    sim_colors = list(Color("orange").range_to(Color("red"),len(node.variables[var_id].series_sim)))
+                    for i, serie_sim in enumerate(node.variables[var_id].series_sim):
+                        if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
+                            logging.debug("Add sim data to plot at node %s, series_sim %i" % (str(node.name),i))
+                            data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
+                            label = "sim_%i" % serie_sim.series_id
+                            data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
                 if hasattr(node,"max_obs_date"):
                     plt.axvline(node.max_obs_date, color='k', linestyle='--')
                 if output is not None:

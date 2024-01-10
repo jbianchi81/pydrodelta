@@ -4,6 +4,7 @@ from pydrodelta.node_serie_prono import NodeSerieProno
 from pydrodelta.a5 import createEmptyObsDataFrame
 import logging
 from pydrodelta.util import serieFillNulls
+import numpy as np
 
 class ObservedNodeVariable(NodeVariable):
     def __init__(self,params,node=None):
@@ -35,7 +36,17 @@ class ObservedNodeVariable(NodeVariable):
                     except Exception as e:
                         raise "Node %s, Variable: %i, series_id %i, cal_id %: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e))
         if self.data is None and self.series is not None and len(self.series):
-            self.data = self.series[0].data
+            self.setDataWithNoValues()
+            self.concatenate(self.series[0].data)
+        else:
+            self.setDataWithNoValues()
+    def setDataWithNoValues(self):
+        index = self._node.createDatetimeIndex()
+        data = index.to_frame(index=False,name="timestart")
+        data = data.set_index("timestart")
+        data["valor"] = np.nan
+        data["tag"] = ""
+        self.data = data
     def removeOutliers(self):
         found_outliers = False
         for serie in self.series:

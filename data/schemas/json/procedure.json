@@ -50,6 +50,9 @@
           },
           {
             "$ref": "uhlinearchannelprocedurefunction.json"
+          },
+          {
+            "$ref": "muskingumchannelprocedurefunction.json"
           }
         ]
       },
@@ -64,6 +67,10 @@
       },
       "time_offset": {
         "$ref": "timeinterval.json"
+      },
+      "save_results": {
+        "type": "string",
+        "description": "File path where to save the results of the procedure"
       }
     },
     "required": [

@@ -45,6 +45,5 @@
     "required": [
         "K",
         "X"
-    ],
-    "additionalProperties": false
+    ]
 }

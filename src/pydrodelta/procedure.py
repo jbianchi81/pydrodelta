@@ -201,6 +201,7 @@ from pydrodelta.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.junction import JunctionProcedureFunction
 from pydrodelta.linear_channel import LinearChannelProcedureFunction
 from pydrodelta.uh_linear_channel import UHLinearChannelProcedureFunction
+from pydrodelta.gr4j import GR4JProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -218,5 +219,6 @@ procedureFunctionDict = {
     "SacEnKF": SacEnkfProcedureFunction,
     "Junction": JunctionProcedureFunction,
     "LinearChannel": LinearChannelProcedureFunction,
-    "UHLinearChannel": UHLinearChannelProcedureFunction
+    "UHLinearChannel": UHLinearChannelProcedureFunction,
+    "GR4J": GR4JProcedureFunction
 }

@@ -8,3 +8,4 @@ scikit-learn
 jsonschema
 pyyaml
 click
+colour

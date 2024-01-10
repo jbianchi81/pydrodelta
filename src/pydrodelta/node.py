@@ -37,6 +37,9 @@ class Node:
         return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
     def __dict__(self):
         return self.toDict()
+    def setOriginalData(self):
+        for variable in self.variables.values():
+            variable.setOriginalData()
     def toDict(self):
         return {
             "id": self.id,
