@@ -42,13 +42,20 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     >>> crud = Crud({"url":"https://alerta.ina.gob.ar/test","token":"my_token"})
     >>> series = crud.readSeries()
 
+### tested with
+
+- **OS**: Ubuntu 22.04.3 LTS
+- **python version**: 3.10.12
+
 ### use examples
 
 #### a5 api series to/from dataframe
 
     import pydrodelta.a5 as a5
+    # instancia cliente de la api
+    crud = a5.Crud({"url":"https://alerta.ina.gob.ar/a5","token":"my_token"})
     # lee serie de api a5
-    serie = a5.readSerie(31532,"2022-05-25T03:00:00Z","2022-06-01T03:00:00Z")
+    serie = crud.readSerie(26497,"2022-05-25T03:00:00Z","2022-06-01T03:00:00Z")
     # convierte observaciones a dataframe 
     obs_df = a5.observacionesListToDataFrame(serie["observaciones"]) 
     # convierte de dataframe a lista de dict
@@ -56,8 +63,8 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     # valida observaciones
     for x in obs_list:
         a5.validate(x,"Observacion")
-    # sube observaciones a la api a5
-    upserted = a5.createObservaciones(obs_df,series_id=serie["id"])
+    # sube observaciones a la api a5 (requiere credenciales)
+    upserted = crud.createObservaciones(obs_df,series_id=serie["id"])
 
 #### python api analysis de series temporales
 
