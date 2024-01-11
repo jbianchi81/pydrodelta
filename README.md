@@ -29,11 +29,11 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     cd pydrodelta
     python3 -m venv myenv
     source myenv/bin/activate
-    python3 -m pip -r requirements.txt
+    python3 -m pip install -r requirements.txt
     python3 -m pip install .
     export PYDRODELTA_DIR=$PWD
-    cp config/config_empty.json config/config.json
-    nano config/config.json # <- insert api connection parameters
+    cp config/config_empty.yml config/config.tml
+    nano config/config.yml # <- insert api connection parameters
 
 ### test installation
 
