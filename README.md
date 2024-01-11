@@ -32,7 +32,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     python3 -m pip install -r requirements.txt
     python3 -m pip install .
     export PYDRODELTA_DIR=$PWD
-    cp config/config_empty.yml config/config.tml
+    cp config/config_empty.yml config/config.yml
     nano config/config.yml # <- insert api connection parameters
 
 ### test installation
