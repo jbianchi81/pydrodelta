@@ -58,14 +58,21 @@ def integrate(list,dt):
         int=int+(list[i]+list[i-1])*dt/2
     return int
 
-#Computa Hidrogramas Triangulares (método Simétrico o SCS)
-def triangularDistribution(T,distribution='Symmetric',dt=0.01,shift='T',approx='T'):
+#Computa Hidrogramas Triangulares (Función Respuesta Unitaria, método Triangular Simétrico, Triangular SCS o especificando una lista con Tp y Tb - 'pbT' -)
+def triangularDistribution(pars,distribution='Symmetric',dt=0.01,shift='T',approx='T'):
+    if isinstance(pars,(list)):
+        T=pars[0]
+    if isinstance(pars,(float,int)):
+        T=pars
     if distribution == 'Symmetric':
         tb=2*T
         peakValue=1/T
     if distribution == 'SCS':
         tb=8/3*T
         peakValue=3/4*1/T
+    if distribution == 'pbT':
+        tb=pars[1]
+        peakValue=2/tb
     ndimu=int(round(tb/dt,0)+1)
     ndimU=int(round(tb,0)+1)
     u=np.array([0]*(ndimu),dtype='float')
@@ -143,7 +150,7 @@ def grXDistribution(T,distribution='SH1',dt=0.5,approx='T',Agg='T'):
         return(U)
     else:
         return(u)
-
+        
 #Computa Matriz de pulsos para Convolución con At 12:00 on day-of-month 1.”
 def getPulseMatrix(inflows,u):
     n=len(inflows)
@@ -654,7 +661,7 @@ class HOSH4P2L:
                     self.SurfaceStorage[j+1]=waterBalance(self.SurfaceStorage[j],self.Precipitation[j],self.EVR1[j]+self.NetRainfall[j])
                     self.Runoff[j]=max(0,self.NetRainfall[j]-self.EVR2[j]+self.SoilStorage[j-1]-self.maxSoilStorage)
                     self.SoilStorage[j+1]=waterBalance(self.SoilStorage[j],self.NetRainfall[j],self.EVR2[j]+self.Runoff[j])
-            j=j+1                  
+            j=j+1            
     def computeOutFlow(self):
         if self.RoutingProc == 'Nash':
             self.routingSystem=LinearChannel(pars=[self.tr,self.n],Boundaries=apportion(self.Runoff,self.phi))
@@ -675,6 +682,9 @@ class GR4J:
     type='PQ Model'
     def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
         self.prodStoreMaxStorage=pars[0]
+        self.T=pars[1]
+        self.u1=grXDistribution(self.T,distribution='SH1')
+        self.u2=grXDistribution(self.T,distribution='SH2')
         self.routStoreMaxStorage=pars[2]
         if not pars[3]:
             self.waterExchange=0
