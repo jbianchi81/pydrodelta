@@ -55,12 +55,7 @@
       "description": "List of boundary conditions. Each item has a name <string> and a node_variable <NodeVariableIdTuple>",
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "$ref": "#/$defs/ProcedureBoundary"
-          }
-        }
+        "$ref": "#/$defs/ProcedureBoundary"
       }
     },
     "outputs": {

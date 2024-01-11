@@ -1,5 +1,6 @@
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
+# import logging
 
 class ProcedureFunction:
     """
@@ -16,6 +17,7 @@ class ProcedureFunction:
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
     def __init__(self,params,procedure):
+        # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
         self.parameters = params["parameters"] if "parameters" in params else []
         self.initial_states = params["initial_states"] if "initial_states" in params else []

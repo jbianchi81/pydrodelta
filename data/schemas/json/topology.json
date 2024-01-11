@@ -45,7 +45,7 @@
       "href": "#/$defs/PlotParams"
     },
     "interpolation_limit": {
-      "type": "number"
+      "$ref": "timeinterval.json"
     },
     "extrapolate": {
       "type": "boolean"
@@ -276,7 +276,7 @@
           "$ref": "timeinterval.json"
         },
         "interpolation_limit": {
-          "type": "number"
+          "$ref": "timeinterval.json"
         },
         "extrapolate": {
           "type": "boolean"

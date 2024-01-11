@@ -55,12 +55,13 @@ class Procedure():
         else:
             data = []
             for boundary in self.function.boundaries:
+                logging.debug("loading boundary: %s: node %i, variable %i, optional: %s, warmup_only: %s" % (boundary.name, boundary.node_id,boundary.var_id, str(boundary.optional), str(boundary.warmup_only)))
                 if not boundary.optional:
                     try:
                         warmup_only = boundary.warmup_only if boundary.warmup_only else False
                         boundary.assertNoNaN(warmup_only)
                     except AssertionError as e:
-                        raise Exception("load input error at node %i, variable, %i: %s" % (boundary.node_id, boundary.var_id, str(e)))
+                        raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
                 data.append(boundary._variable.data.copy())
         if inplace:
             self.input = data
@@ -202,6 +203,9 @@ from pydrodelta.junction import JunctionProcedureFunction
 from pydrodelta.linear_channel import LinearChannelProcedureFunction
 from pydrodelta.uh_linear_channel import UHLinearChannelProcedureFunction
 from pydrodelta.gr4j import GR4JProcedureFunction
+from pydrodelta.linear_combination_2b import LinearCombination2BProcedureFunction
+from pydrodelta.linear_combination_3b import LinearCombination3BProcedureFunction
+from pydrodelta.linear_combination_4b import LinearCombination4BProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -214,6 +218,9 @@ procedureFunctionDict = {
     "GRP": GRPProcedureFunction,
     "GRPProcedureFunction": GRPProcedureFunction,
     "LinearCombination": LinearCombinationProcedureFunction,
+    "LinearCombination2B": LinearCombination2BProcedureFunction,
+    "LinearCombination3B": LinearCombination3BProcedureFunction,
+    "LinearCombination4B": LinearCombination4BProcedureFunction,
     "Expression": ExpressionProcedureFunction,
     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
     "SacEnKF": SacEnkfProcedureFunction,

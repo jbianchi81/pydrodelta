@@ -18,20 +18,46 @@
                 "GRP",
                 "GRPProcedureFunction",
                 "GR4J",
-                "GR4JProcedureFunction"
+                "GR4JProcedureFunction",
+                "SacramentoSimplified",
+                "SacramentoSimplifiedProcedureFunction",
+                "SacEnKGProcedureFunction",
+                "SacEnKF"
             ]
         },
         "initial_states": {
-            "type": "object",
+            "oneOf": [
+                {
+                    "type": "object"
+                },
+                {
+                    "type": "array"
+                }
+            ],
             "description": "Initial states"
         },
         "parameters": {
             "type": "object",
             "description": "Model parameters"
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "area": {
+                    "type": "number",
+                    "description": "basin area in square meters"
+                },
+                "fill_nulls": {
+                    "type": "boolean",
+                    "description": "If missing PMAD values, fill up with zeros"
+                }
+            },
+            "required": ["area"]
         }
     },
     "required": [
         "type",
-        "parameters"
+        "parameters",
+        "extra_pars"
     ]
 }

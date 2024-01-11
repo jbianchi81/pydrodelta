@@ -3,10 +3,15 @@ from typing import Optional
 from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
 from math import sqrt
+import numpy as np
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.qp import QPProcedureFunction
+from pydrodelta.pq import PQProcedureFunction
 from pydrodelta.util import interval2timedelta
+from pydrodelta.validation import getSchema, validate
+
+schemas, resolver = getSchema("SacramentoSimplifiedProcedureFunction","data/schemas/json")
+schema = schemas["SacramentoSimplifiedProcedureFunction"]
 
 class par_fg():
     def __init__(self,parameters,area=None):
@@ -24,15 +29,14 @@ class sm_transform():
         self.slope = parameters[0]
         self.intercept = parameters[1]
 
-class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
+class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
         Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
         """
-        super(QPProcedureFunction,self).__init__(params,procedure)
-
-        self.fillnulls = self.parameters["fill_nulls"] if "fill_nulls" in self.parameters else False
+        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
+        validate(params,schema,resolver)
         self.volume = 0
         self.x1_0 = self.parameters["x1_0"]
         self.x2_0 = self.parameters["x2_0"]
@@ -50,10 +54,11 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
         # self.max_npasos
         self.sm_obs = []
         self.sm_sim = []
+        # self.fillnulls = self.extra_pars["fill_nulls"] if "fill_nulls" in self.extra_pars else False
         self.windowsize = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
         self.dt_sec = interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
         self.rho = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
-        self.area = self.extra_pars["area"]
+        # self.area = self.extra_pars["area"]
         self.ae = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
         self.wp = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
         self.sm_transform = sm_transform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else sm_transform([1,0])
@@ -259,7 +264,7 @@ class SacramentoSimplifiedProcedureFunction(QPProcedureFunction):
             q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
             smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
             smc = (self.rho - self.wp) * x[0] / self.x1_0 + self.wp
-            if pma is None:
+            if np.isnan(pma):
                 if self.fillnulls:
                     logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0

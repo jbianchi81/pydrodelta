@@ -130,7 +130,8 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] sacramento simplified with ensemble kalman filter
 - [x] move statistics from ProcedureFunctions to Procedure
 - [ ] add hline on forecast date in variable plots
-- [ ] test uh_linear_channel
+- [x] test uh_linear_channel
+- [ ] map graph edges from procedure boundaries and outputs
 
 ### References
 

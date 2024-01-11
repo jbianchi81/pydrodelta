@@ -39,7 +39,7 @@
     "$defs": {
         "Parameters": {
             "type": "object",
-            "description": "Model parameters",
+            "description": "Model parameters object",
             "properties": {
                 "x1_0": {
                     "type": "number",
@@ -137,6 +137,10 @@
                 "rk2": {
                     "type": "boolean",
                     "description": "Use Runge-Kutta 2 instead of default Runge-Kutta 4"
+                },
+                "fill_nulls": {
+                    "type": "boolean",
+                    "description": "If missing PMAD values, fill up with zeros"
                 }
             },
             "required": ["area"]

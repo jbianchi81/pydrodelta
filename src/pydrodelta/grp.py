@@ -1,19 +1,20 @@
 import logging
 from numpy import tanh
-from typing import Optional
-from pydrodelta.series_data import SeriesData
+# from typing import Optional
+# from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.qp import QPProcedureFunction
+from pydrodelta.pq import PQProcedureFunction
 
-class GRPProcedureFunction(QPProcedureFunction):
+class GRPProcedureFunction(PQProcedureFunction):
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
         Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
         """
-        super(QPProcedureFunction,self).__init__(params,procedure)
+        # logging.debug("Running GRPProcedureFunction constructor")
+        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
         #### X0	capacite du reservoir de production (mm)
         #### X1	capacite du reservoir de routage (mm)
         #### X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
@@ -23,14 +24,14 @@ class GRPProcedureFunction(QPProcedureFunction):
         self.X2 = self.parameters["X2"]
         self.X3 = self.parameters["X3"]
         #### area basin area in square meters
-        self.area = self.parameters["area"]
-        self.windowsize = self.parameters["windowsize"] if "windowsize" in self.parameters else None
+        # self.area = self.extra_pars["area"]
+        self.windowsize = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
         #### rho soil porosity [0-1]
-        self.rho = self.parameters["rho"] if "rho" in self.parameters else 0.5
+        self.rho = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
         #### wp soil wilting point [0-1]
-        self.wp = self.parameters["wp"] if "wp" in self.parameters else 0.03
+        self.wp = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
         #### ae effective area [0-1]
-        self.ae = self.parameters["ae"] if "ae" in self.parameters else 1
+        self.ae = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
         #### init states
         self.Sk_init = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
         self.Rk_init = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
