@@ -6,7 +6,7 @@ from math import sqrt
 import numpy as np
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.pq import PQProcedureFunction
+from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.util import interval2timedelta
 from pydrodelta.validation import getSchema, validate
 

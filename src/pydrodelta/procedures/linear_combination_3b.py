@@ -1,4 +1,4 @@
-from pydrodelta.linear_combination import LinearCombinationProcedureFunction
+from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
 from pydrodelta.function_boundary import FunctionBoundary
 
 class LinearCombination3BProcedureFunction(LinearCombinationProcedureFunction):

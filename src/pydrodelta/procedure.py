@@ -191,21 +191,21 @@ class Procedure():
                 serie.applyOffset()
             index = index + 1
     
-from pydrodelta.hecras import HecRasProcedureFunction
-from pydrodelta.polynomial import PolynomialTransformationProcedureFunction
-from pydrodelta.muskingumchannel import MuskingumChannelProcedureFunction
-from pydrodelta.grp import GRPProcedureFunction
-from pydrodelta.linear_combination import LinearCombinationProcedureFunction
-from pydrodelta.expression import ExpressionProcedureFunction
-from pydrodelta.sacramento_simplified import SacramentoSimplifiedProcedureFunction
-from pydrodelta.sac_enkf import SacEnkfProcedureFunction
-from pydrodelta.junction import JunctionProcedureFunction
-from pydrodelta.linear_channel import LinearChannelProcedureFunction
-from pydrodelta.uh_linear_channel import UHLinearChannelProcedureFunction
-from pydrodelta.gr4j import GR4JProcedureFunction
-from pydrodelta.linear_combination_2b import LinearCombination2BProcedureFunction
-from pydrodelta.linear_combination_3b import LinearCombination3BProcedureFunction
-from pydrodelta.linear_combination_4b import LinearCombination4BProcedureFunction
+from pydrodelta.procedures.hecras import HecRasProcedureFunction
+from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
+from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
+from pydrodelta.procedures.grp import GRPProcedureFunction
+from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
+from pydrodelta.procedures.expression import ExpressionProcedureFunction
+from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
+from pydrodelta.procedures.junction import JunctionProcedureFunction
+from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
+from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
+from pydrodelta.procedures.gr4j import GR4JProcedureFunction
+from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
+from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
+from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,

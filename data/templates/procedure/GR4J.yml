@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../../../data/schemas/json/procedure.json
+id: str
+function:
+  type: GR4J
+  boundaries:
+  - name: q_obs
+    node_variable: [1,1]
+  - name: pma
+    node_variable: [1,1]
+  - name: etp
+    node_variable: [1,1]
+  - name: smc_obs
+    node_variable: [1,1]
+  outputs:
+  - name: q_sim
+    node_variable: [1,1]
+  - name: smc_sim
+    node_variable: [1,1]
+  parameters:
+    X0: 0
+    X1: 0
+    X2: 0
+    X3: 0
+  initial_states:
+    Sk: 0
+    Rk: 0
+  extra_pars:
+    area: 0
+    windowsize: 0
+    rho: 0
+    wp: 0
+    ae: 0
+    fill_nulls: False
+save_results: str

@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../../../data/schemas/json/procedure.json
+id: str
+function:
+  type: LinearCombination
+  forecast_steps: 1
+  lookback_steps: 1
+  boundaries:
+  - name: input_1
+    node_variable: [1,1]
+  outputs:
+  - name: output
+    node_variable: [1,1]
+  coefficients:
+  - step: 0
+    intercept: 0
+    boundaries:
+    - name: input_1
+      values:
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0

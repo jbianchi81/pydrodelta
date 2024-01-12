@@ -5,7 +5,7 @@ from numpy import tanh
 from pandas import DataFrame, Series, concat
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.pq import PQProcedureFunction
+from .pq import PQProcedureFunction
 
 class GRPProcedureFunction(PQProcedureFunction):
     def __init__(self,params,procedure):

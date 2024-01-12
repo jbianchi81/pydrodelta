@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../../data/schemas/json/procedure.json
+id: str
+function:
+  type: Polynomial
+  intercept: 0
+  coefficients:
+  - 1
+  boundaries:
+  - name: input
+    node_variable:
+    - 1
+    - 1
+  outputs:
+  - name: output
+    node_variable:
+    - 1
+    - 1

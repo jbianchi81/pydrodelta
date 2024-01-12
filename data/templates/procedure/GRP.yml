@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../../../data/schemas/json/procedure.json
 id: str
 function:
-  type: SacramentoSimplified
+  type: GRP
   boundaries:
   - name: pma
     node_variable: [0,0]
@@ -17,33 +17,18 @@ function:
   - name: smc_sim
     node_variable: [0,0]
   parameters:
-    x1_0: 0
-    x2_0: 0
-    m1: 0
-    c1: 0
-    c2: 0
-    c3: 0
-    mu: 0
-    alfa: 0
-    m2: 0
-    m3: 0
+    X0: 0
+    X1: 0
+    X2: 0
+    X3: 0
+  initial_states:
+    Sk: 0
+    Rk: 0
   extra_pars:
     area: 0
-    ae: 0
+    windowsize: 0
     rho: 0
     wp: 0
-    windowsize: 0
-    dt:
-      days: 1
-    sm_transform: [0,0]
-    par_fg:
-      CN2: 0
-      hp1dia: 0
-      hp2dias: 0
-      Qbanca: 0
-    max_npasos: 0
-    no_check1: false
-    no_check2: false
-    rk2: false
-  initial_states: [0, 0, 0, 0]
+    ae: 0
+    fill_nulls: False
 save_results: str

@@ -6,7 +6,7 @@ import numpy as np
 from pandas import DataFrame, Series, concat
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.grp import GRPProcedureFunction
+from pydrodelta.procedures.grp import GRPProcedureFunction
 from pydrodelta.pydrology import GR4J
 
 class GR4JProcedureFunction(GRPProcedureFunction):

@@ -2,7 +2,7 @@ from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.validation import getSchema, validate
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LinearChannel
-from pydrodelta.generic_linear_channel import GenericLinearChannelProcedureFunction
+from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
 import numpy as np
 
 schemas, resolver = getSchema("UHLinearChannelProcedureFunction","data/schemas/json")

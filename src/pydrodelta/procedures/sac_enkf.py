@@ -8,7 +8,7 @@ from pandas import DataFrame, Series, concat
 from pydrodelta.procedure_function import ProcedureFunctionResults
 # from pydrodelta.qp import QPProcedureFunction
 # from pydrodelta.util import interval2timedelta
-import pydrodelta.sacramento_simplified as sac
+import pydrodelta.procedures.sacramento_simplified as sac
 
 kalman_def = {
 	"stddev_forzantes": [0.25,0.1],

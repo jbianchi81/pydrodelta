@@ -132,6 +132,10 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] add hline on forecast date in variable plots
 - [x] test uh_linear_channel
 - [ ] map graph edges from procedure boundaries and outputs
+- [ ] move basin parameters (from procedurefunction.extra_pars) to topology
+- [ ] create procedure templates
+- [ ] create node templates
+- [x] move procedures to /procedures
 
 ### References
 

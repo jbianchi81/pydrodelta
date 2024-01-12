@@ -12,7 +12,7 @@
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["SacramentoSimplified"]
+            "enum": ["SacramentoSimplified", "SacEnKF"]
         },
         "initial_states": {
             "type": "array",

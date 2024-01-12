@@ -105,9 +105,6 @@
                     },
                     "replicates": {
                         "type": "integer"
-                    },
-                    "windowsize":  {
-                        "type": "integer"
                     }
                 }
             },
