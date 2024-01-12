@@ -357,6 +357,7 @@ class Topology():
                     plt.axvline(node.max_obs_date, color='k', linestyle='--')
                 if output is not None:
                     pdf.savefig()
+                plt.close()
             else:
                 logging.warn("topology.plotVariable: Skipping node %s" % str(node.id))
         if output is not None:

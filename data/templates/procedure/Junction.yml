@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../../data/schemas/json/procedure.json
+id: str
+function:
+  type: Junction
+  boundaries:
+  - name: input_1
+    node_variable:
+    - 1
+    - 1
+  - name: input_2
+    node_variable:
+    - 1
+    - 1
+  outputs:
+  - name: output
+    node_variable:
+    - 1
+    - 1

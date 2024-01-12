@@ -3,8 +3,8 @@ import yaml
 import click
 
 def run(input,output,node_id):
-    file = open(input,"r")
-    calibrado = json.load(file)
+    # file = open(input,"r")
+    calibrado = json.load(open(input,"r"))
     def sort_key(p):
         return p["orden"]
 
@@ -124,8 +124,8 @@ def run(input,output,node_id):
         },
         "procedures": [
             {
+                "id": calibrado["nombre"],
                 "function": {
-                    "id": calibrado["nombre"],
                     "type": "SacramentoSimplified",
                     "parameters": parameters,
                     "boundaries": [
@@ -175,8 +175,8 @@ def run(input,output,node_id):
 @click.command()
 @click.argument('input', type=str)
 @click.argument('output', type=str)
-@click.argument('node_id', type=int)
-def importCalParsSac(input,output,node_id=1):
+@click.option('--node-id', default=1, show_default=True)
+def importCalParsSac(input,output,node_id):
     run(input = input,output = output, node_id = node_id)
 
 if __name__ == '__main__':
