@@ -28,6 +28,11 @@ class sm_transform():
     def __init__(self,parameters: list):
         self.slope = parameters[0]
         self.intercept = parameters[1]
+    def toDict(self):
+        return {
+            "slope": self.slope,
+            "intercept": self.intercept
+        }
 
 class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     def __init__(self,params,procedure):
@@ -312,6 +317,19 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             "initial_states": self.initial_states,
             "states": results[["x0","x1","x2","x3"]],
             "parameters": self.parameters,
+            "extra_pars": {
+                "rho": self.rho,
+                "area": self.area,
+                "ae": self.ae,
+                "wp": self.wp,
+                "sm_transform": self.sm_transform.toDict(),
+                "par_fg": self.par_fg,
+                "max_npasos": self.max_npasos,
+                "no_check1": self.no_check1,
+                "no_check2": self.no_check2,
+                "rk2": self.rk2,
+                "dt_sec": self.dt_sec
+            },
             # "statistics": {
             #     "obs": obs,
             #     "sim": sim,

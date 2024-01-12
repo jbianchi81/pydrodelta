@@ -118,6 +118,12 @@ class Procedure():
             "function_type": self.function_type_name,
             "results": [x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
         }
+    def read_results(self):
+        return {
+            "procedure_id": self.id,
+            "function_type": self.function_type_name,
+            "results": self.procedure_function_results.toDict() if self.procedure_function_results is not None else None
+        }
     def run(self,inplace=True,save_results=None):
         """
         Run self.function.run()

@@ -10,6 +10,7 @@ class ProcedureFunctionResults:
         self.parameters = params["parameters"] if "parameters" in params else None
         self.statistics = [ResultStatistics(x) for x in params["statistics"]] if "statistics" in params and type(params["statistics"]) == list else [ResultStatistics(params["statistics"])] if "statistics" in params else None
         self.data = DataFrame(params["data"]) if "data" in params else None
+        self.extra_pars = params["extra_pars"] if "extra_pars" in params else None
     # def toJSON(self):
     #     return json.dumps(self, default=lambda o: o.__dict__, 
     #         sort_keys=True, indent=4)
@@ -25,4 +26,14 @@ class ProcedureFunctionResults:
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.ERROR(f"Couldn't write to file ({e})")
+    def toDict(self):
+        return {
+            "border_conditions": self.border_conditions.to_dict("records") if self.border_conditions is not None else None,
+            "initial_states": self.initial_states,
+            "states": self.states.to_dict("records") if self.states is not None else None,
+            "parameters": self.parameters,
+            "extra_pars": self.extra_pars,
+            "statistics": [x.toDict() for x in self.statistics] if self.statistics is not None else None,
+            "data": self.data.to_dict("records") if self.data is not None else None
+        }
 

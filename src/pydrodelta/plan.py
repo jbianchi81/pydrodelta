@@ -83,7 +83,7 @@ class Plan():
             self.uploadSim()
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w") as outfile:
-                json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
     def toCorrida(self):
         series_sim = []
         for node in self.topology.nodes:
