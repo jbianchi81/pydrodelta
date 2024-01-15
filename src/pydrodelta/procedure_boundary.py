@@ -28,6 +28,8 @@ class ProcedureBoundary():
             "warmup_only": self.warmup_only,
             "compute_statistics": self.compute_statistics
         }
+    def toDict(self):
+        return self.__dict__()
     def setNodeVariable(self,plan):
         for t_node in plan.topology.nodes:
             if t_node.id == self.node_id:

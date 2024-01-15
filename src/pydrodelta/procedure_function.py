@@ -27,6 +27,15 @@ class ProcedureFunction:
         self.setOutputs(params["outputs"])
         self.input = None
         self.extra_pars = params["extra_pars"] if "extra_pars" in params else dict()
+    def toDict(self):
+        return {
+            "type": type(self).__name__,
+            "parameters": self.parameters,
+            "initial_states": self.initial_states,
+            "boundaries": [b.toDict() for b in self.boundaries],
+            "outputs": [o.toDict() for o in self.outputs],
+            "extra_pars": self.extra_pars
+        }
     def setBoundaries(self,boundaries:dict={}):
         self.boundaries = []
         for b in self.__class__._boundaries:

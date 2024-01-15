@@ -115,8 +115,8 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         plan.toCorridaCsv(export_corrida_csv,pivot=pivot)
     if graph_file is not None:
         graph_file_json = "%s.json" % graph_file 
-        plan.topology.exportGraph(output_file=graph_file_json)
-        plan.topology.printGraph(output_file=graph_file)
+        plan.exportGraph(output_file=graph_file_json)
+        plan.printGraph(output_file=graph_file)
     if plot_var is not None:
         for var_tuple in plot_var:
             var_id, filename = var_tuple

@@ -22,6 +22,11 @@ class BoundaryCoefficients():
         if len(params["values"]) > procedure_function.lookback_steps:
             raise Exception("Length of values list of boundary %i is longer than procedure function lookback_steps (%i)" % (len(params["values"]), procedure_function.lookback_steps))
         self.values = params["values"] # list of numbers
+    def toDict(self):
+        return {
+            "name": self.name,
+            "values": self.values
+        }
 
 class ForecastStep():
     def __init__(self,params,procedure_function):
@@ -31,6 +36,11 @@ class ForecastStep():
             if str(boundary["name"]) not in [b.name for b in procedure_function.boundaries]:
                 raise Exception("Boundary %s not found in procedure.boundaries: " % (str(boundary["name"]), str([b.name for b in procedure_function.boundaries])))
             self.boundaries.append(BoundaryCoefficients(boundary,procedure_function))
+    def toDict(self):
+        return {
+            "intercept": self.intercept,
+            "boundaries": [ x.toDict() for x in self.boundaries ]
+        }
 
 class LinearCombinationProcedureFunction(ProcedureFunction):
     _boundaries = [
@@ -105,6 +115,6 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             "parameters": {
                 "forecast_steps": self.forecast_steps,
                 "lookback_steps": self.lookback_steps,
-                "coefficients": self.coefficients 
+                "coefficients": [x.toDict() for x in self.coefficients]
             }
         })

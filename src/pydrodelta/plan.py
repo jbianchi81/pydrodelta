@@ -6,6 +6,9 @@ from datetime import datetime
 import json
 import logging
 from pandas import concat
+import networkx as nx
+from networkx.readwrite import json_graph
+import matplotlib.pyplot as plt
 
 from pydrodelta.a5 import Crud, createEmptyObsDataFrame
 from pydrodelta.topology import Topology
@@ -145,3 +148,47 @@ class Plan():
         """
         corrida = self.toCorridaDataFrame(pivot=pivot)
         corrida.to_csv(filename,header=include_header)
+    
+    def toGraph(self,nodes):
+        DG = self.topology.toGraph(nodes)
+        edges = list()
+        for procedure in self.procedures:
+            proc_id = "procedure_%s" % procedure.id
+            proc_dict = procedure.toDict()
+            proc_dict["node_type"] = "procedure"
+            DG.add_node(proc_id,object=proc_dict)
+            for b in procedure.function.boundaries:
+                edges.append((b.node_id, proc_id))
+            for o in procedure.function.outputs:
+                edges.append((proc_id,o.node_id))
+        for edge in edges:
+            if not DG.has_node(edge[1]):
+                raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
+            DG.add_edge(edge[0],edge[1])
+        return DG
+
+    def printGraph(self,nodes=None,output_file=None):
+        DG = self.toGraph(nodes)
+        attrs = nx.get_node_attributes(DG, 'object') 
+        labels = {}
+        colors = []
+        for key in attrs:
+            labels[key] = attrs[key]["name"] if "name" in attrs[key] else attrs[key]["id"] if "id" in attrs[key] else "N"
+            colors.append("blue" if attrs[key]["node_type"] == "basin" else "yellow" if attrs[key]["node_type"] == "procedure" else "red")
+        logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
+        plt.figure(figsize=(10,14))
+        nx.draw_networkx(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors, node_size=100, font_size=9)
+        if output_file is not None:
+            plt.savefig(output_file, format='png')
+            plt.close()
+
+    def exportGraph(self,nodes=None,output_file=None):
+        DG = self.toGraph(nodes)
+        # NLD = nx.node_link_data(DG)
+        if output_file is not None:
+            with open(output_file,"w") as f:
+                f.write(json.dumps(json_graph.node_link_data(DG),indent=4)) # json.dumps(NLD,indent=4))
+                f.close()
+        else:
+            return json.dumps(json_graph.node_link_data(DG),indent=4)
+    

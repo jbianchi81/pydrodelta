@@ -4,6 +4,7 @@ import json
 import pydrodelta.util as util
 from pydrodelta.a5 import createEmptyObsDataFrame
 from pydrodelta.result_statistics import ResultStatistics
+from pydrodelta.procedure_function_results import ProcedureFunctionResults
 
 
 class Procedure():
@@ -38,6 +39,11 @@ class Procedure():
         self.states = None
         self.procedure_function_results = None
         self.save_results = params["save_results"] if "save_results" in params else None
+    def toDict(self):
+        return {
+            "id": self.id,
+            "function": self.function.toDict()
+        }
     def loadInput(self,inplace=True,pivot=False):
         """
         Carga las variables de borde definidas en self.boundaries. De cada elemento de self.boundaries toma .data y lo concatena en una lista. Si pivot=True, devuelve un DataFrame con 
@@ -136,7 +142,7 @@ class Procedure():
         # runs procedure function
         output, procedure_function_results = self.function.run(input=input)
         # sets procedure_function_results
-        self.procedure_function_results = procedure_function_results
+        self.procedure_function_results = procedure_function_results if type(procedure_function_results) == ProcedureFunctionResults else ProcedureFunctionResults(procedure_function_results)
         # loads observed outputs
         output_obs = self.loadOutputObs(inplace)
         # sets states

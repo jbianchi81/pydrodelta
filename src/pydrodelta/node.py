@@ -30,7 +30,6 @@ class Node:
         if "variables" in params:
             for variable in params["variables"]:
                 self.variables[variable["id"]] = DerivedNodeVariable(variable,self) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(variable,self)
-        self.downstream_node = params["downstream_node"] if "downstream_node" in params else None
         self.node_type = params["node_type"] if "node_type" in params else "station"
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
@@ -52,7 +51,6 @@ class Node:
             "time_offset": isodate.duration_isoformat(self.time_offset) if self.time_offset is not None else None,
             "hec_node": dict(self.hec_node) if self.hec_node is not None else None,
             "variables": [self.variables[key].toDict() for key in self.variables], 
-            "downstream_node": self.downstream_node,
             "node_type": self.node_type
         }
     def createDatetimeIndex(self):

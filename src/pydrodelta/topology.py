@@ -482,21 +482,21 @@ class Topology():
         if nodes is None:
             nodes = self.nodes
         DG = nx.DiGraph()
-        edges = list()
+        # edges = list()
         for node in nodes:
-            logging.debug("topology.toGraph: adding node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
+            # logging.debug("topology.toGraph: adding node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
             DG.add_node(node.id,object=node.toDict())
-            logging.debug("topology.toGraph: added node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
-            if node.downstream_node is not None:
-                if type(node.downstream_node) is list:
-                    for id in node.downstream_node:
-                        edges.append((node.id,id))
-                else:
-                    edges.append((node.id,node.downstream_node))
-        for edge in edges:
-            if not DG.has_node(edge[1]):
-                raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
-            DG.add_edge(edge[0],edge[1])
+            # logging.debug("topology.toGraph: added node: %s. number of nodes: %i, number of edges: %i" % (node.id, DG.number_of_nodes(), DG.number_of_edges()))
+            # if node.downstream_node is not None:
+                # if type(node.downstream_node) is list:
+                    # for id in node.downstream_node:
+                    #     edges.append((node.id,id))
+                # else:
+                #     edges.append((node.id,node.downstream_node))
+        # for edge in edges:
+        #     if not DG.has_node(edge[1]):
+        #         raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
+        #     DG.add_edge(edge[0],edge[1])
         return DG
     def exportGraph(self,nodes=None,output_file=None):
         DG = self.toGraph(nodes)

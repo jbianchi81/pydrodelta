@@ -1321,6 +1321,18 @@ class Crud():
         json_response = response.json()
         return json_response
 
+    def readCalibrado(self,cal_id,use_proxy=False):
+        if cal_id is None:
+            raise Exception("Missing parameter cal_id")
+        url = "%s/sim/calibrados/%i" % (self.url, cal_id)
+        response = requests.get(url,headers = {'Authorization': 'Bearer ' + self.token},
+            proxies = self.proxy_dict if use_proxy else None
+        )
+        if response.status_code != 200:
+            raise Exception("request failed: status: %i, message: %s" % (response.status_code, response.text))
+        json_response = response.json()
+        return json_response
+
     def createCorrida(self,data,cal_id=None,use_proxy=False):
         validate(data,"Corrida")
         cal_id = cal_id if cal_id is not None else data["cal_id"] if "cal_id" in data else None
