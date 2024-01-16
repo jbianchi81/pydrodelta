@@ -209,7 +209,7 @@ def parse_junction(calibrado,node_id):
     node_names = ["output", "input_1", "input_2", "input_3", "input_4", "input_5", "input_6", "input_7", "input_8", "input_9"]
 
     output_node = {
-        "id": node_id[index],
+        "id": int(node_id[index]),
         "name": "output node",
         "node_type": "station",
         "time_interval": {
@@ -303,7 +303,7 @@ def parse_junction(calibrado,node_id):
             {
                 "id": calibrado["nombre"],
                 "function": {
-                    "type": "SacramentoSimplified",
+                    "type": "Junction",
                     "boundaries": boundaries,
                     "outputs": [
                         {
@@ -337,7 +337,7 @@ def parse_mkgm(calibrado,node_id):
     node_names = ["output", "input"]
 
     output_node = {
-        "id": node_id[0],
+        "id": int(node_id[0]),
         "name": "output node",
         "node_type": "station",
         "time_interval": {
@@ -364,7 +364,7 @@ def parse_mkgm(calibrado,node_id):
     }
 
     input_node = {
-        "id": node_id[1],
+        "id": int(node_id[1]),
         "name": "input node",
         "node_type": "station",
         "time_interval": {
