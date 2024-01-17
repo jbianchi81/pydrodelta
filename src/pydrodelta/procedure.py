@@ -218,6 +218,7 @@ from pydrodelta.procedures.gr4j import GR4JProcedureFunction
 from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
+from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -239,5 +240,6 @@ procedureFunctionDict = {
     "Junction": JunctionProcedureFunction,
     "LinearChannel": LinearChannelProcedureFunction,
     "UHLinearChannel": UHLinearChannelProcedureFunction,
-    "GR4J": GR4JProcedureFunction
+    "GR4J": GR4JProcedureFunction,
+    "HOSH4P1L": HOSH4P1LProcedureFunction
 }

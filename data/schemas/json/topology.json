@@ -111,19 +111,6 @@
           ],
           "additionalProperties": false
         },
-        "downstream_node": {
-          "oneOf": [
-            { 
-              "type": "number"
-            },{
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            }
-          ],
-          "description": "id of the downstream node(s), if it exists"
-        },
         "node_type": {
           "description": "Type of node. 'station' or 'basin'",
           "type": "string",

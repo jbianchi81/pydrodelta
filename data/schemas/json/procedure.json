@@ -53,6 +53,8 @@
           },
           {
             "$ref": "muskingumchannelprocedurefunction.json"
+          },{
+            "$ref": "hosh4p1lprocedurefunction.json"
           }
         ]
       },

@@ -339,7 +339,7 @@ class Topology():
                 fig, ax = plt.subplots(figsize=(20,8))
                 grouped = data.groupby('tag')
                 for key, group in grouped:
-                    group.plot(ax=ax,kind='line', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
+                    group.plot(ax=ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
                 if len(original_data.dropna()["valor"]):

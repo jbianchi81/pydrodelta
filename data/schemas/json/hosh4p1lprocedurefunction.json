@@ -1,0 +1,111 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "hosh4p1lprocedurefunction.json",
+    "title": "HOSH4P1LProcedureFunction",
+    "type": "object",
+    "description": "Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base).",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": ["HOSH4P1L"]
+        },
+        "initial_states": {
+            "type": "array",
+            "description": "Initial storages: [SurfaceStorage,SoilStorage]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+                "type": "number"
+            }
+        },
+        "parameters": {
+            "$ref": "#/$defs/Parameters"
+        },
+        "extra_pars": {
+            "$ref": "#/$defs/ExtraPars"
+        }
+    },
+    "required": [
+        "type",
+        "parameters",
+        "extra_pars",
+        "initial_states"
+    ],
+    "$defs": {
+        "Parameters": {
+            "type": "object",
+            "description": "Model parameters object",
+            "properties": {
+                "maxSurfaceStorage": {
+                    "type": "number",
+                    "description": "maximum Surface Storage [mm]"
+                },
+                "maxSoilStorage": {
+                    "type": "number",
+                    "description": "maximum Soil Storage [mm]"
+                },
+                "Proc": {
+                    "type": "string",
+                    "description": "Routing procedure. Either UH or Nash",
+                    "enum": [
+                        "UH",
+                        "Nash"
+                    ]
+                },
+                "T": {
+                    "type": "number",
+                    "description": "Triangular distribution parameter"
+                },
+                "distribution": {
+                    "type": "string",
+                    "description": "Triangular hidrograph distribution function. Either Symmetric or SCS",
+                    "enum": [
+                        "Symmetric",
+                        "SCS"
+                    ]
+                },
+                "k": {
+                    "type": "number",
+                    "description": "residence time of Nash linear channel"
+                },
+                "n": {
+                    "type": "number",
+                    "description": "number of reservoirs of Nash linear channel"
+                }    
+            },
+            "required": ["maxSurfaceStorage","maxSoilStorage"],
+            "additionalProperties": false
+        },
+        "ExtraPars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "Triangular distribution computation time step"
+                },
+                "shift":  {
+                    "type": "boolean",
+                    "description": "Triangular distribution shift parameter"
+                },
+                "approx":  {
+                    "type": "boolean",
+                    "description": "Triangular distribution approx parameter"
+                },
+                "area": {
+                    "type": "number",
+                    "description": "basin area in square meters"
+                },
+                "ae": {
+                    "type": "number",
+                    "description": "effective area (0-1)"
+                }
+            },
+            "required": ["area"]
+        }
+    }
+}

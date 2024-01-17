@@ -22,7 +22,9 @@
                 "SacramentoSimplified",
                 "SacramentoSimplifiedProcedureFunction",
                 "SacEnKGProcedureFunction",
-                "SacEnKF"
+                "SacEnKF",
+                "HOSH4P1L",
+                "HOSH4P2L"
             ]
         },
         "initial_states": {

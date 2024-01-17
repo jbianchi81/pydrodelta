@@ -32,5 +32,8 @@ class PQProcedureFunction(ProcedureFunction):
         #### area basin area in square meters
         # logging.debug("extra_pars: %s" % self.extra_pars)
         self.area = float(self.extra_pars["area"])
+        self.ae = float(self.extra_pars["ae"]) if "ae" in self.extra_pars else 1
+        self.rho = float(self.extra_pars["rho"]) if "rho" in self.extra_pars else 0.5
+        self.wp = float(self.extra_pars["wp"]) if "wp" in self.extra_pars else 0.03
         # self.parameters = params["parameters"] if "parameters" in params else {}
         # self.initial_states = params["initial_states"] if "initial_states" in params else {}
