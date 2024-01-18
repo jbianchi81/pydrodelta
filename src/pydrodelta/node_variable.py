@@ -10,10 +10,7 @@ import json
 from datetime import timedelta
 import matplotlib.pyplot as plt
 import isodate
-
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -232,6 +229,9 @@ class NodeVariable:
             obs_created = []
             for serie in self.series_output:
                 obs_list = serie.toList(remove_nulls=True,max_obs_date=None if include_prono else self.max_obs_date if hasattr(self,"max_obs_date") else None) # include_series_id=True)
+                if serie.save_post is not None:
+                    json.dump(obs_list,open("%s/%s" % (os.environ["PYDRODELTA_DIR"], serie.save_post),"w"))
+                    logging.info("Wrote output of node #%i, variable %i, serie %i to %s" % (self._node.id,self.id, serie.series_id, serie.save_post))
                 try:
                     created = output_crud.createObservaciones(obs_list,series_id=serie.series_id)
                     obs_created.extend(created)

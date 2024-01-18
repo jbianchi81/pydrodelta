@@ -7,6 +7,7 @@ import numpy  as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os, glob
+import logging
 
 #genera gráfica de señales de entrada/salida para diagnóstico visual
 
@@ -544,8 +545,10 @@ class HOSH4P1L:
         self.soilSystem=SCSReservoirs(pars=[self.maxSurfaceStorage,self.maxSoilStorage])
         if Proc == 'Nash':
             self.routingSystem=LinearChannel(pars=[pars[2],pars[3]])
-        if Proc == 'UH':
+        elif Proc == 'UH':
             self.routingSystem=LinearChannel(pars=pars[2],Proc='UH')
+        else:
+            raise Exception("invalid Proc. Must be one of: Nash, UH")
         self.Precipitation=np.array(Boundaries[:,0],dtype='float')
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.EVR1=np.array([0]*len(self.Precipitation),dtype='float')
@@ -564,7 +567,7 @@ class HOSH4P1L:
                 indexes.append(j)
             else:
                 if(len(indexes)>0): #Activa Rutina de cómputo SCS
-                    print("ponding")
+                    logging.debug("ponding")
                     self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]
                     self.soilSystem.CumPrecip=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.NetRainfall=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
@@ -580,7 +583,7 @@ class HOSH4P1L:
                     self.Runoff[min(indexes):max(indexes)+1]=self.soilSystem.Runoff
                     indexes=list()
                 if(len(indexes)==0): #Activa rutina Cómputo EVR y realiza balance en reservorio de abstracción superficial y reservorio de retención de agua en el suelo
-                    print("drying")
+                    logging.debug("drying")
                     self.EVR1[j]=min(self.SurfaceStorage[j]/self.maxSurfaceStorage*self.EVP[j],self.SurfaceStorage[j])
                     self.NetRainfall[j]=max(0,self.Precipitation[j]-self.EVR1[j]+self.SurfaceStorage[j]-self.maxSurfaceStorage)
                     self.EVR2[j]=computeEVR(self.NetRainfall[j],self.EVP[j]-self.EVR1[j],self.SoilStorage[j],self.maxSoilStorage)
@@ -611,8 +614,10 @@ class HOSH4P2L:
         if self.RoutingProc == 'Nash':
             self.tr=pars[4]
             self.n=pars[5]
-        if self.RoutingProc == 'UH':
+        elif self.RoutingProc == 'UH':
             self.u=pars[4]
+        else:
+            raise Exception("invalid Proc. Must be one of: Nash, UH")
         self.Precipitation=np.array(Boundaries[:,0],dtype='float')
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.EVR1=np.array([0]*len(self.Precipitation),dtype='float')
@@ -631,7 +636,7 @@ class HOSH4P2L:
                 indexes.append(j)
             else:
                 if(len(indexes)>0): #Activa Rutina de cómputo SCS
-                    print("ponding")
+                    logging.debug("ponding")
                     self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]
                     self.soilSystem.CumPrecip=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.NetRainfall=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
@@ -647,7 +652,7 @@ class HOSH4P2L:
                     self.Runoff[min(indexes):max(indexes)+1]=self.soilSystem.Runoff
                     indexes=list()
                 if(len(indexes)==0): #Activa rutina Cómputo EVR y realiza balance en reservorio de abstracción superficial y reservorio de retención de agua en el suelo
-                    print("drying")
+                    logging.debug("drying")
                     self.EVR1[j]=min(self.SurfaceStorage[j]/self.maxSurfaceStorage*self.EVP[j],self.SurfaceStorage[j])
                     self.NetRainfall[j]=max(0,self.Precipitation[j]-self.EVR1[j]+self.SurfaceStorage[j]-self.maxSurfaceStorage)
                     self.EVR2[j]=computeEVR(self.NetRainfall[j],self.EVP[j]-self.EVR1[j],self.SoilStorage[j],self.maxSoilStorage)

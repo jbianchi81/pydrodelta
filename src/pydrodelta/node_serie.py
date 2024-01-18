@@ -5,10 +5,7 @@ import logging
 from pydrodelta.a5 import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 import yaml
 from pandas import isna
-
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"])
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -28,6 +25,7 @@ class NodeSerie():
         self.jumps_data = None
         self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],params["csv_file"]) if "csv_file" in params else None
         self.observations = util.parseObservations(params["observations"]) if "observations" in params else None
+        self.save_post = params["save_post"] if "save_post" in params else None
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data if self.data is not None else 0))
     def __str__(self):

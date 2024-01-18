@@ -48,7 +48,7 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
             [data[["output"]].rename(columns={"output":"valor"})],
             ProcedureFunctionResults({
                 "parameters": {
-                    "coefficients": self.coefficients,
+                    "coefficients": list(self.coefficients),
                     "dt": self.dt,
                 },       
                 "data": data

@@ -1,13 +1,8 @@
 from pydrodelta.node_serie import NodeSerie
 import logging
 from pydrodelta.a5 import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
-import yaml
-import os
 from pydrodelta.node_serie_prono_metadata import NodeSeriePronoMetadata
-
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -25,6 +20,7 @@ class NodeSerieProno(NodeSerie):
         self.name = "cal_id: %i, %s" % (self.cal_id if self.cal_id is not None else 0, self.qualifier if self.qualifier is not None else "main")
         self.plot_params = params["plot_params"] if "plot_params" in params else None
         self.metadata = None
+        self.upload = bool(params["upload"]) if "upload" in params else True
     def loadData(self,timestart,timeend):
         logging.debug("Load prono data for series_id: %i, cal_id: %i" % (self.series_id, self.cal_id))
         self.metadata = input_crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier)

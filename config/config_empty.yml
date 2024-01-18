@@ -11,3 +11,6 @@ proxy_dict:
   https: ""
   ftp: ""
 use_proxy: false
+graph:
+  height: 8
+  width: 10

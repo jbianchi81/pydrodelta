@@ -28,9 +28,7 @@ resolver = jsonschema.validators.RefResolver(
     referrer=True,
 )
 
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -104,7 +102,7 @@ class Topology():
     def loadData(self,include_prono=True):
         for node in self.nodes:
             # logging.debug("loadData timestart: %s, timeend: %s, time_interval: %s" % (self.timestart.isoformat(), self.timeend.isoformat(), str(node.time_interval)))
-            timestart = self.timestart
+            timestart = self.timestart - node.time_interval if node.time_interval is not None else self.timeend
             timeend = self.timeend + node.time_interval if node.time_interval is not None else self.timeend
             forecast_timeend = self.forecast_timeend+node.time_interval if self.forecast_timeend is not None and node.time_interval is not None else self.forecast_timeend
             if hasattr(node,"loadData"):

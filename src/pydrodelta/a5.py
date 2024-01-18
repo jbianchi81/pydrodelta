@@ -7,10 +7,7 @@ import os
 from datetime import datetime
 import yaml
 import logging
-
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")

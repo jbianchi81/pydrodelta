@@ -309,6 +309,7 @@
         },
         "observations": {
           "type": "array",
+          "description": "list of observations. Each element is an ObservationDict or an ObservationArray",
           "items": {
             "oneOf": [
               {
@@ -319,6 +320,10 @@
               }
             ] 
           }
+        },
+        "save_post": {
+          "type": "string",
+          "description": "Local path where to save output data sent to API (when uploading analysis results)"
         }
       },
       "required": [
@@ -347,6 +352,10 @@
         },
         "plot_params": {
           "href": "#/$defs/PlotParams"
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "Set to false to exclude this serie from forecast output"
         }
       }
     },
@@ -473,6 +482,7 @@
     },
     "ObservationDict": {
       "type": "object",
+      "description": "An object with the properties 'timestart' (ISO datetime string) and 'valor' (float)",
       "properties": {
         "timestart": {
           "type": "string"
@@ -494,6 +504,7 @@
     },
     "ObservationArray": {
       "type": "array",
+      "description": "A length-2 list where the first element is the timestamp of the observation (ISO datetime string) and the second is the value (float)",
       "minItems": 2,
       "prefixItems": [
         {

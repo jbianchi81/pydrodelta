@@ -113,8 +113,11 @@ class Node:
         for variable in self.variables.values():
             variable.setOutputData()
     def uploadData(self,include_prono=False):
+        created = []
         for variable in self.variables.values():
-            variable.uploadData(include_prono=include_prono)
+            result = variable.uploadData(include_prono=include_prono)
+            created.extend(result)
+        return created
     def pivotData(self,include_prono=True):
         data = createEmptyObsDataFrame()
         for variable in self.variables.values():

@@ -51,6 +51,14 @@
       "pivot": {
         "type": "boolean",
         "description": "Print output grouped by index (timestart)"
+      },
+      "save_post": {
+        "type": "string",
+        "description": "Local path where to save simulation post data (json)"
+      },
+      "save_response": {
+        "type": "string",
+        "description": "Local path where to save simulation post response (json)"
       }
     },
     "required": [

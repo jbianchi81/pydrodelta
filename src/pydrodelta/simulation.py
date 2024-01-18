@@ -4,10 +4,8 @@ import yaml
 import click
 import sys
 from pydrodelta.plan import Plan
-
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
+from json import dump as json_dump 
 
 
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
@@ -67,15 +65,17 @@ root_logger.addHandler(str_handler)
 @click.option("--export_corrida_json", "-e", help="Save result of simulation to .json file", type=str)
 @click.option("--export_corrida_csv", "-E", help="Save result of simulation to .csv file", type=str)
 @click.option("--pivot", "-p", is_flag=True, help="Pivot output table", default=False,show_default=True)
-@click.option("--upload", "-u", is_flag=True, help="Upload output to database API", default=False, show_default=True)
-@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=False, show_default=True)
+@click.option("--upload", "-u", is_flag=True, help="Upload analysis output to database API", default=False, show_default=True)
+@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to analysis output series",type=bool, default=False, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
 @click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
 @click.option("--pretty", "-r", is_flag=True, help="json pretty print", default=False, show_default=True)
 @click.option("--output-analysis", "-a", help="output analysis result (json)", type=str, default=None)
 @click.option("--quiet", "-q", is_flag=True, help="quiet mode", default=False, show_default=True)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis,quiet):
+@click.option("--upload-prono", "-U", is_flag=True, help="Upload simulation output to database API", default=False, show_default=True)
+@click.option("--save-upload-response", help="save analysis output response to this file (json)", default=None)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response):
     """
     run plan from plan config file
     
@@ -100,13 +100,16 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
     if pivot is not None:
         t_config["pivot"] = pivot
     plan = Plan(t_config)
-    plan.execute(include_prono=include_prono,upload=False,pretty=pretty)
+    plan.execute(include_prono=include_prono,upload=upload_prono,pretty=pretty)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)
     if json is not None:
         plan.topology.saveData(json,format="json",pivot=pivot,pretty=pretty)
     if upload:
-        plan.topology.uploadData()
+        created = plan.topology.uploadData(include_prono)
+        if save_upload_response is not None:
+            json_dump(created,open(save_upload_response,"w"))
+            logging.info("Analysis upload response saved to %s" % save_upload_response)
         if include_prono:
             plan.topology.uploadDataAsProno()
     if export_corrida_json is not None:

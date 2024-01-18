@@ -15,9 +15,7 @@ from pydrodelta.topology import Topology
 import pydrodelta.util as util
 from pydrodelta.procedure import Procedure
 
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
-config = yaml.load(config_file,yaml.CLoader)
-config_file.close()
+from pydrodelta.config import config
 
 output_crud = Crud(config["output_api"])
 
@@ -62,6 +60,8 @@ class Plan():
         else:
             self.output_analysis = None
         self.pivot = params["pivot"] if "pivot" in params else False
+        self.save_post = params["save_post"] if "save_post" in params else None
+        self.save_response = params["save_response"] if "save_response" in params else None
     def execute(self,include_prono=True,upload=True,pretty=False):
         """
         Runs analysis and then each procedure sequentially
@@ -93,13 +93,14 @@ class Plan():
             for variable in node.variables.values():
                 if variable.series_sim is not None:
                     for serie in variable.series_sim:
-                        if serie.data is None:
-                            logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
-                            continue
-                        series_sim.append({
-                            "series_id": serie.series_id,
-                            "pronosticos": serie.toList(remove_nulls=True)
-                        })
+                        if serie.upload:
+                            if serie.data is None:
+                                logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
+                                continue
+                            series_sim.append({
+                                "series_id": serie.series_id,
+                                "pronosticos": serie.toList(remove_nulls=True)
+                            })
         return {
             "cal_id": self.id,
             "forecast_date": self.forecast_date.isoformat(),
@@ -107,7 +108,16 @@ class Plan():
         }
     def uploadSim(self):
         corrida = self.toCorrida()
-        return output_crud.createCorrida(corrida)
+        if self.save_post is not None:
+            save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_post)
+            json.dump(corrida,open(save_path,"w"))
+            logging.info("Saved simulation post data to %s" % save_path)
+        response = output_crud.createCorrida(corrida)
+        if self.save_response:
+            save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_response)
+            json.dump(corrida,open(save_path,"w"))
+            logging.info("Saved simulation post response to %s" % save_path)
+        return response
     def toCorridaJson(self,filename,pretty=False):
         """
         Guarda corrida en archivo .json
@@ -176,7 +186,7 @@ class Plan():
             labels[key] = attrs[key]["name"] if "name" in attrs[key] else attrs[key]["id"] if "id" in attrs[key] else "N"
             colors.append("blue" if attrs[key]["node_type"] == "basin" else "yellow" if attrs[key]["node_type"] == "procedure" else "red")
         logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
-        plt.figure(figsize=(10,14))
+        plt.figure(figsize=(config["graph"]["width"],config["graph"]["height"]))
         nx.draw_networkx(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors, node_size=100, font_size=9)
         if output_file is not None:
             plt.savefig(output_file, format='png')

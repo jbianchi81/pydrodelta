@@ -41,6 +41,6 @@ class JunctionProcedureFunction(ProcedureFunction):
             [output[["valor"]]], 
             ProcedureFunctionResults({
                 "border_conditions": input,
-                "data": output
+                "data": output.rename(columns={"valor":"output","valor_1":"input_1"})
             })
         )
