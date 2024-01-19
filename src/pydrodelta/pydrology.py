@@ -563,12 +563,12 @@ class HOSH4P1L:
         j=0
         indexes=list()
         for row in list(self.Precipitation):
-            if(self.Precipitation[j]!=0):
+            if(self.Precipitation[j]>self.EVP[j]): #Condición de evento 
                 indexes.append(j)
             else:
-                if(len(indexes)>0): #Activa Rutina de cómputo SCS
+                if(len(indexes)>0): #Activa rutina de mojado (cómputo modelo de eventos SCS)
                     logging.debug("ponding")
-                    self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]
+                    self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]-self.EVP[min(indexes):max(indexes)+1]
                     self.soilSystem.CumPrecip=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.NetRainfall=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.Infiltration=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
@@ -581,10 +581,11 @@ class HOSH4P1L:
                     self.NetRainfall[min(indexes):max(indexes)+1]=self.soilSystem.NetRainfall
                     self.Infiltration[min(indexes):max(indexes)+1]=self.soilSystem.Infiltration
                     self.Runoff[min(indexes):max(indexes)+1]=self.soilSystem.Runoff
+                    self.EVR1[min(indexes):max(indexes)+1]=self.EVP[min(indexes):max(indexes)+1]
                     indexes=list()
-                if(len(indexes)==0): #Activa rutina Cómputo EVR y realiza balance en reservorio de abstracción superficial y reservorio de retención de agua en el suelo
+                if(len(indexes)==0): #Activa rutina de secado
                     logging.debug("drying")
-                    self.EVR1[j]=min(self.SurfaceStorage[j]/self.maxSurfaceStorage*self.EVP[j],self.SurfaceStorage[j])
+                    self.EVR1[j]=min(self.EVP[j],self.SurfaceStorage[j]+self.Precipitation[j])
                     self.NetRainfall[j]=max(0,self.Precipitation[j]-self.EVR1[j]+self.SurfaceStorage[j]-self.maxSurfaceStorage)
                     self.EVR2[j]=computeEVR(self.NetRainfall[j],self.EVP[j]-self.EVR1[j],self.SoilStorage[j],self.maxSoilStorage)
                     self.SurfaceStorage[j+1]=waterBalance(self.SurfaceStorage[j],self.Precipitation[j],self.EVR1[j]+self.NetRainfall[j])
@@ -635,9 +636,9 @@ class HOSH4P2L:
             if(self.Precipitation[j]!=0):
                 indexes.append(j)
             else:
-                if(len(indexes)>0): #Activa Rutina de cómputo SCS
+                if(len(indexes)>0): #Activa rutina de mojado (cómputo modelo de eventos SCS)
                     logging.debug("ponding")
-                    self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]
+                    self.soilSystem.Precipitation=self.Precipitation[min(indexes):max(indexes)+1]-self.EVP[min(indexes):max(indexes)+1]
                     self.soilSystem.CumPrecip=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.NetRainfall=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
                     self.soilSystem.Infiltration=np.array([0]*(len(self.soilSystem.Precipitation)),dtype='float')
@@ -650,10 +651,11 @@ class HOSH4P2L:
                     self.NetRainfall[min(indexes):max(indexes)+1]=self.soilSystem.NetRainfall
                     self.Infiltration[min(indexes):max(indexes)+1]=self.soilSystem.Infiltration
                     self.Runoff[min(indexes):max(indexes)+1]=self.soilSystem.Runoff
+                    self.EVR1[min(indexes):max(indexes)+1]=self.EVP[min(indexes):max(indexes)+1]
                     indexes=list()
-                if(len(indexes)==0): #Activa rutina Cómputo EVR y realiza balance en reservorio de abstracción superficial y reservorio de retención de agua en el suelo
+                if(len(indexes)==0): #Activa rutina de secado
                     logging.debug("drying")
-                    self.EVR1[j]=min(self.SurfaceStorage[j]/self.maxSurfaceStorage*self.EVP[j],self.SurfaceStorage[j])
+                    self.EVR1[j]=min(self.EVP[j],self.SurfaceStorage[j]+self.Precipitation[j])
                     self.NetRainfall[j]=max(0,self.Precipitation[j]-self.EVR1[j]+self.SurfaceStorage[j]-self.maxSurfaceStorage)
                     self.EVR2[j]=computeEVR(self.NetRainfall[j],self.EVP[j]-self.EVR1[j],self.SoilStorage[j],self.maxSoilStorage)
                     self.SurfaceStorage[j+1]=waterBalance(self.SurfaceStorage[j],self.Precipitation[j],self.EVR1[j]+self.NetRainfall[j])
