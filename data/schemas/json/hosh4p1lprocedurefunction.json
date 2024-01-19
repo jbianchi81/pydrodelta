@@ -24,10 +24,10 @@
             }
         },
         "parameters": {
-            "$ref": "#/$defs/Parameters"
+            "$ref": "hosh4p1lprocedurefunction.json#/$defs/Parameters"
         },
         "extra_pars": {
-            "$ref": "#/$defs/ExtraPars"
+            "$ref": "hosh4p1lprocedurefunction.json#/$defs/ExtraPars"
         }
     },
     "required": [

@@ -1,0 +1,32 @@
+{
+  "$id": "nodeseriesim.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeSerieSim",
+  "allOf": [
+    {
+      "$ref": "nodeserie.json"
+    }
+  ],
+  "properties": {
+    "cal_id": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "id de calibrado, para utilizar salida de pronóstico"
+    },
+    "qualifier": {
+      "type": "string"
+    },
+    "adjust": {
+      "type": "boolean"
+    },
+    "plot_params": {
+      "href": "plotparams.json"
+    },
+    "upload": {
+      "type": "boolean",
+      "description": "Set to false to exclude this serie from forecast output"
+    }
+  }
+}

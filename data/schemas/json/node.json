@@ -1,0 +1,69 @@
+{
+  "$id": "node.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Node",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "number"
+    },
+    "name": {
+      "type": "string"
+    },
+    "geometry": {
+      "$ref": "geometry.json"
+    },
+    "time_interval": {
+      "$ref": "timeinterval.json"
+    },
+    "variables": {
+      "description": "Variables observed or estimated at this node",
+      "type": "array",
+      "items": {
+        "$ref": "nodevariable.json"
+      }
+    },
+    "hec_node": {
+      "type": "object",
+      "properties": {
+        "River": {
+          "type": "string"
+        },
+        "Reach": {
+          "type": "string"
+        },
+        "River_Stat": {
+          "type": "integer"
+        },
+        "Interval": {
+          "type": "string"
+        },
+        "CondBorde": {
+          "type": "string",
+          "enum": [
+            "Stage Hydrograph",
+            "Flow Hydrograph"
+          ]
+        }
+      },
+      "required": [
+        "River",
+        "Reach",
+        "River_Stat",
+        "Interval",
+        "CondBorde"
+      ],
+      "additionalProperties": false
+    },
+    "node_type": {
+      "description": "Type of node. 'station' or 'basin'",
+      "type": "string",
+      "enum": ["station","basin"]
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "time_interval"
+  ]
+}

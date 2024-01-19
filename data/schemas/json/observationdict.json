@@ -1,0 +1,25 @@
+{
+  "$id": "observationdict.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ObservationDict",
+  "type": "object",
+  "description": "An object with the properties 'timestart' (ISO datetime string) and 'valor' (float)",
+  "properties": {
+    "timestart": {
+      "type": "string"
+    },
+    "valor": {
+      "oneOf": [
+        {
+        "type": "number"
+        },{
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "timestart", "valor"
+  ],
+  "additionalProperties": false
+}

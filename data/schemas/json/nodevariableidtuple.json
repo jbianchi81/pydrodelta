@@ -1,0 +1,12 @@
+{
+  "$id": "nodevariableidtuple.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeVariableIdTuple",
+  "description": "first element is node id, second element is variable id. Must map to procedure.boundaries",
+  "type": "array",
+  "minItems": 2,
+  "maxItems": 2,
+  "items": {
+    "type": "integer"
+  }
+}

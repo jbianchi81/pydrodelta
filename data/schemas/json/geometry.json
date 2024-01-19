@@ -21,16 +21,16 @@
         "description": "coordenadas",
         "oneOf": [
           {
-            "$ref": "#/$defs/Position"
+            "$ref": "geometry.json#/$defs/Position"
           },
           {
-            "$ref": "#/$defs/LineString"
+            "$ref": "geometry.json#/$defs/LineString"
           },
           {
-            "$ref": "#/$defs/Polygon"
+            "$ref": "geometry.json#/$defs/Polygon"
           },
           {
-            "$ref": "#/$defs/MultiPolygon"
+            "$ref": "geometry.json#/$defs/MultiPolygon"
           }
         ]
       }
@@ -51,22 +51,21 @@
         "LineString": {
             "type": "array",
             "items": {
-            "$ref": "#/$defs/Position"
+            "$ref": "geometry.json#/$defs/Position"
             },
             "minItems": 2
         },
         "Polygon": {
             "type": "array",
             "items": {
-            "$ref": "#/$defs/LineString"
+            "$ref": "geometry.json#/$defs/LineString"
             }
         },
         "MultiPolygon": {
             "type": "array",
             "items": {
-            "$ref": "#/$defs/Polygon"
+            "$ref": "geometry.json#/$defs/Polygon"
             }
         }
     }
 }
-  

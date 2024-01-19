@@ -1,0 +1,60 @@
+{
+  "$id": "nodeserie.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeSerie",
+  "type": "object",
+  "properties": {
+    "series_id": {
+      "type": "number"
+    },
+    "tipo": {
+      "$ref": "seriestipo.json"
+    },
+    "lim_outliers": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2
+    },
+    "lim_jump": {
+      "type": "number"
+    },
+    "x_offset": {
+      "$ref": "timeinterval.json"
+    },
+    "y_offset": {
+      "type": "number"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "moving_average": {
+      "$ref": "timeinterval.json"
+    },
+    "csv_file": {
+      "type": "string"
+    },
+    "observations": {
+      "type": "array",
+      "description": "list of observations. Each element is an ObservationDict or an ObservationArray",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "observationdict.json"
+          },
+          {
+            "$ref": "observationarray.json"
+          }
+        ] 
+      }
+    },
+    "save_post": {
+      "type": "string",
+      "description": "Local path where to save output data sent to API (when uploading analysis results)"
+    }
+  },
+  "required": [
+    "series_id"
+  ]
+}

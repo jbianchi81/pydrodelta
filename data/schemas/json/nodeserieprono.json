@@ -1,0 +1,33 @@
+{
+  "$id": "nodeserieprono.json",
+  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeSerieProno",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "nodeserie.json"
+    }
+  ],
+  "properties": {
+    "cal_id": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "id de calibrado, para utilizar salida de pronóstico"
+    },
+    "qualifier": {
+      "type": "string"
+    },
+    "adjust": {
+      "type": "boolean"
+    },
+    "plot_params": {
+      "href": "plotparams.json"
+    }
+  },
+  "required": [
+    "series_id",
+    "cal_id"
+  ]
+}

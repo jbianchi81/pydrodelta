@@ -55,14 +55,14 @@
       "description": "List of boundary conditions. Each item has a name <string> and a node_variable <NodeVariableIdTuple>",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/ProcedureBoundary"
+        "$ref": "procedureboundary.json"
       }
     },
     "outputs": {
       "description": "list of procedure outputs. Each item has a name <string> and a node_variable tuple <NodeVariableIdTuple>",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/ProcedureBoundary"
+        "$ref": "procedureboundary.json"
       }
     }
   },
@@ -70,30 +70,7 @@
     "type",
     "boundaries",
     "outputs"
-  ],
-  "$defs": {
-    "ProcedureBoundary": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "node_variable": {
-          "$ref": "#/$defs/NodeVariableIdTuple"
-        }
-      },
-      "required": ["name","node_variable"]
-    },
-    "NodeVariableIdTuple": {
-      "description": "first element is node id, second element is variable id. Must map to procedure.boundaries",
-      "type": "array",
-      "minItems": 2,
-      "maxItems": 2,
-      "items": {
-        "type": "integer"
-      }
-    }
-  } 
+  ] 
 }
 
   

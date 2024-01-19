@@ -27,7 +27,7 @@
             "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
         },
         "extra_pars": {
-            "$ref": "#/$defs/ExtraPars"
+            "$ref": "sacenkfprocedurefunction.json#/$defs/ExtraPars"
         }
     },
     "required": [
