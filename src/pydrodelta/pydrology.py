@@ -341,7 +341,7 @@ class SCSReservoirs:
             else:
                     self.NetRainfall[i] = 0
                     self.Runoff[i] = 0
-            self.SurfaceStorage[i+1]=min(self.SurfaceStorage[0]+Abstraction,self.CumPrecip[i])
+            self.SurfaceStorage[i+1]=min(self.SurfaceStorage[0]+Abstraction,self.SurfaceStorage[0]+self.CumPrecip[i])
         self.Runoff=differentiate(self.Runoff)
         self.NetRainfall=differentiate(self.NetRainfall)
         self.Infiltration=differentiate(self.Infiltration)
@@ -381,7 +381,7 @@ class SCSReservoirsMod:
             else:
                     self.NetRainfall[i] = 0
                     self.Runoff[i] = 0
-            self.SurfaceStorage[i+1]=min(self.SurfaceStorage[0]+Abstraction,self.CumPrecip[i])
+            self.SurfaceStorage[i+1]=min(self.SurfaceStorage[0]+Abstraction,self.SurfaceStorage[0]+self.CumPrecip[i])
         self.Runoff=differentiate(self.Runoff)
         self.NetRainfall=differentiate(self.NetRainfall)
         self.Infiltration=differentiate(self.Infiltration)
