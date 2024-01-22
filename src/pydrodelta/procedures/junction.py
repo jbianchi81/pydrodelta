@@ -22,10 +22,9 @@ class JunctionProcedureFunction(ProcedureFunction):
         super().__init__(params,procedure)
         validate(params,schema,resolver)
     def run(self,input=None):
-        """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
-        Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
-        """
+        return self.runJunction(input=input,substract=False)
+    def runJunction(self,input=None,substract=False):
+        sign = -1 if substract else 1
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output = input[0][["valor"]].rename(columns={"valor": "valor_1"})
@@ -35,7 +34,7 @@ class JunctionProcedureFunction(ProcedureFunction):
                 continue
             colname = "input_%i" % (i + 1)
             output = output.join(serie[["valor"]].rename(columns={"valor":colname}))
-            output["valor"] = output.apply(lambda row: row['valor'] + row[colname] if not np.isnan(row['valor']) and not np.isnan(row[colname]) else None, axis=1)
+            output["valor"] = output.apply(lambda row: row['valor'] + sign * row[colname] if not np.isnan(row['valor']) and not np.isnan(row[colname]) else None, axis=1)
         # results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
         return (
             [output[["valor"]]], 

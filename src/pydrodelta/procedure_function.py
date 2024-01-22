@@ -16,7 +16,7 @@ class ProcedureFunction:
     """ set to true to allow for additional boundaries """
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
-    def __init__(self,params,procedure):
+    def __init__(self,params : dict,procedure):
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
         self.parameters = params["parameters"] if "parameters" in params else []
@@ -27,7 +27,7 @@ class ProcedureFunction:
         self.setOutputs(params["outputs"])
         self.input = None
         self.extra_pars = params["extra_pars"] if "extra_pars" in params else dict()
-    def toDict(self):
+    def toDict(self) -> dict:
         return {
             "type": type(self).__name__,
             "parameters": self.parameters,
@@ -36,7 +36,7 @@ class ProcedureFunction:
             "outputs": [o.toDict() for o in self.outputs],
             "extra_pars": self.extra_pars
         }
-    def setBoundaries(self,boundaries:dict={}):
+    def setBoundaries(self,boundaries : dict={}):
         self.boundaries = []
         for b in self.__class__._boundaries:
             if b.name in [boundary["name"] for boundary in boundaries]:
@@ -54,7 +54,7 @@ class ProcedureFunction:
                     #     boundaries[key].append(key)
                     boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
                     self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan))
-    def setOutputs(self,outputs:dict={}):
+    def setOutputs(self,outputs : dict={}):
         for b in self.__class__._outputs:
             if b.name in [o["name"] for o in outputs]:
                 # if len(outputs[b.name]) < 3:
@@ -70,7 +70,7 @@ class ProcedureFunction:
                     #     outputs[key].append(key)
                     output = [o for o in outputs if o["name"] == key][0]
                     self.outputs.append(ProcedureBoundary(output,self._procedure._plan))
-    def run(self,input=None):
+    def run(self,input : list=None):
         """
         Placeholder dummy method to be overwritten by actual procedures
 

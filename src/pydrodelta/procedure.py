@@ -5,6 +5,7 @@ import pydrodelta.util as util
 from pydrodelta.a5 import createEmptyObsDataFrame
 from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
+from pydrodelta.pydrology import testPlot
 
 
 class Procedure():
@@ -202,7 +203,16 @@ class Procedure():
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
                 serie.applyOffset()
             index = index + 1
-    
+    def testPlot(self,index=0):
+        if self.output is None:
+            raise Exception("Procedure output has not been generated. Execute run()")
+        if self.output_obs is None:
+            raise Exception("Procedure input has not been generated. Execute loadInput()")
+        if index > len(self.output) - 1:
+            raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
+        testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
+
+
 from pydrodelta.procedures.hecras import HecRasProcedureFunction
 from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
 from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
@@ -219,6 +229,7 @@ from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProce
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
 from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
+from pydrodelta.procedures.difference import DifferenceProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -241,5 +252,6 @@ procedureFunctionDict = {
     "LinearChannel": LinearChannelProcedureFunction,
     "UHLinearChannel": UHLinearChannelProcedureFunction,
     "GR4J": GR4JProcedureFunction,
-    "HOSH4P1L": HOSH4P1LProcedureFunction
+    "HOSH4P1L": HOSH4P1LProcedureFunction,
+    "Difference": DifferenceProcedureFunction
 }

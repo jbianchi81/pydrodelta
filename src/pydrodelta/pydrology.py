@@ -60,13 +60,24 @@ def integrate(list,dt):
     return int
 
 #Computa Hidrogramas Triangulares (método Simétrico o SCS)
-def triangularDistribution(T,distribution='Symmetric',dt=0.01,shift='T',approx='T'):
+def triangularDistribution(pars,distribution='Symmetric',dt=0.01,shift='T',approx='T'):
+    if isinstance(pars,(list)):
+        T=pars[0]
+    elif isinstance(pars,(float,int)):
+        T=pars
+    else:
+        raise TypeError("pars must be a list, a float or an int")
     if distribution == 'Symmetric':
         tb=2*T
         peakValue=1/T
-    if distribution == 'SCS':
+    elif distribution == 'SCS':
         tb=8/3*T
         peakValue=3/4*1/T
+    elif distribution == 'pbT':
+        tb=pars[1]
+        peakValue=2/tb
+    else:
+        raise ValueError("distribution must be 'Symmetric', 'SCS' or 'pbT'")
     ndimu=int(round(tb/dt,0)+1)
     ndimU=int(round(tb,0)+1)
     u=np.array([0]*(ndimu),dtype='float')
@@ -682,6 +693,9 @@ class GR4J:
     type='PQ Model'
     def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
         self.prodStoreMaxStorage=pars[0]
+        self.T=pars[1]
+        self.u1=grXDistribution(self.T,distribution='SH1')
+        self.u2=grXDistribution(self.T,distribution='SH2')
         self.routStoreMaxStorage=pars[2]
         if not pars[3]:
             self.waterExchange=0
