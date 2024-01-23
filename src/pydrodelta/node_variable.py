@@ -282,24 +282,53 @@ class NodeVariable:
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
-    def concatenate(self,data: pandas.DataFrame, inline=True):
+    def concatenate(self,data: pandas.DataFrame, inline=True, overwrite=False):
         """
         Concatenates self.data with data
 
         :param data: DataFrame
         :param inline: Boolean, save result into self.data 
+        :param overwrite: Boolean, overwrite records in self.data with records in data 
         : returns: nothing is inline=True, else DataFrame
         """
         if self.data is None:
             raise Exception("NodeVariable.data is not defined. Can´t concatenate")
         data["tag"] = "sim"
-        concatenated_data = serieFillNulls(self.data,data,extend=True,tag_column="tag")
+        if overwrite:
+            concatenated_data = serieFillNulls(data,self.data,extend=True,tag_column="tag")
+        else:
+            concatenated_data = serieFillNulls(self.data,data,extend=True,tag_column="tag")
         if inline:
             self.data = concatenated_data
             return
         else:
             return concatenated_data
+    
+    def concatenateOriginal(self, data:pandas.DataFrame, inline:bool=True, overwrite:bool=False):
+        """
+        Concatenates self.original_data with data
 
+        :param data: DataFrame
+        :param inline: Boolean, save result into self.data 
+        :param overwrite: Boolean, overwrite records in self.original_data with records in data 
+        : returns: nothing is inline=True, else DataFrame
+        """
+        data["tag"] = "sim"
+        if self.original_data is None:
+            if inline:
+                self.original_data = data.copy()
+                return
+            else:
+                raise Exception("NodeVariable.original_data is not defined. Can´t concatenate")
+        if overwrite:
+            concatenated_data = serieFillNulls(data,self.original_data,extend=True,tag_column="tag")
+        else:
+            concatenated_data = serieFillNulls(self.original_data,data,extend=True,tag_column="tag")
+        if inline:
+            self.data = concatenated_data
+            return
+        else:
+            return concatenated_data
     def concatenateProno(self,inline=True,ignore_warmup=True):
         """
         Fills nulls of data with prono 

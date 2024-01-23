@@ -40,6 +40,8 @@ class Procedure():
         self.states = None
         self.procedure_function_results = None
         self.save_results = params["save_results"] if "save_results" in params else None
+        self.overwrite = bool(params["overwrite"]) if "overwrite" in params else False
+        self.overwrite_original = bool(params["overwrite_original"]) if "overwrite_original" in params else False
     def toDict(self):
         return {
             "id": self.id,
@@ -140,12 +142,12 @@ class Procedure():
         save_results = save_results if save_results is not None else self.save_results
         # loads input inplace
         input = self.loadInput(inplace)
+        # loads observed outputs
+        output_obs = self.loadOutputObs(inplace)
         # runs procedure function
         output, procedure_function_results = self.function.run(input=input)
         # sets procedure_function_results
         self.procedure_function_results = procedure_function_results if type(procedure_function_results) == ProcedureFunctionResults else ProcedureFunctionResults(procedure_function_results)
-        # loads observed outputs
-        output_obs = self.loadOutputObs(inplace)
         # sets states
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
@@ -184,7 +186,9 @@ class Procedure():
         # if tag is not None:
         #     data["tag"] = tag
         # return data
-    def outputToNodes(self):
+    def outputToNodes(self,overwrite=None,overwrite_original=None):
+        overwrite = overwrite if overwrite is not None else self.overwrite
+        overwrite_original = overwrite_original if overwrite_original is not None else self.overwrite_original
         if self.output is None:
             logging.error("Procedure output is None, which means the procedure wasn't run yet. Can't perform outputToNodes.")
             return
@@ -197,7 +201,9 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
-            o._variable.concatenate(self.output[index])
+            o._variable.concatenate(self.output[index],overwrite=overwrite)
+            if overwrite_original:
+                o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
             for serie in o._variable.series_sim:
                 # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
@@ -224,7 +230,7 @@ from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.procedures.junction import JunctionProcedureFunction
 from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
 from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
-from pydrodelta.procedures.gr4j import GR4JProcedureFunction
+from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction
 from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction

@@ -343,6 +343,8 @@ class Topology():
                 if len(original_data.dropna()["valor"]):
                     logging.debug("Add original data to plot at node %s" % str(node.name))
                     original_data.plot(ax=ax,kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
+                else:
+                    logging.warn("Missing original data at node %s variable %i" % (node.name, var_id))
                 if node.variables[var_id].series_sim is not None and len(node.variables[var_id].series_sim):
                     sim_colors = list(Color("orange").range_to(Color("red"),len(node.variables[var_id].series_sim)))
                     for i, serie_sim in enumerate(node.variables[var_id].series_sim):

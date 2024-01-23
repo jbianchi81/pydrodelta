@@ -73,6 +73,14 @@
       "save_results": {
         "type": "string",
         "description": "File path where to save the results of the procedure"
+      },
+      "overwrite": {
+        "type": "boolean",
+        "description": "Choice to overwrite observations at the node-variable with the procedure output"
+      },
+      "overwrite_original": {
+        "type": "boolean",
+        "description": "Choice to overwrite original observations at the node-variable with the procedure output"
       }
     },
     "required": [

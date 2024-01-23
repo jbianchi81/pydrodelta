@@ -36,6 +36,8 @@ class JunctionProcedureFunction(ProcedureFunction):
             output = output.join(serie[["valor"]].rename(columns={"valor":colname}))
             output["valor"] = output.apply(lambda row: row['valor'] + sign * row[colname] if not np.isnan(row['valor']) and not np.isnan(row[colname]) else None, axis=1)
         # results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
+        output_obs = self._procedure.loadOutputObs(False)
+        output = output.join(output_obs[0][["valor"]].rename(columns={"valor":"output_obs"}))
         return (
             [output[["valor"]]], 
             ProcedureFunctionResults({
