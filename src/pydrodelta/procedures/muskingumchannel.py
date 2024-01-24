@@ -3,6 +3,8 @@ from pydrodelta.validation import getSchema, validate
 from pydrodelta.pydrology import MuskingumChannel
 from pandas import DataFrame
 from pydrodelta.function_boundary import FunctionBoundary
+from pydrodelta.model_parameter import ModelParameter
+from numpy import inf
 import logging
 
 schemas, resolver = getSchema("MuskingumChannelProcedureFunction","data/schemas/json")
@@ -16,6 +18,14 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
+    _parameters = [
+        #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
+        # -----+----------+--------+---------+-----------+-----------+----------+-------
+        ModelParameter(name="K", constraints=(0,1,5,inf)),
+        #  296 |       49 | K      |         |         1 |         5 | Infinity |     1
+        ModelParameter(name="K", constraints=(0,0.1,0.5,inf))
+        #  297 |       49 | x1c    |         |       0.1 |       0.5 | Infinity |     2
+    ]
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
@@ -25,7 +35,7 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         validate(params,schema,resolver)
         self.K = params["K"]
         self.X = params["X"]
-        self.Proc = params["Proc"] if "Proc" in params else "Muskingum"
+        self.Proc = params["Proc"] if "Proc" in params else "Muskingum" # NOT USED
         self.initial_states = params["initial_states"] if "initial_states" in params else [0] # None
         self.engine = None
 
@@ -46,3 +56,12 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
                 "data": data_
             })
         )
+    
+    def setParameters(self, parameters: list | tuple = ...):
+        super().setParameters(parameters)
+        self.K = self.parameters["K"]
+        self.X = self.parameters["X"]
+    
+    def setInitialStates(self,states:list=[]):
+        self.initial_states = states
+        

@@ -217,8 +217,7 @@ class Procedure():
         if index > len(self.output) - 1:
             raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
         testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
-
-
+    
 from pydrodelta.procedures.hecras import HecRasProcedureFunction
 from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
 from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction

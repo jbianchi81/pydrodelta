@@ -3,6 +3,7 @@ import logging
 from numpy import tanh
 
 class GR4JProcedureFunction(GRPProcedureFunction):
+
     def __init__(self,params,procedure):
         super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
         # overrides UH1, SH1 from super
@@ -69,8 +70,16 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         j = 0
         Quh = 0
         while(j<min(int(2 * self.X3) + 1,k)):
-            # logging.debug("j: %i, UH1[j]: %f" % (j,self.UH1[j]))
-            # logging.debug("k: %i, Pr[k-j]: %f" % (k,self.Pr[k-j]))
+            # logging.debug("j: %i" % (j))
+            # logging.debug("k: %i" % (k))
+            # if len(self.UH2) < j + 1:
+            #     logging.warn("UH2 is shorter than expected (int(2 * X3) + 1)")
+            # else:
             Quh = Quh + 0.1 * self.UH2[j]*self.Pr[k-j]
             j = j + 1
-        return Quh 
+        return Quh
+
+    def setParameters(self, parameters: list | tuple = ...):
+        super().setParameters(parameters)
+        self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
+    

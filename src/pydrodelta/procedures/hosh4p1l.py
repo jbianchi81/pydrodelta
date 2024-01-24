@@ -9,11 +9,18 @@ from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.pydrology import HOSH4P1L, triangularDistribution
 from pydrodelta.validation import getSchema, validate
+from pydrodelta.model_state import ModelState
 
 schemas, resolver = getSchema("HOSH4P1LProcedureFunction","data/schemas/json")
 schema = schemas["HOSH4P1LProcedureFunction"]
 
 class HOSH4P1LProcedureFunction(PQProcedureFunction):
+
+    _states = [
+        ModelState(name="SurfaceStorage",constraints=(0,np.inf),default=0),
+        ModelState(name="SoilStorage",constraints=(0,np.inf),default=0)
+    ]
+
     def __init__(self,params,procedure):
     #     """
     #     Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
@@ -77,3 +84,8 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
                 "data": data_
             })
         )
+
+    def setInitialStates(self, states: list | tuple = []):
+        super().setInitialStates(states)
+        self.SurfaceStorage = self.initial_states["SurfaceStorage"]
+        self.SoilStorage = self.initial_states["SoilStorage"]

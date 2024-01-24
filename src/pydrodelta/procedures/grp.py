@@ -5,9 +5,30 @@ from numpy import tanh
 from pandas import DataFrame, Series, concat
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
+from pydrodelta.model_parameter import ModelParameter
+from pydrodelta.model_state import ModelState
 from .pq import PQProcedureFunction
+from numpy import inf
 
 class GRPProcedureFunction(PQProcedureFunction):
+
+    _parameters = [
+        ModelParameter(name="X0",constraints=(0.0001,10,1200,inf)),
+        ModelParameter(name="X1",constraints=(0.0001,10,1200,inf)),
+        ModelParameter(name="X2",constraints=(0.0001,0.1,1,inf)),
+        ModelParameter(name="X3",constraints=(0.0001,1.1,10,inf))
+    ]
+
+    _states = [
+        #  id | model_id | nombre | range_min | range_max | def_val | orden 
+        # ----+----------+--------+-----------+-----------+---------+-------
+        ModelState(name='Sk', constraints=(0,inf), default=0),
+        #  23 |       38 | Sk     |         0 |  Infinity |       0 |     1
+        ModelState(name='Rk', constraints=(0,inf), default=0)
+        #  24 |       38 | Rk     |         0 |  Infinity |       0 |     2
+
+    ]
+
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
@@ -167,4 +188,17 @@ class GRPProcedureFunction(PQProcedureFunction):
             # logging.debug("k: %i, Pr[k-j]: %f" % (k,self.Pr[k-j]))
             Quh = Quh + self.UH1[j]*self.Pr[k-j]
             j = j + 1
-        return Quh 
+        return Quh
+    
+    def setParameters(self,parameters:list|tuple=[]):
+        super().setParameters(parameters)
+        self.X0 = self.parameters["X0"]
+        self.X1 = self.parameters["X1"]
+        self.X2 = self.parameters["X2"]
+        self.X3 = self.parameters["X3"]
+        self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
+    
+    def setInitialStates(self,states:list|tuple=[]):
+        super().setInitialStates(states)
+        self.Sk_init = self.initial_states["Sk"]
+        self.Rk_init = self.initial_states["Rk"]

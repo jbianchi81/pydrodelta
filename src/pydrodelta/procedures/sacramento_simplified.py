@@ -9,6 +9,8 @@ from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.util import interval2timedelta
 from pydrodelta.validation import getSchema, validate
+from pydrodelta.model_parameter import ModelParameter
+from pydrodelta.model_state import ModelState
 
 schemas, resolver = getSchema("SacramentoSimplifiedProcedureFunction","data/schemas/json")
 schema = schemas["SacramentoSimplifiedProcedureFunction"]
@@ -35,6 +37,45 @@ class sm_transform():
         }
 
 class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
+
+    _parameters = [
+            #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
+            # -----+----------+--------+---------+-----------+-----------+----------+-------
+        ModelParameter(name="x1_0",constraints=(1,35,200,np.inf)),
+            #  229 |       27 | x1_0   |       1 |        35 |       200 | Infinity |     1
+        ModelParameter(name="x2_0",constraints=(1,33,248,np.inf)),
+            #  230 |       27 | x2_0   |       1 |        33 |       248 | Infinity |     2
+        ModelParameter(name="m1",constraints=(1e-09,1,3,np.inf)),
+            #  231 |       27 | m1     |   1e-09 |         1 |         3 | Infinity |     3
+        ModelParameter(name="c1",constraints=(1e-09,0.01,0.03,np.inf)),
+            #  232 |       27 | c1     |   1e-09 |      0.01 |      0.03 | Infinity |     4
+        ModelParameter(name="c2",constraints=(1e-09,150,500,np.inf)),
+            #  233 |       27 | c2     |   1e-09 |       150 |       500 | Infinity |     5
+        ModelParameter(name="c3",constraints=(1e-09,0.00044,0.002,np.inf)),
+            #  234 |       27 | c3     |   1e-09 |   0.00044 |     0.002 | Infinity |     6
+        ModelParameter(name="mu",constraints=(1e-09,0.4,6,np.inf)),
+            #  235 |       27 | mu     |   1e-09 |       0.4 |         6 | Infinity |     7
+        ModelParameter(name="alfa",constraints=(1e-09,0.2,0.3,np.inf)),
+            #  236 |       27 | alfa   |   1e-09 |       0.2 |       0.3 | Infinity |     8
+        ModelParameter(name="m2",constraints=(1e-09,1,2.2,np.inf)),
+            #  237 |       27 | m2     |   1e-09 |         1 |       2.2 | Infinity |     9
+        ModelParameter(name="m3",constraints=(1e-09,1,5,np.inf))
+            #  238 |       27 | m3     |   1e-09 |         1 |         5 | Infinity |    10
+    ]
+
+    _states = [
+        #  id | model_id | nombre | range_min | range_max | def_val | orden 
+        # ----+----------+--------+-----------+-----------+---------+-------
+        ModelState(name="x1",constraints=(0,np.inf),default=0),
+        #  35 |       27 | x1     |         0 |  Infinity |       0 |     1
+        ModelState(name="x2",constraints=(0,np.inf),default=0),
+        #  36 |       27 | x2     |         0 |  Infinity |       0 |     2
+        ModelState(name="x3",constraints=(0,np.inf),default=0),
+        #  37 |       27 | x3     |         0 |  Infinity |       0 |     3
+        ModelState(name="x4",constraints=(0,np.inf),default=0)
+        #  38 |       27 | x4     |         0 |  Infinity |       0 |     4
+    ]
+
     def __init__(self,params,procedure):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
@@ -341,3 +382,20 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
             procedure_results
         )
+
+    def setParameters(self, parameters: list | tuple = ...):
+        super().setParameters(parameters)
+        self.x1_0 = self.parameters["x1_0"]
+        self.x2_0 = self.parameters["x2_0"]
+        self.m1 = self.parameters["m1"]
+        self.c1 = self.parameters["c1"]
+        self.c2 = self.parameters["c2"]
+        self.c3 = self.parameters["c3"]
+        self.mu = self.parameters["mu"]
+        self.alfa = self.parameters["alfa"]
+        self.m2 = self.parameters["m2"]
+        self.m3 = self.parameters["m3"]
+    
+    def setInitialStates(self, states: list | tuple = ...):
+        super().setInitialStates(states)
+        self.x = [self.initial_states["x1"],self.initial_states["x2"],self.initial_states["x3"],self.initial_states["x4"]]

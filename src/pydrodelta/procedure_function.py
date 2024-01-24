@@ -16,6 +16,10 @@ class ProcedureFunction:
     """ set to true to allow for additional boundaries """
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
+    _parameters = []
+    """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
+    _states = []
+    """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
     def __init__(self,params : dict,procedure):
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
@@ -70,9 +74,17 @@ class ProcedureFunction:
                     #     outputs[key].append(key)
                     output = [o for o in outputs if o["name"] == key][0]
                     self.outputs.append(ProcedureBoundary(output,self._procedure._plan))
+    
+    def rerun(self,input : list=None, parameters:list|tuple=None, initial_states:list|tuple=None):
+        if parameters is not None:
+            self.setParameters(parameters)
+        if initial_states is not None:
+            self.setInitialStates(initial_states)
+        return self.run(input)
+
     def run(self,input : list=None):
         """
-        Placeholder dummy method to be overwritten by actual procedures
+        To be overwritten by actual procedure function
 
         :param input: array of seriesData
         :returns [seriesData], procedureFunctionResults, JSONSerializable
@@ -82,3 +94,36 @@ class ProcedureFunction:
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
         return input, ProcedureFunctionResults({"initial_states": input})
     
+    def makeSimplex(self):
+        if not len(self._parameters):
+            raise Exception("_parameters not set for this class")
+        points = []
+        for i in range(len(self._parameters)+1):
+            points.append([p.makeRandom() for p in self._parameters])
+        return points
+
+    def setParameters(self,parameters:list|tuple=[]):
+        """
+        Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.paramters as a dict. Else will set a list
+        """
+        if len(self._parameters):
+            self.parameters = {}
+            for i, p in enumerate(self._parameters):
+                if len(parameters) - 1 < i:
+                    raise ValueError("parameters list is too short: %i item is missing" % i)
+                self.parameters[p.name] = parameters[i]
+        else:
+            self.parameters = list(parameters)
+
+    def setInitialStates(self,states:list|tuple=[]):
+        """
+        Generic self.initial_states setter. If self._states is not empty, uses name of each item to set self.initial_states as a dict. Else will set a list
+        """
+        if len(self._states):
+            self.initial_states = {}
+            for i, p in enumerate(self._states):
+                if len(states) - 1 < i:
+                    raise ValueError("states list is too short: %i item is missing" % i)
+                self.initial_states[p.name] = states[i]
+        else:
+            self.initial_states = list(states)
