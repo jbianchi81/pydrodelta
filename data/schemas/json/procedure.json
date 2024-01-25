@@ -81,6 +81,10 @@
       "overwrite_original": {
         "type": "boolean",
         "description": "Choice to overwrite original observations at the node-variable with the procedure output"
+      },
+      "calibration": {
+        "$ref": "calibration.json",
+        "description": "Calibration parameters"
       }
     },
     "required": [

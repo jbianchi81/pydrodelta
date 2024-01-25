@@ -126,7 +126,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] Color plan.topology.plotVariable() according to tag (obs,sim)
 - [x] SacramentoSimplified procedure function
 - [x] procedure function schemas: harmonize initial conditions (init_states vs initial_states, array vs object)
-- [ ] nelder-mead parameter optimization
+- [x] nelder-mead parameter optimization
 - [x] sacramento simplified with ensemble kalman filter
 - [x] move statistics from ProcedureFunctions to Procedure
 - [ ] add hline on forecast date in variable plots

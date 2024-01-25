@@ -68,7 +68,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         UH1 = []
         SH1 = []
         while t <= int(X3):
-            logging.info("t: %i" % t)
+            # logging.info("t: %i" % t)
             if t == 0:
                 UH1.append(0)
                 SH1.append(0)

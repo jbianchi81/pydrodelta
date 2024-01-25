@@ -94,12 +94,23 @@ class ProcedureFunction:
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
         return input, ProcedureFunctionResults({"initial_states": input})
     
-    def makeSimplex(self):
+    def makeSimplex(self,sigma=0.25,limit=True,ranges:list|None=None):
         if not len(self._parameters):
             raise Exception("_parameters not set for this class")
         points = []
         for i in range(len(self._parameters)+1):
-            points.append([p.makeRandom() for p in self._parameters])
+            point = []
+            for j, p in enumerate(self._parameters):
+                if ranges is not None and len(ranges) - 1 >= j:
+                    if len(ranges[j]) < 2:
+                        raise ValueError("ranges must be a list of 2-tuples")
+                    range_min = ranges[j][0]
+                    range_max = ranges[j][1]
+                else:
+                    range_min = None
+                    range_max = None
+                point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max))
+            points.append(point)
         return points
 
     def setParameters(self,parameters:list|tuple=[]):

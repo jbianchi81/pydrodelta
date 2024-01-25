@@ -6,7 +6,7 @@ from pydrodelta.a5 import createEmptyObsDataFrame
 from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pydrodelta.pydrology import testPlot
-
+from pydrodelta.calibration import Calibration
 
 class Procedure():
     """
@@ -42,6 +42,8 @@ class Procedure():
         self.save_results = params["save_results"] if "save_results" in params else None
         self.overwrite = bool(params["overwrite"]) if "overwrite" in params else False
         self.overwrite_original = bool(params["overwrite_original"]) if "overwrite_original" in params else False
+        self.simplex = None
+        self.calibration = Calibration(self,params["calibration"]) if "calibration" in params and params["calibration"] is not None else None
     def toDict(self):
         return {
             "id": self.id,
@@ -133,7 +135,7 @@ class Procedure():
             "function_type": self.function_type_name,
             "results": self.procedure_function_results.toDict() if self.procedure_function_results is not None else None
         }
-    def run(self,inplace=True,save_results=None):
+    def run(self,inplace=True,save_results:str|None=None,parameters:list|tuple=None, initial_states:list|tuple=None, load_input=True, load_output_obs=True):
         """
         Run self.function.run()
 
@@ -141,11 +143,11 @@ class Procedure():
         """
         save_results = save_results if save_results is not None else self.save_results
         # loads input inplace
-        input = self.loadInput(inplace)
+        input = self.loadInput(inplace) if load_input else self.input
         # loads observed outputs
-        output_obs = self.loadOutputObs(inplace)
+        output_obs = self.loadOutputObs(inplace) if load_output_obs else self.output_obs
         # runs procedure function
-        output, procedure_function_results = self.function.run(input=input)
+        output, procedure_function_results = self.function.rerun(input = input, parameters = parameters, initial_states = initial_states)
         # sets procedure_function_results
         self.procedure_function_results = procedure_function_results if type(procedure_function_results) == ProcedureFunctionResults else ProcedureFunctionResults(procedure_function_results)
         # sets states
@@ -158,7 +160,7 @@ class Procedure():
         else:
             self.computeStatistics(obs=output_obs,sim=output)
         # saves results to file
-        if save_results is not None:
+        if bool(save_results):
             self.procedure_function_results.save(output=save_results)
         # returns
         if inplace:
@@ -217,6 +219,15 @@ class Procedure():
         if index > len(self.output) - 1:
             raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
         testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
+    def calibrate(self,inplace=True):
+        calibration_result = self.calibration.run(inplace=inplace)
+        if inplace:
+            # updates params
+            self.function.setParameters(self.calibration.calibration_result[0])
+            # runs procedure
+            self.run(load_input=False, load_output_obs=False)
+        else:
+            return calibration_result
     
 from pydrodelta.procedures.hecras import HecRasProcedureFunction
 from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction

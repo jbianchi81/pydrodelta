@@ -55,7 +55,7 @@ class ResultStatistics:
         self.sim = [v for v in df["sim"]]
         self.nse = 1 - self.mse / self.stdev_obs if self.stdev_obs != 0 else None
         self.cov = sum([ (self.obs[i] - self.mean_obs) * (self.sim[i] - self.mean_sim) for i in range(len(self.obs))]) / self.n
-        self.r = self.cov / self.var_obs / self.var_sim
+        self.r = self.cov / self.var_obs / self.var_sim if self.var_obs != 0 and self.var_sim != 0 else None
     def toDict(self):
         dict = self.__dict__
         # dict["obs"] = [v  if not math.isnan(v) else None for v in dict["obs"]]

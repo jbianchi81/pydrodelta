@@ -37,20 +37,30 @@ class DownhillSimplex(object):
     cont = 0.5
     red = 0.5
 
-    # max_stagnations: break after max_stagnations iterations with an improvement lower than no_improv_thr
+    # max_stagnations: break after max_stagnations iterations with an improvement lower than no_improve_thr
     no_improve_thr=10e-6
     max_stagnations=10
 
     max_iter=1000
     
-    def __init__(self, f, points):
+    def __init__(self, f, points,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None):
         '''
             f: (function): function to optimize, must return a scalar score 
                 and operate over a numpy array of the same dimensions as x_start
             points: (numpy array): initial position
+            no_improve_thr (float): break after max_stagnations iterations with an improvement lower than no_improv_thr
+            max_stagnations (int): break after max_stagnations iterations with an improvement lower than no_improv_thr
+            max_iter: maximum iterations
         '''
         self.f = f
         self.points = points
+        if no_improve_thr is not None:
+            self.no_improve_thr = no_improve_thr
+        if max_stagnations is not None:
+            self.max_stagnations = max_stagnations
+        if max_iter is not None:
+            self.max_iter = max_iter
+        self.iters = 0
 
     def step(self, res):
         # centroid of the lowest face
@@ -76,6 +86,7 @@ class DownhillSimplex(object):
 
         # simplex iter
         for iters in range(self.max_iter):
+            self.iters = iters
             res = self.sort(res)
             best = res[0][1]
 

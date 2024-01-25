@@ -1,8 +1,22 @@
 from pydrodelta.procedures.grp import GRPProcedureFunction
+from pydrodelta.model_parameter import ModelParameter
 import logging
-from numpy import tanh
+from numpy import tanh, inf
 
 class GR4JProcedureFunction(GRPProcedureFunction):
+
+    _parameters = [
+        #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
+        # -----+----------+--------+---------+-----------+-----------+----------+-------
+        ModelParameter(name="X0",constraints=(1e-09, 100, 3000, inf)),
+        #  169 |       32 | a      |   1e-09 |       100 |      1200 | Infinity |     1
+        ModelParameter(name="X1",constraints=(-200, -5, 3, inf)),
+        #  170 |       32 | b      |    -200 |        -5 |         3 | Infinity |     2
+        ModelParameter(name="X2",constraints=(1e-09, 20, 300, inf)),
+        #  171 |       32 | c      |   1e-09 |        20 |       300 | Infinity |     3
+        ModelParameter(name="X3",constraints=(1e-09, 1.1, 2.9, inf))
+        #  172 |       32 | d      |   1e-09 |       1.1 |       2.9 | Infinity |     4
+    ]
 
     def __init__(self,params,procedure):
         super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
@@ -17,7 +31,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         UH2 = []
         SH2 = []
         while t <= int(2 * X3) + 1:
-            logging.info("t: %i" % t)
+            # logging.info("t: %i" % t)
             if t == 0:
                 UH1.append(0)
                 SH1.append(0)
