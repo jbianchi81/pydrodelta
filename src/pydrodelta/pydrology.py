@@ -290,10 +290,10 @@ class ProductionStoreGR4J:
             relativeMoisture=self.SoilStorage[i]/self.MaxSoilStorage
             ratio_netRainfall_maxStorage=self.NetRainfall[i]/self.MaxSoilStorage
             ratio_netEVP_maxStorage=self.NetEVP[i]/self.MaxSoilStorage
-            self.Recharge[i]=(self.MaxSoilStorage*(1-(relativeMoisture)**2)*np.tanh(ratio_netRainfall_maxStorage))/(1+relativeMoisture*ratio_netRainfall_maxStorage)
+            self.Recharge[i]=(self.MaxSoilStorage*(1-(relativeMoisture)**2)*np.tanh(ratio_netRainfall_maxStorage))/(1+relativeMoisture*np.tanh(ratio_netRainfall_maxStorage))
             self.EVR[i]=(self.SoilStorage[i]*(2-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage))/(1+(1-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage))
             self.SoilStorage[i+1]=waterBalance(self.SoilStorage[i],self.Recharge[i],self.EVR[i])
-            self.Infiltration[i]=self.MaxSoilStorage*(1-((1+4/9*relativeMoisture)**4)**(-1/4))
+            self.Infiltration[i]=self.SoilStorage[i+1]*(1-(1+(4/9*relativeMoisture)**4)**(-1/4))
             self.SoilStorage[i+1]=waterBalance(self.SoilStorage[i+1],0,self.Infiltration[i])
             self.Runoff[i]=self.Infiltration[i]+self.NetRainfall[i]-self.Recharge[i]
 
@@ -692,6 +692,7 @@ class GR4J:
     """
     type='PQ Model'
     def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
+        self.InitialConditions=InitialConditions
         self.prodStoreMaxStorage=pars[0]
         self.T=pars[1]
         self.u1=grXDistribution(self.T,distribution='SH1')
@@ -705,7 +706,7 @@ class GR4J:
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.Runoff=np.array([0]*len(self.Precipitation),dtype='float')
         self.Q=np.array([0]*len(self.Precipitation),dtype='float')
-        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP))
+        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP),InitialConditions=self.InitialConditions[0])
     def computeRunoff(self):
         self.prodStore.computeOutFlow()
         self.Runoff=self.prodStore.Runoff
@@ -713,7 +714,7 @@ class GR4J:
         self.channel1=LinearChannel(pars=self.u1,Boundaries=apportion(0.9,self.Runoff),Proc='UH')
         self.channel2=LinearChannel(pars=self.u2,Boundaries=apportion(0.1,self.Runoff),Proc='UH')
         self.channel1.computeOutFlow()
-        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow)
+        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow,InitialConditions=self.InitialConditions[1])
         self.routStore.computeOutFlow()
         self.channel2.computeOutFlow()
         j=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
