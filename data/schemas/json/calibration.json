@@ -3,6 +3,10 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
+        "calibrate": {
+            "type": "boolean",
+            "description": "switch on/off calibration procedure (defaults to true)"
+        },
         "result_index": {
             "type": "integer",
             "description": "index of the output to use to compute the score"
@@ -47,6 +51,15 @@
         "save_results": {
             "type": "string",
             "description": "Save resulting parameter set into json file at this path"
+        },
+        "calibration_period": {
+            "type": "array",
+            "description": "Period of the data to use for objective function. The observations outside this period will be used for validation.",
+            "items": {
+                "$ref": "dateorinterval.json"
+            },
+            "minLength": 2,
+            "maxLength": 2
         }
     }
 }
