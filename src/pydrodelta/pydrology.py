@@ -290,10 +290,11 @@ class ProductionStoreGR4J:
             relativeMoisture=self.SoilStorage[i]/self.MaxSoilStorage
             ratio_netRainfall_maxStorage=self.NetRainfall[i]/self.MaxSoilStorage
             ratio_netEVP_maxStorage=self.NetEVP[i]/self.MaxSoilStorage
-            self.Recharge[i]=(self.MaxSoilStorage*(1-(relativeMoisture)**2)*np.tanh(ratio_netRainfall_maxStorage))/(1+relativeMoisture*ratio_netRainfall_maxStorage)
-            self.EVR[i]=(self.SoilStorage[i]*(2-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage))/(1+(1-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage))
+            self.Recharge[i]=self.MaxSoilStorage*(1-(relativeMoisture)**2)*np.tanh(ratio_netRainfall_maxStorage)/(1+relativeMoisture*np.tanh(ratio_netRainfall_maxStorage))
+            self.EVR[i]=self.SoilStorage[i]*(2-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage)/(1+(1-relativeMoisture)*np.tanh(ratio_netEVP_maxStorage))
             self.SoilStorage[i+1]=waterBalance(self.SoilStorage[i],self.Recharge[i],self.EVR[i])
-            self.Infiltration[i]=self.MaxSoilStorage*(1-((1+4/9*relativeMoisture)**4)**(-1/4))
+            relativeMoisture=self.SoilStorage[i+1]/self.MaxSoilStorage
+            self.Infiltration[i]=self.SoilStorage[i+1]*(1-(1+(4/9*relativeMoisture)**4)**(-1/4))
             self.SoilStorage[i+1]=waterBalance(self.SoilStorage[i+1],0,self.Infiltration[i])
             self.Runoff[i]=self.Infiltration[i]+self.NetRainfall[i]-self.Recharge[i]
 
@@ -316,7 +317,7 @@ class RoutingStoreGR4J:
          for i in range(0,len(self.Inflow)):
             relativeMoisture=self.Storage[i]/self.MaxStorage
             self.Leakages[i]=self.waterExchange*relativeMoisture**(7/2)
-            self.Storage[i+1]=max(0,self.Storage[i]+self.Inflow[i])
+            self.Storage[i+1]=max(0,self.Storage[i]+self.Inflow[i]+self.Leakages[i])
             relativeMoisture=self.Storage[i+1]/self.MaxStorage
             self.Runoff[i]=self.Storage[i+1]*(1-(1+relativeMoisture**4)**(-1/4))
             self.Storage[i+1]=waterBalance(self.Storage[i+1],0,self.Runoff[i])
