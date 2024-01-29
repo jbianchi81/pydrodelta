@@ -3,12 +3,14 @@ from pydrodelta.downhill_simplex import DownhillSimplex
 import logging
 import os
 import json
+from pydrodelta.util import tryParseAndLocalizeDate
 
 class Calibration:
 
     valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov']
 
     def __init__(self,procedure,params):
+        self.calibrate = bool(params["calibrate"]) if "calibrate" in params else True
         self.procedure = procedure
         self.result_index = params["result_index"] if "result_index" in params else 0
         self.objective_function = params["objective_function"] if "objective_function" in params else 'rmse'
@@ -24,6 +26,15 @@ class Calibration:
         self.simplex = None
         self.calibration_result = None
         self.save_result = params["save_result"] if "save_result" in params else None
+        self.calibration_period = self.parseCalibrationPeriod(params["calibration_period"]) if "calibration_period" in params else None
+
+    def parseCalibrationPeriod(self, cal_period) ->tuple:
+        if len(cal_period) < 2:
+            raise ValueError("calibration_period must be a list of length 2")
+        return (
+            tryParseAndLocalizeDate(cal_period[0]), 
+            tryParseAndLocalizeDate(cal_period[1])
+        )
     
     def runReturnScore(self,parameters:array, objective_function:str|None=None, result_index:int|None=None):
         """

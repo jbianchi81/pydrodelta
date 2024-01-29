@@ -7,6 +7,8 @@ class ResultStatistics:
         self.obs = list(params["obs"]) if "obs" in params and params["obs"] is not None else list() 
         self.sim = list(params["sim"]) if "sim" in params and params["sim"] is not None else list()
         self.metadata = dict(params["metadata"]) if "metadata" in params else None
+        self.calibration_period = [x.isoformat() for x in list(params["calibration_period"])] if "calibration_period" in params else None
+        self.group = params["group"] if "group" in params else "cal"
         self.error = None
         self.n = None
         self.mse = None
