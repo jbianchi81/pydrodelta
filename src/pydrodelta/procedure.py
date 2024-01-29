@@ -143,9 +143,19 @@ class Procedure():
         """
         save_results = save_results if save_results is not None else self.save_results
         # loads input inplace
-        input = self.loadInput(inplace) if load_input else self.input
+        if load_input:
+            # logging.debug("Loading input")
+            input = self.loadInput(inplace)
+        else:
+            # logging.debug("Input already loaded")
+            input = self.input
         # loads observed outputs
-        output_obs = self.loadOutputObs(inplace) if load_output_obs else self.output_obs
+        if load_output_obs:
+            # logging.debug("Loading output obs")
+            output_obs = self.loadOutputObs(inplace)
+        else:
+            # logging.debug("Output obs already loaded")
+            output_obs = self.output_obs
         # runs procedure function
         output, procedure_function_results = self.function.rerun(input = input, parameters = parameters, initial_states = initial_states)
         # sets procedure_function_results

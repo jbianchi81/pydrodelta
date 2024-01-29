@@ -78,7 +78,10 @@ class Plan():
                 else:
                     json.dump(self.topology.toList(pivot=self.pivot),analysisfile)
         for procedure in self.procedures:
-            procedure.run()
+            if procedure.calibration is not None:
+                procedure.calibration.run()
+            else:
+                procedure.run()
             procedure.outputToNodes()
             # logging.debug("statistics type: %s" % type(procedure.procedure_function_results.statistics))
             # self.output_stats.append(procedure.procedure_function_results.statistics)

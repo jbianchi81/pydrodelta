@@ -1,6 +1,8 @@
 from numpy import array, isnan
 from pydrodelta.downhill_simplex import DownhillSimplex
 import logging
+import os
+import json
 
 class Calibration:
 
@@ -21,12 +23,15 @@ class Calibration:
         self.downhill_simplex = None
         self.simplex = None
         self.calibration_result = None
+        self.save_result = params["save_result"] if "save_result" in params else None
     
     def runReturnScore(self,parameters:array, objective_function:str|None=None, result_index:int|None=None):
+        """
+        Runs procedure and returned objective function
+        procedure.input and procedure.output_obs must be already loaded
+        """
         objective_function = objective_function if objective_function is not None else self.objective_function
         result_index = result_index if result_index is not None else self.result_index
-        self.procedure.loadInput()
-        self.procedure.loadOutputObs()
         self.procedure.run(
             parameters=parameters, 
             save_results="", 
@@ -71,6 +76,8 @@ class Calibration:
         no_improve_thr = no_improve_thr if no_improve_thr is not None else self.no_improve_thr
         max_stagnations = max_stagnations if max_stagnations is not None else self.max_stagnations
         max_iter = max_iter if max_iter is not None else self.max_iter
+        self.procedure.loadInput()
+        self.procedure.loadOutputObs()
         downhill_simplex = DownhillSimplex(
             self.runReturnScore, 
             points, 
@@ -82,7 +89,7 @@ class Calibration:
             self.downhill_simplex = downhill_simplex
         else:
             return downhill_simplex
-    def run(self, inplace:bool=True, sigma:int|None=None,limit:bool|None=None,ranges:list|None=None,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None):
+    def run(self, inplace:bool=True, sigma:int|None=None,limit:bool|None=None,ranges:list|None=None,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None, save_result:str|None=None):
         self.downhillSimplex(
             inplace=True, 
             sigma=sigma,
@@ -93,6 +100,16 @@ class Calibration:
             max_iter=max_iter)
         calibration_result = self.downhill_simplex.run()
         logging.debug("Downhill simplex finished at iteration %i" % self.downhill_simplex.iters)
+        save_result = save_result if save_result is not None else self.save_result
+        if save_result:
+            json.dump(
+                {
+                    "parameters": list(calibration_result[0]),
+                    "score": calibration_result[1]
+                },
+                open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_result),"w"),
+                indent=4
+            )
         if inplace:
             self.calibration_result = calibration_result
         else:

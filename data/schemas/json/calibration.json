@@ -43,6 +43,10 @@
         "max_iter": {
             "type": "integer",
             "description": "maximum iterations"
+        },
+        "save_results": {
+            "type": "string",
+            "description": "Save resulting parameter set into json file at this path"
         }
     }
 }
