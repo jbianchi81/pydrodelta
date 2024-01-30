@@ -719,9 +719,10 @@ class GR4J:
         self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow,InitialConditions=self.InitialConditions[1])
         self.routStore.computeOutFlow()
         n=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
+        self.DirectRunoff=np.array([0]*n,dtype='float')
         for j in range(0,n):
-            self.channel2.Outflow[j]=max(0,self.channel2.Outflow[j]+self.routStore.Leakages[j])
-        self.Q=self.routStore.Runoff[0:n]+self.channel2.Outflow[0:n]
+            self.DirectRunoff[j]=max(0,self.channel2.Outflow[j]+self.routStore.Leakages[j])
+        self.Q=self.routStore.Runoff[0:n]+self.DirectRunoff[0:n]
     def executeRun(self):
         self.computeRunoff()
         self.computeOutFlow()
