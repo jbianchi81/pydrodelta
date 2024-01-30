@@ -44,6 +44,11 @@ class Procedure():
         self.overwrite_original = bool(params["overwrite_original"]) if "overwrite_original" in params else False
         self.simplex = None
         self.calibration = Calibration(self,params["calibration"]) if "calibration" in params and params["calibration"] is not None else None
+    def getCalibrationPeriod(self):
+        if self.calibration is not None:
+            return self.calibration.calibration_period
+        else:
+            return None
     def toDict(self):
         return {
             "id": self.id,
@@ -101,10 +106,11 @@ class Procedure():
             self.output_obs = data
         else:
             return data
-    def computeStatistics(self, obs:list|None=None, sim:list|None=None) -> list[ResultStatistics]:
+    def computeStatistics(self, obs:list|None=None, sim:list|None=None,calibration_period:tuple|None=None) -> list[ResultStatistics]:
         obs = obs if obs is not None else self.output_obs
         sim = sim if sim is not None else self.output
         result = list()
+        result_val = list()
         # if len(obs) < len(sim):
         #     raise Exception("length of obs must be equal than length of sim")
         for i, o in enumerate(self.function.outputs):
@@ -113,15 +119,41 @@ class Procedure():
             if len(obs) < i + 1:
                 raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
             inner_join = sim[i][["valor"]].rename(columns={"valor":"sim"}).join(obs[i][["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
-            result.append(ResultStatistics({
-                "obs": inner_join["obs"].values, 
-                "sim": inner_join["sim"].values, 
-                "compute": o.compute_statistics, 
-                "metadata": o.__dict__()
-            }))
+            if calibration_period is not None:
+                inner_join_val, inner_join_cal = [x for _, x in inner_join.groupby((inner_join.index >= calibration_period[0]) & (inner_join.index <= calibration_period[1]))]
+                if not len(inner_join_cal):
+                    raise Exception("Invalid calibration period: no data found")
+                result.append(ResultStatistics({
+                    "obs": inner_join_cal["obs"].values, 
+                    "sim": inner_join_cal["sim"].values, 
+                    "compute": o.compute_statistics, 
+                    "metadata": o.__dict__(),
+                    "calibration_period": calibration_period,
+                    "group": "cal"
+                }))
+                if len(inner_join_val):
+                    result_val.append(ResultStatistics({
+                        "obs": inner_join_val["obs"].values, 
+                        "sim": inner_join_val["sim"].values, 
+                        "compute": o.compute_statistics, 
+                        "metadata": o.__dict__(),
+                        "calibration_period": calibration_period,
+                        "group": "val"
+                    }))
+                else:
+                    logging.warn("No data found for validation")
+            else:
+                result.append(ResultStatistics({
+                    "obs": inner_join["obs"].values, 
+                    "sim": inner_join["sim"].values, 
+                    "compute": o.compute_statistics, 
+                    "metadata": o.__dict__()
+                }))
         if self.procedure_function_results is not None:
             self.procedure_function_results.setStatistics(result)
-        return result
+            if len(result_val):
+                self.procedure_function_results.setStatisticsVal(result_val)
+        return result, result_val
     
     def read_statistics(self):
         return {
@@ -166,9 +198,9 @@ class Procedure():
         # compute statistics
         if inplace:
             self.output = output
-            self.computeStatistics()
+            self.computeStatistics(calibration_period=self.getCalibrationPeriod())
         else:
-            self.computeStatistics(obs=output_obs,sim=output)
+            self.computeStatistics(obs=output_obs,sim=output,calibration_period=self.getCalibrationPeriod())
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
@@ -250,7 +282,8 @@ from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.procedures.junction import JunctionProcedureFunction
 from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
 from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
-from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction
+from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
+from pydrodelta.procedures.gr4j import GR4JProcedureFunction
 from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
@@ -278,6 +311,7 @@ procedureFunctionDict = {
     "LinearChannel": LinearChannelProcedureFunction,
     "UHLinearChannel": UHLinearChannelProcedureFunction,
     "GR4J": GR4JProcedureFunction,
+    "GR4J_": GR4J_ProcedureFunction,
     "HOSH4P1L": HOSH4P1LProcedureFunction,
     "Difference": DifferenceProcedureFunction
 }

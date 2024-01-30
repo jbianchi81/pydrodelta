@@ -693,6 +693,7 @@ class GR4J:
     """
     type='PQ Model'
     def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
+        self.InitialConditions=InitialConditions
         self.prodStoreMaxStorage=pars[0]
         self.T=pars[1]
         self.u1=grXDistribution(self.T,distribution='SH1')
