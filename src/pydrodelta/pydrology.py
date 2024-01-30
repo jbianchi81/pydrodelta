@@ -702,11 +702,12 @@ class GR4J:
             self.waterExchange=0
         else:
             self.waterExchange=pars[3]
+        self.InitialConditions=InitialConditions
         self.Precipitation=np.array(Boundaries[:,0],dtype='float')
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.Runoff=np.array([0]*len(self.Precipitation),dtype='float')
         self.Q=np.array([0]*len(self.Precipitation),dtype='float')
-        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP))
+        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP),InitialConditions=self.InitialConditions[0])
     def computeRunoff(self):
         self.prodStore.computeOutFlow()
         self.Runoff=self.prodStore.Runoff
@@ -714,11 +715,13 @@ class GR4J:
         self.channel1=LinearChannel(pars=self.u1,Boundaries=apportion(0.9,self.Runoff),Proc='UH')
         self.channel2=LinearChannel(pars=self.u2,Boundaries=apportion(0.1,self.Runoff),Proc='UH')
         self.channel1.computeOutFlow()
-        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow)
-        self.routStore.computeOutFlow()
         self.channel2.computeOutFlow()
-        j=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
-        self.Q=self.routStore.Runoff[0:j]+self.channel2.Outflow[0:j]
+        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow,InitialConditions=self.InitialConditions[1])
+        self.routStore.computeOutFlow()
+        n=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
+        for j in range(0,n):
+            self.channel2.Outflow[j]=max(0,self.channel2.Outflow[j]+self.routStore.Leakages[j])
+        self.Q=self.routStore.Runoff[0:n]+self.channel2.Outflow[0:n]
     def executeRun(self):
         self.computeRunoff()
         self.computeOutFlow()
