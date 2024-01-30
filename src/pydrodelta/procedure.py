@@ -282,7 +282,8 @@ from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.procedures.junction import JunctionProcedureFunction
 from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
 from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
-from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction
+from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
+from pydrodelta.procedures.gr4j import GR4JProcedureFunction
 from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
@@ -310,6 +311,7 @@ procedureFunctionDict = {
     "LinearChannel": LinearChannelProcedureFunction,
     "UHLinearChannel": UHLinearChannelProcedureFunction,
     "GR4J": GR4JProcedureFunction,
+    "GR4J_": GR4J_ProcedureFunction,
     "HOSH4P1L": HOSH4P1LProcedureFunction,
     "Difference": DifferenceProcedureFunction
 }
