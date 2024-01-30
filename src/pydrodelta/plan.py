@@ -78,7 +78,7 @@ class Plan():
                 else:
                     json.dump(self.topology.toList(pivot=self.pivot),analysisfile)
         for procedure in self.procedures:
-            if procedure.calibration is not None:
+            if procedure.calibration is not None and procedure.calibration.calibrate:
                 procedure.calibration.run()
             else:
                 procedure.run()

@@ -693,6 +693,7 @@ class GR4J:
     """
     type='PQ Model'
     def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
+        self.InitialConditions=InitialConditions
         self.prodStoreMaxStorage=pars[0]
         self.T=pars[1]
         self.u1=grXDistribution(self.T,distribution='SH1')
@@ -706,7 +707,7 @@ class GR4J:
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.Runoff=np.array([0]*len(self.Precipitation),dtype='float')
         self.Q=np.array([0]*len(self.Precipitation),dtype='float')
-        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP))
+        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=makeBoundaries(self.Precipitation,self.EVP),InitialConditions=self.InitialConditions[0])
     def computeRunoff(self):
         self.prodStore.computeOutFlow()
         self.Runoff=self.prodStore.Runoff
@@ -714,7 +715,7 @@ class GR4J:
         self.channel1=LinearChannel(pars=self.u1,Boundaries=apportion(0.9,self.Runoff),Proc='UH')
         self.channel2=LinearChannel(pars=self.u2,Boundaries=apportion(0.1,self.Runoff),Proc='UH')
         self.channel1.computeOutFlow()
-        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow)
+        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=self.channel1.Outflow,InitialConditions=self.InitialConditions[1])
         self.routStore.computeOutFlow()
         self.channel2.computeOutFlow()
         j=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
