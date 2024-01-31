@@ -282,7 +282,7 @@ class NodeVariable:
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
-    def concatenate(self,data: pandas.DataFrame, inline=True, overwrite=False):
+    def concatenate(self,data: pandas.DataFrame, inline=True, overwrite=False, extend=True):
         """
         Concatenates self.data with data
 
@@ -295,9 +295,9 @@ class NodeVariable:
             raise Exception("NodeVariable.data is not defined. Can´t concatenate")
         data["tag"] = "sim"
         if overwrite:
-            concatenated_data = serieFillNulls(data,self.data,extend=True,tag_column="tag")
+            concatenated_data = serieFillNulls(data,self.data,extend=extend,tag_column="tag")
         else:
-            concatenated_data = serieFillNulls(self.data,data,extend=True,tag_column="tag")
+            concatenated_data = serieFillNulls(self.data,data,extend=extend,tag_column="tag")
         if inline:
             self.data = concatenated_data
             return

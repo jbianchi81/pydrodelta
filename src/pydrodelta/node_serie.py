@@ -150,8 +150,10 @@ class NodeSerie():
         return obs_list
     def toDict(self,timeSupport=None,as_prono=False,remove_nulls=False,max_obs_date:datetime=None):
         obs_list = self.toList(include_series_id=False,timeSupport=timeSupport,remove_nulls=remove_nulls,max_obs_date=max_obs_date)
-        series_table = "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"
+        series_table = self.getSeriesTable()
         if as_prono:
             return {"series_id": self.series_id, "series_table": series_table, "pronosticos": obs_list}
         else:
             return {"series_id": self.series_id, "series_table": series_table, "observaciones": obs_list}
+    def getSeriesTable(self):
+        return "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"
