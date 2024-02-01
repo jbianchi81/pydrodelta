@@ -7,7 +7,7 @@ from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pydrodelta.pydrology import testPlot
 from pydrodelta.calibration import Calibration
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 class Procedure():
     """
@@ -107,7 +107,7 @@ class Procedure():
             self.output_obs = data
         else:
             return data
-    def computeStatistics(self, obs:Optional[list]=None, sim:Optional[list]=None,calibration_period:Optional[tuple]=None) -> list[ResultStatistics]:
+    def computeStatistics(self, obs:Optional[list]=None, sim:Optional[list]=None,calibration_period:Optional[tuple]=None) -> List[ResultStatistics]:
         obs = obs if obs is not None else self.output_obs
         sim = sim if sim is not None else self.output
         result = list()
