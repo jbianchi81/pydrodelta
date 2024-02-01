@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: UTF-8
 from __future__ import division
+from typing import Optional
 
 '''
     Pure Python/Numpy implementation of the downhill simplex algorithm.
@@ -43,7 +44,7 @@ class DownhillSimplex(object):
 
     max_iter=1000
     
-    def __init__(self, f, points,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None):
+    def __init__(self, f, points,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None):
         '''
             f: (function): function to optimize, must return a scalar score 
                 and operate over a numpy array of the same dimensions as x_start

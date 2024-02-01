@@ -1,5 +1,6 @@
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
+from typing import Optional
 # import logging
 
 class ProcedureFunction:
@@ -94,7 +95,7 @@ class ProcedureFunction:
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
         return input, ProcedureFunctionResults({"initial_states": input})
     
-    def makeSimplex(self,sigma=0.25,limit=True,ranges:list|None=None):
+    def makeSimplex(self,sigma=0.25,limit=True,ranges:Optional[list]=None):
         if not len(self._parameters):
             raise Exception("_parameters not set for this class")
         points = []

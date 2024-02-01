@@ -4,6 +4,7 @@ import logging
 import os
 import json
 from pydrodelta.util import tryParseAndLocalizeDate
+from typing import Optional
 
 class Calibration:
 
@@ -36,7 +37,7 @@ class Calibration:
             tryParseAndLocalizeDate(cal_period[1])
         )
     
-    def runReturnScore(self,parameters:array, objective_function:str|None=None, result_index:int|None=None):
+    def runReturnScore(self,parameters:array, objective_function:Optional[str]=None, result_index:Optional[int]=None):
         """
         Runs procedure and returned objective function
         procedure.input and procedure.output_obs must be already loaded
@@ -53,7 +54,7 @@ class Calibration:
         logging.debug((parameters, value))
         return value
 
-    def makeSimplex(self,inplace=True, objective_function:str|None=None, result_index:int|None=None,sigma:float|None=None,limit:bool|None=None,ranges:list|None=None) -> list:
+    def makeSimplex(self,inplace=True, objective_function:Optional[str]=None, result_index:Optional[int]=None,sigma:Optional[float]=None,limit:Optional[bool]=None,ranges:Optional[list]=None) -> list:
         objective_function = objective_function if objective_function is not None else self.objective_function
         if objective_function not in self.valid_objective_function:
             raise ValueError("objective_function must be one of %s" % ",".join(self.objective_function))
@@ -75,7 +76,7 @@ class Calibration:
         else:
             return simplex
 
-    def downhillSimplex(self,inplace:bool=True, sigma:int|None=None,limit:bool|None=None,ranges:list|None=None,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None):
+    def downhillSimplex(self,inplace:bool=True, sigma:Optional[int]=None,limit:Optional[bool]=None,ranges:Optional[list]=None,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None):
         sigma = sigma if sigma is not None else self.sigma
         limit = limit if limit is not None else self.limit
         ranges = ranges if ranges is not None else self.ranges
@@ -100,7 +101,7 @@ class Calibration:
             self.downhill_simplex = downhill_simplex
         else:
             return downhill_simplex
-    def run(self, inplace:bool=True, sigma:int|None=None,limit:bool|None=None,ranges:list|None=None,no_improve_thr:float|None=None, max_stagnations:int|None=None, max_iter:int|None=None, save_result:str|None=None):
+    def run(self, inplace:bool=True, sigma:Optional[int]=None,limit:Optional[bool]=None,ranges:Optional[list]=None,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None, save_result:Optional[str]=None):
         self.downhillSimplex(
             inplace=True, 
             sigma=sigma,
