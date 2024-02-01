@@ -82,7 +82,7 @@ class GRPProcedureFunction(PQProcedureFunction):
             t = t + 1
         return UH1, SH1
 
-    # def run(self,input: Optional[list[SeriesData]]=None) -> tuple[list[SeriesData], ProcedureFunctionResults]:
+    # def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
     def run(self,input=None) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
@@ -172,7 +172,7 @@ class GRPProcedureFunction(PQProcedureFunction):
             procedure_results
         )
     
-    # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> tuple[float,float,float]:
+    # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> Tuple[float,float,float]:
     def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:
         Pn = pma - etp if pma >= etp else 0
         Ps = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0

@@ -3,7 +3,7 @@ from typing import Optional, List
 from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
 from math import sqrt
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
@@ -264,7 +264,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
         return [x[0], x[1], x[2], x[3]], npasos
 
-    def run(self,input: Optional[List[SeriesData]]=None) -> tuple[List[SeriesData], ProcedureFunctionResults]:
+    def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults

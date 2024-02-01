@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from pydrodelta.series_data import SeriesData
 import numpy as np 
 from pandas import DataFrame, Series, concat
@@ -283,7 +283,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
     def newResultsRow(self,timestart=None,x1=None,x2=None,x3=None,x4=None,q4=None,smc=None):
         return DataFrame([[timestart, x1, x2, x3, x4, q4, smc]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc"])
 
-    def run(self,input: Optional[List[SeriesData]]=None) -> tuple[List[SeriesData], ProcedureFunctionResults]:
+    def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
