@@ -5,6 +5,7 @@ from pydrodelta.pydrology import LinearChannel
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
+from typing import Union
 
 schemas, resolver = getSchema("LinearChannelProcedureFunction","data/schemas/json")
 schema = schemas["LinearChannelProcedureFunction"]
@@ -30,6 +31,6 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
         self.coefficients = np.array([params["k"], params["n"]])
         self.Proc = "Nash"
 
-    def setParameters(self, parameters: list | tuple = ...):
+    def setParameters(self, parameters: Union[list,tuple] = ...):
         super().setParameters(parameters)
         self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])

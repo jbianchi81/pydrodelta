@@ -3,12 +3,13 @@ from numpy import tanh
 # from typing import Optional
 # from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
+from typing import Union
+from numpy import inf, isnan
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.model_parameter import ModelParameter
 from pydrodelta.model_state import ModelState
 from .pq import PQProcedureFunction
-from numpy import inf, isnan
 
 class GRPProcedureFunction(PQProcedureFunction):
 
@@ -201,7 +202,7 @@ class GRPProcedureFunction(PQProcedureFunction):
             j = j + 1
         return Quh
     
-    def setParameters(self,parameters:list|tuple=[]):
+    def setParameters(self,parameters:Union[list,tuple]=[]):
         super().setParameters(parameters)
         self.X0 = self.parameters["X0"]
         self.X1 = self.parameters["X1"]
@@ -209,7 +210,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         self.X3 = self.parameters["X3"]
         self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
     
-    def setInitialStates(self,states:list|tuple=[]):
+    def setInitialStates(self,states:Union[list,tuple]=[]):
         super().setInitialStates(states)
         self.Sk_init = self.initial_states["Sk"]
         self.Rk_init = self.initial_states["Rk"]

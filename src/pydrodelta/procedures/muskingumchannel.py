@@ -5,6 +5,7 @@ from pandas import DataFrame
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.model_parameter import ModelParameter
 from numpy import inf
+from typing import Union
 import logging
 
 schemas, resolver = getSchema("MuskingumChannelProcedureFunction","data/schemas/json")
@@ -57,7 +58,7 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
             })
         )
     
-    def setParameters(self, parameters: list | tuple = ...):
+    def setParameters(self, parameters: Union[list,tuple] = ...):
         super().setParameters(parameters)
         self.K = self.parameters["K"]
         self.X = self.parameters["X"]

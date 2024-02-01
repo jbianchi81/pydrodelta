@@ -1,6 +1,6 @@
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
-from typing import Optional
+from typing import Optional, Union
 # import logging
 
 class ProcedureFunction:
@@ -76,7 +76,7 @@ class ProcedureFunction:
                     output = [o for o in outputs if o["name"] == key][0]
                     self.outputs.append(ProcedureBoundary(output,self._procedure._plan))
     
-    def rerun(self,input : list=None, parameters:list|tuple=None, initial_states:list|tuple=None):
+    def rerun(self,input : list=None, parameters:Union[list,tuple]=None, initial_states:Union[list,tuple]=None):
         if parameters is not None:
             self.setParameters(parameters)
         if initial_states is not None:
@@ -114,7 +114,7 @@ class ProcedureFunction:
             points.append(point)
         return points
 
-    def setParameters(self,parameters:list|tuple=[]):
+    def setParameters(self,parameters:Union[list,tuple]=[]):
         """
         Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.paramters as a dict. Else will set a list
         """
@@ -127,7 +127,7 @@ class ProcedureFunction:
         else:
             self.parameters = list(parameters)
 
-    def setInitialStates(self,states:list|tuple=[]):
+    def setInitialStates(self,states:Union[list,tuple]=[]):
         """
         Generic self.initial_states setter. If self._states is not empty, uses name of each item to set self.initial_states as a dict. Else will set a list
         """

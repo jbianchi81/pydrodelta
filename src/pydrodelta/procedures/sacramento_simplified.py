@@ -3,6 +3,7 @@ from typing import Optional
 from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
 from math import sqrt
+from typing import Union
 import numpy as np
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
@@ -383,7 +384,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             procedure_results
         )
 
-    def setParameters(self, parameters: list | tuple = ...):
+    def setParameters(self, parameters: Union[list,tuple] = ...):
         super().setParameters(parameters)
         self.x1_0 = self.parameters["x1_0"]
         self.x2_0 = self.parameters["x2_0"]
@@ -396,6 +397,6 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self.m2 = self.parameters["m2"]
         self.m3 = self.parameters["m3"]
     
-    def setInitialStates(self, states: list | tuple = ...):
+    def setInitialStates(self, states: Union[list,tuple] = ...):
         super().setInitialStates(states)
         self.x = [self.initial_states["x1"],self.initial_states["x2"],self.initial_states["x3"],self.initial_states["x4"]]

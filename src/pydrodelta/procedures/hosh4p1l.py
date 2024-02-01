@@ -4,6 +4,7 @@ import logging
 # from pydrodelta.series_data import SeriesData
 import numpy as np
 from pandas import DataFrame, Series, concat
+from typing import Union
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.procedures.pq import PQProcedureFunction
@@ -85,7 +86,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             })
         )
 
-    def setInitialStates(self, states: list | tuple = []):
+    def setInitialStates(self, states: Union[list,tuple] = []):
         super().setInitialStates(states)
         self.SurfaceStorage = self.initial_states["SurfaceStorage"]
         self.SoilStorage = self.initial_states["SoilStorage"]

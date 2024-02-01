@@ -2,6 +2,7 @@ from pydrodelta.procedures.grp import GRPProcedureFunction
 from pydrodelta.model_parameter import ModelParameter
 import logging
 from numpy import tanh, inf
+from typing import Union
 
 class GR4JProcedureFunction(GRPProcedureFunction):
 
@@ -93,7 +94,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
             j = j + 1
         return Quh
 
-    def setParameters(self, parameters: list | tuple = ...):
+    def setParameters(self, parameters: Union[list,tuple] = ...):
         super().setParameters(parameters)
         self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
     
