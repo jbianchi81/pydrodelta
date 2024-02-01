@@ -86,7 +86,10 @@ class Plan():
             # logging.debug("statistics type: %s" % type(procedure.procedure_function_results.statistics))
             # self.output_stats.append(procedure.procedure_function_results.statistics)
         if upload:
-            self.uploadSim()
+            try:
+                self.uploadSim()
+            except Exception as e:
+                logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w") as outfile:
                 json.dump([p.read_results() for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
@@ -102,6 +105,7 @@ class Plan():
                                 continue
                             series_sim.append({
                                 "series_id": serie.series_id,
+                                "series_table": serie.getSeriesTable(),
                                 "pronosticos": serie.toList(remove_nulls=True)
                             })
         return {

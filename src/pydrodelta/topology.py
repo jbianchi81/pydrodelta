@@ -473,7 +473,7 @@ class Topology():
         for key in attrs:
             labels[key] = attrs[key]["name"] if "name" in attrs[key] else attrs[key]["id"] if "id" in attrs[key] else "N"
             colors.append("blue" if attrs[key]["node_type"] == "basin" else "red")
-        logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
+        # logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
         nx.draw_shell(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors)
         if output_file is not None:
             plt.savefig(output_file, format='png')

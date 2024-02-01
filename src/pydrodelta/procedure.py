@@ -245,7 +245,7 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
-            o._variable.concatenate(self.output[index],overwrite=overwrite)
+            o._variable.concatenate(self.output[index],overwrite=overwrite,extend=False)
             if overwrite_original:
                 o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
             for serie in o._variable.series_sim:

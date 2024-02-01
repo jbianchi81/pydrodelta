@@ -140,7 +140,8 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] implement swmm adapter
 - [ ] create plan/topology configuration database  
 - [ ] resample analysis output to match serie time support and time offset
-- [ ] split time domain (cal/val) in statistics 
+- [x] split time domain (cal/val) in statistics
+- [ ] colored log
 
 ### References
 

@@ -8,7 +8,7 @@ from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.model_parameter import ModelParameter
 from pydrodelta.model_state import ModelState
 from .pq import PQProcedureFunction
-from numpy import inf
+from numpy import inf, isnan
 
 class GRPProcedureFunction(PQProcedureFunction):
 
@@ -122,9 +122,20 @@ class GRPProcedureFunction(PQProcedureFunction):
             q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
             smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
             smc = (self.rho-self.wp)*Sk/self.X0+self.wp
-            if pma is None or etp is None:
-                logging.warn("Missing pma and/or etp value for date: %s. Unable to continue" % i)
-                break
+            if isnan(pma):
+                if self.fillnulls:
+                    logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
+                    pma = 0
+                else:
+                    logging.warn("Missing pma value for date: %s. Unable to continue" % i)
+                    break
+            if isnan(etp):
+                if self.fillnulls:
+                    logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
+                    etp = 0
+                else:
+                    logging.warn("Missing etp value for date: %s. Unable to continue" % i)
+                    break
             Sk_, Rk_, q = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
             new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k"])
             results = concat([results,new_row])

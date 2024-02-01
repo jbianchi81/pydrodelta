@@ -8,7 +8,8 @@
         "type": "string"
       },
       "id": {
-        "type": "integer"
+        "type": "integer",
+        "description": "Identificador de 'calibrado' en la API de destino (output_api) donde se almacenarán las 'corridas'"
       },
       "topology": {
         "description": "Either topology object or topology file path",
