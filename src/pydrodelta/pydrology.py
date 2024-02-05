@@ -127,36 +127,28 @@ def gammaDistribution(n,k,dt=1,m=10,approx='T',shift='T'):
     return U
 
 #Computa HUs propuestos en modelos GRX (GR4J, GRP) 
-def grXDistribution(T,distribution='SH1',dt=0.5,approx='T',Agg='T'):    
+def grXDistribution(T,distribution='SH1'):    
     if distribution == 'SH1':
         tb=T
         k=1
     if distribution == 'SH2':
         tb=2*T
         k=1/2
-    ndimu=int(round(tb/dt,0)+2)
-    ndimU=int(round(tb,0)+1)
-    u=np.array([0]*(ndimu),dtype='float')
+    ndimU=int(tb)+2
     U=np.array([0]*(ndimU),dtype='float')
-    for t in np.array(list(range(0,ndimu))):
-        if t*dt<T:
-            u[t]=k*(t*dt/T)**(5/2)
-        if t*dt>T and t*dt<tb:
-             u[t]=1-k*(2-t*dt/T)**(5/2)        
+    for t in np.array(list(range(0,ndimU))):
+        if t<T:
+            U[t]=k*(t/T)**(5/2)
         else:
-           if t*dt>tb:
-                u[t]=1
-    u=differentiate(u,'no')
-    for j in range(0,ndimU):
-        min=int(j/dt)
-        max=int((j+1)/dt)
-        U[j]=sum(u[min:max])
-    if Agg == 'T':
-        return(U)
-    else:
-        return(u)
+            if t>T and t<tb:
+                 U[t]=1-k*(2-t/T)**(5/2)        
+            else:
+                if t>tb:
+                    U[t]=1
+    u=differentiate(U,'no')
+    return(shiftLeft(u))
 
-#Computa Matriz de pulsos para Convolución con At 12:00 on day-of-month 1.”
+#Computa Matriz I de pulsos para Convolución con vector distribución u (función de transferencia en tiempo discreto), I[n+m-1,m].u[m,1]=Q[n+m-1]
 def getPulseMatrix(inflows,u):
     n=len(inflows)
     m=len(u)
@@ -217,14 +209,15 @@ class RetentionReservoir:
     type='Retention Reservoir'
     def __init__(self,pars,InitialConditions=[0],Boundaries=[[0],[0]],Proc='Abstraction'):
         self.MaxStorage=pars[0]
-        self.Inflow=np.array(Boundaries[0],dtype='float')
-        self.EV=np.array(Boundaries[1],dtype='float')
+        self.Inflow=np.array(Boundaries[:,0],dtype='float')
+        self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.Storage=np.array([InitialConditions[0]]*(len(self.Inflow)+1),dtype='float')
         self.Runoff=np.array([0]*len(self.Inflow),dtype='float')
+        self.EV=np.array([0]*len(self.Inflow),dtype='float')
         self.Proc=Proc
-        self.dt=1
     def computeRunoff(self):
         for i in range(0,len(self.Inflow),1):
+            self.EV[i]=computeEVR(self.Inflow[i],self.EVP[i],self.Storage[i],self.MaxStorage)
             if self.Proc == 'Abstraction':
                 self.Runoff[i]=max(0,self.Inflow[i]-self.EV[i]+self.Storage[i]-self.MaxStorage)
             if self.Proc == 'CN_h0_continuous':
@@ -240,8 +233,8 @@ class LinearReservoir:
     type='Linear Reservoir'
     def __init__(self,pars,InitialConditions=[0],Boundaries=[[0],[0]],Proc='Agg',dt=1):
         self.K=pars[0]
-        self.Inflow=np.array(Boundaries[0],dtype='float') 
-        self.EV=np.array(Boundaries[1],dtype='float')
+        self.Inflow=np.array(Boundaries[:,0],dtype='float') 
+        self.EV=np.array(Boundaries[:,1],dtype='float')
         self.Storage=np.array([InitialConditions[0]]*(len(self.Inflow)+1),dtype='float')
         self.Outflow=(1/self.K)*self.Storage
         self.Proc=Proc
@@ -551,7 +544,7 @@ class HOSH4P1L:
     Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base).
     """
     type='PQ Model'
-    def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='Nash'):
+    def __init__(self,pars,Boundaries=[0],InitialConditions=[0,0],Proc='Nash'):
         self.maxSurfaceStorage=pars[0]
         self.maxSoilStorage=pars[1]
         self.soilSystem=SCSReservoirs(pars=[self.maxSurfaceStorage,self.maxSoilStorage])
@@ -617,7 +610,7 @@ class HOSH4P2L:
     Modelo Operacional de Transformación de Precipitación en Escorrentía de 4/6 parámetros (estimables), con 2 capas de suelo. Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (zona superior) y un reservorio linear (zona inferior). Rutea utilizando una función respuesta de pulso unitario arbitraria o mediante na cascada de Nash (se debe especificar tiempo de residencia y número de reservorios)
     """
     type='PQ Model'
-    def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='Nash'):
+    def __init__(self,pars,Boundaries=[0],InitialConditions=[0,0],Proc='Nash'):
         self.RoutingProc=Proc
         self.maxSurfaceStorage=pars[0]
         self.maxSoilStorage=pars[1]
@@ -689,10 +682,11 @@ class HOSH4P2L:
 
 class GR4J:
     """
-    Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo alamcenamiento en reservorio de propagación, coeficiente de intercambio.
+    Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo almacenamiento en reservorio de propagación, coeficiente de intercambio.
     """
     type='PQ Model'
-    def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
+    def __init__(self,pars,Boundaries=[0],InitialConditions=[0,0],Proc='CEMAGREF SH'):
+        self.RoutingProc=Proc
         self.InitialConditions=InitialConditions
         self.prodStoreMaxStorage=pars[0]
         self.T=pars[1]
@@ -703,7 +697,6 @@ class GR4J:
             self.waterExchange=0
         else:
             self.waterExchange=pars[3]
-        self.InitialConditions=InitialConditions
         self.Precipitation=np.array(Boundaries[:,0],dtype='float')
         self.EVP=np.array(Boundaries[:,1],dtype='float')
         self.Runoff=np.array([0]*len(self.Precipitation),dtype='float')
