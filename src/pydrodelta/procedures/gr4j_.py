@@ -69,7 +69,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         Qd = max(0, Q1 + F)
         Qk = (Qr + Qd) / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae
         Rk_ = R1 - Qr
-        return Sk_, Rk_, Qk
+        return Sk_, Rk_, Qk, Perc+Pn-Ps, Q9,  F
 
     def computeUnitHydrograph1(self,k):
         j = 0

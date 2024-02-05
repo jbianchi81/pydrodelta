@@ -18,7 +18,22 @@ def getSchema(name:str,rel_base_path:str="data/schemas/json"):
     return schemas, resolver
 
 def validate(params:dict,schema:dict,resolver:jsonschema.validators.RefResolver):
+    instancedict = params.copy()
+    if "self" in instancedict:
+        del instancedict["self"]
+    instancedictkeys = list(instancedict.keys())
+    for key in instancedictkeys:
+        if instancedict[key] is None:
+            del instancedict[key]
     return jsonschema.validate(
-        instance=params,
+        instance=instancedict,
         schema=schema,
         resolver=resolver)
+
+def getSchemaAndValidate(
+        params : dict,
+        name : str,
+        rel_base_path : str = "data/schemas/json"
+    ):
+    schemas, resolver = getSchema(name, rel_base_path)
+    return validate(params, schemas[name], resolver)

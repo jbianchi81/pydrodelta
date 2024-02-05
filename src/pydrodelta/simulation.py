@@ -99,7 +99,7 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         t_config["output_analysis"] = output_analysis
     if pivot is not None:
         t_config["pivot"] = pivot
-    plan = Plan(t_config)
+    plan = Plan(**t_config)
     plan.execute(include_prono=include_prono,upload=upload_prono,pretty=pretty)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)
