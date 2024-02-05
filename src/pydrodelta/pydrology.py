@@ -272,11 +272,11 @@ class ProductionStoreGR4J:
     Reservorio de Producción de Escorrentía modelo GR4J
     """
     type='GR4J Runoff Production Store'
-    def __init__(self,pars,InitialConditions=[0],Boundaries=[[0],[0]],Proc='Time Discrete Agg'):
+    def __init__(self,pars,InitialConditions=0,Boundaries=[[0],[0]],Proc='Time Discrete Agg'):
         self.MaxSoilStorage=pars[0]
         self.Precipitation=np.array(Boundaries[:,0],dtype='float')
         self.EVP=np.array(Boundaries[:,1],dtype='float')
-        self.SoilStorage=np.array([InitialConditions[0]]*(len(self.Precipitation)+1),dtype='float')
+        self.SoilStorage=np.array([InitialConditions]*(len(self.Precipitation)+1),dtype='float')
         self.NetEVP=np.array([0]*len(self.Precipitation),dtype='float')
         self.EVR=np.array([0]*len(self.Precipitation),dtype='float')
         self.NetRainfall=np.array([0]*len(self.Precipitation),dtype='float')
@@ -303,7 +303,7 @@ class RoutingStoreGR4J:
     Reservorio de Propagación de Escorrentía modelo GR4J
     """
     type='GR4J Runoff Routing Store'
-    def __init__(self,pars,InitialConditions=[0],Boundaries=[0],Proc='Time Discrete Agg'):
+    def __init__(self,pars,InitialConditions=0,Boundaries=[0],Proc='Time Discrete Agg'):
         self.MaxStorage=pars[0]
         if not pars[1]:
             self.waterExchange=0
@@ -312,7 +312,7 @@ class RoutingStoreGR4J:
         self.Inflow=np.array(Boundaries,dtype='float')
         self.Leakages=np.array([0]*len(self.Inflow),dtype='float')
         self.Runoff=np.array([0]*len(self.Inflow),dtype='float')
-        self.Storage=np.array([InitialConditions[0]]*(len(self.Inflow)+1),dtype='float')
+        self.Storage=np.array([InitialConditions]*(len(self.Inflow)+1),dtype='float')
     def computeOutFlow(self):
          for i in range(0,len(self.Inflow)):
             relativeMoisture=self.Storage[i]/self.MaxStorage
@@ -692,7 +692,7 @@ class GR4J:
     Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo alamcenamiento en reservorio de propagación, coeficiente de intercambio.
     """
     type='PQ Model'
-    def __init__(self,pars,Boundaries=[0],InitialConditions=[[0],[0]],Proc='CEMAGREF SH'):
+    def __init__(self,pars,Boundaries=[0],InitialConditions=[0,0],Proc='CEMAGREF SH'):
         self.InitialConditions=InitialConditions
         self.prodStoreMaxStorage=pars[0]
         self.T=pars[1]

@@ -100,14 +100,17 @@ class GRPProcedureFunction(PQProcedureFunction):
             "Rk": Series(dtype='float'),
             "q": Series(dtype='float'),
             "smc": Series(dtype='float'),
-            "k": Series(dtype='int')
+            "k": Series(dtype='int'),
+            "runoff": Series(dtype="float"), 
+            "inflow": Series(dtype="float"),
+            "leakages": Series(dtype="float")
         })
         results.set_index("timestart", inplace=True)
         # initialize states
         Sk = min(self.Sk_init,self.X0)
         self.Pr = []
         k = -1
-        Rk = self.Rk_init*self.X2
+        Rk = self.Rk_init # *self.X2
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
         if len(input) < 2:
@@ -137,8 +140,8 @@ class GRPProcedureFunction(PQProcedureFunction):
                 else:
                     logging.warn("Missing etp value for date: %s. Unable to continue" % i)
                     break
-            Sk_, Rk_, q = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
-            new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k"])
+            Sk_, Rk_, q, runoff, inflow, leakages = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
+            new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])
             results = concat([results,new_row])
             Sk = Sk_
             Rk = Rk_
@@ -153,7 +156,7 @@ class GRPProcedureFunction(PQProcedureFunction):
                 "Sk": self.Sk_init,
                 "Rk": self.Rk_init
             },
-            "states": results[["Sk","Rk"]],
+            "states": results[["Sk","Rk","runoff","inflow","leakages"]].rename(columns={"Sk":"SoilStorage","Rk":"RoutingStorage","runoff":"Runoff","inflow":"Inflow","leakages":"Leakages"}),
             "parameters": {
                 "X0": self.X0,
                 "X1": self.X1,
@@ -190,7 +193,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         Qr = R1**2/(R1+self.X1)
         Qk = Qr/1000/24/60/60/self.dt*self.area*self.ae
         Rk_ = R1 - Qr
-        return Sk_, Rk_, Qk
+        return Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)
 
     def computeUnitHydrograph(self,k):
         j = 0

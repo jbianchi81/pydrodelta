@@ -24,7 +24,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         boundaries = [ ( input[0]["valor"][i], input[1]["valor"][i]) for i in range(len(input[0])) ]
-        self.engine = GR4J(pars=[self.X0,self.X3,self.X2,self.X1],Boundaries=np.array(boundaries),InitialConditions=[[self.Sk_init,self.Rk_init],[0]])
+        self.engine = GR4J(pars=[self.X0,self.X3,self.X2,self.X1],Boundaries=np.array(boundaries),InitialConditions=[self.Sk_init,self.Rk_init])
         self.engine.executeRun()
         q = [x / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae for x in self.engine.Q][0:len(input[0].index)]
         smc = [x / self.engine.prodStoreMaxStorage * (self.rho - self.wp) + self.wp for x in self.engine.prodStore.SoilStorage][0:len(input[0].index)]
@@ -54,6 +54,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         return (
             [data, smcdata], 
             ProcedureFunctionResults({
-                "data": data_
+                "data": data_,
+                "states": data_[["SoilStorage","RoutingStorage","Runoff","Inflow","Leakages"]]
             })
         )

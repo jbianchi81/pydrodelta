@@ -1,6 +1,4 @@
-import jsonschema
 import yaml
-from pathlib import Path
 import os
 from datetime import datetime 
 import json
@@ -9,65 +7,94 @@ from pandas import concat
 import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
+from typing import Union, List
 
 from pydrodelta.a5 import Crud, createEmptyObsDataFrame
 from pydrodelta.topology import Topology
 import pydrodelta.util as util
 from pydrodelta.procedure import Procedure
+from pydrodelta.validation import getSchemaAndValidate
 
 from pydrodelta.config import config
 
 output_crud = Crud(config["output_api"])
 
-schemas = {}
-plan_schema = open("%s/data/schemas/json/plan.json" % os.environ["PYDRODELTA_DIR"])
-schemas["plan"] = yaml.load(plan_schema,yaml.CLoader)
-
-base_path = Path("%s/data/schemas/json" % os.environ["PYDRODELTA_DIR"])
-resolver = jsonschema.validators.RefResolver(
-    base_uri=f"{base_path.as_uri()}/",
-    referrer=True,
-)
-
 class Plan():
-    def __init__(self,params):
-        jsonschema.validate(
-            instance=params,
-            schema=schemas["plan"],
-            resolver=resolver
-        )
-        self.name = params["name"]
-        self.id = params["id"]
-        if isinstance(params["topology"],dict):
-            self.topology = Topology(params["topology"])
+    """
+    Use this class to set up a modelling configuration, including the topology and the procedures.
+
+    A plan is the root element of a pydro configuration
+
+    """
+    
+    def __init__(
+            self,
+            name : str,
+            id: int,
+            topology: Union[dict, str],
+            procedures: list = [],
+            forecast_date: Union[dict, str] = datetime.now(),
+            time_interval: Union[dict, str] = None,
+            output_stats: str = None,
+            output_analysis: str = None,
+            pivot: bool = False,
+            save_post: str = None,
+            save_response: str = None
+            ):
+        """
+        Constructor of the class
+
+        :param name: Name of the plan        
+        :param id: numeric id of the plan. Used as identifier when saving into the output api
+        :param topology: Either topology dict or a topology file path
+        :param procedures: list of procedure dicts
+        :param forecast_date: timestamp of the plan execution
+        :param time_interval: time step duration of the procedures
+        :param output_stats: file path where to save result statistics
+        :param output_analysis: file path where to save analysis results
+        :param pivot: option to pivot the results table (set one column per variable)
+        :param save_post: file path where to save the post data sent to the output api
+        :param save_response: file path where to save the output api response
+        """
+        getSchemaAndValidate(params=locals(), name="plan")
+
+        self.name : str = name
+        """name of the plan"""
+
+        self.id : int = id
+        """numeric id of the plan. Used as identifier when saving into the output api"""
+
+        self.topology : Topology = None
+        """Unordered list of nodes which represent stations and basins"""
+
+        if isinstance(topology,dict):
+            self.topology = Topology(topology)
         else:
-            topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],params["topology"])
+            topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],topology)
             f = open(topology_file_path)
             self.topology = Topology(yaml.load(f,yaml.CLoader),plan=self)
             f.close()
-        self.procedures = [Procedure(x,self) for x in params["procedures"]]
-        self.forecast_date = util.tryParseAndLocalizeDate(params["forecast_date"]) if "forecast_date" in params else datetime.now()
-        self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
+        self.procedures = [Procedure(x,self) for x in procedures]
+        self.forecast_date = util.tryParseAndLocalizeDate(forecast_date)
+        self.time_interval = util.interval2timedelta(time_interval) if time_interval is not None else None
         if self.time_interval is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
         # self.output_stats = []
-        if "output_stats" in params:
-            self.output_stats_file = params["output_stats"]
-        else:
-            self.output_stats_file = None
-        if "output_analysis" in params:
-            self.output_analysis = params["output_analysis"]
-        else:
-            self.output_analysis = None
-        self.pivot = params["pivot"] if "pivot" in params else False
-        self.save_post = params["save_post"] if "save_post" in params else None
-        self.save_response = params["save_response"] if "save_response" in params else None
+        self.output_stats_file = output_stats
+        self.output_analysis = output_analysis
+        self.pivot = pivot
+        self.save_post = save_post
+        self.save_response = save_response
     def execute(self,include_prono=True,upload=True,pretty=False):
         """
         Runs analysis and then each procedure sequentially
 
         :param include_prono: if True (default), concatenates observed and forecasted boundary conditions. Else, reads only observed data.
         :type include_prono: bool
+        :param upload: if True (default), Uploads result into output api.
+        :type upload: bool
+        :param pretty: Pretty print results.
+        :type pretty: bool
         :returns: None
         """
         self.topology.batchProcessInput(include_prono=include_prono)
