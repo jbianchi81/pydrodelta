@@ -74,7 +74,7 @@ class Plan():
             f = open(topology_file_path)
             self.topology = Topology(yaml.load(f,yaml.CLoader),plan=self)
             f.close()
-        self.procedures = [Procedure(x,self) for x in procedures]
+        self.procedures = [Procedure(**x,plan=self) for x in procedures]
         self.forecast_date = util.tryParseAndLocalizeDate(forecast_date)
         self.time_interval = util.interval2timedelta(time_interval) if time_interval is not None else None
         if self.time_interval is not None:

@@ -7,57 +7,149 @@ from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pydrodelta.pydrology import testPlot
 from pydrodelta.calibration import Calibration
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
+from datetime import timedelta
+from pandas import DataFrame
 
 class Procedure():
     """
-    A Procedure defines an hydrological, hydrodinamic or static procedure which takes one or more NodeVariables from the Plan as boundary condition, one or more NodeVariables from the Plan as outputs and a ProcedureFunction. The input is read from the selected boundary NodeVariables and fed into the ProcedureFunction which produces an output, which is written into the output NodeVariables
+    A Procedure defines a hydrological, hydrodinamic or static procedure which takes one or more NodeVariables from the Plan as boundary condition, one or more NodeVariables from the Plan as outputs and a ProcedureFunction. The input is read from the selected boundary NodeVariables and fed into the ProcedureFunction which produces an output, which is written into the output NodeVariables
+    
+    Parameters:
+    ----------
+
+    id : int or str
+        Identifier of the procedure
+
+    function : dict
+        ProcedureFunction configuration dict (see ProcedureFunction)
+
+    plan : Plan
+        Plan containing this procedure
+
+    initial_states : list or None
+        List of procedure initial states. The order of the states is defined in .function._states
+
+    parameters : list or None
+        List of procedure parameters. The order of the parameters is defined in .function._model_parameters 
+
+    time_interval : str or dict (time duration)
+        Time step duration of the procedure
+
+    time_offset : str or dict (time duration)
+        Time offset duration of the procedure
+
+    save_results : str or None
+        Save procedure results into this file (csv pivoted table)
+
+    overwrite : bool
+        When exporting procedure results into the topology, overwrite observations in NodeVariable.data   
+
+    overwrite_original : bool
+        When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data
+
+    calibration : dict
+        Configuration for Downhill Simplex calibration procedure (see Calibration)
+
     """
-    def __init__(self,params,plan):
-        self.id = params["id"]
+    def __init__(
+        self,
+        id : Union[int, str],
+        function : dict,
+        plan = None,
+        initial_states : list = [],
+        parameters : list = [],
+        time_interval : Union[str,dict] = None,
+        time_offset : Union[str,dict] = None,
+        save_results : str = None,
+        overwrite : bool = False,
+        overwrite_original : bool = False,
+        calibration : dict = None
+        ):
+        self.id : Union(int,str) = id
+        """Identifier of the procedure"""
         self._plan = plan
-        self.initial_states = params["initial_states"] if "initial_states" in params else []
-        if params["function"]["type"] in procedureFunctionDict:
-            self.function_type = procedureFunctionDict[params["function"]["type"]]
-            self.function_type_name = params["function"]["type"]
-        else:
-            logging.warn("Procedure init: class %s not found. Instantiating abstract class ProcedureFunction" % params["function"]["type"])
-            self.function_type = ProcedureFunction
-            self.function_type_name = "ProcedureFunction"
-        # self.function = self.function_type(params["function"])
-        if isinstance(params["function"],dict): # read params from dict
-            self.function = self.function_type(params["function"],self)
-        else: # if not, read from file
-            f = open(params["function"])
-            self.function = self.function_type(json.load(f),self)
+        """Plan containing this procedure"""
+        self.initial_states : list = initial_states
+        """List of procedure initial states"""
+        if type(function) != dict:
+            if type(function) != str:
+                raise TypeError("Value of argument 'function' must be of type dict or str")
+            function_file = function
+            try:
+                f = open(function_file)
+            except IOError as e:
+                raise IOError("Couldn´t open function file %s: %s" % (function_file, str(e)))
+            try:
+                function = json.load(f)
+            except json.JSONDecodeError as e:
+                raise json.JSONDecodeError("JSON decode error on parsing function file %s: %s" % (function_file, e.msg))
             f.close()
+        if "type" not in function:
+            raise ValueError("Property 'type' missing from argument 'function'")
+        if function["type"] in procedureFunctionDict:
+            self.function_type : type = procedureFunctionDict[function["type"]]
+            """Class constructor of the procedure function"""
+            self.function_type_name : str = function["type"]
+            """Name of the class constructor of the procedure function"""
+        else:
+            raise ValueError("Procedure init: procedure function class constructor %s not found" % function["type"])
+            # self.function_type = ProcedureFunction
+            # self.function_type_name = "ProcedureFunction"
+        self.function = self.function_type(function,procedure=self)
         # self.procedure_type = params["procedure_type"]
-        self.parameters = params["parameters"] if "parameters" in params else []
-        self.time_interval = util.interval2timedelta(params["time_interval"]) if "time_interval" in params else None
-        self.time_offset = util.interval2timedelta(params["time_offset"]) if "time_offset" in params else None
-        self.input = None # <- boundary conditions
-        self.output = None # <- outputs
-        self.output_obs = None # <- observed values for error calculation
-        self.states = None
-        self.procedure_function_results = None
-        self.save_results = params["save_results"] if "save_results" in params else None
-        self.overwrite = bool(params["overwrite"]) if "overwrite" in params else False
-        self.overwrite_original = bool(params["overwrite_original"]) if "overwrite_original" in params else False
-        self.simplex = None
-        self.calibration = Calibration(self,params["calibration"]) if "calibration" in params and params["calibration"] is not None else None
-    def getCalibrationPeriod(self):
+        self.parameters : list = parameters
+        """List of procedure parameters"""
+        self.time_interval : timedelta = util.interval2timedelta(time_interval) if time_interval is not None else None
+        """Time step duration of the procedure"""
+        self.time_offset : timedelta = util.interval2timedelta(time_offset) if time_offset is not None else None
+        """Time offset duration of the procedure"""
+        self.input : List[DataFrame] = None # <- boundary conditions
+        """Ordered list of input DataFrames of the procedure (the boundary conditions). Run .loadInput(inplace=True) to populate"""
+        self.output : List[DataFrame] = None # <- outputs
+        """Ordered list of output DataFrames of the procedure. Run .run(inplace=True) to populate"""
+        self.output_obs : list[DataFrame] = None # <- observed values for error calculation
+        """List of DataFrames of observed values for error calculation. Same order than .output. Run .loadOutputObs(inplace=True) to populate"""
+        self.states : DataFrame = None
+        """Pivot DataFrame of procedure states. Byproduct of .run(inplace=True) execution"""
+        self.procedure_function_results : ProcedureFunctionResults = None
+        """Results of the procedure function execution"""
+        self.save_results : str = save_results
+        """Save procedure results into this file (csv pivoted table)"""
+        self.overwrite : bool = bool(overwrite)
+        """When exporting procedure results into the topology, overwrite observations in NodeVariable.data"""
+        self.overwrite_original : bool = bool(overwrite_original)
+        """When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data"""
+        # self.simplex : list = None
+        self.calibration : Calibration = Calibration(self,calibration) if calibration is not None else None
+        """Configuration for calibration """
+    def getCalibrationPeriod(self) -> Union[tuple,None]:
+        """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
             return self.calibration.calibration_period
         else:
             return None
-    def toDict(self):
-        return {
-            "id": self.id,
-            "function": self.function.toDict()
-        }
-    def loadInput(self,inplace=True,pivot=False):
+    def toDict(self) -> dict:
+        """Convert this instance into a dict"""
+        d = self.__dict__
+        d.function = self.function.toDict()
+        return d
+    def loadInput(
+        self,
+        inplace : bool = True,
+        pivot : bool = False
+        ) -> Union[List[DataFrame],DataFrame]:
         """
-        Carga las variables de borde definidas en self.boundaries. De cada elemento de self.boundaries toma .data y lo concatena en una lista. Si pivot=True, devuelve un DataFrame con 
+        Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
+
+        Parameters:
+        ----------
+
+        inplace : bool
+            If True, saves result into self.data and returns None
+        
+        pivot: bool
+            If true, joins all variables into a single DataFrame
         """
         if pivot:
             data = createEmptyObsDataFrame(extra_columns={"tag":str})
@@ -84,9 +176,22 @@ class Procedure():
             self.input = data
         else:
             return data
-    def loadOutputObs(self,inplace=True,pivot=False):
+    def loadOutputObs(
+        self,
+        inplace : bool = True,
+        pivot : bool = False
+        ):
         """
-            Carga las variables de output definidas en self.outputs. Para cálculo de error.
+        Load observed values of output variables defined in self.function.outputs. Used in error calculation.
+
+        Parameters:
+        -----------
+
+        inplace : bool
+            If True, saves result into self.output_obs and returns None
+        
+        pivot: bool
+            If true, joins all variables into a single DataFrame
         """
         if pivot:
             data = createEmptyObsDataFrame()
@@ -107,7 +212,30 @@ class Procedure():
             self.output_obs = data
         else:
             return data
-    def computeStatistics(self, obs:Optional[list]=None, sim:Optional[list]=None,calibration_period:Optional[tuple]=None) -> List[ResultStatistics]:
+    def computeStatistics(
+        self, 
+        obs : Optional[list] = None, 
+        sim : Optional[list] = None,
+        calibration_period : Optional[tuple]=None
+        ) -> Tuple[List[ResultStatistics]]:
+        """Compute statistics over procedure results.
+        
+        Parameters:
+        ----------
+
+        obs : list of DataFrames or None
+            List of observation DataFrames
+        
+        sim : list of DataFrames or None
+            List of simulated values. Must be of the same length as obs
+
+        calibration_period : tuple or None
+            start and end date for split statistics computations between calibration and validation periods
+
+        Returns
+        -------
+        (calibration_results, validation_results) : 2-length tuple of lists of ResultStatistics. The length of the lists equals that of obs 
+        """
         obs = obs if obs is not None else self.output_obs
         sim = sim if sim is not None else self.output
         result = list()
@@ -156,23 +284,72 @@ class Procedure():
                 self.procedure_function_results.setStatisticsVal(result_val)
         return result, result_val
     
-    def read_statistics(self):
+    def read_statistics(self) -> dict:
+        """Get result statistics as a dict
+        
+        Returns
+        -------
+        statistics : dict of the form:
+            {
+                "procedure_id": int,
+                "function_type": str,
+                "results": list[dict]
+            }
+        """
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
             "results": [x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
         }
-    def read_results(self):
+    def read_results(self) -> dict:
+        """Get results as a dict
+        
+        Returns
+        -------
+        results : dict of the form:
+            {
+                "procedure_id": int,
+                "function_type": str,
+                "results": dict    
+            }
+        """
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
             "results": self.procedure_function_results.toDict() if self.procedure_function_results is not None else None
         }
-    def run(self,inplace=True,save_results:Optional[str]=None,parameters:Union[list,tuple]=None, initial_states:Union[list,tuple]=None, load_input=True, load_output_obs=True):
+    def run(
+        self,
+        inplace : bool = True,
+        save_results : Optional[str] = None,
+        parameters : Union[list,tuple] = None, 
+        initial_states : Union[list,tuple] = None, 
+        load_input : bool = True, 
+        load_output_obs : bool = True
+        ) -> Union[list[DataFrame], None]:
         """
         Run self.function.run()
 
-        :param inplace: if True, writes output to self.output, else returns output (array of seriesData)
+        Parameters:
+        ----------
+
+        inplace : bool
+            If True, writes output to self.output, else returns output (array of seriesData)
+        save_results : str or None
+            Save procedure reuslts into this file
+        parameters : list, tuple or None
+            Procedure function parameters
+        initial_states : list, tuple or None
+            Procedure function initial states
+        load_input : bool
+            If True, load input using .loadInput. Else, reads from .input
+        load_output_obs : bool
+            If True, load observed output using .loadOutputObs. Else, reads from .output_obs
+        
+        Returns
+        -------
+        None if inplace=True, else
+        list of DataFrames
         """
         save_results = save_results if save_results is not None else self.save_results
         # loads input inplace
@@ -210,13 +387,26 @@ class Procedure():
             return
         else:
             return output
-    def getOutputNodeData(self,node_id,var_id,tag=None):
+    def getOutputNodeData(
+        self,
+        node_id : int,
+        var_id : int,
+        tag=None
+        ) -> None:
         """
         Extracts single series from output using node id and variable id
 
-        :param node_id: node id
-        :param var_id: variable id
-        :returns: timeseries dataframe
+        Parameters:
+        ----------
+
+        node_id : int
+            Node identifier. Must be present in self.plan.topology.nodes
+        var_id : int
+            Variable identifier. Must be present in the selected node of self.plan.topology.nodes
+        
+        Returns
+        ----------
+        timeseries dataframe : DataFrame
         """
         index = 0
         for o in self.outputs:
@@ -231,7 +421,21 @@ class Procedure():
         # if tag is not None:
         #     data["tag"] = tag
         # return data
-    def outputToNodes(self,overwrite=None,overwrite_original=None):
+    def outputToNodes(
+        self,
+        overwrite : bool = None,
+        overwrite_original : bool = None
+        ) -> None:
+        """Saves procedure output into the topology. Each element of self.output is concatenated into the .data property of the corresponding NodeVariable in self.plan.topology.nodes according the mapping defined in self.function.outputs. 
+        
+        Parameters:
+        ----------
+
+        overwrite : bool
+            Overwrite observations in NodeVariable.data
+        overwrite_original : bool
+            Overwrite observations in NodeVariable.original_data
+        """
         overwrite = overwrite if overwrite is not None else self.overwrite
         overwrite_original = overwrite_original if overwrite_original is not None else self.overwrite_original
         if self.output is None:
@@ -254,7 +458,18 @@ class Procedure():
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
                 serie.applyOffset()
             index = index + 1
-    def testPlot(self,index=0):
+    def testPlot(
+        self,
+        index : int = 0
+        ) -> None:
+        """Plot observed and simulated variable vs. time in the same chart.
+        
+        Parameters:
+        ----------
+
+        index : int (default 0)
+            Which element of self.output to plot 
+        """
         if self.output is None:
             raise Exception("Procedure output has not been generated. Execute run()")
         if self.output_obs is None:
@@ -262,7 +477,26 @@ class Procedure():
         if index > len(self.output) - 1:
             raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
         testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
-    def calibrate(self,inplace=True):
+    def calibrate(
+        self,
+        inplace : bool = True
+        ) -> Union[tuple, None]:
+        """Run Nelder-Mead Downhill Simplex calibration procedure. Calibration configuration is read from self.calibration (set at class instantiation)
+        
+        Parameters:
+        ----------
+
+        inplace : bool
+            If true, set resulting parameters in self.function.parameters. Else, returns resulting parameters 
+        
+        Returns
+        -------
+        if inplace = True
+            None
+        else:
+            Tuple where first element is the list of resulting parameters and the second is the resulting objective function
+
+        """
         calibration_result = self.calibration.run(inplace=inplace)
         if inplace:
             # updates params
