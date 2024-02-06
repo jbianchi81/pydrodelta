@@ -51,6 +51,8 @@ class GR4JProcedureFunction(GRPProcedureFunction):
                 UH1.append(SH1[t] - SH1[t - 1])
                 UH2.append(SH2[t] - SH2[t - 1])
             t = t + 1
+        UH1.pop(0)
+        UH2.pop(0)
         return UH1, SH1, UH2, SH2
     
     def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:

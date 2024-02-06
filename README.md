@@ -142,6 +142,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] resample analysis output to match serie time support and time offset
 - [x] split time domain (cal/val) in statistics
 - [ ] colored log
+- [ ] nodes list / procedures list to dataframe
 
 ### References
 
