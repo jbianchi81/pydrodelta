@@ -3,12 +3,20 @@ from pandas import DataFrame
 import math
 
 class ResultStatistics:
-    def __init__(self,params:dict={}):
-        self.obs = list(params["obs"]) if "obs" in params and params["obs"] is not None else list() 
-        self.sim = list(params["sim"]) if "sim" in params and params["sim"] is not None else list()
-        self.metadata = dict(params["metadata"]) if "metadata" in params else None
-        self.calibration_period = [x.isoformat() for x in list(params["calibration_period"])] if "calibration_period" in params else None
-        self.group = params["group"] if "group" in params else "cal"
+    """Collection of statistic analysis results for the procedure"""
+    def __init__(
+        self,
+        obs : list = list(),
+        sim : list = list(),
+        metadata: dict = None,
+        calibration_period : list = None,
+        group : str = "cal",
+        compute : bool = False):
+        self.obs = list(obs) if obs is not None else list() 
+        self.sim = list(sim) if sim is not None else list()
+        self.metadata = metadata
+        self.calibration_period = [x.isoformat() for x in calibration_period] if calibration_period is not None else None
+        self.group = group
         self.error = None
         self.n = None
         self.mse = None
@@ -19,12 +27,14 @@ class ResultStatistics:
         self.stdev_obs = None
         self.stdev_sim = None
         self.stdev_diff = None
+        """Nash-Sutcliffe efficiency coefficient"""
         self.nse = None
+        """Observed variance"""
         self.var_obs = None
         self.var_sim = None
         self.cov = None
         self.r = None
-        if "compute" in params and params["compute"]:
+        if compute:
             self.compute()
 
     def compute(self):

@@ -21,9 +21,13 @@ class JunctionProcedureFunction(ProcedureFunction):
         """
         super().__init__(params,procedure)
         validate(params,schema,resolver)
+        """Option to replace negative values with zero"""
+        self.truncate_negative = bool(self.extra_pars["truncate_negative"]) if "truncate_negative" in self.extra_pars else False
+
     def run(self,input=None):
         return self.runJunction(input=input,substract=False)
-    def runJunction(self,input=None,substract=False):
+    def runJunction(self,input=None,substract=False,truncate_negative=None):
+        truncate_negative = truncate_negative if truncate_negative is not None else self.truncate_negative
         sign = -1 if substract else 1
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
@@ -35,6 +39,8 @@ class JunctionProcedureFunction(ProcedureFunction):
             colname = "input_%i" % (i + 1)
             output = output.join(serie[["valor"]].rename(columns={"valor":colname}))
             output["valor"] = output.apply(lambda row: row['valor'] + sign * row[colname] if not np.isnan(row['valor']) and not np.isnan(row[colname]) else None, axis=1)
+            if truncate_negative:
+                output["valor"] = output.apply(lambda row: max(0,row['valor']) if not np.isnan(row['valor']) else None, axis=1)
         # results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
         output_obs = self._procedure.loadOutputObs(False)
         output = output.join(output_obs[0][["valor"]].rename(columns={"valor":"output_obs"}))

@@ -16,6 +16,15 @@
                 "Junction",
                 "Difference"
             ]
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "truncate_negative": {
+                    "type": "boolean",
+                    "description": "Option to replace negative values with zero"
+                }
+            }
         }
     },
     "required": [

@@ -4,18 +4,59 @@ import logging
 # from pydrodelta.series_data import SeriesData
 import numpy as np
 from pandas import DataFrame, Series, concat
+from typing import Union
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.procedures.grp import GRPProcedureFunction
+from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.pydrology import GR4J
+from pydrodelta.model_parameter import ModelParameter
+from pydrodelta.model_state import ModelState
+from numpy import inf
 
-class GR4JProcedureFunction(GRPProcedureFunction):
-    # def __init__(self,params,procedure):
-    #     """
-    #     Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-    #     Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-    #     """
-    #     super(GRPProcedureFunction,self).__init__(params,procedure)
+class GR4JProcedureFunction(PQProcedureFunction):
+
+    _parameters = [
+        #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
+        # -----+----------+--------+---------+-----------+-----------+----------+-------
+        ModelParameter(name="X0",constraints=(1e-09, 100, 3000, inf)),
+        #  169 |       32 | a      |   1e-09 |       100 |      1200 | Infinity |     1
+        ModelParameter(name="X1",constraints=(-200, -5, 3, inf)),
+        #  170 |       32 | b      |    -200 |        -5 |         3 | Infinity |     2
+        ModelParameter(name="X2",constraints=(1e-09, 20, 300, inf)),
+        #  171 |       32 | c      |   1e-09 |        20 |       300 | Infinity |     3
+        ModelParameter(name="X3",constraints=(1e-09, 1.1, 2.9, inf))
+        #  172 |       32 | d      |   1e-09 |       1.1 |       2.9 | Infinity |     4
+    ]
+
+    _states = [
+        #  id | model_id | nombre | range_min | range_max | def_val | orden 
+        # ----+----------+--------+-----------+-----------+---------+-------
+        ModelState(name='Sk', constraints=(0,inf), default=0),
+        #  23 |       38 | Sk     |         0 |  Infinity |       0 |     1
+        ModelState(name='Rk', constraints=(0,inf), default=0)
+        #  24 |       38 | Rk     |         0 |  Infinity |       0 |     2
+
+    ]
+
+    def __init__(self,params,procedure):
+        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
+        """X0	capacite du reservoir de production (mm)"""
+        self.X0 = self.parameters["X0"]
+        """X1	capacite du reservoir de routage (mm)"""
+        self.X1 = self.parameters["X1"]
+        """X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
+        self.X2 = self.parameters["X2"]
+        """X3	temps de base de l'hydrogramme unitaire (d)"""
+        self.X3 = self.parameters["X3"]
+
+        """Initial Soil Storage"""
+        self.Sk_init = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
+        """Initial Routing Storage"""
+        self.Rk_init = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
+
+        self.dt = 1
+        
+
     def run(self,input=None) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
@@ -58,3 +99,15 @@ class GR4JProcedureFunction(GRPProcedureFunction):
                 "states": data_[["SoilStorage","RoutingStorage","Runoff","Inflow","Leakages"]]
             })
         )
+    
+    def setParameters(self,parameters:Union[list,tuple]=[]):
+        super().setParameters(parameters)
+        self.X0 = self.parameters["X0"]
+        self.X1 = self.parameters["X1"]
+        self.X2 = self.parameters["X2"]
+        self.X3 = self.parameters["X3"]
+
+    def setInitialStates(self,states:Union[list,tuple]=[]):
+        super().setInitialStates(states)
+        self.Sk_init = self.initial_states["Sk"]
+        self.Rk_init = self.initial_states["Rk"]

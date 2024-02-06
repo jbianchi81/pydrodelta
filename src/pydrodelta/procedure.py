@@ -124,32 +124,32 @@ class Procedure():
                 inner_join_val, inner_join_cal = [x for _, x in inner_join.groupby((inner_join.index >= calibration_period[0]) & (inner_join.index <= calibration_period[1]))]
                 if not len(inner_join_cal):
                     raise Exception("Invalid calibration period: no data found")
-                result.append(ResultStatistics({
-                    "obs": inner_join_cal["obs"].values, 
-                    "sim": inner_join_cal["sim"].values, 
-                    "compute": o.compute_statistics, 
-                    "metadata": o.__dict__(),
-                    "calibration_period": calibration_period,
-                    "group": "cal"
-                }))
+                result.append(ResultStatistics(
+                    obs = inner_join_cal["obs"].values, 
+                    sim = inner_join_cal["sim"].values, 
+                    compute = o.compute_statistics, 
+                    metadata = o.__dict__(),
+                    calibration_period = calibration_period,
+                    group = "cal"
+                ))
                 if len(inner_join_val):
-                    result_val.append(ResultStatistics({
-                        "obs": inner_join_val["obs"].values, 
-                        "sim": inner_join_val["sim"].values, 
-                        "compute": o.compute_statistics, 
-                        "metadata": o.__dict__(),
-                        "calibration_period": calibration_period,
-                        "group": "val"
-                    }))
+                    result_val.append(ResultStatistics(
+                        obs = inner_join_val["obs"].values, 
+                        sim = inner_join_val["sim"].values, 
+                        compute = o.compute_statistics, 
+                        metadata = o.__dict__(),
+                        calibration_period = calibration_period,
+                        group = "val"
+                    ))
                 else:
                     logging.warn("No data found for validation")
             else:
-                result.append(ResultStatistics({
-                    "obs": inner_join["obs"].values, 
-                    "sim": inner_join["sim"].values, 
-                    "compute": o.compute_statistics, 
-                    "metadata": o.__dict__()
-                }))
+                result.append(ResultStatistics(
+                    obs = inner_join["obs"].values, 
+                    sim = inner_join["sim"].values, 
+                    compute = o.compute_statistics, 
+                    metadata = o.__dict__()
+                ))
         if self.procedure_function_results is not None:
             self.procedure_function_results.setStatistics(result)
             if len(result_val):

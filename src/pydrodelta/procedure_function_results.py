@@ -10,17 +10,17 @@ class ProcedureFunctionResults:
         self.initial_states = params["initial_states"] if "initial_states" in params else None
         self.states = params["states"] if "states" in params else None
         self.parameters : Union[list,dict] = params["parameters"] if "parameters" in params else None
-        self.statistics : Optional[list] = [ResultStatistics(x) for x in params["statistics"]] if "statistics" in params and type(params["statistics"]) == list else [ResultStatistics(params["statistics"])] if "statistics" in params else None
-        self.statistics_val : Optional[list] = [ResultStatistics(x) for x in params["statistics_val"]] if "statistics_val" in params and type(params["statistics_val"]) == list else [ResultStatistics(params["statistics_val"])] if "statistics_val" in params else None
+        self.statistics : Optional[list] = [ResultStatistics(**x) for x in params["statistics"]] if "statistics" in params and type(params["statistics"]) == list else [ResultStatistics(**params["statistics"])] if "statistics" in params else None
+        self.statistics_val : Optional[list] = [ResultStatistics(**x) for x in params["statistics_val"]] if "statistics_val" in params and type(params["statistics_val"]) == list else [ResultStatistics(**params["statistics_val"])] if "statistics_val" in params else None
         self.data : Optional[DataFrame] = DataFrame(params["data"]) if "data" in params else None
         self.extra_pars : Optional[dict] = params["extra_pars"] if "extra_pars" in params else None
     # def toJSON(self):
     #     return json.dumps(self, default=lambda o: o.__dict__, 
     #         sort_keys=True, indent=4)
     def setStatistics(self,result_statistics:Optional[list]=None):
-        self.statistics = [ x if type(x) == ResultStatistics else ResultStatistics(x) for x in result_statistics] if result_statistics is not None else None
+        self.statistics = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
     def setStatisticsVal(self,result_statistics:Optional[list]=None):
-        self.statistics_val = [ x if type(x) == ResultStatistics else ResultStatistics(x) for x in result_statistics] if result_statistics is not None else None
+        self.statistics_val = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
     def save(self,output):   
         if self.data is None:
             logging.warn("Procedure function produced no result to save. File %s not saved" % output)
