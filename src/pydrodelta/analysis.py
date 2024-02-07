@@ -34,7 +34,7 @@ from pydrodelta.topology import Topology
 @click.option("--upload_series_output_as_prono","-o", is_flag=True, help="upload series_output as pronosticos", type=bool, default=False, show_default=True)
 @click.option("--plot-var", "-V", nargs=2, type=(int,str), help="save plot of selected vars into pdf file",multiple=True,default=None)
 @click.option("--pretty", "-r", is_flag=True, help="json pretty print", default=False, show_default=True)
-def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono,plot_var):
+def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono,plot_var,pretty):
     """
     run analysis of border conditions from topology file
     
