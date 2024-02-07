@@ -49,7 +49,7 @@ def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono
         handler.setFormatter(formatter)
         root.addHandler(handler)
     t_config = yaml.load(open(config_file),yaml.CLoader)
-    topology = Topology(t_config)
+    topology = Topology(**t_config)
     topology.batchProcessInput(include_prono=include_prono)
     if csv is not None:
         topology.saveData(csv,pivot=pivot)
