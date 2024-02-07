@@ -18,15 +18,9 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-
-schema = open("%s/data/schemas/json/topology.json" % os.environ["PYDRODELTA_DIR"])
-#schema = open("%s/data/schemas/yaml/topology.yml" % os.environ["PYDRODELTA_DIR"])
-schema = yaml.load(schema,yaml.CLoader)
-base_path = Path("%s/data/schemas/json" % os.environ["PYDRODELTA_DIR"])
-resolver = jsonschema.validators.RefResolver(
-    base_uri=f"{base_path.as_uri()}/",
-    referrer=True,
-)
+from typing import Union
+from pydrodelta.validation import getSchemaAndValidate
+from pandas import DataFrame
 
 from pydrodelta.config import config
 
@@ -34,40 +28,145 @@ input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
 
 class Topology():
-    def __init__(self,params,plan=None):
-        jsonschema.validate(
-            instance=params,
-            schema=schema,
-            resolver=resolver)
-        self.timestart = tryParseAndLocalizeDate(params["timestart"])
-        self.timeend = tryParseAndLocalizeDate(params["timeend"])
-        self.forecast_timeend = tryParseAndLocalizeDate(params["forecast_timeend"]) if "forecast_timeend" in params else None
-        self.time_offset_start = interval2timedelta(params["time_offset_start"]) if "time_offset_start" in params else interval2timedelta(params["time_offset"]) if "time_offset" in params else timedelta(hours=0)
-        self.time_offset_end = interval2timedelta(params["time_offset_end"]) if "time_offset_end" in params else interval2timedelta(params["time_offset"]) if "time_offset" in params else timedelta(hours=self.timeend.hour)
-        self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(params["timestart"]) == dict else self.timestart
-        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(params["timeend"]) == dict else self.timeend
+    """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
+    def __init__(
+            self,
+            timestart : Union[str,dict], 
+            timeend :  Union[str,dict], 
+            forecast_timeend :  Union[str,dict,None] = None,
+            time_offset :  Union[str,dict,None] = None, 
+            time_offset_start : Union[str,dict,None] = None, 
+            time_offset_end : Union[str,dict,None] = None, 
+            interpolation_limit : Union[dict,int] = None,
+            extrapolate : bool = False,
+            nodes : list = list(),
+            cal_id : Union[int,None] = None,
+            plot_params : Union[dict,None] = None,
+            report_file : Union[str,None] = None,
+            plan = None
+        ):
+        """Initiate topology
+        
+        Parameters:
+        -----------
+        timestart : str or dict
+            start date of observations period (datetime or timedelta relative to now)
+         
+        timeend :  str or dict
+            end date of observations period (datetime or timedelta relative to now)
+        
+        forecast_timeend :  str, dict or None
+            forecast horizon (datetime or timedelta relative to timeend)
+        
+        time_offset :    str, dict or None
+            time of day where timesteps start
+
+        time_offset_start : str, dict or None
+            time of day where first timestep start. Defaults to 0 hours
+
+        time_offset_end : str, dict or None
+            time of day where last timestep ends. Defaults to timeend.hour
+
+        interpolation_limit : dict or int
+            maximum duration between observations for interpolation (default: 0)
+
+        extrapolate : boolean (default: False)
+            Extrapolate observations outside the observation time domain, up to a maximum duration equal to interpolation_limit 
+
+        nodes : List[Node]
+            Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
+
+        cal_id : int or None
+            Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)
+
+        plot_params : dict or None
+            Plotting configuration. See .plotProno
+        
+        report_file : str or None
+            Write analysis report into this file
+        
+        plan : Plan
+            Plan containing this topology
+        """
+        getSchemaAndValidate(params=locals(), name="topology")
+        self.timestart = tryParseAndLocalizeDate(timestart)
+        """start date of observations period"""
+        self.timeend = tryParseAndLocalizeDate(timeend)
+        """end date of observations period"""
+        self.forecast_timeend = tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None
+        """forecast horizon"""
+        self.time_offset_start = interval2timedelta(time_offset_start) if time_offset_start is not None else interval2timedelta(time_offset) if time_offset is not None else timedelta(hours=0)
+        """time of day where first timestep start"""
+        self.time_offset_end = interval2timedelta(time_offset_end) if time_offset_end is not None else interval2timedelta(time_offset) if time_offset is not None else timedelta(hours=self.timeend.hour)
+        """time of day where last timestep ends"""
+        self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(timestart) == dict else self.timestart
+        """start date of observations period"""
+        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(timeend) == dict else self.timeend
+        """end date of observations period"""
         if self.timestart >= self.timeend:
             raise("Bad timestart, timeend parameters. timestart must be before timeend")
-        self.interpolation_limit = None if "interpolation_limit" not in params else interval2timedelta(params["interpolation_limit"]) if isinstance(params["interpolation_limit"],dict) else params["interpolation_limit"]
-        self.extrapolate = None if "extrapolate" not in params else bool(params["extrapolate"])
+        self.interpolation_limit = interval2timedelta(interpolation_limit) if isinstance(interpolation_limit,dict) else interpolation_limit
+        """maximum duration between observations for interpolation"""
+        self.extrapolate = bool(extrapolate)
+        """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
         self.nodes = []
-        for i, node in enumerate(params["nodes"]):
+        """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
+        for i, node in enumerate(nodes):
             if "id" not in node:
                 raise Exception("Missing node.id at index %i of topology.nodes" % i)
             if node["id"] in [n.id for n in self.nodes]:
                 raise Exception("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
             self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
-        self.cal_id = params["cal_id"] if "cal_id" in params else None
-        self.plot_params = params["plot_params"] if "plot_params" in params else None
-        self.report_file = params["report_file"] if "report_file" in params else None
+        self.cal_id = cal_id
+        """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
+        self.plot_params = plot_params
+        """Plotting configuration. See .plotProno"""
+        self.report_file = report_file
+        """Write analysis report into this file"""
         self._plan = plan
+        """Plan containing this topology"""
         self.graph = self.toGraph()
+        """Directional graph representing this topology"""
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
-    def addNode(self,node,plan=None):
+    def addNode(self,node,plan=None) -> None:
+        """Append node into .nodes
+        
+        Parameters:
+        -----------
+        node : dict
+            Node to append
+        
+        plan : Node or None
+            Plan that contains the topology
+        """
         self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
-    def batchProcessInput(self,include_prono=False):
+    def batchProcessInput(self,include_prono=False) -> None:
+        """
+        Run input processing sequence. This includes (in this order):
+        
+        - .loadData()
+        - .removeOutliers()
+        - .detectJumps()
+        - .applyOffset()
+        - .regularize()
+        - .applyMovingAverage()
+        - .fillNulls()
+        - .adjust()
+        - .concatenateProno() (if include_prono is True)
+        - .derive()
+        - .interpolate()
+        - .setOriginalData()
+        - .setOutputData()
+        - .plotProno()
+        - .printReport() if ().report_file is not None)
+        
+        Parameters:
+        -----------
+        include_prono : bool default False
+            For each variable, fill missing observations with values from series_prono
+        """
         logging.debug("loadData")
         self.loadData()
         logging.debug("removeOutliers")
@@ -99,7 +198,14 @@ class Topology():
             f = open(self.report_file,"w")
             json.dump(report,f,indent=2)
             f.close()
-    def loadData(self,include_prono=True):
+    def loadData(self,include_prono=True) -> None:
+        """For each series of each variable of each node, load data from the source.
+        
+        Parameters:
+        -----------
+        
+        include_prono : bool default True
+            Load forecasted data"""
         for node in self.nodes:
             # logging.debug("loadData timestart: %s, timeend: %s, time_interval: %s" % (self.timestart.isoformat(), self.timeend.isoformat(), str(node.time_interval)))
             timestart = self.timestart - node.time_interval if node.time_interval is not None else self.timeend
@@ -119,53 +225,85 @@ class Topology():
                 #                 serie.loadData(self.timestart,self.timeend)
             # if isinstance(node,observedNode):
             #     node.loadData(self.timestart,self.timeend)
-    def setOriginalData(self):
+    def setOriginalData(self) -> None:
+        """For each variable of each node, copy .data into .original_data"""
         for node in self.nodes:
             node.setOriginalData()
-    def removeOutliers(self):
+    def removeOutliers(self) -> None:
+        """For each serie of each variable of each node, perform outlier removal (only in series where lim_outliers is not None)."""
         found_outliers = False
         for node in self.nodes:
             found_outliers_ = node.removeOutliers()
             found_outliers = found_outliers_ if found_outliers_ else found_outliers
         return found_outliers
-    def detectJumps(self):
+    def detectJumps(self) -> None:
+        """For each serie of each variable of each node, perform jumps detection (only in series where lim_jump is not None). Results are saved in jumps_data of the series object."""
         found_jumps = False
         for node in self.nodes:
             found_jumps_ = node.detectJumps()
             found_jumps = found_jumps_ if found_jumps_ else found_jumps
         return found_jumps
-    def applyMovingAverage(self):
+    def applyMovingAverage(self) -> None:
+        """For each serie of each variable of each node, apply moving average (only in series where moving_average is not None)"""
         for node in self.nodes:
             node.applyMovingAverage()
-    def applyOffset(self):
+    def applyOffset(self) -> None:
+        """For each serie of each variable of each node, apply x and/or y offset (only in series where x_offset (time) or y_offset (value) is defined)"""
         for node in self.nodes:
             node.applyOffset()
-    def regularize(self,interpolate=False):
+    def regularize(self,interpolate=False) -> None:
+        """For each series and series_prono of each observed variable of each node, regularize the time step according to time_interval and time_offset
+        
+        Parameters:
+        ----------
+        interpolate : bool default False
+            if False, interpolates only to the closest timestep of the regular timeseries. If observation is equidistant to preceding and following timesteps it interpolates to both
+        """
         for node in self.nodes:
             node.regularize(interpolate=interpolate)
-    def fillNulls(self):
+    def fillNulls(self) -> None:
+        """For each observed variable of each node, copies data of first series and fills its null values with the other series. In the end it fills nulls with self.fill_value. Saves result in self.data
+        """
         for node in self.nodes:
             node.fillNulls()
-    def derive(self):
+    def derive(self) -> None:
+        """For each derived variable of each node, derives data from related variable according to derived_from attribute
+        """
         for node in self.nodes:
             node.derive()
-    def adjust(self):
+    def adjust(self) -> None:
+        """For each series_prono of each variable of each node, if observations are available, perform error correction by linear regression"""
         for node in self.nodes:
             node.adjust()
             node.apply_linear_combination()
             node.adjustProno()
-    def concatenateProno(self):
+    def concatenateProno(self) -> None:
+        """For each variable of each node, if series_prono are available, concatenate series_prono into variable.data"""
         for node in self.nodes:
             for variable in node.variables.values():
                 if variable.series_prono is not None:
                     variable.concatenateProno()
-    def interpolate(self,limit=None,extrapolate=None):
+    def interpolate(
+            self,
+            limit : timedelta = None,
+            extrapolate: bool = None
+        ) -> None:
+        """For each variable of each node, fill nulls of data by interpolation
+        
+        Parameters:
+        -----------
+        limit : timedelta
+            Maximum interpolation distance
+        
+        extrapolate : bool
+            Extrapolate up to limit
+        """
         for node in self.nodes:
             node.interpolate(limit=limit,extrapolate=extrapolate)
-    def setOutputData(self):
+    def setOutputData(self) -> None:
         for node in self.nodes:
             node.setOutputData()
-    def toCSV(self,pivot=False):
+    def toCSV(self,pivot=False) -> str:
         if pivot:
             data = self.pivotData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -173,7 +311,7 @@ class Topology():
             return data.to_csv(index=False)    
         header = ",".join(["timestart","valor","tag","series_id"])
         return header + "\n" + "\n".join([node.toCSV(True,False) for node in self.nodes])
-    def outputToCSV(self,pivot=False):
+    def outputToCSV(self,pivot=False) -> str:
         if pivot:
             data = self.pivotOutputData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -181,12 +319,12 @@ class Topology():
             return data.to_csv(index=False)    
         header = ",".join(["timestart","valor","tag","series_id"])
         return header + "\n" + "\n".join([node.outputToCSV(False) for node in self.nodes])
-    def toSeries(self,use_node_id=False):
+    def toSeries(self,use_node_id=False) -> list:
         """
         returns list of Series objects. Same as toList(flatten=True)
         """
         return self.toList(use_node_id=use_node_id,flatten=False)
-    def toList(self,pivot=False,use_node_id=False,flatten=True):
+    def toList(self,pivot=False,use_node_id=False,flatten=True) -> list:
         """
         returns list of all data in nodes[0..n].data
         
@@ -208,7 +346,7 @@ class Topology():
                 else:
                     obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
         return obs_list
-    def outputToList(self,pivot=False,flatten=False):
+    def outputToList(self,pivot=False,flatten=False) -> list:
         if pivot:
             data = self.pivotOutputData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -220,7 +358,7 @@ class Topology():
         for node in self.nodes:
             obs_list.extend(node.variablesOutputToList(flatten=flatten))
         return obs_list
-    def saveData(self,file : str,format="csv",pivot=False,pretty=False):
+    def saveData(self,file : str,format="csv",pivot=False,pretty=False) -> None:
         f = open(file,"w")
         if format == "json":
             if pretty:
@@ -233,7 +371,7 @@ class Topology():
         f.write(self.toCSV(pivot))
         f.close
         return
-    def saveOutputData(self,file : str,format="csv",pivot=False,pretty=False):
+    def saveOutputData(self,file : str,format="csv",pivot=False,pretty=False) -> None:
         f = open(file,"w")
         if format == "json":
             if pretty:
@@ -246,7 +384,7 @@ class Topology():
         f.write(self.outputToCSV(pivot))
         f.close
         return
-    def uploadData(self,include_prono):
+    def uploadData(self,include_prono) -> list:
         """
         Uploads analysis data of all nodes as a5 observaciones
         """
@@ -256,7 +394,7 @@ class Topology():
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
-    def uploadDataAsProno(self,include_obs=True,include_prono=False):
+    def uploadDataAsProno(self,include_obs=True,include_prono=False) -> dict:
         """
         Uploads analysis data of all nodes as a5 pronosticos
         """
@@ -285,7 +423,7 @@ class Topology():
                 prono["series"].extend(serieslist)
         return output_crud.createCorrida(prono)
 
-    def pivotData(self,include_tag=True,use_output_series_id=True,use_node_id=False,nodes=None):
+    def pivotData(self,include_tag=True,use_output_series_id=True,use_node_id=False,nodes=None) -> DataFrame:
         if nodes is None:
             nodes = self.nodes
         columns = ["valor","tag"] if include_tag else ["valor"]
@@ -308,7 +446,7 @@ class Topology():
             del data[column]
         data = data.replace({NaN:None})
         return data
-    def pivotOutputData(self,include_tag=True):
+    def pivotOutputData(self,include_tag=True) -> DataFrame:
         i = 0
         data = None
         for node in self.nodes:
@@ -317,7 +455,7 @@ class Topology():
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
         # data = data.replace({np.NaN:None})
         return data
-    def plotVariable(self,var_id,timestart:datetime=None,timeend:datetime=None,output=None):
+    def plotVariable(self,var_id,timestart:datetime=None,timeend:datetime=None,output=None) -> None:
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green"}
         if output is not None:
             matplotlib.use('pdf')
@@ -364,7 +502,7 @@ class Topology():
             pdf.close()
         else:
             plt.show()
-    def plotProno(self,output_dir:str=None,figsize=None,title=None,markersize=None,obs_label=None,tz=None,prono_label=None,footnote=None,errorBandLabel=None,obsLine=None,prono_annotation=None,obs_annotation=None,forecast_date_annotation=None,ylim=None,datum_template_string=None,title_template_string=None,x_label=None,y_label=None,xlim=None,text_xoffset=None):
+    def plotProno(self,output_dir:str=None,figsize=None,title=None,markersize=None,obs_label=None,tz=None,prono_label=None,footnote=None,errorBandLabel=None,obsLine=None,prono_annotation=None,obs_annotation=None,forecast_date_annotation=None,ylim=None,datum_template_string=None,title_template_string=None,x_label=None,y_label=None,xlim=None,text_xoffset=None) -> None:
         output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
         footnote = getParamOrDefaultTo("footnote",footnote,self.plot_params)
         figsize = getParamOrDefaultTo("figsize",figsize,self.plot_params)
@@ -388,7 +526,7 @@ class Topology():
         text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,self.plot_params)
         for node in self.nodes:
             node.plotProno(output_dir,figsize=figsize,title=title,markersize=markersize,obs_label=obs_label,tz=tz,prono_label=prono_label,footnote=footnote,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,ylim=ylim,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim,text_xoffset=text_xoffset)
-    def printReport(self):
+    def printReport(self) -> dict:
         report = {"nodes":[]}
         for node in self.nodes:
             node_report = {
@@ -465,7 +603,7 @@ class Topology():
                 node_report["variables"][variable.id] = variable_report
             report["nodes"].append(node_report)
         return report    
-    def printGraph(self,nodes=None,output_file=None):
+    def printGraph(self,nodes=None,output_file=None) -> None:
         DG = self.toGraph(nodes)
         attrs = nx.get_node_attributes(DG, 'object') 
         labels = {}
@@ -478,7 +616,7 @@ class Topology():
         if output_file is not None:
             plt.savefig(output_file, format='png')
             plt.close()
-    def toGraph(self,nodes=None):
+    def toGraph(self,nodes=None) -> nx.DiGraph:
         if nodes is None:
             nodes = self.nodes
         DG = nx.DiGraph()
@@ -498,7 +636,7 @@ class Topology():
         #         raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
         #     DG.add_edge(edge[0],edge[1])
         return DG
-    def exportGraph(self,nodes=None,output_file=None):
+    def exportGraph(self,nodes=None,output_file=None) -> str:
         DG = self.toGraph(nodes)
         # NLD = nx.node_link_data(DG)
         if output_file is not None:
