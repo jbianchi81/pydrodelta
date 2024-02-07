@@ -40,22 +40,22 @@ class GR4JProcedureFunction(PQProcedureFunction):
 
     def __init__(self,params,procedure):
         super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
-        """X0	capacite du reservoir de production (mm)"""
         self.X0 = self.parameters["X0"]
-        """X1	capacite du reservoir de routage (mm)"""
+        """X0	capacite du reservoir de production (mm)"""
         self.X1 = self.parameters["X1"]
-        """X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
+        """X1	capacite du reservoir de routage (mm)"""
         self.X2 = self.parameters["X2"]
-        """X3	temps de base de l'hydrogramme unitaire (d)"""
+        """X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
         self.X3 = self.parameters["X3"]
+        """X3	temps de base de l'hydrogramme unitaire (d)"""
 
-        """Initial Soil Storage"""
         self.Sk_init = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
-        """Initial Routing Storage"""
+        """Initial Soil Storage"""
         self.Rk_init = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
+        """Initial Routing Storage"""
 
-        self.dt = 1
-        
+        self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
+        """Time step duration (days, default 1)"""        
 
     def run(self,input=None) -> tuple:
         """
