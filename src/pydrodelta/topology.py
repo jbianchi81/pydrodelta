@@ -30,20 +30,20 @@ output_crud = Crud(config["output_api"])
 class Topology():
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
     def __init__(
-            self,
-            timestart : Union[str,dict], 
-            timeend :  Union[str,dict], 
-            forecast_timeend :  Union[str,dict,None] = None,
-            time_offset :  Union[str,dict,None] = None, 
-            time_offset_start : Union[str,dict,None] = None, 
-            time_offset_end : Union[str,dict,None] = None, 
-            interpolation_limit : Union[dict,int] = None,
-            extrapolate : bool = False,
-            nodes : list = list(),
-            cal_id : Union[int,None] = None,
-            plot_params : Union[dict,None] = None,
-            report_file : Union[str,None] = None,
-            plan = None
+        self,
+        timestart : Union[str,dict], 
+        timeend :  Union[str,dict], 
+        forecast_timeend :  Union[str,dict,None] = None,
+        time_offset :  Union[str,dict,None] = None, 
+        time_offset_start : Union[str,dict,None] = None, 
+        time_offset_end : Union[str,dict,None] = None, 
+        interpolation_limit : Union[dict,int] = None,
+        extrapolate : bool = False,
+        nodes : list = list(),
+        cal_id : Union[int,None] = None,
+        plot_params : Union[dict,None] = None,
+        report_file : Union[str,None] = None,
+        plan = None
         ):
         """Initiate topology
         
@@ -284,9 +284,9 @@ class Topology():
                 if variable.series_prono is not None:
                     variable.concatenateProno()
     def interpolate(
-            self,
-            limit : timedelta = None,
-            extrapolate: bool = None
+        self,
+        limit : timedelta = None,
+        extrapolate: bool = None
         ) -> None:
         """For each variable of each node, fill nulls of data by interpolation
         
@@ -301,9 +301,23 @@ class Topology():
         for node in self.nodes:
             node.interpolate(limit=limit,extrapolate=extrapolate)
     def setOutputData(self) -> None:
+        """For each series_output of each variable of each node, copy variable.data into series_output.data. If x_offset or y_offset are not 0, applies the offset"""
         for node in self.nodes:
             node.setOutputData()
-    def toCSV(self,pivot=False) -> str:
+    def toCSV(
+        self,
+        pivot : bool=False
+        ) -> str:
+        """Generates csv table from all variables of all nodes
+        
+        Parameters:
+        -----------
+        pivot : bool
+            If true, pivots variables into columns
+        
+        Returns:
+        --------
+        str"""
         if pivot:
             data = self.pivotData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -311,7 +325,20 @@ class Topology():
             return data.to_csv(index=False)    
         header = ",".join(["timestart","valor","tag","series_id"])
         return header + "\n" + "\n".join([node.toCSV(True,False) for node in self.nodes])
-    def outputToCSV(self,pivot=False) -> str:
+    def outputToCSV(
+        self,
+        pivot=False
+        ) -> str:
+        """Generates csv table of all series_output of all variables of all nodes
+        
+        Parameters:
+        -----------
+        pivot : bool
+            If true, pivots variables into columns
+        
+        Returns:
+        --------
+        str"""
         if pivot:
             data = self.pivotOutputData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -319,18 +346,46 @@ class Topology():
             return data.to_csv(index=False)    
         header = ",".join(["timestart","valor","tag","series_id"])
         return header + "\n" + "\n".join([node.outputToCSV(False) for node in self.nodes])
-    def toSeries(self,use_node_id=False) -> list:
+    def toSeries(
+        self,
+        use_node_id : bool=False
+        ) -> list:
         """
         returns list of Series objects. Same as toList(flatten=True)
+
+        Parameters:
+        -----------
+        use_node_id : bool
+            use node_id as series identifier
+        
+        Returns:
+        --------
+        list of Observations
         """
         return self.toList(use_node_id=use_node_id,flatten=False)
-    def toList(self,pivot=False,use_node_id=False,flatten=True) -> list:
+    def toList(
+        self,
+        pivot : bool = False,
+        use_node_id : bool = False,
+        flatten : bool = True
+        ) -> list:
         """
         returns list of all data in nodes[0..n].data
         
-        pivot: boolean              pivot observations on index (timestart)
-        use_node_id: boolean    uses node.id as series_id instead of node.output_series[0].id
-        flatten: boolean        if set to False, returns list of series objects:[{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True)
+        Parameters:
+        -----------
+        pivot : bool
+            pivot variables into columns
+
+        use_node_id : bool
+            use node.id as series_id instead of node.output_series[0].id
+
+        flatten : bool
+            If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
+        
+        Returns:
+        --------
+        list of Series or list of Observations
         """
         if pivot:
             data = self.pivotData()
@@ -346,7 +401,24 @@ class Topology():
                 else:
                     obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
         return obs_list
-    def outputToList(self,pivot=False,flatten=False) -> list:
+    def outputToList(
+        self,
+        pivot : bool = False,
+        flatten : bool = False
+        ) -> list:
+        """returns list of data of all output_series of all variables of all nodes
+        
+        Parameters:
+        -----------
+        pivot : bool
+            pivot variables into columns
+
+        flatten : bool
+            If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
+        
+        Returns:
+        --------
+        list of Series or list of Observations"""
         if pivot:
             data = self.pivotOutputData()
             data["timestart"] = [x.isoformat() for x in data.index]
@@ -358,7 +430,29 @@ class Topology():
         for node in self.nodes:
             obs_list.extend(node.variablesOutputToList(flatten=flatten))
         return obs_list
-    def saveData(self,file : str,format="csv",pivot=False,pretty=False) -> None:
+    def saveData(
+        self,
+        file : str,
+        format : str = "csv",
+        pivot : bool = False,
+        pretty : bool = False
+        ) -> None:
+        """Save data of all variables of all nodes to a file in the desired format
+        
+        Parameters:
+        -----------
+        file : str
+            Where to save the data
+
+        format : str
+            File format: csv or json
+        
+        pivot : bool
+            pivot variables into columns
+
+        pretty : bool
+            Pretty-print JSON (w/ indentation)        
+        """
         f = open(file,"w")
         if format == "json":
             if pretty:
@@ -371,7 +465,29 @@ class Topology():
         f.write(self.toCSV(pivot))
         f.close
         return
-    def saveOutputData(self,file : str,format="csv",pivot=False,pretty=False) -> None:
+    def saveOutputData(
+        self,
+        file : str,
+        format : str = "csv",
+        pivot : bool = False,
+        pretty : bool =False
+        ) -> None:
+        """Save data of all series_output of all variables of all nodes to a file in the desired format
+        
+        Parameters:
+        -----------
+        file : str
+            Where to save the data
+
+        format : str
+            File format: csv or json
+        
+        pivot : bool
+            pivot variables into columns
+
+        pretty : bool
+            Pretty-print JSON (w/ indentation)        
+        """
         f = open(file,"w")
         if format == "json":
             if pretty:
@@ -384,9 +500,20 @@ class Topology():
         f.write(self.outputToCSV(pivot))
         f.close
         return
-    def uploadData(self,include_prono) -> list:
+    def uploadData(
+        self,
+        include_prono : bool
+        ) -> list:
         """
-        Uploads analysis data of all nodes as a5 observaciones
+        Uploads analysis data (series_output) of all variables of all nodes as a5 observaciones (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/observacion.yml)
+        
+        Parameters:
+        -----------
+        include_prono : bool
+            Include the forecast horizon
+        
+        Returns:
+        list of Observations
         """
         created = []
         for node in self.nodes:
@@ -394,9 +521,24 @@ class Topology():
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
-    def uploadDataAsProno(self,include_obs=True,include_prono=False) -> dict:
+    def uploadDataAsProno(
+        self,
+        include_obs : bool = True,
+        include_prono : bool = False
+        ) -> dict:
         """
-        Uploads analysis data of all nodes as a5 pronosticos
+        Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
+
+        Parameters:
+        -----------
+        include_obs : bool
+            Include period before the forecast date
+        include_prono : bool
+            Include period after the forecast date
+        
+        Returns:
+        --------
+        dict : server response. Either a successfully created forecast (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml) or an error message
         """
         if self.cal_id is None:
             if self._plan is not None:
@@ -423,7 +565,33 @@ class Topology():
                 prono["series"].extend(serieslist)
         return output_crud.createCorrida(prono)
 
-    def pivotData(self,include_tag=True,use_output_series_id=True,use_node_id=False,nodes=None) -> DataFrame:
+    def pivotData(
+        self,
+        include_tag : bool = True,
+        use_output_series_id : bool = True,
+        use_node_id : bool = False,
+        nodes : list = None
+        ) -> DataFrame:
+        """Pivot variables of all nodes into columns of a single DataFrame
+        
+        Parameters:
+        -----------
+        include_tag : bool (default True)
+            Add columns for tags
+        
+        use_output_series_id : bool (default True)
+            Use series_output[x].series_id as column header
+        
+        use_node_id : bool (default False)
+            Use node.id + variable.id as column header
+        
+        nodes : list or None
+            Nodes of the topology to read. If None, reads all self.nodes
+        
+        Returns:
+        --------
+        DataFrame
+        """
         if nodes is None:
             nodes = self.nodes
         columns = ["valor","tag"] if include_tag else ["valor"]
@@ -446,7 +614,21 @@ class Topology():
             del data[column]
         data = data.replace({NaN:None})
         return data
-    def pivotOutputData(self,include_tag=True) -> DataFrame:
+    def pivotOutputData(
+        self,
+        include_tag : bool = True
+        ) -> DataFrame:
+        """Pivot data of all output_series of all variables of all nodes into columns of a single DataFrame
+        
+        Parameters:
+        -----------
+        include_tag : bool (default True)
+            Add columns for tags
+        
+        Returns:
+        --------
+        DataFrame
+        """
         i = 0
         data = None
         for node in self.nodes:
@@ -455,7 +637,29 @@ class Topology():
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
         # data = data.replace({np.NaN:None})
         return data
-    def plotVariable(self,var_id,timestart:datetime=None,timeend:datetime=None,output=None) -> None:
+    def plotVariable(
+        self,
+        var_id : int,
+        timestart : datetime = None,
+        timeend : datetime = None,
+        output : str = None
+        ) -> None:
+        """Generates time-value plots for a selected variable, one per node where this variable is found. 
+        
+        Parameters:
+        ----------
+        var_id : int
+            Variable identifier
+
+        timestart : datetime or None
+            If not None, start time of the plot
+
+        timeend : datetime or None
+            If not None, end time of the plot
+          
+        output : str or None
+            If not None, save the result into a pdf file
+        """
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green"}
         if output is not None:
             matplotlib.use('pdf')
@@ -502,7 +706,93 @@ class Topology():
             pdf.close()
         else:
             plt.show()
-    def plotProno(self,output_dir:str=None,figsize=None,title=None,markersize=None,obs_label=None,tz=None,prono_label=None,footnote=None,errorBandLabel=None,obsLine=None,prono_annotation=None,obs_annotation=None,forecast_date_annotation=None,ylim=None,datum_template_string=None,title_template_string=None,x_label=None,y_label=None,xlim=None,text_xoffset=None) -> None:
+    def plotProno(
+        self,
+        output_dir : str = None,
+        figsize : tuple = None,
+        title : str = None,
+        markersize : int = None,
+        obs_label : str = None,
+        tz : str = None,
+        prono_label : str = None,
+        footnote : str = None,
+        errorBandLabel : str = None,
+        obsLine : bool = None,
+        prono_annotation : str = None,
+        obs_annotation : str = None,
+        forecast_date_annotation : str = None,
+        ylim : tuple = None,
+        datum_template_string : str = None,
+        title_template_string : str = None,
+        x_label : str = None,
+        y_label : str = None,
+        xlim : tuple = None,
+        text_xoffset : tuple = None
+        ) -> None:
+        """For each series_prono (where plot_params is defined) of each variable of each node, print time-value chart including observed data
+        
+        Parameters:
+        -----------
+        output_dir : str
+            Output directory path
+        
+        figsize : tuple
+            figure size in cm (width, length)
+        
+        title : str
+            Chart title
+
+        markersize : int
+            Marker size in points
+        
+        obs_label : str
+            label for observed data
+
+        tz : str
+            time zone
+        
+        prono_label : str
+            Label for forecast data
+
+        footnote : str
+            Footnote text
+        
+        errorBandLabel : str
+            Label for error band
+        
+        obsLine : bool
+            Add line to observed data
+        
+        prono_annotation : str
+            Annotation text for forecast period
+
+        obs_annotation : str
+            Annotation text for observations period
+        
+        forecast_date_annotation : str
+            Annotation text for forecast date
+        
+        ylim : tuple
+            range of y axis (min, max)
+
+        datum_template_string : str
+            Template string for datum text
+
+        title_template_string : str
+            Template string for title text
+        
+        x_label : str
+            Label for x axis
+
+        y_label : str
+            Label for y axis
+
+        xlim : tuple
+            range of x axis (min, max)
+
+        text_xoffset : tuple
+            Offset of text position
+        """
         output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
         footnote = getParamOrDefaultTo("footnote",footnote,self.plot_params)
         figsize = getParamOrDefaultTo("figsize",figsize,self.plot_params)
@@ -527,6 +817,12 @@ class Topology():
         for node in self.nodes:
             node.plotProno(output_dir,figsize=figsize,title=title,markersize=markersize,obs_label=obs_label,tz=tz,prono_label=prono_label,footnote=footnote,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,ylim=ylim,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim,text_xoffset=text_xoffset)
     def printReport(self) -> dict:
+        """
+        Print topology report
+        
+        Returns:
+        -------
+        dict"""
         report = {"nodes":[]}
         for node in self.nodes:
             node_report = {
@@ -603,7 +899,25 @@ class Topology():
                 node_report["variables"][variable.id] = variable_report
             report["nodes"].append(node_report)
         return report    
-    def printGraph(self,nodes=None,output_file=None) -> None:
+    def printGraph(
+        self,
+        nodes : list = None,
+        output_file : str = None
+        ) -> None:
+        """Print topology directioned graph
+        
+        Parameters:
+        -----------
+        nodes : list
+            If not None, use only these nodes
+            
+        output_file : str
+            Save graph into this file (png format)
+        
+        See also:
+        ---------
+        toGraph
+        exportGraph"""
         DG = self.toGraph(nodes)
         attrs = nx.get_node_attributes(DG, 'object') 
         labels = {}
@@ -617,6 +931,24 @@ class Topology():
             plt.savefig(output_file, format='png')
             plt.close()
     def toGraph(self,nodes=None) -> nx.DiGraph:
+        """
+        Generate directioned graph from the topology.
+
+        Parameters:
+        -----------
+        nodes : list or None
+            List of nodes to use for building the graph. If None, uses self.topology.nodes 
+        
+        Returns:
+        --------
+        NetworkX.DiGraph (See https://networkx.org for complete documentation)
+
+        See also:
+        ---------
+        printGraph
+        exportGraph
+
+        """
         if nodes is None:
             nodes = self.nodes
         DG = nx.DiGraph()
@@ -636,7 +968,30 @@ class Topology():
         #         raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
         #     DG.add_edge(edge[0],edge[1])
         return DG
-    def exportGraph(self,nodes=None,output_file=None) -> str:
+    def exportGraph(
+        self,
+        nodes : list = None,
+        output_file : str = None
+        ) -> str:
+        """Creates directioned graph from the plan and converts it to JSON. 
+        
+        Parameters:
+        -----------        
+        nodes : list or None
+            List of nodes to use for building the graph. If None, uses self.topology.nodes 
+        
+        output_file : str or None
+            Where to save the JSON file. If None, returns the JSON string
+        
+        Returns:
+        --------
+        str or None
+        
+        See also:
+        ---------
+        toGraph
+        printGraph
+        """
         DG = self.toGraph(nodes)
         # NLD = nx.node_link_data(DG)
         if output_file is not None:

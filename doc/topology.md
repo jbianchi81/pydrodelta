@@ -17,10 +17,24 @@
     * [adjust](#pydrodelta.topology.Topology.adjust)
     * [concatenateProno](#pydrodelta.topology.Topology.concatenateProno)
     * [interpolate](#pydrodelta.topology.Topology.interpolate)
+    * [setOutputData](#pydrodelta.topology.Topology.setOutputData)
+    * [toCSV](#pydrodelta.topology.Topology.toCSV)
+    * [outputToCSV](#pydrodelta.topology.Topology.outputToCSV)
     * [toSeries](#pydrodelta.topology.Topology.toSeries)
     * [toList](#pydrodelta.topology.Topology.toList)
+    * [outputToList](#pydrodelta.topology.Topology.outputToList)
+    * [saveData](#pydrodelta.topology.Topology.saveData)
+    * [saveOutputData](#pydrodelta.topology.Topology.saveOutputData)
     * [uploadData](#pydrodelta.topology.Topology.uploadData)
     * [uploadDataAsProno](#pydrodelta.topology.Topology.uploadDataAsProno)
+    * [pivotData](#pydrodelta.topology.Topology.pivotData)
+    * [pivotOutputData](#pydrodelta.topology.Topology.pivotOutputData)
+    * [plotVariable](#pydrodelta.topology.Topology.plotVariable)
+    * [plotProno](#pydrodelta.topology.Topology.plotProno)
+    * [printReport](#pydrodelta.topology.Topology.printReport)
+    * [printGraph](#pydrodelta.topology.Topology.printGraph)
+    * [toGraph](#pydrodelta.topology.Topology.toGraph)
+    * [exportGraph](#pydrodelta.topology.Topology.exportGraph)
 
 <a id="pydrodelta.topology"></a>
 
@@ -293,47 +307,508 @@ For each variable of each node, fill nulls of data by interpolation
   extrapolate : bool
   Extrapolate up to limit
 
+<a id="pydrodelta.topology.Topology.setOutputData"></a>
+
+#### setOutputData
+
+```python
+def setOutputData() -> None
+```
+
+For each series_output of each variable of each node, copy variable.data into series_output.data. If x_offset or y_offset are not 0, applies the offset
+
+<a id="pydrodelta.topology.Topology.toCSV"></a>
+
+#### toCSV
+
+```python
+def toCSV(pivot: bool = False) -> str
+```
+
+Generates csv table from all variables of all nodes
+
+**Arguments**:
+
+  -----------
+  pivot : bool
+  If true, pivots variables into columns
+  
+
+**Returns**:
+
+  --------
+  str
+
+<a id="pydrodelta.topology.Topology.outputToCSV"></a>
+
+#### outputToCSV
+
+```python
+def outputToCSV(pivot=False) -> str
+```
+
+Generates csv table of all series_output of all variables of all nodes
+
+**Arguments**:
+
+  -----------
+  pivot : bool
+  If true, pivots variables into columns
+  
+
+**Returns**:
+
+  --------
+  str
+
 <a id="pydrodelta.topology.Topology.toSeries"></a>
 
 #### toSeries
 
 ```python
-def toSeries(use_node_id=False) -> list
+def toSeries(use_node_id: bool = False) -> list
 ```
 
 returns list of Series objects. Same as toList(flatten=True)
+
+**Arguments**:
+
+  -----------
+  use_node_id : bool
+  use node_id as series identifier
+  
+
+**Returns**:
+
+  --------
+  list of Observations
 
 <a id="pydrodelta.topology.Topology.toList"></a>
 
 #### toList
 
 ```python
-def toList(pivot=False, use_node_id=False, flatten=True) -> list
+def toList(pivot: bool = False,
+           use_node_id: bool = False,
+           flatten: bool = True) -> list
 ```
 
 returns list of all data in nodes[0..n].data
 
-pivot: boolean              pivot observations on index (timestart)
-use_node_id: boolean    uses node.id as series_id instead of node.output_series[0].id
-flatten: boolean        if set to False, returns list of series objects:[{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True)
+**Arguments**:
+
+  -----------
+  pivot : bool
+  pivot variables into columns
+  
+  use_node_id : bool
+  use node.id as series_id instead of node.output_series[0].id
+  
+  flatten : bool
+  If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
+  
+
+**Returns**:
+
+  --------
+  list of Series or list of Observations
+
+<a id="pydrodelta.topology.Topology.outputToList"></a>
+
+#### outputToList
+
+```python
+def outputToList(pivot: bool = False, flatten: bool = False) -> list
+```
+
+returns list of data of all output_series of all variables of all nodes
+
+**Arguments**:
+
+  -----------
+  pivot : bool
+  pivot variables into columns
+  
+  flatten : bool
+  If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
+  
+
+**Returns**:
+
+  --------
+  list of Series or list of Observations
+
+<a id="pydrodelta.topology.Topology.saveData"></a>
+
+#### saveData
+
+```python
+def saveData(file: str,
+             format: str = "csv",
+             pivot: bool = False,
+             pretty: bool = False) -> None
+```
+
+Save data of all variables of all nodes to a file in the desired format
+
+**Arguments**:
+
+  -----------
+  file : str
+  Where to save the data
+  
+  format : str
+  File format: csv or json
+  
+  pivot : bool
+  pivot variables into columns
+  
+  pretty : bool
+  Pretty-print JSON (w/ indentation)
+
+<a id="pydrodelta.topology.Topology.saveOutputData"></a>
+
+#### saveOutputData
+
+```python
+def saveOutputData(file: str,
+                   format: str = "csv",
+                   pivot: bool = False,
+                   pretty: bool = False) -> None
+```
+
+Save data of all series_output of all variables of all nodes to a file in the desired format
+
+**Arguments**:
+
+  -----------
+  file : str
+  Where to save the data
+  
+  format : str
+  File format: csv or json
+  
+  pivot : bool
+  pivot variables into columns
+  
+  pretty : bool
+  Pretty-print JSON (w/ indentation)
 
 <a id="pydrodelta.topology.Topology.uploadData"></a>
 
 #### uploadData
 
 ```python
-def uploadData(include_prono) -> list
+def uploadData(include_prono: bool) -> list
 ```
 
-Uploads analysis data of all nodes as a5 observaciones
+Uploads analysis data (series_output) of all variables of all nodes as a5 observaciones (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/observacion.yml)
+
+**Arguments**:
+
+  -----------
+  include_prono : bool
+  Include the forecast horizon
+  
+
+**Returns**:
+
+  list of Observations
 
 <a id="pydrodelta.topology.Topology.uploadDataAsProno"></a>
 
 #### uploadDataAsProno
 
 ```python
-def uploadDataAsProno(include_obs=True, include_prono=False) -> dict
+def uploadDataAsProno(include_obs: bool = True,
+                      include_prono: bool = False) -> dict
 ```
 
-Uploads analysis data of all nodes as a5 pronosticos
+Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
+
+**Arguments**:
+
+  -----------
+  include_obs : bool
+  Include period before the forecast date
+  include_prono : bool
+  Include period after the forecast date
+  
+
+**Returns**:
+
+  --------
+  dict : server response. Either a successfully created forecast (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml) or an error message
+
+<a id="pydrodelta.topology.Topology.pivotData"></a>
+
+#### pivotData
+
+```python
+def pivotData(include_tag: bool = True,
+              use_output_series_id: bool = True,
+              use_node_id: bool = False,
+              nodes: list = None) -> DataFrame
+```
+
+Pivot variables of all nodes into columns of a single DataFrame
+
+**Arguments**:
+
+  -----------
+  include_tag : bool (default True)
+  Add columns for tags
+  
+  use_output_series_id : bool (default True)
+  Use series_output[x].series_id as column header
+  
+  use_node_id : bool (default False)
+  Use node.id + variable.id as column header
+  
+  nodes : list or None
+  Nodes of the topology to read. If None, reads all self.nodes
+  
+
+**Returns**:
+
+  --------
+  DataFrame
+
+<a id="pydrodelta.topology.Topology.pivotOutputData"></a>
+
+#### pivotOutputData
+
+```python
+def pivotOutputData(include_tag: bool = True) -> DataFrame
+```
+
+Pivot data of all output_series of all variables of all nodes into columns of a single DataFrame
+
+**Arguments**:
+
+  -----------
+  include_tag : bool (default True)
+  Add columns for tags
+  
+
+**Returns**:
+
+  --------
+  DataFrame
+
+<a id="pydrodelta.topology.Topology.plotVariable"></a>
+
+#### plotVariable
+
+```python
+def plotVariable(var_id: int,
+                 timestart: datetime = None,
+                 timeend: datetime = None,
+                 output: str = None) -> None
+```
+
+Generates time-value plots for a selected variable, one per node where this variable is found.
+
+**Arguments**:
+
+  ----------
+  var_id : int
+  Variable identifier
+  
+  timestart : datetime or None
+  If not None, start time of the plot
+  
+  timeend : datetime or None
+  If not None, end time of the plot
+  
+  output : str or None
+  If not None, save the result into a pdf file
+
+<a id="pydrodelta.topology.Topology.plotProno"></a>
+
+#### plotProno
+
+```python
+def plotProno(output_dir: str = None,
+              figsize: tuple = None,
+              title: str = None,
+              markersize: int = None,
+              obs_label: str = None,
+              tz: str = None,
+              prono_label: str = None,
+              footnote: str = None,
+              errorBandLabel: str = None,
+              obsLine: bool = None,
+              prono_annotation: str = None,
+              obs_annotation: str = None,
+              forecast_date_annotation: str = None,
+              ylim: tuple = None,
+              datum_template_string: str = None,
+              title_template_string: str = None,
+              x_label: str = None,
+              y_label: str = None,
+              xlim: tuple = None,
+              text_xoffset: tuple = None) -> None
+```
+
+For each series_prono (where plot_params is defined) of each variable of each node, print time-value chart including observed data
+
+**Arguments**:
+
+  -----------
+  output_dir : str
+  Output directory path
+  
+  figsize : tuple
+  figure size in cm (width, length)
+  
+  title : str
+  Chart title
+  
+  markersize : int
+  Marker size in points
+  
+  obs_label : str
+  label for observed data
+  
+  tz : str
+  time zone
+  
+  prono_label : str
+  Label for forecast data
+  
+  footnote : str
+  Footnote text
+  
+  errorBandLabel : str
+  Label for error band
+  
+  obsLine : bool
+  Add line to observed data
+  
+  prono_annotation : str
+  Annotation text for forecast period
+  
+  obs_annotation : str
+  Annotation text for observations period
+  
+  forecast_date_annotation : str
+  Annotation text for forecast date
+  
+  ylim : tuple
+  range of y axis (min, max)
+  
+  datum_template_string : str
+  Template string for datum text
+  
+  title_template_string : str
+  Template string for title text
+  
+  x_label : str
+  Label for x axis
+  
+  y_label : str
+  Label for y axis
+  
+  xlim : tuple
+  range of x axis (min, max)
+  
+  text_xoffset : tuple
+  Offset of text position
+
+<a id="pydrodelta.topology.Topology.printReport"></a>
+
+#### printReport
+
+```python
+def printReport() -> dict
+```
+
+Print topology report
+
+**Returns**:
+
+  -------
+  dict
+
+<a id="pydrodelta.topology.Topology.printGraph"></a>
+
+#### printGraph
+
+```python
+def printGraph(nodes: list = None, output_file: str = None) -> None
+```
+
+Print topology directioned graph
+
+**Arguments**:
+
+  -----------
+  nodes : list
+  If not None, use only these nodes
+  
+  output_file : str
+  Save graph into this file (png format)
+  
+  See also:
+  ---------
+  toGraph
+  exportGraph
+
+<a id="pydrodelta.topology.Topology.toGraph"></a>
+
+#### toGraph
+
+```python
+def toGraph(nodes=None) -> nx.DiGraph
+```
+
+Generate directioned graph from the topology.
+
+**Arguments**:
+
+  -----------
+  nodes : list or None
+  List of nodes to use for building the graph. If None, uses self.topology.nodes
+  
+
+**Returns**:
+
+  --------
+  NetworkX.DiGraph (See https://networkx.org for complete documentation)
+  
+  See also:
+  ---------
+  printGraph
+  exportGraph
+
+<a id="pydrodelta.topology.Topology.exportGraph"></a>
+
+#### exportGraph
+
+```python
+def exportGraph(nodes: list = None, output_file: str = None) -> str
+```
+
+Creates directioned graph from the plan and converts it to JSON.
+
+**Arguments**:
+
+  -----------
+  nodes : list or None
+  List of nodes to use for building the graph. If None, uses self.topology.nodes
+  
+  output_file : str or None
+  Where to save the JSON file. If None, returns the JSON string
+  
+
+**Returns**:
+
+  --------
+  str or None
+  
+  See also:
+  ---------
+  toGraph
+  printGraph
 
