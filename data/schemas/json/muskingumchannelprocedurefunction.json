@@ -16,20 +16,32 @@
                 "MuskingumChannel"
             ]
         },
-        "K": {
-            "type": "number",
-            "description": "Tiempo de tránsito"
+        "parameters": {
+            "type": "object",
+            "description": "Parámetros: Tiempo de Tránsito (K) y Factor de forma (X)",
+            "properties": {
+                "K": {
+                    "type": "number",
+                    "description": "Tiempo de tránsito"
+                },
+                "X": {
+                    "type": "number",
+                    "description": "Factor de forma"
+                }        
+            },
+            "required": ["K","X"]
         },
-        "X": {
-            "type": "number",
-            "description": "Factor de forma"
-        },
-        "Proc": {
-            "type": "string",
-            "description": "variante del método",
-            "enum": [
-                "Muskingum"
-            ]
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "Proc": {
+                    "type": "string",
+                    "description": "variante del método",
+                    "enum": [
+                        "Muskingum"
+                    ]
+                }
+            }
         },
         "initial_states": {
             "anyOf": [
@@ -43,7 +55,6 @@
         }
     },
     "required": [
-        "K",
-        "X"
+        "parameters"
     ]
 }

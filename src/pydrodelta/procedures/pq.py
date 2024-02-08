@@ -1,10 +1,8 @@
 from pydrodelta.procedure_function import ProcedureFunction
-from pydrodelta.validation import getSchema, validate
+from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
-import logging
 
-schemas, resolver = getSchema("PQProcedureFunction","data/schemas/json")
-schema = schemas["PQProcedureFunction"]
+import logging
 
 class PQProcedureFunction(ProcedureFunction):
     _boundaries = [
@@ -13,14 +11,18 @@ class PQProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "q_obs", "optional": True}),
         FunctionBoundary({"name": "smc_obs", "optional": True})
     ]
+    """Procedure function boundary definition"""
     _outputs = [
         FunctionBoundary({"name": "q_sim"}),
         FunctionBoundary({"name": "smc_sim"})
     ]
-    def __init__(self,params,procedure):
+    """Procedure function output definition"""
+    def __init__(
+        self,
+        **kwargs):
         # logging.debug("Running PQProcedureFunction constructor")
-        super().__init__(params,procedure) # super(ProcedureFunction,self).__init__(params,procedure)
-        validate(params,schema,resolver)
+        super().__init__(**kwargs) # super(ProcedureFunction,self).__init__(params,procedure)
+        getSchemaAndValidate(kwargs,"PQProcedureFunction")
         if "fill_nulls" in self.extra_pars:
             self.fillnulls = bool(self.extra_pars["fill_nulls"])
         else:

@@ -19,6 +19,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         ModelParameter(name="X2",constraints=(0.0001,0.1,1,inf)),
         ModelParameter(name="X3",constraints=(0.0001,1.1,10,inf))
     ]
+    """Procedure function parameter definitions"""
 
     _states = [
         #  id | model_id | nombre | range_min | range_max | def_val | orden 
@@ -29,42 +30,64 @@ class GRPProcedureFunction(PQProcedureFunction):
         #  24 |       38 | Rk     |         0 |  Infinity |       0 |     2
 
     ]
+    """Procedure function state definitions"""
 
-    def __init__(self,params,procedure):
+    def __init__(
+        self,
+        update = False,
+        **kwargs):
         """
         Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
         Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
         """
         # logging.debug("Running GRPProcedureFunction constructor")
-        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
-        #### X0	capacite du reservoir de production (mm)
-        #### X1	capacite du reservoir de routage (mm)
-        #### X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
-        #### X3	temps de base de l'hydrogramme unitaire (d)
-        self.X0 = self.parameters["X0"]
-        self.X1 = self.parameters["X1"]
-        self.X2 = self.parameters["X2"]
-        self.X3 = self.parameters["X3"]
-        #### area basin area in square meters
-        # self.area = self.extra_pars["area"]
-        self.windowsize = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
-        #### rho soil porosity [0-1]
-        self.rho = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
-        #### wp soil wilting point [0-1]
-        self.wp = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
-        #### ae effective area [0-1]
-        self.ae = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
-        #### init states
-        self.Sk_init = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
-        self.Rk_init = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
-        #### unit hydrograph
-        self.dt = 1
-        self.alpha = 5/2
+        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
+        self.X0  : float = self.parameters["X0"]
+        """X0	capacite du reservoir de production (mm)"""
+        self.X1  : float = self.parameters["X1"]
+        """X1	capacite du reservoir de routage (mm)"""
+        self.X2  : float = self.parameters["X2"]
+        """X2	facteur de l'ajustement multiplicatif de la pluie efficace(sans dimension)"""
+        self.X3  : float = self.parameters["X3"]
+        """X3	temps de base de l'hydrogramme unitaire (d)"""
+        self.windowsize  : int = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
+        """time window size"""
+        self.rho  : float = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
+        """rho soil porosity [0-1]"""
+        self.wp  : float = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
+        """wp soil wilting point [0-1]"""
+        self.ae  : float = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
+        """ae effective area [0-1]"""
+        self.Sk_init : float  = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
+        """initial soil storage"""
+        self.Rk_init : float = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
+        """initial routing storage"""
+        self.dt : float = 1
+        """computation step of the unit hydrograph"""
+        self.alpha : float = 5/2
+        """exponent of the unit hydrograph"""
         self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
-        #### update with q_obs (disabled by default)
-        self.update = params["update"] if "update" in params else False
+        """Unit hydrograph"""
+        self.update : bool = update
+        """Update states with observed discharge"""
     @staticmethod
-    def createUnitHydrograph(X3, alpha):
+    def createUnitHydrograph(
+        X3 : float,
+        alpha : float
+        ) -> tuple:
+        """Creates unit hydrograph
+        
+        Parameters:
+        -----------
+        X3 : float
+            Unit hydrograph base time
+        
+        alpha : float
+            Unit hydrograph exponent
+        
+        Returns:
+        --------
+        2-tuple : where first element is the pulses Unit hydrograph and the second is the accumulated unit hydrograph"""
         t = 0
         UH1 = []
         SH1 = []
@@ -83,10 +106,22 @@ class GRPProcedureFunction(PQProcedureFunction):
         return UH1, SH1
 
     # def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
-    def run(self,input=None) -> tuple:
+    def run(
+        self,
+        input : list = None
+        ) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
+
+        Parameters:
+        -----------
+        input : list of DataFrames
+            Boundary conditions. If None, runs .loadInput
+
+        Returns:
+        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+        -------- 
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
@@ -175,8 +210,40 @@ class GRPProcedureFunction(PQProcedureFunction):
             procedure_results
         )
     
-    # def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs: Optional[float]=None) -> Tuple[float,float,float]:
-    def advance_step(self,Sk: float,Rk: float,pma: float,etp: float,k: int,q_obs=None) -> tuple:
+    def advance_step(
+        self,
+        Sk: float,
+        Rk: float,
+        pma: float,
+        etp: float,
+        k: int,
+        q_obs=None
+        ) -> tuple:
+        """Advances model time step
+        
+        Parameters:
+        -----------
+        Sk : float
+            Soil Storage
+            
+        Rk : float
+            Routing storage
+        
+        pma : float
+            Mean areal precipitation
+        
+        etp : float
+            Potential evapotranspiration
+        
+        k : int 
+            Time step index
+        
+        q_obs : float or None
+            observed discharge
+        
+        Returns:
+        --------
+        tuple : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)"""
         Pn = pma - etp if pma >= etp else 0
         Ps = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0
         Es = Sk*(2-Sk/self.X0)*tanh((etp-pma)/self.X0)/(1+(1-Sk/self.X0)*tanh((etp-pma)/self.X0)) if Pn == 0 else 0
@@ -195,7 +262,20 @@ class GRPProcedureFunction(PQProcedureFunction):
         Rk_ = R1 - Qr
         return Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)
 
-    def computeUnitHydrograph(self,k):
+    def computeUnitHydrograph(
+        self,
+        k : int) -> list:
+        """Compute unit hydrograph discharge for time step k
+        
+        Parameters:
+        -----------
+        k : int
+            Time step index
+        
+        Returns:
+        --------
+        float"""
+
         j = 0
         Quh = 0
         while(j<min(int(self.X3)+1,k)):
@@ -205,7 +285,18 @@ class GRPProcedureFunction(PQProcedureFunction):
             j = j + 1
         return Quh
     
-    def setParameters(self,parameters:Union[list,tuple]=[]):
+    def setParameters(
+        self,
+        parameters : Union[list,tuple] = []
+        ) -> None:
+        """
+        Setter for self.parameters.
+
+        Parameters:
+        -----------
+        parameters : list or tuple
+            GRP parameters to set (X0,X1,X2,X3)
+        """
         super().setParameters(parameters)
         self.X0 = self.parameters["X0"]
         self.X1 = self.parameters["X1"]
@@ -214,6 +305,13 @@ class GRPProcedureFunction(PQProcedureFunction):
         self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
     
     def setInitialStates(self,states:Union[list,tuple]=[]):
+        """
+        Setter for self.initial_states.
+
+        Parameters:
+        states : list or tuple
+            GRP initial states to set (Sk,Rk)
+        """
         super().setInitialStates(states)
         self.Sk_init = self.initial_states["Sk"]
         self.Rk_init = self.initial_states["Rk"]

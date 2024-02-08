@@ -16,21 +16,28 @@
                 "Polynomial"
             ]
         },
-        "coefficients": {
-            "type": "array",
-            "items": {
-                "type": "number"
+        "parameters": {
+            "type": "object",
+            "description": "Model parameters",
+            "properties": {
+                "coefficients": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    },
+                    "description": "ordered coefficients starting from the linear (mandatory), then the cuadratic, and so on",
+                    "minItems": 1
+                },
+                "intercept": {
+                    "type": "number",
+                    "description": "intercept of the linear transformation. Defaults to 0"
+                }        
             },
-            "description": "ordered coefficients starting from the linear (mandatory), then the cuadratic, and so on",
-            "minItems": 1
-        },
-        "intercept": {
-            "type": "number",
-            "description": "intercept of the linear transformation. Defaults to 0"
+            "required": ["coefficients"]
         }
     },
     "required": [
         "type",
-        "coefficients"
+        "parameters"
     ]
 }

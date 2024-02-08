@@ -9,26 +9,23 @@ from typing import Union
 from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.pydrology import HOSH4P1L, triangularDistribution
-from pydrodelta.validation import getSchema, validate
+from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.model_state import ModelState
 
-schemas, resolver = getSchema("HOSH4P1LProcedureFunction","data/schemas/json")
-schema = schemas["HOSH4P1LProcedureFunction"]
-
 class HOSH4P1LProcedureFunction(PQProcedureFunction):
+    """Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base)."""
 
     _states = [
         ModelState(name="SurfaceStorage",constraints=(0,np.inf),default=0),
         ModelState(name="SoilStorage",constraints=(0,np.inf),default=0)
     ]
+    """Model states: SurfaceStorage, SoilStorage"""
 
-    def __init__(self,params,procedure):
-    #     """
-    #     Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-    #     Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-    #     """
-        super().__init__(params,procedure)
-        validate(params,schema,resolver)
+    def __init__(
+        self,
+        **kwargs):
+        super().__init__(**kwargs)
+        getSchemaAndValidate(kwargs,"HOSH4P1LProcedureFunction")
         self.maxSurfaceStorage = self.parameters["maxSurfaceStorage"]
         self.maxSoilStorage = self.parameters["maxSoilStorage"]
         self.Proc = self.parameters["Proc"] if "Proc" in self.parameters else "UH"
@@ -47,11 +44,10 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             raise Exception("Missing parameter k")
         if self.Proc == "Nash" and self.n is None:
             raise Exception("Missing parameter n")
-    def run(self,input=None) -> tuple:
-        """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
-        Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
-        """
+    def run(
+        self,
+        input : list = None
+        ) -> tuple:
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         if self.Proc == 'UH':
@@ -86,7 +82,10 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             })
         )
 
-    def setInitialStates(self, states: Union[list,tuple] = []):
+    def setInitialStates(
+        self, 
+        states: Union[list,tuple] = []
+        ) -> None:
         super().setInitialStates(states)
         self.SurfaceStorage = self.initial_states["SurfaceStorage"]
         self.SoilStorage = self.initial_states["SoilStorage"]

@@ -3,11 +3,9 @@ from typing import Optional, List, Tuple
 from pydrodelta.series_data import SeriesData
 import numpy as np 
 from pandas import DataFrame, Series, concat
-# from math import sqrt
+from datetime import datetime
 
 from pydrodelta.procedure_function import ProcedureFunctionResults
-# from pydrodelta.qp import QPProcedureFunction
-# from pydrodelta.util import interval2timedelta
 import pydrodelta.procedures.sacramento_simplified as sac
 
 kalman_def = {
@@ -24,48 +22,95 @@ kalman_def = {
 }
 
 class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
-    def __init__(self,params,procedure):
-        """
-        Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-        Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-        """
-        super().__init__(params,procedure)
+    """Simplified (10-parameter) Sacramento for precipitation - discharge transformation - ensemble with data assimilation. 
+    
+    Reference: https://www.researchgate.net/publication/348234919_Implementacion_de_un_procedimiento_de_pronostico_hidrologico_para_el_alerta_de_inundaciones_utilizando_datos_de_sensores_remotos"""
+    def __init__(
+        self,
+        **kwargs
+        ):
+        super().__init__(**kwargs)
         
-        self.p_stddev, self.pet_stddev = self.extra_pars["stddev_forzantes"] if "stddev_forzantes" in self.extra_pars else kalman_def["stddev_forzantes"]
-        self.x_stddev = self.extra_pars['stddev_estados'] if "stddev_estados" in self.extra_pars else kalman_def["x_stddev"]
-        self.var_innov = self.extra_pars["var_innov"] if "var_innov" in self.extra_pars else kalman_def["var_innov"]
-        self.trim_sm = self.extra_pars["trim_sm"] if "trim_sm" in self.extra_pars else kalman_def["trim_sm"]
+        self.p_stddev : float = self.extra_pars["stddev_forzantes"][0] if "stddev_forzantes" in self.extra_pars else kalman_def["stddev_forzantes"]
+        """Standard deviation of the error of input precipitation"""
+        self.pet_stddev : float = self.extra_pars["stddev_forzantes"][1] if "stddev_forzantes" in self.extra_pars else kalman_def["stddev_forzantes"]
+        """Standard deviation of the error of input potential evapotranspiration"""
+        self.x_stddev : float = self.extra_pars['stddev_estados'] if "stddev_estados" in self.extra_pars else kalman_def["x_stddev"]
+        """Standard deviation of the model states"""
+        self.var_innov : tuple = self.extra_pars["var_innov"] if "var_innov" in self.extra_pars else kalman_def["var_innov"]
+        """variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs"""
+        self.trim_sm : tuple = self.extra_pars["trim_sm"] if "trim_sm" in self.extra_pars else kalman_def["trim_sm"]
+        """2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively"""
         if self.var_innov[1] == "rule":
             if "rule" not in self.extra_pars:
                 raise Exception("Missing parameter 'rule'")
-            self.Rqobs = self.extra_pars["rule"]
+            self.Rqobs : list = self.extra_pars["rule"]
+            """Rule to determine observed discharge error variance"""
         else:
-            self.Rqobs = [[0,self.var_innov[0],0]]
+            self.Rqobs : list = [[0,self.var_innov[0],0]]
+            """Rule to determine observed discharge error variance"""
         self.asim = self.extra_pars["asim"] if "asim" in self.extra_pars else kalman_def["asim"]
-        self.update = [x.lower() if x is not None else None for x in self.extra_pars["update"]] if "update" in self.extra_pars else kalman_def["update"]
-        self.xpert = self.extra_pars["xpert"] if "xpert" in self.extra_pars else kalman_def["xpert"]
+        """2-tuple of str or None. Option to assimilate soil moisture and discharge, respectively"""
+        self.update : tuple = [x.lower() if x is not None else None for x in self.extra_pars["update"]] if "update" in self.extra_pars else kalman_def["update"]
+        """4-tuple of str or None. Option to correct model states via data assimilation (x1, x2, x3, x4) """
+        self.xpert : bool = self.extra_pars["xpert"] if "xpert" in self.extra_pars else kalman_def["xpert"]
+        """Option to add noise to model states at the beginning of each step"""
         self.c1dia = self.c1
         self.c3dia = self.c3
         self.alfadia = self.alfa
-        self.replicates = self.extra_pars["replicates"] if "replicates" in self.extra_pars else kalman_def["replicates"]
+        self.replicates : int = self.extra_pars["replicates"] if "replicates" in self.extra_pars else kalman_def["replicates"]
+        """Number of ensemble members"""
         self.setH()
 
         # states
-        self.ens = list()
-        self.ens1 = list()
-        self.ens2 = list()
+        self.ens : list = list()
+        """Ensemble of model states (length = len(self.replicates) list of 4-tuples)"""
+        self.ens1 : list = list()
+        """Ensemble of model states without data assimilation in the last step (length = len(self.replicates) list of 4-tuples)"""
+        self.ens2 : list = list()
+        """Ensemble of model states without data assimilation in the last 2 steps (length = len(self.replicates) list of 4-tuples)"""
         self.mediassinpert = list()
         self.sm_obs = list()
         self.sm_sim = list()
 
         
 
-    def xnoise(self,value,statename):
+    def xnoise(
+        self,
+        value : float,
+        statename : str
+        ) -> float:
+        """Get product of value with a random normal of mean 0, scale = self.x_stddev
+
+        The result is constrained to the valid range of range the model state variable 
+        
+        Parameters:
+        -----------
+        value : float
+            Input value of the model state
+        
+        statename : str
+            Name of the model state variable (one of x1, x2, x3, x4)"""
         pert = value * np.random.normal(loc=0,scale=self.x_stddev)
         pert = self.constraint(pert,statename)
         return pert
 
-    def cero(self,value,max):
+    def cero(
+        self,
+        value : float,
+        max : float
+        ) -> float:
+        """Return max(0, min(value, max))
+        
+        Parameters:
+        -----------
+        value : float
+        
+        max : float
+        
+        Returns:
+        --------
+        float"""
         if value <0:
             return 0
         elif value > max:
@@ -73,7 +118,21 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         else:
             return value
 
-    def media(self,index):
+    def media(
+        self,
+        index : int
+        ) -> Tuple[float,float,float]:
+        """Get the ensemble mean of the model state variable of the selected index for each ensemble (self.ens, self.ens1, self.ens2)
+        
+        Parameters:
+        -----------
+        index : 0 <= int <= 3
+        
+        Returns:
+        --------
+        mean of ensemble 0 (self.ens) : float
+        mean of ensemble 1 (self.ens1) : float
+        mean of ensemble 2 (self.ens2) : float"""
         sum = 0
         sum1 = 0
         sum2 = 0
@@ -84,26 +143,82 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             sum2 += self.ens2[i][index]
         return (sum / self.replicates, sum1 / self.replicates, sum2 / self.replicates)
 
-    def media1(self,index):
+    def media1(
+        self,
+        index : int
+        ) -> float:
+        """Get the ensemble mean of the model state variable of the selected index
+        
+        Parameters:
+        -----------
+        index : 0 <= int <= 3
+        
+        Returns:
+        --------
+        float"""
         sum = 0
         for i in range(self.replicates):
             sum += self.ens[i][index]
         return sum / self.replicates
 
-    def covarianza(self,index_1,index_2):
+    def covarianza(
+        self,
+        index_1 : int,
+        index_2 : int
+        ) -> float:
+        """Get ensemble covariance between model state variables of index_1 and index_2
+        
+        Parameters:
+        -----------
+        index_1 : 0 <= int <= 3
+        
+        index_2: 0 <= int <= 3
+        
+        Returns:
+        --------
+        float"""
         sum = 0
         for i in range(self.replicates):
             sum += (self.ens[i][index_1] - self.mediassinpert[index_1]) * (self.ens[i][index_2] - self.mediassinpert[index_2])
         return sum / self.replicates
 
-    def q(self,value):
+    def q(
+        self,
+        value : float
+        ) -> Tuple[float,float]:
+        """Get variance and bias for the given value of discharge, according the mapping at self.Rqobs
+        
+        Parameters:
+        -----------
+        value :float
+        
+        Returns:
+        --------
+        variance : float
+        
+        bias : float"""
         for R in self.Rqobs:
             # logging.debug("R: %s, value: %s" % (str(R), str(value)))
             if value >= R[0]:
                 return R[1], R[2]
         return None, None
 
-    def linfit(self,wsize,value):
+    def linfit(
+        self,
+        wsize : int,
+        value : float
+        ) -> float:
+        """Adjust soil moisture value with a linear regression of the error of simulated vs observed values in a time step window of wsize
+        
+        Parameters:
+        -----------
+        wsize : int
+        
+        value : float
+        
+        Returns:
+        --------
+        float"""
         n = self.windowsize
         sumX = 0
         sumY = 0
@@ -125,21 +240,62 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         else:
             return value
 
-    def advance_step_and_pert(self,x,pma,etp):
+    def advance_step_and_pert(
+        self,
+        x : list,
+        pma : float,
+        etp : float
+        ) -> Tuple[list,int]:
+        """Advance model step and (where self.xpert is set) add noise
+        
+        Parameters:
+        -----------
+        x : list
+            model states at the beginning of the step [x1,x2,x3,x4]
+        
+        pma : float
+            Mean areal precipitation during the step
+        
+        etp : float
+            Potential evapotranspiration during the step
+        
+        Returns:
+        --------
+        x : list
+            the model states at the end of the step [x1,x2,x3,x4]
+        
+        npasos : int
+            The number of substeps used for computation
+        """
         x, npasos = self.advance_step(x,pma,etp)
         # self.xsinpert = list(x)
         if self.xpert:
             x = self.pertX(x)
         return [x[0],x[1],x[2],x[3]], npasos
     
-    def pertX(self,x):
+    def pertX(
+        self,
+        x : list
+        ) -> list:
+        """Add noise to each of x [x1,x2,x3,x4]
+        
+        Parameters:
+        -----------
+        x : list
+            Model states  [x1,x2,x3,x4]
+        
+        Returns:
+        --------
+        list :  [x1,x2,x3,x4]"""
+
         x[0] = self.xnoise(x[0],'x1')
         x[1] = self.xnoise(x[1],'x2')
         x[2] = self.xnoise(x[2],'x3')
         x[3] = self.xnoise(x[3],'x4')
         return [x[0],x[1],x[2],x[3]]
 
-    def setH(self):
+    def setH(self) -> None:
+        """Set transformation matrix self.H"""
         self.H = list()
         for i in range(2):
             if self.asim[i] is not None:
@@ -149,7 +305,16 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                         H_row.append((self.rho - self.wp) / self.x1_0 if self.asim[i] == 'sm' and self.update[j] == 'x1' else self.alfa * self.area/1000/24/60/60 if self.asim[i] == 'q' and self.update[j] == 'x4' else 0)
                 self.H.append(H_row)
         
-    def setInitialEnsemble(self,init_states):
+    def setInitialEnsemble(
+        self,
+        init_states : list
+        ) -> None:
+        """Initialize ensembles (self.ens, self.ens1, self.ens2) from initial states and randomization parameter self.x_stddev. 
+        
+        Parameters:
+        -----------
+        init_states : list
+            Initial states [x1,x2,x3,x4]"""
         for i in range(self.replicates):
             x1 =  max(0, min(init_states[0] + np.random.normal(0, self.x1_0 * self.x_stddev), self.x1_0))
             x2 =  max(0, min(init_states[1] + np.random.normal(0, self.x2_0 * self.x_stddev), self.x2_0))
@@ -161,8 +326,12 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             self.ens2.append([x1,x2,x3,x4])
             #~ $json_rep[$i] = "{\"id\":$i,\"name\":\"replicate $i\",\"values\":[";
     
-    def getC(self):
-        ################ calcula matriz de covarianzas #########################
+    def getC(self) -> list():
+        """Generate covariance matrix C
+        
+        Returns:
+        --------
+        covariance matrix C : list"""
         C = list()
         # $C="";
         for k in range(len(self.mediassinpert)):
@@ -174,8 +343,33 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             C.append(row)
         return C
     
-    def getR(self,innov,qvar,smc_var):
-    	######  GENERA MATRIZ DE LOS ERRORES DE OBSERVACION "R" y adapta H en H_j segun disponiblilidad de datos asimilables ############
+    def getR(
+        self,
+        innov : dict,
+        qvar : float,
+        smc_var : float
+        ) -> Tuple[list,list]:
+        """Generate observation error matrix R and adapt transformation matrix H into H_j according to available observations for assimilation
+
+        Parameters:
+        -----------
+        innov : dict
+            Which observed variables to assimilate. Valid keys: 'smc', 'q'. Values must be boolean
+
+        qvar : float
+            variance of discharge
+
+        smc_var : float
+            variance of soil moisture
+
+        Returns:
+        --------
+        R : list
+            The error matrix
+        
+        H_j : list
+            The adapted transformation matrix
+        """
         R = list()
         H_j = list()
         k = 0
@@ -204,8 +398,28 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                     k = k + 1
         return R, H_j
 
-    def getKG(self,H_j,C,R):
-        ##################CALCULA KALMAN GAIN###########################
+    def getKG(
+        self,
+        H_j : list,
+        C : list,
+        R : list
+        ) -> np.ndarray:
+        """Calculate Kalman gain matrix
+        
+        Parameters:
+        -----------
+        H_j : list
+            Adapted transformation matrix
+        
+        C : list
+            states covariance matrix
+        
+        R : list
+            Observation error covariance matrix
+            
+        Returns:
+        --------
+        Kalman gain matrix (KG) : numpy.ndarray"""
         # KG_j = list()
         h = np.array(H_j)
         #~ print "h:$h\n";
@@ -240,9 +454,30 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         # }
         # print $salida_kg "\n";
 
-    def asimila(self,obs,R,KG_j):
-        ###########   ASIMILA   ################################
-        #		my @Splus;
+    def asimila(
+        self,
+        obs : list,
+        R : list,
+        KG_j : list
+        ) -> list:
+        """Assimilate available observations
+        
+        Parameters:
+        -----------
+        obs : list
+            Available observations for data assimilation
+        
+        R : list
+            Observation error covariance matrix
+        
+        KG_j : list
+            Kalman gain matrix
+        
+        Returns:
+        --------
+        err : list
+            ensemble model error matrix (difference of simulated states with observed states)
+        """
         err_sum = list()
         err = list()
         for j in range(self.replicates):
@@ -267,7 +502,8 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                 self.ens[j][k] = self.constraint(self.ens[j][k] + z, self.statenames[k])
         return err
 
-    def resultsDF(self):
+    def resultsDF(self) -> DataFrame:
+        """Convert simulation results into a DataFrame"""
         results =  DataFrame({
             "timestart": Series(dtype='datetime64[ns]'),
             "x1": Series(dtype='float'),
@@ -280,14 +516,23 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         # results.set_index("timestart", inplace=True)
         return results
 
-    def newResultsRow(self,timestart=None,x1=None,x2=None,x3=None,x4=None,q4=None,smc=None):
+    def newResultsRow(
+        self,
+        timestart : datetime = None,
+        x1 : float = None,
+        x2 : float = None,
+        x3 : float = None,
+        x4 : float = None,
+        q4 : float = None,
+        smc : float = None
+        ) -> DataFrame:
+        """Generate single-row DataFrame from simulation states and outputs"""
         return DataFrame([[timestart, x1, x2, x3, x4, q4, smc]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc"])
 
-    def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
-        """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
-        Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
-        """
+    def run(
+        self,
+        input : Optional[List[SeriesData]]=None
+        ) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
         init_states = [self.constraint(self.x[i],self.statenames[i]) for i in range(4)]
         self.setInitialEnsemble(init_states)
         x = list(init_states)

@@ -1,6 +1,6 @@
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 # import logging
 
 class ProcedureFunction:
@@ -21,18 +21,60 @@ class ProcedureFunction:
     """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
     _states = []
     """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
-    def __init__(self,params : dict,procedure):
+    def __init__(
+        self,
+        procedure,
+        parameters : Union[list, dict] = [],
+        initial_states : Union[list, dict] = [],
+        boundaries : list = [],
+        outputs : list = [],
+        extra_pars : dict = dict(),
+        **kwargs
+        ):
+        """Initiate a procedure function
+        
+        Parameters:
+        -----------
+        procedure : Procedure
+            Procedure containing this function
+        
+        parameters : list or dict of floats 
+            function parameter values. Ordered list or dict
+            
+        initial_states : list or dict of floats
+            list of function initial state values. Ordered list or dict
+        
+        boundaries : list of dict
+            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>
+        
+        outputs : list of dict
+            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>
+        
+        extra_pars: dict
+            Additional (non-calibratable) parameters"""
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
-        self.parameters = params["parameters"] if "parameters" in params else []
-        self.initial_states = params["initial_states"] if "initial_states" in params else []
+        """Procedure containing this function"""
+        self.parameters = parameters
+        """list or dict of function parameter values"""
+        self.initial_states = initial_states
+        """list or dict of function initial state values"""
         self.boundaries = []
-        self.setBoundaries(params["boundaries"])
+        """List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        self.setBoundaries(boundaries)
         self.outputs = []
-        self.setOutputs(params["outputs"])
+        """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        self.setOutputs(outputs)
         self.input = None
-        self.extra_pars = params["extra_pars"] if "extra_pars" in params else dict()
+        """Input of the procedure function"""
+        self.extra_pars = extra_pars
+        """Additional (non-calibratable) parameters"""
     def toDict(self) -> dict:
+        """Convert this procedureFunction to a dict
+        
+        Returns:
+        --------
+        dict"""
         return {
             "type": type(self).__name__,
             "parameters": self.parameters,
@@ -41,7 +83,17 @@ class ProcedureFunction:
             "outputs": [o.toDict() for o in self.outputs],
             "extra_pars": self.extra_pars
         }
-    def setBoundaries(self,boundaries : dict={}):
+    def setBoundaries(
+        self,
+        boundaries : list = []
+        ) -> None:
+        """Setter of boundaries
+        
+        Parameters:
+        ----------
+        boundaries : list
+            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
         self.boundaries = []
         for b in self.__class__._boundaries:
             if b.name in [boundary["name"] for boundary in boundaries]:
@@ -59,7 +111,18 @@ class ProcedureFunction:
                     #     boundaries[key].append(key)
                     boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
                     self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan))
-    def setOutputs(self,outputs : dict={}):
+    def setOutputs(
+        self,
+        outputs : list = []
+        ) -> None:
+        """Setter for outputs
+        
+        Parameters:
+        -----------
+        outputs : list of dict
+            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
+
         for b in self.__class__._outputs:
             if b.name in [o["name"] for o in outputs]:
                 # if len(outputs[b.name]) < 3:
@@ -76,26 +139,79 @@ class ProcedureFunction:
                     output = [o for o in outputs if o["name"] == key][0]
                     self.outputs.append(ProcedureBoundary(output,self._procedure._plan))
     
-    def rerun(self,input : list=None, parameters:Union[list,tuple]=None, initial_states:Union[list,tuple]=None):
+    def rerun(
+        self,
+        input : list = None,
+        parameters : Union[list,tuple] = None, 
+        initial_states : Union[list,tuple] = None
+        ) -> Tuple[list, dict]:
+        """Execute the procedure function with the given parameters and initial_states
+        
+        Parameters:
+        -----------
+        input : list if DataFrames
+            Procedure function input (boundary conditions). If None, loads using .loadInput()
+        
+        parameters : list or tuple
+            Set procedure function parameters (self.parameters).
+        
+        initial_states : list or tuple
+            Set initial states (self.initial_states)
+        
+        Returns:
+        --------
+        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if parameters is not None:
             self.setParameters(parameters)
         if initial_states is not None:
             self.setInitialStates(initial_states)
         return self.run(input)
 
-    def run(self,input : list=None):
+    def run(
+        self,
+        input : list = None
+        ) -> Tuple[list, dict]:
         """
-        To be overwritten by actual procedure function
+        Placeholder procedure function execution. To be overwritten in subclasses
 
-        :param input: array of seriesData
-        :returns [seriesData], procedureFunctionResults, JSONSerializable
+        Parameters:
+        -----------
+        input : list of DataFrames
+            Procedure function input (boundary conditions). If None, loads using .loadInput()
+
+        Returns:
+        --------
+        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False)
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
         return input, ProcedureFunctionResults({"initial_states": input})
     
-    def makeSimplex(self,sigma=0.25,limit=True,ranges:Optional[list]=None):
+    def makeSimplex(
+        self,
+        sigma : float = 0.25,
+        limit : bool = True,
+        ranges : Optional[list] = None
+        ) -> list:
+        """Generate Simplex from procedure function parameters. 
+        
+        Generates a list of len(self._parameters)+1 parameter sets randomly using a normal distribution centered in the corresponding parameter range and with variance=sigma
+        
+        Parameters:
+        -----------
+        sigma : float (default 0.25)
+            Variance of the normal distribution relative to the range(1 = max_range - min_range)
+        
+        limit : bool (default True)
+            Truncate values outside of the min-max range
+            
+        ranges : list or None
+            Override parameter ranges with these values. Length must be equal to self._parameters and each element of the list must be a 2-tuple (range_min, range_max) 
+        
+        Returns:
+        --------
+        list : list of  length = len(self._parameters) + 1 where each element is a list of floats of length = len(self._parameters)"""
         if not len(self._parameters):
             raise Exception("_parameters not set for this class")
         points = []
@@ -114,9 +230,17 @@ class ProcedureFunction:
             points.append(point)
         return points
 
-    def setParameters(self,parameters:Union[list,tuple]=[]):
+    def setParameters(
+        self,
+        parameters : Union[list,tuple] = []
+        ) -> None:
         """
-        Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.paramters as a dict. Else will set a list
+        Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.parameters as a dict. Else will set a list
+
+        Parameters:
+        -----------
+        parameters : list or tuple
+            Procedure function parameters to set
         """
         if len(self._parameters):
             self.parameters = {}
@@ -127,9 +251,16 @@ class ProcedureFunction:
         else:
             self.parameters = list(parameters)
 
-    def setInitialStates(self,states:Union[list,tuple]=[]):
+    def setInitialStates(
+        self,
+        states : Union[list,tuple] = []
+        ) -> None:
         """
         Generic self.initial_states setter. If self._states is not empty, uses name of each item to set self.initial_states as a dict. Else will set a list
+
+        Parameters:
+        states : list or tuple
+            Procedure function initial states to set
         """
         if len(self._states):
             self.initial_states = {}

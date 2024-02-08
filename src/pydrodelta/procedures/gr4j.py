@@ -27,6 +27,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
         ModelParameter(name="X3",constraints=(1e-09, 1.1, 2.9, inf))
         #  172 |       32 | d      |   1e-09 |       1.1 |       2.9 | Infinity |     4
     ]
+    """Procedure function parameter definitions"""
 
     _states = [
         #  id | model_id | nombre | range_min | range_max | def_val | orden 
@@ -37,9 +38,13 @@ class GR4JProcedureFunction(PQProcedureFunction):
         #  24 |       38 | Rk     |         0 |  Infinity |       0 |     2
 
     ]
+    """Procedure function states definitions"""
 
-    def __init__(self,params,procedure):
-        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
+    def __init__(
+        self,
+        **kwargs
+        ):
+        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         self.X0 = self.parameters["X0"]
         """X0	capacite du reservoir de production (mm)"""
         self.X1 = self.parameters["X1"]

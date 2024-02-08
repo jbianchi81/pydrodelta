@@ -19,8 +19,11 @@ class GR4JProcedureFunction(GRPProcedureFunction):
         #  172 |       32 | d      |   1e-09 |       1.1 |       2.9 | Infinity |     4
     ]
 
-    def __init__(self,params,procedure):
-        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
+    def __init__(
+        self,
+        **kwargs
+        ):
+        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         # overrides UH1, SH1 from super
         self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
 

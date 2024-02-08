@@ -1,14 +1,11 @@
 from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.validation import getSchema, validate
+from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LinearChannel
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
 from typing import Union
-
-schemas, resolver = getSchema("LinearChannelProcedureFunction","data/schemas/json")
-schema = schemas["LinearChannelProcedureFunction"]
 
 class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
 
@@ -17,20 +14,36 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
        ModelParameter(name="n", constraints=(1,1,5,8))
     ]
 
-    def __init__(self,params,procedure):
+    def __init__(
+        self,
+        **kwargs
+        ):
         """
         Nash linear channel (gamma distribution)
 
-        params:
-        k: residence time
-        n: number of reservoirs
-        dt: calculation timestep
+        Parameters:
+        -----------
+        /**kwargs : keyword arguments
+
+        Keyword arguments:
+        ------------------
+        parameters : dict
+            properties:
+            k : float residence time
+            n : float number of reservoirs
+        
+        extra_pars: dict
+            properties
+            dt : float calculation timestep
         """
-        super().__init__(params,procedure)
-        validate(params,schema,resolver)
-        self.coefficients = np.array([params["k"], params["n"]])
+        super().__init__(**kwargs)
+        getSchemaAndValidate(kwargs,"LinearChannelProcedureFunction")
+        self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
         self.Proc = "Nash"
 
-    def setParameters(self, parameters: Union[list,tuple] = ...):
+    def setParameters(
+        self, 
+        parameters: Union[list,tuple] = ...
+        ) -> None:
         super().setParameters(parameters)
         self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])

@@ -19,44 +19,55 @@
                 "LinearCombination4B"
             ]
         },
-        "forecast_steps": {
-            "type": "integer"
-        },
-        "lookback_steps": {
-            "type": "integer"
-        },
-        "coefficients": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "intercept": {
-                        "type": "number"
-                    },
-                    "boundaries": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string"
-                                },
-                                "values": {
-                                    "type": "array"
+        "parameters": {
+            "type": "object",
+            "description": "Model parameters",
+            "properties": {
+                "forecast_steps": {
+                    "type": "integer",
+                    "description": "Number of time steps of the forecast horizon"
+                },
+                "lookback_steps": {
+                    "type": "integer",
+                    "description": "Number of time steps of the lookback period"
+                },
+                "coefficients": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "intercept": {
+                                "type": "number"
+                            },
+                            "boundaries": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "values": {
+                                            "type": "array"
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
+                    },
+                    "description": "List of objects where each item represents a forecast time step (index 0 is first step). Each object has 'intercept' <number> and 'boundaries' <array>. Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
+                    "minItems": 1
+                }        
             },
-            "description": "List of objects where each item represents a forecast time step (index 0 is first step). Each object has 'intercept' <number> and 'boundaries' <array>. Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
-            "minItems": 1
+            "required": [
+                "coefficients",
+                "forecast_steps",
+                "lookback_steps"
+            ]        
         }
     },
     "required": [
         "type",
-        "coefficients",
-        "forecast_steps",
-        "lookback_steps"
+        "parameters"
     ]
 }

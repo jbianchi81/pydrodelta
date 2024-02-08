@@ -16,22 +16,33 @@
                 "LinearChannel"
             ]
         },
-        "k": {
-            "type": "number",
-            "description": "residence time"
+        "parameters": {
+            "type": "object",
+            "desciption": "Model parameters",
+            "properties": {
+                "k": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
+            },
+            "required": ["k","n"]
         },
-        "n": {
-            "type": "number",
-            "description": "number of reservoirs"
-        },
-        "dt": {
-            "type": "number",
-            "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                }
+            }
         }
     },
     "required": [
         "type",
-        "k",
-        "n"
+        "parameters"
     ]
 }

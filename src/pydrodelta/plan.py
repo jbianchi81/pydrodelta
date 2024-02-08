@@ -34,7 +34,7 @@ class Plan():
             id: int,
             topology: Union[dict, str],
             procedures: list = [],
-            forecast_date: Union[dict, str] = datetime.now(),
+            forecast_date: Union[dict, str] = datetime.now().isoformat(),
             time_interval: Union[dict, str] = None,
             output_stats: str = None,
             output_analysis: str = None,

@@ -8,11 +8,8 @@ from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionRe
 # from pathlib import Path
 # import jsonschema
 # import yaml
-from pydrodelta.validation import getSchema, validate
+from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
-
-schemas, resolver = getSchema("LinearCombinationProcedureFunction","data/schemas/json")
-schema = schemas["LinearCombinationProcedureFunction"]
 
 class BoundaryCoefficients():
     def __init__(self,params,procedure_function):
@@ -43,6 +40,7 @@ class ForecastStep():
         }
 
 class LinearCombinationProcedureFunction(ProcedureFunction):
+    """Multivariable linear combination procedure function - one linear combination for each forecast horizon. Being x [, y, ...] the boundary series, for each forecast time step t it returns intercept[t] + [ x[-l] * coefficients[t]boundaries['x'][l] for l in 1..lookback_steps ] and so on for additional boundaries and lookback steps."""
     _boundaries = [
         FunctionBoundary({"name": "input_1", "warmup_only": True}),
         # FunctionBoundary({"name": "input_2", "optional": True})
@@ -52,25 +50,20 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "output"})
     ]
     _additional_outputs = False
-    def __init__(self,params,procedure):
-        """
-        Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-        Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-        """
-        super().__init__(params,procedure)
-        # jsonschema.validate(
-        #     instance=params,
-        #     schema=schemas["PolynomialTransformationProcedureFunction"],
-        #     resolver=resolver)
-        validate(params,schema,resolver)
-        self.forecast_steps = params["forecast_steps"]
-        self.lookback_steps = params["lookback_steps"]
+    def __init__(
+        self,
+        **kwargs
+        ):
+        super().__init__(**kwargs)
+        getSchemaAndValidate(kwargs,"LinearCombinationProcedureFunction")
+        self.forecast_steps = self.parameters["forecast_steps"]
+        self.lookback_steps = self.parameters["lookback_steps"]
         self.coefficients = list()
-        if len(params["coefficients"]) < self.forecast_steps:
+        if len(self.parameters["coefficients"]) < self.forecast_steps:
             raise Exception("length of coefficients is shorter than forecast_steps")
-        if len(params["coefficients"]) > self.forecast_steps:
+        if len(self.parameters["coefficients"]) > self.forecast_steps:
             raise Exception("length of coefficients exceeds forecast_steps")
-        for forecast_step in params["coefficients"]:
+        for forecast_step in self.parameters["coefficients"]:
             self.coefficients.append(ForecastStep(forecast_step,self))
     # def transformation_function(self,value:float):
     #     if value is None:
@@ -81,11 +74,10 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     #         result = result + value**exponent * c
     #         exponent = exponent + 1
     #     return result
-    def run(self,input=None):
-        """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
-        Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
-        """
+    def run(
+        self,
+        input : list = None
+        ) -> tuple:
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output = []

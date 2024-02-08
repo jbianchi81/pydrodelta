@@ -9,12 +9,9 @@ import numpy as np
 from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.procedures.pq import PQProcedureFunction
 from pydrodelta.util import interval2timedelta
-from pydrodelta.validation import getSchema, validate
+from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.model_parameter import ModelParameter
 from pydrodelta.model_state import ModelState
-
-schemas, resolver = getSchema("SacramentoSimplifiedProcedureFunction","data/schemas/json")
-schema = schemas["SacramentoSimplifiedProcedureFunction"]
 
 class par_fg():
     def __init__(self,parameters,area=None):
@@ -77,46 +74,72 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         #  38 |       27 | x4     |         0 |  Infinity |       0 |     4
     ]
 
-    def __init__(self,params,procedure):
-        """
-        Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-        Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-        """
-        super().__init__(params,procedure) # super(PQProcedureFunction,self).__init__(params,procedure)
-        validate(params,schema,resolver)
-        self.volume = 0
-        self.x1_0 = self.parameters["x1_0"]
-        self.x2_0 = self.parameters["x2_0"]
-        self.m1 = self.parameters["m1"]
-        self.c1 = self.parameters["c1"]
-        self.c2 = self.parameters["c2"]
-        self.c3 = self.parameters["c3"]
-        self.mu = self.parameters["mu"]
-        self.alfa = self.parameters["alfa"]
-        self.m2 = self.parameters["m2"]
-        self.m3 = self.parameters["m3"]
-        self.denom_rk = (2,2,1)
-        self.statenames = ['x1','x2','x3','x4']
+    def __init__(
+        self,
+        **kwargs
+        ):
+        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
+        getSchemaAndValidate(kwargs,"SacramentoSimplifiedProcedureFunction")
+        self.volume : float = 0
+        """Water balance"""
+        self.x1_0 : float = self.parameters["x1_0"]
+        """top soil layer storage capacity [L]"""
+        self.x2_0 : float = self.parameters["x2_0"]
+        """bottom soil layer storage capacity [L]"""
+        self.m1 : float = self.parameters["m1"]
+        """runoff function exponent [-]"""
+        self.c1 : float = self.parameters["c1"]
+        """interflow function coefficient [1/T]"""
+        self.c2 : float = self.parameters["c2"]
+        """percolation function coefficient [-]"""
+        self.c3 : float = self.parameters["c3"]
+        """base flow recession rate [1/T]"""
+        self.mu : float = self.parameters["mu"]
+        """base flow/deep percolation partition parameter [-]"""
+        self.alfa : float = self.parameters["alfa"]
+        """linear reservoir coefficient [1/T]"""
+        self.m2 : float = self.parameters["m2"]
+        """percolation function exponent [-]"""
+        self.m3 : float = self.parameters["m3"]
+        """evapotranspiration function exponent [-]"""
+        self.denom_rk : tuple = (2,2,1)
+        """Runge-Kutta denominators"""
+        self.statenames : list = ['x1','x2','x3','x4']
+        """Model state names"""
         # self.npasos
         # self.max_npasos
-        self.sm_obs = []
-        self.sm_sim = []
+        self.sm_obs : list = []
+        """Soil moisture observations"""
+        self.sm_sim : list = []
+        """Simulated soil moisture"""
         # self.fillnulls = self.extra_pars["fill_nulls"] if "fill_nulls" in self.extra_pars else False
-        self.windowsize = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
-        self.dt_sec = interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
-        self.rho = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
+        self.windowsize : int = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
+        """Window size for soil moisture adjustment"""
+        self.dt_sec : int = interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
+        """Time step in seconds"""
+        self.rho : float = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
         # self.area = self.extra_pars["area"]
-        self.ae = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
-        self.wp = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
-        self.sm_transform = sm_transform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else sm_transform([1,0])
-        self.x = [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
+        """Soil porosity"""
+        self.ae : float = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
+        """Effective area of runnof generation [0-1]"""
+        self.wp : float = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
+        """Wilting point"""
+        self.sm_transform : tuple = sm_transform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else sm_transform([1,0])
+        """soil moisture rescaling parameters (scale, bias)"""
+        self.x : list = [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
+        """Model states (x1,x2,x3,x4)"""
         # FLOOD GUIDANCE
-        self.par_fg = par_fg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
+        self.par_fg : dict = par_fg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
+        """Flood guidance parameters"""
         # max substeps
-        self.max_npasos = self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
-        self.no_check1 = self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
-        self.no_check2 = self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
-        self.rk2 = self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
+        self.max_npasos : int = self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
+        """Maximum substeps for model computations"""
+        self.no_check1 : bool = self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
+        """Perform step subdivision based on precipitation intensity nsteps = pma/2  (for numerical stability)"""
+        self.no_check2 : bool = self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
+        """Perform step subdivision based on states derivatives (for numerical stability)"""
+        self.rk2 : bool = self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
+        """Use Runge-Kutta-2 instead of Runge-Kutta-4"""
     
     def constraint(self,value,name):
         if name == 'x1':

@@ -96,7 +96,8 @@ class Procedure():
             raise ValueError("Procedure init: procedure function class constructor %s not found" % function["type"])
             # self.function_type = ProcedureFunction
             # self.function_type_name = "ProcedureFunction"
-        self.function = self.function_type(function,procedure=self)
+        self.function : ProcedureFunction = self.function_type(**function,procedure=self)
+        """ProcedureFunction object (or a subclass) containing the .run() method, the .boundaries list and the .outputs list"""
         # self.procedure_type = params["procedure_type"]
         self.parameters : list = parameters
         """List of procedure parameters"""
