@@ -8,7 +8,7 @@ from typing import Optional
 
 class Calibration:
 
-    valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov',"1minusr"]
+    valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"]
 
     def __init__(self,procedure,params):
         self.calibrate = bool(params["calibrate"]) if "calibrate" in params else True

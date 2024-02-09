@@ -75,7 +75,7 @@ class ResultStatistics:
         """Covariance of obs and sim"""
         self.r = None
         """Pearson's r correlation coefficient"""
-        self.1minusr = None
+        self.oneminusr = None
         """One minus Pearson's r correlation coefficient"""
         if compute:
             self.compute()
@@ -114,7 +114,7 @@ class ResultStatistics:
         self.nse = 1 - self.mse / self.stdev_obs if self.stdev_obs != 0 else None
         self.cov = sum([ (self.obs[i] - self.mean_obs) * (self.sim[i] - self.mean_sim) for i in range(len(self.obs))]) / self.n
         self.r = self.cov / self.var_obs / self.var_sim if self.var_obs != 0 and self.var_sim != 0 else None
-        self.1minusr = 1 - r if r is not None else None
+        self.oneminusr = 1 - self.r if self.r is not None else None
     def toDict(self) -> dict:
         """Convert result statistics into dict
         
