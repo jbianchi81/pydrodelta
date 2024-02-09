@@ -1,15 +1,53 @@
 # from pydrodelta.node_variable import NodeVariable 
+import logging
 
 class ProcedureBoundary():
     """
     A variable at a node which is used as a procedure boundary condition
     """
-    def __init__(self,params:dict,plan=None,optional=False,warmup_only=False,compute_statistics=True):
+    def __init__(
+            self,
+            node_id : int,
+            var_id : int,
+            name : str,
+            plan = None,
+            optional : bool = False,
+            warmup_only : bool = False,
+            compute_statistics : bool = True,
+        ):
+        """Initiate class ProcedureBoundary
+        
+        Parameters:
+        -----------
+        node_id : int
+            node identitifier. Must be present int plan.topology.nodes
+        
+        var_id : int
+            variable identifier. Must be present in node.variables
+        
+        name : str
+            name of the boundary. Must be one of the procedureFunction's boundaries or outputs
+        
+        plan : Plan
+            The plan that contains the topology and the procedure that contains this boundary
+        
+        optional : bool (default False)
+           If true, nulls in this boundary will not raise an error
+
+        warmup_only : bool (default False)
+            If true, mull values in the forecast horizon will not raise an error
+        
+        compute_statistics : bool (default True)
+            Compute result statistics for this boundary
+        """
         self.optional = optional
-        print("params: %s" % str(params))
-        self.node_id = int(params["node_variable"][0])
-        self.var_id = int(params["node_variable"][1])
-        self.name = params["name"] # if name is not None else "%i_%i" % (self.node_id, self.var_id) # str(params[2]) if len(params) > 2 else "%i_%i" % (self.node_id, self.var_id)
+        """If true, null values in this boundary will not raise an error"""
+        self.node_id = int(node_id)
+        """node identitifier. Must be present int plan.topology.nodes"""
+        self.var_id = int(var_id)
+        """variable identifier. Must be present in node.variables"""
+        self.name = name
+        """name of the boundary. Must be one of the procedureFunction's boundaries or outputs"""
         if plan is not None:
             self.setNodeVariable(plan)
             self._plan = plan
@@ -18,8 +56,11 @@ class ProcedureBoundary():
             self._node = None
             self._plan = None
         self.warmup_only = warmup_only
+        """If true, mull values in the forecast horizon will not raise an error"""
         self.compute_statistics = compute_statistics
-    def __dict__(self):
+        """Compute result statistics for this boundary"""
+    def toDict(self) -> dict:
+        """Convert object into dict"""
         return {
             "optional": self.optional,
             "node_id": self.node_id,
@@ -28,9 +69,18 @@ class ProcedureBoundary():
             "warmup_only": self.warmup_only,
             "compute_statistics": self.compute_statistics
         }
-    def toDict(self):
-        return self.__dict__()
-    def setNodeVariable(self,plan):
+    def setNodeVariable(self,plan) -> None:
+        """
+        Search for node id=self.node_id, variable id=self.var_id in plan.topology and set self._node and self._variable
+        
+        Parameters:
+        -----------
+        plan : Plan
+            The plan containing the topology where to search the node and variable
+        
+        Raises:
+        -------
+        Exception when node with id: self.node_id containing a variable with id: self.var_id is not found in plan.topology"""
         for t_node in plan.topology.nodes:
             if t_node.id == self.node_id:
                 self._node = t_node
@@ -38,7 +88,26 @@ class ProcedureBoundary():
                     self._variable = t_node.variables[self.var_id]
                     return
         raise Exception("ProcedureBoundary.setNodeVariable error: node with id: %s , var %i not found in topology" % (str(self.node_id), self.var_id))
-    def assertNoNaN(self,warmup_only=False):
+    def assertNoNaN(
+        self,
+        warmup_only : bool = False
+        ) -> None:
+        """
+        Assert if the are missing values in the boundary
+        
+        Parameters:
+        -----------
+        warmup_only : bool (default False)
+            Check only the period before the forecast date
+        
+        Raises:
+        -------
+        AssertionError when procedure boundary variable is None
+
+        AssertionError when procedure boundary data is None
+
+        AssertionError procedure boundary variable data has NaN values
+        """
         if self._variable is None:
             raise AssertionError("procedure boundary variable is None")
         if self._variable.data is None:

@@ -101,7 +101,15 @@ class ProcedureFunction:
                 #     boundaries[b.name].append(b.name)
                 # print("%s" % str(boundaries[b.name]))
                 boundary = [boundary for boundary in boundaries if boundary["name"] == b.name][0]
-                self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan,b.optional,b.warmup_only))
+                self.boundaries.append(
+                    ProcedureBoundary(
+                        name = boundary["name"],
+                        node_id = boundary["node_variable"][0],
+                        var_id = boundary["node_variable"][1],
+                        plan = self._procedure._plan,
+                        optional = b.optional,
+                        warmup_only = b.warmup_only
+                    ))
             else:
                 raise Exception("Missing NodeVariableIdTuple for boundary %s of procedure %s" % (str(b.name), str(self._procedure.id)))
         if self.__class__._additional_boundaries:
@@ -110,7 +118,14 @@ class ProcedureFunction:
                     # if len(boundaries[key]) < 3:
                     #     boundaries[key].append(key)
                     boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
-                    self.boundaries.append(ProcedureBoundary(boundary,self._procedure._plan))
+                    self.boundaries.append(
+                        ProcedureBoundary(
+                            name = boundary["name"],
+                            node_id = boundary["node_variable"][0],
+                            var_id = boundary["node_variable"][1],
+                            plan = self._procedure._plan
+                        ))
+
     def setOutputs(
         self,
         outputs : list = []
@@ -128,7 +143,15 @@ class ProcedureFunction:
                 # if len(outputs[b.name]) < 3:
                 #     outputs[b.name].append(b.name)
                 output = [o for o in outputs if o["name"] == b.name][0]
-                self.outputs.append(ProcedureBoundary(output,self._procedure._plan,b.optional,compute_statistics=b.compute_statistics))
+                self.outputs.append(
+                    ProcedureBoundary(
+                        name = output["name"],
+                        node_id = output["node_variable"][0],
+                        var_id = output["node_variable"][1],
+                        plan = self._procedure._plan,
+                        optional = b.optional,
+                        compute_statistics=b.compute_statistics
+                    ))
             else:
                 raise Exception("Missing nodeVariable for output %s of procedure %s" % (str(b.name), str(self._procedure.id)))
         if self.__class__._additional_outputs:
@@ -137,7 +160,13 @@ class ProcedureFunction:
                     # if len(outputs[key]) < 3:
                     #     outputs[key].append(key)
                     output = [o for o in outputs if o["name"] == key][0]
-                    self.outputs.append(ProcedureBoundary(output,self._procedure._plan))
+                    self.outputs.append(
+                        ProcedureBoundary(
+                            name = output["name"],
+                            node_id = output["node_variables"][0],
+                            var_id = output["node_variables"][1],
+                            plan = self._procedure._plan
+                        ))
     
     def rerun(
         self,

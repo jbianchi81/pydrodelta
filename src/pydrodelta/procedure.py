@@ -1,4 +1,4 @@
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureBoundary
+from pydrodelta.procedure_function import ProcedureFunction
 import logging
 import json
 import pydrodelta.util as util
@@ -66,7 +66,7 @@ class Procedure():
         overwrite_original : bool = False,
         calibration : dict = None
         ):
-        self.id : Union(int,str) = id
+        self.id : Union[int,str] = id
         """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
@@ -130,6 +130,12 @@ class Procedure():
             return self.calibration.calibration_period
         else:
             return None
+    def getResultIndex(self) -> int:
+        """Read the calibration period from the calibration configuration"""
+        if self.calibration is not None:
+            return self.calibration.result_index
+        else:
+            return 0
     def toDict(self) -> dict:
         """Convert this instance into a dict"""
         d = self.__dict__
@@ -217,7 +223,8 @@ class Procedure():
         self, 
         obs : Optional[list] = None, 
         sim : Optional[list] = None,
-        calibration_period : Optional[tuple]=None
+        calibration_period : Optional[tuple]=None,
+        result_index : int = 0
         ) -> Tuple[List[ResultStatistics]]:
         """Compute statistics over procedure results.
         
@@ -250,23 +257,30 @@ class Procedure():
                 raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
             inner_join = sim[i][["valor"]].rename(columns={"valor":"sim"}).join(obs[i][["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
             if calibration_period is not None:
-                inner_join_val, inner_join_cal = [x for _, x in inner_join.groupby((inner_join.index >= calibration_period[0]) & (inner_join.index <= calibration_period[1]))]
-                if not len(inner_join_cal):
+                grouped_by_date = inner_join.groupby((inner_join.index >= calibration_period[0]) & (inner_join.index <= calibration_period[1]))
+                inner_join_val = None
+                inner_join_cal = None
+                for k, df in grouped_by_date:
+                    if k == True:
+                        inner_join_cal = df
+                    else:
+                        inner_join_val = df
+                if i == result_index and not len(inner_join_cal):
                     raise Exception("Invalid calibration period: no data found")
                 result.append(ResultStatistics(
-                    obs = inner_join_cal["obs"].values, 
-                    sim = inner_join_cal["sim"].values, 
+                    obs = inner_join_cal["obs"].values if inner_join_cal is not None else [], 
+                    sim = inner_join_cal["sim"].values if inner_join_cal is not None else [], 
                     compute = o.compute_statistics, 
-                    metadata = o.__dict__(),
+                    metadata = o.toDict(),
                     calibration_period = calibration_period,
                     group = "cal"
                 ))
-                if len(inner_join_val):
+                if inner_join_val is not None and len(inner_join_val):
                     result_val.append(ResultStatistics(
                         obs = inner_join_val["obs"].values, 
                         sim = inner_join_val["sim"].values, 
                         compute = o.compute_statistics, 
-                        metadata = o.__dict__(),
+                        metadata = o.toDict(),
                         calibration_period = calibration_period,
                         group = "val"
                     ))
@@ -277,7 +291,7 @@ class Procedure():
                     obs = inner_join["obs"].values, 
                     sim = inner_join["sim"].values, 
                     compute = o.compute_statistics, 
-                    metadata = o.__dict__()
+                    metadata = o.toDict()
                 ))
         if self.procedure_function_results is not None:
             self.procedure_function_results.setStatistics(result)
@@ -377,9 +391,15 @@ class Procedure():
         # compute statistics
         if inplace:
             self.output = output
-            self.computeStatistics(calibration_period=self.getCalibrationPeriod())
+            self.computeStatistics(
+                calibration_period=self.getCalibrationPeriod(),
+                result_index=self.getResultIndex())
         else:
-            self.computeStatistics(obs=output_obs,sim=output,calibration_period=self.getCalibrationPeriod())
+            self.computeStatistics(
+                obs=output_obs,
+                sim=output,
+                calibration_period=self.getCalibrationPeriod(),
+                result_index=self.getResultIndex())
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
