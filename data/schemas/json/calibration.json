@@ -14,7 +14,7 @@
         "objective_function": {
             "type": "string",
             "description": "objective function to use as the score",
-            "enum": ["rmse","mse","bias","stdev_dif","r","nse","cov"]
+            "enum": ["rmse","mse","bias","stdev_dif","r","nse","cov","1minusr"]
         },
         "limit": {
             "type": "boolean",
