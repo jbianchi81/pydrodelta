@@ -14,6 +14,15 @@ class HOSH4P1LUHProcedureFunction(HOSH4P1LProcedureFunction):
     ]
     """Model parameters: maxSurfaceStorage, maxSoilStorage, T base time of triangular hydrograph"""
 
+    def __init__(
+            self,
+            **kwargs
+        ):
+        if "parameters" not in kwargs:
+            raise TypeError("Missing parameters kwarg")
+        kwargs["parameters"]["Proc"] = "UH"
+        super().__init__(**kwargs)
+
     def setParameters(
         self, 
         parameters : Union[list,tuple] = []

@@ -25,7 +25,9 @@
                 "SacEnKGProcedureFunction",
                 "SacEnKF",
                 "HOSH4P1L",
-                "HOSH4P2L"
+                "HOSH4P2L",
+                "HOSH4P1LNash",
+                "HOSH4P1LUH"
             ]
         },
         "initial_states": {

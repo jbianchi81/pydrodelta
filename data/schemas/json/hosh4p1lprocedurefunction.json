@@ -12,7 +12,7 @@
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["HOSH4P1L"]
+            "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH"]
         },
         "initial_states": {
             "type": "array",

@@ -15,6 +15,15 @@ class HOSH4P1LNashProcedureFunction(HOSH4P1LProcedureFunction):
     ]
     """Model parameters: maxSurfaceStorage, maxSoilStorage, k of Nash cascade, n  of Nash cascade"""
 
+    def __init__(
+            self,
+            **kwargs
+        ):
+        if "parameters" not in kwargs:
+            raise TypeError("Missing parameters kwarg")
+        kwargs["parameters"]["Proc"] = "Nash"
+        super().__init__(**kwargs)
+
     def setParameters(
         self, 
         parameters : Union[list,tuple] = []

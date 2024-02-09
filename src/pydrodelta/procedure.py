@@ -524,6 +524,8 @@ from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProce
 from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
 from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
 from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
+from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
+from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
 from pydrodelta.procedures.difference import DifferenceProcedureFunction
 
 procedureFunctionDict = {
@@ -549,5 +551,7 @@ procedureFunctionDict = {
     "GR4J": GR4JProcedureFunction,
     "GR4J_": GR4J_ProcedureFunction,
     "HOSH4P1L": HOSH4P1LProcedureFunction,
+    "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
+    "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
     "Difference": DifferenceProcedureFunction
 }
