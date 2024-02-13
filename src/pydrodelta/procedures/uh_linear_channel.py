@@ -4,21 +4,51 @@ from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LinearChannel
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
 import numpy as np
+from typing import TypedDict
+
+class UHParameters(TypedDict):
+    u: list
+
+class UHExtraPars(TypedDict):
+    dt: float
 
 class UHLinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
+
+    @property
+    def coefficients(self):
+        """Linear channel coefficients (u)"""
+        return self.parameters["u"]
+    
+    @property
+    def Proc(self):
+        """Linear channel procedure"""
+        return "UH"
+
     def __init__(
             self,
+            parameters : UHParameters,
+            extra_pars : UHExtraPars = dict(),
             **kwargs
         ):
         """
         Unit Hydrograph linear channel
 
-        params:
-        u: distribution function. list of floats 
-        dt: calculation timestep
+        Keyword Arguments:
+        ------------------
+        - parameters : UHParameters
+        dict with properties: u: distribution function. list of floats 
+
+        - extra_pars: UHExtraPars
+        dict with properties: dt: calculation timestep (default=1)
+
+        Examples:
+        ---------
+        ```
+        uh_linear_channel = UHLinearChannelProcedureFunction(
+            parameters={"u": [0.2,0.5,0.3]},
+            extra_pars:{"dt": 1}
+        )
+        ```
         """
-        super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"UHLinearChannelProcedureFunction")
-        self.coefficients = np.array(self.parameters["u"])
-        self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
-        self.Proc = "UH"
+        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
+        getSchemaAndValidate(dict(kwargs,**{"parameters": parameters, "extra_pars": extra_pars}),"UHLinearChannelProcedureFunction")

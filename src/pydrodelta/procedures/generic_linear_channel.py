@@ -16,6 +16,17 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "output"})
     ]
     """output node"""
+
+    @property
+    def coefficients(self):
+        """Linear channel coefficients"""
+        return []
+
+    @property
+    def Proc(self):
+        """Linear channel procedure"""
+        return None
+
     def __init__(
         self,
         **kwargs):
@@ -35,8 +46,9 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         """
         super().__init__(**kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
-        self.Proc = None
-        self.coefficients = list()
+        """computation time step"""
+        # self.Proc = None
+        # self.coefficients = list()
     def run(
         self,
         input : list = None

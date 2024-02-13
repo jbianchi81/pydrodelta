@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pydrodelta.procedures.linear_channel</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="pydrodelta.html"><font color="#ffffff">pydrodelta</font></a>.<a href="pydrodelta.procedures.html"><font color="#ffffff">procedures</font></a>.linear_channel</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/leyden/git_clones/pydrodelta/src/pydrodelta/procedures/linear_channel.py">/home/leyden/git_clones/pydrodelta/src/pydrodelta/procedures/linear_channel.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="pydrodelta.procedures.generic_linear_channel.html#GenericLinearChannelProcedureFunction">pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction</a>(<a href="pydrodelta.procedure_function.html#ProcedureFunction">pydrodelta.procedure_function.ProcedureFunction</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="pydrodelta.procedures.linear_channel.html#LinearChannelProcedureFunction">LinearChannelProcedureFunction</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="LinearChannelProcedureFunction">class <strong>LinearChannelProcedureFunction</strong></a>(<a href="pydrodelta.procedures.generic_linear_channel.html#GenericLinearChannelProcedureFunction">pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#LinearChannelProcedureFunction">LinearChannelProcedureFunction</a>(**kwargs)<br>
+&nbsp;<br>
+<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="pydrodelta.procedures.linear_channel.html#LinearChannelProcedureFunction">LinearChannelProcedureFunction</a></dd>
+<dd><a href="pydrodelta.procedures.generic_linear_channel.html#GenericLinearChannelProcedureFunction">pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction</a></dd>
+<dd><a href="pydrodelta.procedure_function.html#ProcedureFunction">pydrodelta.procedure_function.ProcedureFunction</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="LinearChannelProcedureFunction-__init__"><strong>__init__</strong></a>(self, **kwargs)</dt><dd><tt>Nash&nbsp;linear&nbsp;channel&nbsp;(gamma&nbsp;distribution)<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+/**kwargs&nbsp;:&nbsp;keyword&nbsp;arguments<br>
+&nbsp;<br>
+Keyword&nbsp;arguments:<br>
+------------------<br>
+parameters&nbsp;:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;properties:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;k&nbsp;:&nbsp;float&nbsp;residence&nbsp;time<br>
+&nbsp;&nbsp;&nbsp;&nbsp;n&nbsp;:&nbsp;float&nbsp;number&nbsp;of&nbsp;reservoirs<br>
+&nbsp;<br>
+extra_pars:&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;properties<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dt&nbsp;:&nbsp;float&nbsp;calculation&nbsp;timestep</tt></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>Proc</strong></dt>
+<dd><tt>Linear&nbsp;channel&nbsp;procedure</tt></dd>
+</dl>
+<dl><dt><strong>coefficients</strong></dt>
+<dd><tt>Linear&nbsp;channel&nbsp;coefficients&nbsp;(k,&nbsp;n)</tt></dd>
+</dl>
+<hr>
+Methods inherited from <a href="pydrodelta.procedures.generic_linear_channel.html#GenericLinearChannelProcedureFunction">pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction</a>:<br>
+<dl><dt><a name="LinearChannelProcedureFunction-run"><strong>run</strong></a>(self, input: list = None) -&gt; tuple</dt><dd><tt>Ejecuta&nbsp;la&nbsp;función.&nbsp;Si&nbsp;input&nbsp;es&nbsp;None,&nbsp;ejecuta&nbsp;self.<strong>_procedure</strong>.loadInput&nbsp;para&nbsp;generar&nbsp;el&nbsp;input.&nbsp;input&nbsp;debe&nbsp;ser&nbsp;una&nbsp;lista&nbsp;de&nbsp;objetos&nbsp;SeriesData<br>
+Devuelve&nbsp;una&nbsp;lista&nbsp;de&nbsp;objetos&nbsp;SeriesData&nbsp;y&nbsp;opcionalmente&nbsp;un&nbsp;objeto&nbsp;ProcedureFunctionResults<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+input&nbsp;:&nbsp;list&nbsp;of&nbsp;DataFrames<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Procedure&nbsp;function&nbsp;input&nbsp;(boundary&nbsp;conditions).&nbsp;If&nbsp;None,&nbsp;loads&nbsp;using&nbsp;.loadInput()<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+2-tuple&nbsp;:&nbsp;first&nbsp;element&nbsp;is&nbsp;the&nbsp;procedure&nbsp;function&nbsp;output&nbsp;(list&nbsp;of&nbsp;DataFrames),&nbsp;while&nbsp;second&nbsp;is&nbsp;a&nbsp;ProcedureFunctionResults&nbsp;object</tt></dd></dl>
+
+<hr>
+Methods inherited from <a href="pydrodelta.procedure_function.html#ProcedureFunction">pydrodelta.procedure_function.ProcedureFunction</a>:<br>
+<dl><dt><a name="LinearChannelProcedureFunction-makeSimplex"><strong>makeSimplex</strong></a>(self, sigma: float = 0.25, limit: bool = True, ranges: Optional[list] = None) -&gt; list</dt><dd><tt>Generate&nbsp;Simplex&nbsp;from&nbsp;procedure&nbsp;function&nbsp;parameters.&nbsp;<br>
+&nbsp;<br>
+Generates&nbsp;a&nbsp;list&nbsp;of&nbsp;len(self.<strong>_parameters</strong>)+1&nbsp;parameter&nbsp;sets&nbsp;randomly&nbsp;using&nbsp;a&nbsp;normal&nbsp;distribution&nbsp;centered&nbsp;in&nbsp;the&nbsp;corresponding&nbsp;parameter&nbsp;range&nbsp;and&nbsp;with&nbsp;variance=sigma<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+sigma&nbsp;:&nbsp;float&nbsp;(default&nbsp;0.25)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Variance&nbsp;of&nbsp;the&nbsp;normal&nbsp;distribution&nbsp;relative&nbsp;to&nbsp;the&nbsp;range(1&nbsp;=&nbsp;max_range&nbsp;-&nbsp;min_range)<br>
+&nbsp;<br>
+limit&nbsp;:&nbsp;bool&nbsp;(default&nbsp;True)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Truncate&nbsp;values&nbsp;outside&nbsp;of&nbsp;the&nbsp;min-max&nbsp;range<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+ranges&nbsp;:&nbsp;list&nbsp;or&nbsp;None<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Override&nbsp;parameter&nbsp;ranges&nbsp;with&nbsp;these&nbsp;values.&nbsp;Length&nbsp;must&nbsp;be&nbsp;equal&nbsp;to&nbsp;self.<strong>_parameters</strong>&nbsp;and&nbsp;each&nbsp;element&nbsp;of&nbsp;the&nbsp;list&nbsp;must&nbsp;be&nbsp;a&nbsp;2-tuple&nbsp;(range_min,&nbsp;range_max)&nbsp;<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+list&nbsp;:&nbsp;list&nbsp;of&nbsp;&nbsp;length&nbsp;=&nbsp;len(self.<strong>_parameters</strong>)&nbsp;+&nbsp;1&nbsp;where&nbsp;each&nbsp;element&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;floats&nbsp;of&nbsp;length&nbsp;=&nbsp;len(self.<strong>_parameters</strong>)</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-rerun"><strong>rerun</strong></a>(self, input: list = None, parameters: Union[list, tuple] = None, initial_states: Union[list, tuple] = None) -&gt; Tuple[list, dict]</dt><dd><tt>Execute&nbsp;the&nbsp;procedure&nbsp;function&nbsp;with&nbsp;the&nbsp;given&nbsp;parameters&nbsp;and&nbsp;initial_states<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+input&nbsp;:&nbsp;list&nbsp;if&nbsp;DataFrames<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Procedure&nbsp;function&nbsp;input&nbsp;(boundary&nbsp;conditions).&nbsp;If&nbsp;None,&nbsp;loads&nbsp;using&nbsp;.loadInput()<br>
+&nbsp;<br>
+parameters&nbsp;:&nbsp;list&nbsp;or&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;procedure&nbsp;function&nbsp;parameters&nbsp;(self.<strong>parameters</strong>).<br>
+&nbsp;<br>
+initial_states&nbsp;:&nbsp;list&nbsp;or&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;initial&nbsp;states&nbsp;(self.<strong>initial_states</strong>)<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+2-tuple&nbsp;:&nbsp;first&nbsp;element&nbsp;is&nbsp;the&nbsp;procedure&nbsp;function&nbsp;output&nbsp;(list&nbsp;of&nbsp;DataFrames),&nbsp;while&nbsp;second&nbsp;is&nbsp;a&nbsp;ProcedureFunctionResults&nbsp;object</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-setBoundaries"><strong>setBoundaries</strong></a>(self, boundaries: list = []) -&gt; None</dt><dd><tt>Setter&nbsp;of&nbsp;boundaries<br>
+&nbsp;<br>
+Parameters:<br>
+----------<br>
+boundaries&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;boundary&nbsp;conditions.&nbsp;Each&nbsp;item&nbsp;is&nbsp;a&nbsp;dict&nbsp;with&nbsp;a&nbsp;name&nbsp;&lt;string&gt;&nbsp;and&nbsp;a&nbsp;node_variable&nbsp;&lt;NodeVariableIdTuple&gt;.&nbsp;The&nbsp;node_variables&nbsp;must&nbsp;map&nbsp;to&nbsp;plan.topology.nodes[node_id].variables[variable_id]</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-setInitialStates"><strong>setInitialStates</strong></a>(self, states: Union[list, tuple] = []) -&gt; None</dt><dd><tt>Generic&nbsp;self.<strong>initial_states</strong>&nbsp;setter.&nbsp;If&nbsp;self.<strong>_states</strong>&nbsp;is&nbsp;not&nbsp;empty,&nbsp;uses&nbsp;name&nbsp;of&nbsp;each&nbsp;item&nbsp;to&nbsp;set&nbsp;self.<strong>initial_states</strong>&nbsp;as&nbsp;a&nbsp;dict.&nbsp;Else&nbsp;will&nbsp;set&nbsp;a&nbsp;list<br>
+&nbsp;<br>
+Parameters:<br>
+states&nbsp;:&nbsp;list&nbsp;or&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Procedure&nbsp;function&nbsp;initial&nbsp;states&nbsp;to&nbsp;set</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-setOutputs"><strong>setOutputs</strong></a>(self, outputs: list = []) -&gt; None</dt><dd><tt>Setter&nbsp;for&nbsp;outputs<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+outputs&nbsp;:&nbsp;list&nbsp;of&nbsp;dict<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list&nbsp;of&nbsp;procedure&nbsp;outputs.&nbsp;Each&nbsp;item&nbsp;is&nbsp;a&nbsp;dict&nbsp;with&nbsp;a&nbsp;name&nbsp;&lt;string&gt;&nbsp;and&nbsp;a&nbsp;node_variable&nbsp;tuple&nbsp;&lt;NodeVariableIdTuple&gt;.&nbsp;The&nbsp;node_variables&nbsp;must&nbsp;map&nbsp;to&nbsp;plan.topology.nodes[node_id].variables[variable_id]</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-setParameters"><strong>setParameters</strong></a>(self, parameters: Union[list, tuple] = []) -&gt; None</dt><dd><tt>Generic&nbsp;self.<strong>parameters</strong>&nbsp;setter.&nbsp;If&nbsp;self.<strong>_parameters</strong>&nbsp;is&nbsp;not&nbsp;empty,&nbsp;uses&nbsp;name&nbsp;of&nbsp;each&nbsp;item&nbsp;to&nbsp;set&nbsp;self.<strong>parameters</strong>&nbsp;as&nbsp;a&nbsp;dict.&nbsp;Else&nbsp;will&nbsp;set&nbsp;a&nbsp;list<br>
+&nbsp;<br>
+Parameters:<br>
+-----------<br>
+parameters&nbsp;:&nbsp;list&nbsp;or&nbsp;tuple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Procedure&nbsp;function&nbsp;parameters&nbsp;to&nbsp;set</tt></dd></dl>
+
+<dl><dt><a name="LinearChannelProcedureFunction-toDict"><strong>toDict</strong></a>(self) -&gt; dict</dt><dd><tt>Convert&nbsp;this&nbsp;procedureFunction&nbsp;to&nbsp;a&nbsp;dict<br>
+&nbsp;<br>
+Returns:<br>
+--------<br>
+dict</tt></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="pydrodelta.procedure_function.html#ProcedureFunction">pydrodelta.procedure_function.ProcedureFunction</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>Union</strong> = typing.Union</td></tr></table>
+</body></html>

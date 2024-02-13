@@ -14,6 +14,17 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
        ModelParameter(name="n", constraints=(1,1,5,8))
     ]
 
+    @property
+    def coefficients(self):
+        """Linear channel coefficients (k, n)"""
+        return [self.parameters["k"], self.parameters["n"]]
+
+    @property
+    def Proc(self):
+        """Linear channel procedure"""
+        return "Nash"
+        
+
     def __init__(
         self,
         **kwargs
@@ -38,12 +49,12 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
         """
         super().__init__(**kwargs)
         getSchemaAndValidate(kwargs,"LinearChannelProcedureFunction")
-        self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
-        self.Proc = "Nash"
-
-    def setParameters(
-        self, 
-        parameters: Union[list,tuple] = ...
-        ) -> None:
-        super().setParameters(parameters)
-        self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
+        # self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
+        # self.Proc = "Nash"
+        
+    # def setParameters(
+    #     self, 
+    #     parameters: Union[list,tuple] = ...
+    #     ) -> None:
+    #     super().setParameters(parameters)
+    #     # self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
