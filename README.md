@@ -143,6 +143,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] split time domain (cal/val) in statistics
 - [ ] colored log
 - [ ] nodes list / procedures list to dataframe
+- [ ] implement linear regression as functionProcedure
 
 ### References
 
