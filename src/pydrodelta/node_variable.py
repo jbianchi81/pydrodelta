@@ -357,8 +357,8 @@ class NodeVariable:
         if self.data is not None:
             extrapolate = extrapolate if extrapolate is not None else self.extrapolate
             interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
-            logging.info("interpolation limit:%s" % str(interpolation_limit))
-            logging.info("extrapolate:%s" % str(extrapolate))
+            logging.debug("interpolation limit:%s" % str(interpolation_limit))
+            logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:
                 return
             self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)

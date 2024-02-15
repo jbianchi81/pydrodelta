@@ -1,45 +1,141 @@
 from pydrodelta.util import interval2timedelta, createDatetimeSequence
 from pydrodelta.derived_node_variable import DerivedNodeVariable
 from pydrodelta.observed_node_variable import ObservedNodeVariable
-from pydrodelta.a5 import createEmptyObsDataFrame
+from pydrodelta.a5 import createEmptyObsDataFrame, Serie
+from pydrodelta.descriptors.int_descriptor import IntDescriptor
+from pydrodelta.descriptors.string_descriptor import StringDescriptor
+from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
+from pydrodelta.descriptors.duration_descriptor import DurationDescriptor
+from pydrodelta.descriptors.dict_descriptor import DictDescriptor
 import pandas
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 import isodate
+from typing import Union, List, Dict
+from pandas import DatetimeIndex
 
 class Node:
-    def __init__(self,params,timestart=None,timeend=None,forecast_timeend=None,plan=None,time_offset=None,topology=None):
-        if "id" not in params:
-            raise ValueError("id of node must be defined")
-        self.id = params["id"]
-        self.tipo = params["tipo"] if "tipo" in params else "puntual"
-        if "name" not in params:
-            raise ValueError("name of node must be defined")
-        self.name = params["name"]
+    id = IntDescriptor()
+    """Numeric identifier of the node"""
+    tipo = StringDescriptor()
+    """Type of node according to its geometry. Either 'puntual', 'areal' or 'raster'"""
+    name = StringDescriptor()
+    """Name of the node"""
+    timestart = DatetimeDescriptor()
+    """Start time of the observations"""
+    timeend = DatetimeDescriptor()
+    """End time of the observations"""
+    forecast_timeend = DatetimeDescriptor()
+    """Time end of the forecast"""
+    time_interval = DurationDescriptor()
+    """Intended time step of the observations/forecasts"""
+    time_offset = DurationDescriptor()
+    """Start time of the observations/forecasts relative to zero local time"""
+    hec_node = DictDescriptor()
+    """Mapping of this node to HECRAS geometry"""
+    @property
+    def variables(self) -> Dict[int,Union[ObservedNodeVariable,DerivedNodeVariable]]:
+        """Variables represent the hydrologic observed/simulated properties at the node (such as discharge, precipitation, etc.). They are stored as a dictionary where and integer, the variable identifier, is used as the key, and the values are dictionaries. They may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
+        return self._variables
+    @variables.setter
+    def variables(self,variables : List[Union[DerivedNodeVariable,ObservedNodeVariable,dict]] = None):
+        self._variables = {}
+        if variables is not None:
+            for variable in variables:
+                if isinstance(variable, (DerivedNodeVariable,ObservedNodeVariable)):
+                    self._variables[variable["id"]] = variable
+                else:
+                    self._variables[variable["id"]] = DerivedNodeVariable(variable,self) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(variable,self)
+    node_type = StringDescriptor()
+    """The type of node: either 'station' or 'basin'"""
+    def __init__(
+            self,
+            id : int,
+            name : str,
+            time_interval : Union[dict,int],
+            tipo : str="puntual",
+            timestart : datetime = None,
+            timeend : datetime = None,
+            forecast_timeend : datetime = None,
+            plan = None,
+            time_offset : timedelta = None,
+            topology = None,
+            hec_node : dict = None,
+            variables : List[Union[DerivedNodeVariable,ObservedNodeVariable]] = list(),
+            node_type : str = "station"
+        ):
+        """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
+        
+        Parameters:
+        -----------
+        id : int
+            The node identifier
+
+        name : str
+            The node name
+
+        time_interval : Union[dict,int]
+            Intended time step of the observations/forecasts
+        
+        tipo : str="puntual"
+            Type of node according to its geometry. Either 'puntual', 'areal' or 'raster'
+
+        timestart : datetime = None
+            Start time of the observations
+
+        timeend : datetime = None
+            End time of the observations
+        
+        forecast_timeend : datetime = None
+            Time end of the forecast
+        
+        plan : Plan = None
+            Plan that contains the topology that contains this node
+        
+        time_offset : timedelta = None
+            Start time of the observations/forecasts relative to zero local time
+            
+        topology : Topology = None
+            The topology that contains this node
+
+        hec_node : dict = None
+            Mapping of this node to HECRAS geometry
+        
+        variables : List[Union[DerivedNodeVariable,ObservedNodeVariable]] = list()
+            The hydrologic observed/simulated properties at this node
+
+        node_type : str = "station"
+            The type of node: either 'station' or 'basin'
+
+        """
+        # if "id" not in params:
+        #     raise ValueError("id of node must be defined")
+        self.id = id
+        self.tipo = tipo
+        # if "name" not in params:
+        #     raise ValueError("name of node must be defined")
+        self.name = name
         self.timestart = timestart
         self.timeend = timeend
         self.forecast_timeend = forecast_timeend
-        if "time_interval" not in params:
-            raise ValueError("time_interval of node must be defined")
-        self.time_interval = interval2timedelta(params["time_interval"])
-        self.time_offset = time_offset if time_offset is not None else interval2timedelta(params["time_offset"]) if "time_offset" in params and params["time_offset"] is not None else None
-        self.hec_node = params["hec_node"] if "hec_node" in params else None
+        # if "time_interval" not in params:
+        #     raise ValueError("time_interval of node must be defined")
+        self.time_interval = time_interval
+        self.time_offset = time_offset # if time_offset is not None else interval2timedelta(params["time_offset"]) if "time_offset" in params and params["time_offset"] is not None else None
+        self.hec_node = hec_node
         self._plan = plan
         self._topology = topology
-        self.variables = {}
-        if "variables" in params:
-            for variable in params["variables"]:
-                self.variables[variable["id"]] = DerivedNodeVariable(variable,self) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(variable,self)
-        self.node_type = params["node_type"] if "node_type" in params else "station"
+        self.variables = variables
+        self.node_type = node_type
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
         return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
-    def __dict__(self):
-        return self.toDict()
     def setOriginalData(self):
+        """For each variable in .variables, set original data"""
         for variable in self.variables.values():
             variable.setOriginalData()
-    def toDict(self):
+    def toDict(self) -> dict:
+        """Convert node to dict"""
         return {
             "id": self.id,
             "tipo": self.tipo,
@@ -53,33 +149,89 @@ class Node:
             "variables": [self.variables[key].toDict() for key in self.variables], 
             "node_type": self.node_type
         }
-    def createDatetimeIndex(self):
+    def createDatetimeIndex(self) -> DatetimeIndex:
+        """Create DatetimeIndex from .time_interval, .timestart, .timeend and .time_offset"""
         return createDatetimeSequence(None, self.time_interval, self.timestart, self.timeend, self.time_offset)
-    def toCSV(self,include_series_id=True,include_header=True):
+    def toCSV(
+            self,
+            include_series_id : bool = True,
+            include_header : bool = True
+            ) -> str:
         """
         returns self.variables.data as csv
+
+        Parameters:
+        -----------
+        include_series_id : bool = True
+            Add a column with series_id
+        
+        include_header : bool = True
+            Add a header row
+        
+        Returns:
+        --------
+        csv string : str
         """
         data = createEmptyObsDataFrame(extra_columns={"tag":"str","series_id":"int"} if include_series_id else {"tag":"str"})
         for variable in self.variables.values():
             data = pandas.concat([data,variable.getData(include_series_id=include_series_id)])
         return data.to_csv(header=include_header)
-    def outputToCSV(self,include_header=True):
+    def outputToCSV(
+            self,
+            include_header : bool = True
+            ) -> str:
         """
         returns data of self.variables.series_output as csv
+
+        Parameters:
+        -----------
+        include_header : bool = True
+            Add a header row
+        
+        Returns:
+        --------
+        csv string : csv
         """
         data = createEmptyObsDataFrame(extra_columns={"tag":"str"})
         for variable in self.variables.values():
             data = data.join(variable.mergeOutputData())
         return data.to_csv(header=include_header) # self.series[0].toCSV()
-    def variablesToSeries(self,include_series_id=False,use_node_id=False):
+    def variablesToSeries(
+            self,
+            include_series_id : bool = False,
+            use_node_id : bool = False
+        ) -> List[Serie]:
         """
         return node variables as array of Series objects using self.variables.data as observaciones
+
+        Parameters:
+        -----------
+        include_series_id : bool = False
+            Add series_id property to items of Series
+        
+        use_node_id : bool = False
+            Use node_id as series_id
+
+        Returns:
+        --------
+        list of Series : List[Serie]
         """
         return [variable.toSerie(include_series_id=include_series_id,use_node_id=use_node_id) for variable in self.variables.values()]
-    def variablesOutputToList(self,flatten=True):
+    def variablesOutputToList(
+            self,
+            flatten : bool = True
+        ) -> list:
         """
-        returns series_output of variables as list of dict
-        if flatten == True, merges observations into single list. Else, returns list of series objects: [{series_id:int, observaciones:[{obs1},{obs2},...]},...]
+        For each variable in .variables, converts series_output to list of dict
+
+        Parameters:
+        -----------
+        flatten : bool = True
+            If True, merges observations into single list. Else, returns list of series objects: [{series_id:int, observaciones:[{obs1},{obs2},...]},...]
+        
+        Returns:
+        --------
+        list
         """
         list = []
         for variable in self.variables.values():
@@ -87,10 +239,21 @@ class Node:
             if output_list is not None:
                 list.extend(output_list)
         return list
-    def variablesPronoToList(self,flatten=True):
+    def variablesPronoToList(
+            self,
+            flatten : bool = True
+        ) -> list:
         """
-        if flatten=True return list of dict each containing one forecast time-value pair (pronosticos)
-        else returns list of dict each containing series_id:int and pronosticos:list 
+        For each variable in .variables, returns series_prono as a list
+        
+        Parameters:
+        -----------
+        flatten : bool = True
+            If True, returns list of dict each containing one forecast time-value pair (pronosticos). Else returns list of dict each containing series_id:int and pronosticos:list 
+        
+        Returns:
+        --------
+        list
         """
         list = []
         for variable in self.variables.values():

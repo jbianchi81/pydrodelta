@@ -18,9 +18,15 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union
+from typing import Union, List
 from pydrodelta.validation import getSchemaAndValidate
 from pandas import DataFrame
+from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
+from pydrodelta.descriptors.duration_descriptor import DurationDescriptor
+from pydrodelta.descriptors.bool_descriptor import BoolDescriptor
+from pydrodelta.descriptors.int_descriptor import IntDescriptor
+from pydrodelta.descriptors.dict_descriptor import DictDescriptor
+from pydrodelta.descriptors.string_descriptor import StringDescriptor
 
 from pydrodelta.config import config
 
@@ -29,6 +35,59 @@ output_crud = Crud(config["output_api"])
 
 class Topology():
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
+
+    timestart = DatetimeDescriptor()
+    """start date of observations period"""
+    timeend = DatetimeDescriptor()
+    """end date of observations period"""
+    forecast_timeend = DatetimeDescriptor()
+    """forecast horizon"""        
+    time_offset_start = DurationDescriptor()
+    """time of day where first timestep start"""
+    time_offset_end = DurationDescriptor()
+    """time of day where last timestep ends"""
+    interpolation_limit = DurationDescriptor()
+    """maximum duration between observations for interpolation"""
+    extrapolate = BoolDescriptor()
+    """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
+    @property
+    def nodes(self) -> List[Node]:
+        """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
+        return self._nodes
+    @nodes.setter
+    def nodes(self,nodes : List[Union[dict, Node]]):
+        self._nodes : List[Node] = []
+        for i, node in enumerate(nodes):
+            if "id" not in node:
+                raise Exception("Missing node.id at index %i of topology.nodes" % i)
+            if node["id"] in [n.id for n in self._nodes]:
+                raise Exception("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
+            if isinstance(node, Node):
+                self._nodes.append(node)
+            else:
+                self._nodes.append(
+                    Node(
+                        **node,
+                        timestart=self.timestart,
+                        timeend=self.timeend,
+                        forecast_timeend=self.forecast_timeend,
+                        plan=self._plan,
+                        time_offset=self.time_offset_start,
+                        topology=self
+                    )
+                )
+    cal_id = IntDescriptor()
+    """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
+    plot_params = DictDescriptor()
+    """Plotting configuration. See .plotProno"""
+    report_file = StringDescriptor()
+    """Write analysis report into this file"""
+    @property
+    def graph(self) -> nx.DiGraph:
+        """Directional graph representing this topology"""
+        return self._graph
+
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -89,59 +148,58 @@ class Topology():
             Plan containing this topology
         """
         getSchemaAndValidate(params=locals(), name="topology")
-        self.timestart = tryParseAndLocalizeDate(timestart)
-        """start date of observations period"""
-        self.timeend = tryParseAndLocalizeDate(timeend)
-        """end date of observations period"""
-        self.forecast_timeend = tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None
-        """forecast horizon"""
-        self.time_offset_start = interval2timedelta(time_offset_start) if time_offset_start is not None else interval2timedelta(time_offset) if time_offset is not None else timedelta(hours=0)
-        """time of day where first timestep start"""
-        self.time_offset_end = interval2timedelta(time_offset_end) if time_offset_end is not None else interval2timedelta(time_offset) if time_offset is not None else timedelta(hours=self.timeend.hour)
-        """time of day where last timestep ends"""
+        self.timestart = timestart
+        self.timeend = timeend
+        self.forecast_timeend = forecast_timeend
+        self.time_offset_start = time_offset_start if time_offset_start is not None else time_offset if time_offset is not None else {"hours":0}
+        self.time_offset_end = time_offset_end if time_offset_end is not None else time_offset if time_offset is not None else {"hours":self.timeend.hour}
+        # round down to day if timestart is relative 
         self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(timestart) == dict else self.timestart
-        """start date of observations period"""
+        # round down to day if timeend is relative 
         self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(timeend) == dict else self.timeend
-        """end date of observations period"""
         if self.timestart >= self.timeend:
             raise("Bad timestart, timeend parameters. timestart must be before timeend")
-        self.interpolation_limit = interval2timedelta(interpolation_limit) if isinstance(interpolation_limit,dict) else interpolation_limit
-        """maximum duration between observations for interpolation"""
-        self.extrapolate = bool(extrapolate)
-        """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
-        self.nodes = []
-        """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
-        for i, node in enumerate(nodes):
-            if "id" not in node:
-                raise Exception("Missing node.id at index %i of topology.nodes" % i)
-            if node["id"] in [n.id for n in self.nodes]:
-                raise Exception("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
-            self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
-        self.cal_id = cal_id
-        """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
-        self.plot_params = plot_params
-        """Plotting configuration. See .plotProno"""
-        self.report_file = report_file
-        """Write analysis report into this file"""
+        self.interpolation_limit = interpolation_limit
+        self.extrapolate = extrapolate
         self._plan = plan
-        """Plan containing this topology"""
-        self.graph = self.toGraph()
-        """Directional graph representing this topology"""
+        """Plan that contains this topology"""
+        self.nodes = nodes
+        self.cal_id = cal_id
+        self.plot_params = plot_params
+        self.report_file = report_file
+        self._graph = self.toGraph()
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
-    def addNode(self,node,plan=None) -> None:
+    def addNode(
+            self,
+            node : Union[dict,Node],
+            plan=None
+        ) -> None:
         """Append node into .nodes
         
         Parameters:
         -----------
-        node : dict
+        node : dict or Node
             Node to append
         
-        plan : Node or None
+        plan : Plan or None
             Plan that contains the topology
         """
-        self.nodes.append(Node(params=node,timestart=self.timestart,timeend=self.timeend,forecast_timeend=self.forecast_timeend,plan=plan,time_offset=self.time_offset_start,topology=self))
+        if isinstance(node,Node):
+            self._nodes.append(node)
+        else:
+            self._nodes.append(
+                Node(
+                    **node,
+                    timestart=self.timestart,
+                    timeend=self.timeend,
+                    forecast_timeend=self.forecast_timeend,
+                    plan=plan if plan is not None else self._plan,
+                    time_offset=self.time_offset_start,
+                    topology=self
+                )
+            )
     def batchProcessInput(self,include_prono=False) -> None:
         """
         Run input processing sequence. This includes (in this order):

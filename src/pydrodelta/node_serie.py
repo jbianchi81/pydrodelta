@@ -27,7 +27,7 @@ class NodeSerie():
         self.observations = util.parseObservations(params["observations"]) if "observations" in params else None
         self.save_post = params["save_post"] if "save_post" in params else None
     def __repr__(self):
-        return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data if self.data is not None else 0))
+        return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
     def __str__(self):
         return str(self.toDict())
     def __dict__(self):

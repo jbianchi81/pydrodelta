@@ -12,8 +12,37 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 import csv
 import os.path
+from typing import Union
 
-def interval2timedelta(interval):
+def interval2timedelta(interval : Union[dict,float,timedelta]):
+    """Parses duration dict or number of days into datetime.timedelta object
+    
+    Parameters:
+    -----------
+    interval : dict or float (decimal number of days)
+        If dict, allowed keys are:
+        - days
+        - seconds
+        - microseconds
+        - minutes
+        - hours
+        - weeks
+    
+    Returns:
+    --------
+    duration : datetime.timedelta
+
+    Examples:
+
+    ```
+    interval2timedelta({"hours":1, "minutes": 30})
+    interval2timedelta(1.5/24)
+    ```
+    """
+    if isinstance(interval,timedelta):
+        return interval
+    if isinstance(interval,(float,int)):
+        return timedelta(days=interval)
     days = 0
     seconds = 0
     microseconds = 0
@@ -57,11 +86,43 @@ def interval2epoch(interval):
             seconds = seconds + interval[k] * 86400 * 365
     return seconds
 
-def tryParseAndLocalizeDate(date_string,timezone='America/Argentina/Buenos_Aires') -> datetime:
+def tryParseAndLocalizeDate(
+        date_string : Union[str,float,datetime],
+        timezone : str='America/Argentina/Buenos_Aires'
+    ) -> datetime:
+    """
+    Datetime parser. If duration is provided, computes date relative to now.
+
+    Parameters:
+    -----------
+    date_string : str or float or datetime.datetime
+        For absolute date: ISO-8601 datetime string or datetime.datetime.
+        For relative date: dict (duration key-values) or float (decimal number of days)
+    
+    timezone : str
+        Time zone string identifier. Default: America/Argentina/Buenos_Aires
+    
+    Returns:
+    --------
+    datetime object
+
+    Examples:
+    ---------
+    ``` 
+    tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
+    tryParseAndLocalizeDate(1.5)
+    tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
+    ```
+    """
+    
+    Returns: datetime.datetime
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
     is_from_interval = False
     if isinstance(date,dict):
         date = datetime.now() + interval2timedelta(date)
+        is_from_interval = True
+    elif isinstance(date,(int,float)):
+        date = datetime.now() + interval2timedelta({"days": date})
         is_from_interval = True
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:

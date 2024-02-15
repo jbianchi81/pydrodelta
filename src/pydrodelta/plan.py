@@ -48,7 +48,7 @@ class Plan():
     @topology.setter
     def topology(self,value : Union[dict,Topology,str,None]):
         if isinstance(value, dict):
-            self._topology = Topology(**value)
+            self._topology = Topology(**value,plan=self)
         elif isinstance(value, Topology):
             self._topology = value
         elif isinstance(value, str):
