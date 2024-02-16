@@ -1,4 +1,12 @@
 from pydrodelta.util import interval2timedelta
+from typing import Union, TypedDict
+from datetime import datetime
+
+class DerivedOriginDict(TypedDict):
+    node_id : int
+    var_id : int
+    x_offset : Union[dict,datetime,float] = None
+    y_offset : float = None
 
 class DerivedOrigin:
     def __init__(self,params,topology=None):

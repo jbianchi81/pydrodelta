@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timedelta
 import isodate
 from typing import Union, List, Dict
-from pandas import DatetimeIndex
+from pandas import DatetimeIndex, DataFrame
 
 class Node:
     id = IntDescriptor()
@@ -45,7 +45,7 @@ class Node:
                 if isinstance(variable, (DerivedNodeVariable,ObservedNodeVariable)):
                     self._variables[variable["id"]] = variable
                 else:
-                    self._variables[variable["id"]] = DerivedNodeVariable(variable,self) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(variable,self)
+                    self._variables[variable["id"]] = DerivedNodeVariable(node=self,**variable) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(node=self,**variable)
     node_type = StringDescriptor()
     """The type of node: either 'station' or 'basin'"""
     def __init__(
@@ -261,37 +261,134 @@ class Node:
             if pronolist is not None:
                 list.extend(pronolist)
         return list
-    def adjust(self,plot=True,error_band=True):
+    def adjust(
+        self,
+        plot : bool = True,
+        error_band : bool = True
+        ) -> None:
+        """For each variable in .variables, if adjust_from is set, run .adjust()
+        
+        Parameters:
+        -----------
+        plot : bool = True
+            Generate plot
+        
+        error_band : bool = True
+            Add 01-99 error band to result data"""
         for variable in self.variables.values():
             if variable.adjust_from is not None:
                 variable.adjust(plot,error_band)
-    def apply_linear_combination(self,plot=True,series_index=0):
+    def apply_linear_combination(
+        self,
+        plot : bool = True,
+        series_index : int = 0
+        ) -> None:
+        """For each variable in .variables, if linear_combination is set, run .apply_linear_combination()
+        
+        Parameters:
+        -----------
+        plot : bool = True
+            Generate plot
+        
+        series_index : int = 0
+            Index of the series to apply the linear combination"""
         for variable in self.variables.values():
             if variable.linear_combination is not None:
                 variable.apply_linear_combination(plot,series_index)
-    def adjustProno(self,error_band=True):
+    def adjustProno(
+        self,
+        error_band : bool = True
+        ) -> None:
+        """For each variable in .variables run .adjustProno()
+        
+        Parameters:
+        -----------
+        error_band : bool = True
+            Add 01-99 error band to result data"""
         for variable in self.variables.values():
             variable.adjustProno(error_band=error_band)
-    def setOutputData(self):
+    def setOutputData(self) -> None:
+        """For each variable in .variables run setOutputData()
+        """
         for variable in self.variables.values():
             variable.setOutputData()
-    def uploadData(self,include_prono=False):
+    def uploadData(
+        self,
+        include_prono : bool = False
+        ) -> list:
+        """For each variable in .variables run .uploadData()
+        
+        Parameters:
+        -----------
+        include_prono : bool = False
+            Concatenate forecast into the data to upload
+
+        Returns:
+        --------
+        created observations : list
+        """
         created = []
         for variable in self.variables.values():
             result = variable.uploadData(include_prono=include_prono)
             created.extend(result)
         return created
-    def pivotData(self,include_prono=True):
+    def pivotData(
+        self,
+        include_prono : bool = True
+        ) -> DataFrame:
+        """Join all variables' data into a single pivoted DataFrame
+        
+        Parameters:
+        -----------
+        include_prono : bool = False
+            Concatenate forecast into the observed data
+
+        Returns:
+        --------
+        joined, pivoted data : DataFrame
+        """
         data = createEmptyObsDataFrame()
         for variable in self.variables.values():
             data = data.join(variable.pivotData(include_prono=include_prono))
         return data
-    def pivotOutputData(self,include_tag=True):
+    def pivotOutputData(
+        self,
+        include_tag : bool = True
+        ) -> DataFrame:
+        """Join all variables' output data into a single pivoted DataFrame
+        
+        Parameters:
+        -----------
+        include_tag : bool = True
+            Include tag columns
+
+        Returns:
+        --------
+        joined, pivoted data : DataFrame
+        """
         data = createEmptyObsDataFrame()
         for variable in self.variables.values():
             data = data.join(variable.pivotOutputData(include_tag=include_tag))
         return data
-    def seriesToDataFrame(self,pivot=False,include_prono=True):
+    def seriesToDataFrame(
+        self,
+        pivot : bool = False,
+        include_prono : bool = True
+        ) -> DataFrame:
+        """Join all variables' series data into a single DataFrame
+        
+        Parameters:
+        -----------
+        include_prono : bool = False
+            Concatenate forecast into the observed data
+        
+        pivot : bool = True
+            Pivot series into columns
+
+        Returns:
+        --------
+        data : DataFrame
+        """
         if pivot:
             data = self.pivotData(include_prono)
         else:
@@ -299,13 +396,50 @@ class Node:
             for variable in self.variables.values():
                 data = data.append(variable.seriesToDataFrame(include_prono=include_prono),ignore_index=True)
         return data
-    def saveSeries(self,output,format="csv",pivot=False):
+    def saveSeries(
+        self,
+        output : str,
+        format : str = "csv",
+        pivot : bool = False
+        ) -> None:
+        """Join all variables' series data into a single DataFrame and save as csv or json file
+        
+        Parameters:
+        -----------
+        output : str
+            File path where to save
+        
+        format : str = "csv"
+            Output format, either "csv" or "json"
+        
+        pivot : bool = True
+            Pivot series into columns
+        """
         data = self.seriesToDataFrame(pivot=pivot)
         if format=="csv":
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
-    def concatenateProno(self,inline=True,ignore_warmup=True):
+    def concatenateProno(
+        self,
+        inline : bool = True,
+        ignore_warmup : bool = True
+        ) -> DataFrame:
+        """Join every variable in .variables, run .concatenateProno().
+        
+        Parameters:
+        -----------
+        inline : bool = True
+            If True, stores concatenation results into each variables' data
+            If set to False, appends all results together and returns the resulting DataFrame
+        
+        ignore_warmup : bool = True
+            Skips data values where timestart predates the forecast_date
+        
+        Returns:
+        --------
+        None or DataFrame
+        """
         if inline:
             for variable in self.variables.values():
                 variable.concatenateProno(inline=True,ignore_warmup=ignore_warmup)
@@ -314,49 +448,231 @@ class Node:
             for variable in self.variables.values():
                 data = data.append(variable.concatenateProno(inline=False,ignore_warmup=ignore_warmup))
             return data
-    def interpolate(self,limit : timedelta=None,extrapolate=None):
+    def interpolate(
+        self,
+        limit : timedelta = None,
+        extrapolate : bool = None
+        ) -> None:
+        """Join every variable in .variables, run .interpolate().
+        
+        Parameters:
+        -----------
+        limit : timedelta = None
+            Maximum time distance to interpolate 
+        
+        extrapolate : bool = None
+            If true, extrapolate data up to a distance of limit
+        """
         for variable in self.variables.values():
                 variable.interpolate(limit=limit,extrapolate=extrapolate)
-    def plot(self):
+    def plot(self) -> None:
+        """
+        For each variable of .variables run .plot()
+        """
         for variable in self.variables.values():
             variable.plot()
-    def plotProno(self,output_dir=None,figsize=None,title=None,markersize=None,obs_label=None,tz=None,prono_label=None,footnote=None,errorBandLabel=None,obsLine=None,prono_annotation=None,obs_annotation=None,forecast_date_annotation=None,ylim=None,station_name=None,ydisplay=None,text_xoffset=None,xytext=None,datum_template_string=None,title_template_string=None,x_label=None,y_label=None,xlim=None):
+    def plotProno(
+        self,
+        output_dir : str = None,
+        figsize : tuple = None,
+        title: str = None,
+        markersize : int = None,
+        obs_label : str = None,
+        tz : str = None,
+        prono_label : str = None,
+        footnote : str = None,
+        errorBandLabel : str = None,
+        obsLine : bool = None,
+        prono_annotation : str = None,
+        obs_annotation : str = None,
+        forecast_date_annotation : str = None,
+        ylim : tuple = None,
+        station_name : str = None,
+        ydisplay : float = None,
+        text_xoffset : float = None,
+        xytext : tuple = None,
+        datum_template_string : str = None,
+        title_template_string : str = None,
+        x_label : str = None,
+        y_label : str = None,
+        xlim : tuple = None
+        ) -> None:
+        """
+        For each variable in .variables run .plotProno()
+
+        Parameters:
+        -----------
+        output_dir : str = None
+            Directory path where to save the plots
+
+        figsize : tuple = None
+            Figure size (width, height) in cm
+        
+        title: str = None
+            Figure title
+        
+        markersize : int = None
+            Size of marker in points
+        
+        obs_label : str = None
+            Label for observed data
+
+        tz : str = None
+            Time zone for horizontal axis
+
+        prono_label : str = None
+            Label for forecast data
+
+        footnote : str = None
+            Footnote text
+        
+        errorBandLabel : str = None
+            Label for error band
+        
+        obsLine : bool = None
+            Add a line to observed data
+
+        prono_annotation : str = None
+            Annotation for forecast data
+
+        obs_annotation : str = None
+            Annotation for observed data
+
+        forecast_date_annotation : str = None
+            Annotation for forecast date
+
+        ylim : tuple = None
+            Y axis range (min, max)
+
+        station_name : str = None
+            Station name
+
+        ydisplay : float = None
+            Y position of annotations
+
+        text_xoffset : float = None
+            X offset of annotations
+        
+        xytext : tuple = None
+            Not used
+        
+        datum_template_string : str = None
+            Template string for datum text
+
+        title_template_string : str = None
+            Template string for title
+        
+        x_label : str = None
+            Label for x axis
+
+        y_label : str = None
+            Label for y axis
+
+        xlim : tuple = None
+            Range of x axis (min, max)
+        """
         for variable in self.variables.values():
             variable.plotProno(output_dir=output_dir,figsize=figsize,title=title,markersize=markersize,obs_label=obs_label,tz=tz,prono_label=prono_label,footnote=footnote,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,ylim=ylim,station_name=station_name,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)
-    def loadData(self,timestart,timeend,include_prono=True,forecast_timeend=None):
+    def loadData(
+        self,
+        timestart : Union[datetime,str,dict],
+        timeend : Union[datetime,str,dict],
+        include_prono : bool = True,
+        forecast_timeend : Union[datetime,str,dict] = None
+        ) -> None:
+        """
+        For each variable in variables, if variable is an ObservedNodeVariable run .loadData()
+        
+        Parameters:
+        -----------
+        timestart : Union[datetime,str,dict]
+            Begin date
+
+        timeend : Union[datetime,str,dict]
+            End date
+
+        include_prono : bool = True
+            For each variable, load forecast data for each series of .series_prono 
+        
+        forecast_timeend : Union[datetime,str,dict] = None
+            End date of forecast retrieval. If None, uses timeend
+        """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.loadData(timestart,timeend,include_prono,forecast_timeend)
-    def removeOutliers(self):
+    def removeOutliers(self) -> bool:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .removeOutliers(). Removes outilers and returns True if any outliers were removed
+        
+        Returns:
+        --------
+        bool"""
         found_outliers = False
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 found_outliers_ = variable.removeOutliers()
                 found_outliers = found_outliers_ if found_outliers_ else found_outliers
         return found_outliers
-    def detectJumps(self):
+    def detectJumps(self) -> bool:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .detectJumps(). Returns True if any jumps were found
+        
+        Returns:
+        --------
+        bool"""
         found_jumps = False
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 found_jumps_ = variable.detectJumps()
                 found_jumps = found_jumps_ if found_jumps_ else found_jumps
         return found_jumps
-    def applyOffset(self):
+    def applyOffset(self) -> None:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .applyOffset()
+        """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.applyOffset()
-    def regularize(self,interpolate=False):
+    def regularize(
+        self,
+        interpolate : bool = False
+        ) -> None:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .regularize(). 
+
+        Parameters:
+        -----------
+        interpolate : bool = False
+            Interpolate missing values
+        """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.regularize(interpolate=interpolate)
-    def fillNulls(self,inline=True,fill_value=None):
+    def fillNulls(
+        self,
+        inline : bool =True,
+        fill_value : float = None
+        ) -> None:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .fillNulls(). 
+
+        Parameters:
+        -----------
+        inline : bool = True
+            Store result in variables' data property
+        
+        fill_value : float = None
+            Fill missing values with this value
+        """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.fillNulls(inline,fill_value)
-    def derive(self):
+    def derive(self) -> None:
+        """For each variable of .variables, if variable is a DerivedNodeVariable, run .derive()"""
         for variable in self.variables.values():
             if isinstance(variable,DerivedNodeVariable):
                 variable.derive()
-    def applyMovingAverage(self):
+    def applyMovingAverage(self) -> None:
+        """For each variable of .variables fun applyMovingAverage()"""
         for variable in self.variables.values():
             variable.applyMovingAverage()

@@ -1,29 +1,82 @@
+from typing import List, Union
 from pydrodelta.node_variable import NodeVariable
 from pydrodelta.derived_node_serie import DerivedNodeSerie
 from pydrodelta.node_serie import NodeSerie
 from pydrodelta.node_serie_prono import NodeSerieProno
+from pydrodelta.derived_origin import DerivedOriginDict
+from pydrodelta.interpolated_origin import InterpolatedOriginDict
+from pydrodelta.descriptors.dict_descriptor import DictDescriptor
 
 class DerivedNodeVariable(NodeVariable):
-    def __init__(self,params,node=None):
-        super().__init__(params,node=node)
+    """This class represents a variable at a node where it is not observed, but values are derived from observations of the same variable at a nearby node or from observations of another variable at the same  (or nearby) node"""
+    derived_from = DictDescriptor()
+    """Derivation configuration"""
+    interpolated_from = DictDescriptor()
+    """Interpolation configuration"""
+    @property
+    def series(self) -> List[DerivedNodeSerie]:
+        """Series of derived data of this variable at this node."""
+        return self._series
+    def _setDerivedSeries(self) -> None:
+        if self.series_output is None:
+            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
+        self._series = []
+        for serie in self.series_output:
+            self._series.append(
+                DerivedNodeSerie(
+                    {
+                        "series_id": serie.series_id, 
+                        "derived_from": self.derived_from
+                    },
+                    self._node._topology
+                )
+            )
+    def _setInterpolatedSeries(self) -> None:
+        if self.series_output is None:
+            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
+        self._series = []
+        for serie in self.series_output:
+            self._series.append(
+                DerivedNodeSerie(
+                    {
+                        "series_id": serie.series_id, 
+                        "interpolated_from": self.interpolated_from
+                    },
+                    self._node._topology
+                )
+            )
+    @property
+    def series_prono(self) -> List[NodeSerieProno]:
+        """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
+        return self._series_prono
+    @series_prono.setter
+    def series_prono(
+        self,
+        series : List[Union[dict,NodeSerieProno]] = None
+        ) -> None:
+            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(x) for x in series] if series is not None else None
+    def __init__(
+        self,
+        derived_from : DerivedOriginDict = None,
+        interpolated_from : InterpolatedOriginDict = None,
+        series : List[Union[dict,NodeSerie]] = None,
+        series_prono : List[Union[dict,NodeSerieProno]] = None,
+        **kwargs):
+        super().__init__(**kwargs)
         self.series = []
-        if "derived_from" in params:
-            if self.series_output is None:
-                raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
-            for serie in self.series_output:
-                self.series.append(DerivedNodeSerie({"series_id":serie.series_id, "derived_from": params["derived_from"]},self._node._topology))
-        elif "interpolated_from" in params:
-            if self.series_output is None:
-                raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
-            for serie in self.series_output:
-                self.series.append(DerivedNodeSerie({"series_id":serie.series_id, "interpolated_from": params["interpolated_from"]},self._node._topology))
-        if "series" in params:
-            self.series.extend([NodeSerie(x) for x in params["series"]])
-        if "series_prono" in params:
-            self.series_prono = [NodeSerieProno(x) for x in params["series_prono"]]
+        self.derived_from = derived_from
+        self.interpolated_from = interpolated_from
+        if derived_from is not None:
+            self._setDerivedSeries()
+        elif interpolated_from is not None:
+            self._setInterpolatedSeries()
         else:
-            self.series_prono = None
-    def derive(self):
+            self._series = []
+        if series is not None:
+            self._series.extend([x if isinstance(x, NodeSerie) else NodeSerie(x) for x in series])
+        self.series_prono = series_prono
+    def derive(self) -> None:
+        """Derive observations of .series[0] from associated node-variables"""
         self.series[0].derive()
         self.data = self.series[0].data
         self.original_data = self.data.copy(deep=True)

@@ -416,7 +416,39 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
     return lr,quant_Err,r2,coef,intercept
     
-def plot_prono(obs_df:pandas.DataFrame,sim_df:pandas.DataFrame,output_file:str,title:str=None,ydisplay:float=1,xytext:tuple=(-300,-200),ylim:tuple=(0,2.5),markersize:int=20,text_xoffset:tuple=(-8,-8),prono_label:str='forecasted',obs_label:str='observed',extraObs:pandas.DataFrame=None,extraObsLabel:str='observed 2', forecast_date:datetime=None, errorBand:tuple=None,obsLine:bool=False,station_name:str="Station",thresholds:dict={}, datum:float=0,footnote:str=None,tz:str="America/Argentina/Buenos_Aires",figsize:tuple=(14,12),errorBandLabel:str='error band',prono_annotation:str='forecast',obs_annotation:str='past',forecast_date_annotation:str='forecast date',x_label:str='date',y_label:str='value',datum_template_string:str=None,title_template_string:str="forecast at %s",xlim:tuple=None):
+def plot_prono(
+    obs_df:pandas.DataFrame,
+    sim_df:pandas.DataFrame,
+    output_file:str,
+    title:str=None,
+    ydisplay:float=1,
+    xytext:tuple=(-300,-200),
+    ylim:tuple=(0,2.5),
+    markersize:int=20,
+    text_xoffset:tuple=(-8,-8),
+    prono_label:str='forecasted',
+    obs_label:str='observed',
+    extraObs:pandas.DataFrame=None,
+    extraObsLabel:str='observed 2', 
+    forecast_date:datetime=None,
+    errorBand:tuple=None,
+    obsLine:bool=False,
+    station_name:str="Station",
+    thresholds:dict={}, 
+    datum:float=0,
+    footnote:str=None,
+    tz:str="America/Argentina/Buenos_Aires",
+    figsize:tuple=(14,12),
+    errorBandLabel:str='error band',
+    prono_annotation:str='forecast',
+    obs_annotation:str='past',
+    forecast_date_annotation:str='forecast date',
+    x_label:str='date',
+    y_label:str='value',
+    datum_template_string:str=None,
+    title_template_string:str="forecast at %s",
+    xlim:tuple=None
+    ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
     errorBandLabel = "error band" if errorBandLabel is None else errorBandLabel

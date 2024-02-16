@@ -76,7 +76,7 @@ class NodeSerie():
         if self.metadata["estacion"]["nivel_aguas_bajas"]:
             thresholds["nivel_aguas_bajas"] = self.metadata["estacion"]["nivel_aguas_bajas"]
         return thresholds
-    def removeOutliers(self):
+    def removeOutliers(self) -> bool:
         if self.lim_outliers is None:
             return False
         self.outliers_data = util.removeOutliers(self.data,self.lim_outliers)
