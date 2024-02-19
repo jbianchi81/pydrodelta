@@ -1,24 +1,23 @@
-import yaml
-from pydrodelta.a5 import Crud, Serie
-from pydrodelta.node_serie import NodeSerie
-from pydrodelta.node_serie_prono import NodeSerieProno
+from .a5 import Crud, Serie
+from .node_serie import NodeSerie
+from .node_serie_prono import NodeSerieProno
 import os
-from pydrodelta.util import interval2timedelta, adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono
+from .util import interval2timedelta, adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono
 import pandas
 import logging
 import json
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import isodate
-from pydrodelta.config import config
+from .config import config
 from typing import List, Union, TypedDict
-from pydrodelta.descriptors.int_descriptor import IntDescriptor
-from pydrodelta.descriptors.dict_descriptor import DictDescriptor
-from pydrodelta.descriptors.float_descriptor import FloatDescriptor
-from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
-from pydrodelta.descriptors.duration_descriptor import DurationDescriptor
-from pydrodelta.descriptors.bool_descriptor import BoolDescriptor
-from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
+from .descriptors.float_descriptor import FloatDescriptor
+from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .descriptors.duration_descriptor import DurationDescriptor
+from .descriptors.bool_descriptor import BoolDescriptor
+from .descriptors.dataframe_descriptor import DataFrameDescriptor
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -29,7 +28,7 @@ class AdjustFrom(TypedDict):
 
 class LinearCombination(TypedDict):
     coefficients: List[float]
-    intercept: float = 0
+    intercept: float
 
 class NodeVariable:
     """
@@ -53,7 +52,7 @@ class NodeVariable:
         if series is None:
             self._series_output = None
             return
-        self._series_output = [x if isinstance(x,NodeSerie) else NodeSerie(x) for x in series] if series is not None else None
+        self._series_output = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     @property
     def series_sim(self) -> List[NodeSerieProno]:
         """Output series of the simulation procedure"""
@@ -72,7 +71,7 @@ class NodeVariable:
                 self._series_sim.append(serie)
             else:
                 serie["cal_id"] = serie["cal_id"] if "cal_id" in serie else self._node._plan.id if self._node is not None and self._node._plan is not None else None
-                self._series_sim.append(NodeSerieProno(serie))
+                self._series_sim.append(NodeSerieProno(**serie))
     time_support = DurationDescriptor()
     """Time support of the observations . The time interval that the observation is representative of."""
     adjust_from = DictDescriptor()
@@ -153,7 +152,7 @@ class NodeVariable:
         self._node = node
         self.metadata = input_crud.readVar(self.id)
         self.fill_value = fill_value
-        self.series_output = series_output if series_output is not None else [NodeSerie({"series_id": output_series_id})]  if output_series_id is not None else None
+        self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
         self.series_sim = series_sim if series_sim is not None else None
         self.time_support = time_support
         if self.time_support is None and self.metadata is not None:
@@ -426,7 +425,7 @@ class NodeVariable:
         try:
             adj_serie, tags, model = adjustSeries(sim_data,truth_data,method=self.adjust_from["method"],plot=plot,tag_column="tag",title=self.name)
         except ValueError:
-            logging.warning("No observations found to estimate coefficients. Skipping adjust")
+            logging.debug("No observations found to estimate coefficients. Skipping adjust")
             return
         # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
         self.data.loc[:,"valor"] = adj_serie
@@ -483,7 +482,7 @@ class NodeVariable:
             try:
                 adj_serie, tags , model = adjustSeries(sim_data,truth_data,method="lfit",plot=True,tag_column="tag",title="%s @ %s" % (serie_prono.name, self.name))
             except ValueError:
-                logging.warning("No observations found to estimate coefficients. Skipping adjust")
+                logging.debug("No observations found to estimate coefficients. Skipping adjust")
                 return
             # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
             serie_prono.data.loc[:,"valor"] = adj_serie
@@ -530,7 +529,7 @@ class NodeVariable:
                     logging.error(str(e))
             return obs_created
         else:
-            logging.warning("Missing output series for node #%i, variable %i, skipping upload" % (self._node.id,self.id))
+            logging.info("Missing output series for node #%i, variable %i, skipping upload" % (self._node.id,self.id))
             return []
     def pivotData(
         self,
@@ -907,12 +906,12 @@ class NodeVariable:
             Range of x axis (min, max)
         """
         if self.series_prono is None:
-            logging.warn("Missing series_prono, skipping variable")
+            logging.debug("Missing series_prono, skipping variable")
             return
         for serie_prono in self.series_prono:
             output_file = getParamOrDefaultTo("output_file",None,serie_prono.plot_params,"%s/%s_%s.png" % (output_dir, self.name, serie_prono.cal_id) if output_dir is not None else None)
             if output_file is None:
-                logging.warn("Missing output_dir or output_file, skipping serie")
+                logging.debug("Missing output_dir or output_file, skipping serie")
                 continue
             station_name = getParamOrDefaultTo("station_name",station_name,serie_prono.plot_params,self.series[0].metadata["estacion"]["nombre"] if self.series[0].metadata is not None else None)
             thresholds = self.series[0].getThresholds() if self.series[0].metadata is not None else None

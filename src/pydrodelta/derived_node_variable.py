@@ -1,11 +1,11 @@
 from typing import List, Union
-from pydrodelta.node_variable import NodeVariable
-from pydrodelta.derived_node_serie import DerivedNodeSerie
-from pydrodelta.node_serie import NodeSerie
-from pydrodelta.node_serie_prono import NodeSerieProno
-from pydrodelta.derived_origin import DerivedOriginDict
-from pydrodelta.interpolated_origin import InterpolatedOriginDict
-from pydrodelta.descriptors.dict_descriptor import DictDescriptor
+from .node_variable import NodeVariable
+from .derived_node_serie import DerivedNodeSerie
+from .node_serie import NodeSerie
+from .node_serie_prono import NodeSerieProno
+from .derived_origin import DerivedOriginDict
+from .interpolated_origin import InterpolatedOriginDict
+from .descriptors.dict_descriptor import DictDescriptor
 
 class DerivedNodeVariable(NodeVariable):
     """This class represents a variable at a node where it is not observed, but values are derived from observations of the same variable at a nearby node or from observations of another variable at the same  (or nearby) node"""
@@ -54,7 +54,7 @@ class DerivedNodeVariable(NodeVariable):
         self,
         series : List[Union[dict,NodeSerieProno]] = None
         ) -> None:
-            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(x) for x in series] if series is not None else None
+            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x) for x in series] if series is not None else None
     def __init__(
         self,
         derived_from : DerivedOriginDict = None,

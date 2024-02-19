@@ -20,7 +20,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series = [x if isinstance(x,NodeSerie) else NodeSerie(x) for x in series] if series is not None else None
+        self._series = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     @property
     def series_prono(self) -> List[NodeSerieProno]:
         """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
@@ -30,7 +30,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = [x if isinstance(x,NodeSerieProno) else NodeSerieProno(x) for x in series] if series is not None else None
+        self._series_prono = [x if isinstance(x,NodeSerieProno) else NodeSerieProno(**x) for x in series] if series is not None else None
     def __init__(
         self,
         series : List[Union[dict,NodeSerie]] = None,
@@ -189,7 +189,7 @@ class ObservedNodeVariable(NodeVariable):
                     data = serieFillNulls(data,serie.data,fill_value=fill_value_this,tag_column="tag")
                     i = i + 1
             else:
-                logging.warning("No other series to fill nulls with")
+                logging.debug("No other series to fill nulls with")
             if inline:
                 self.data = data
             else:

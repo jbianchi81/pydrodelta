@@ -4,29 +4,29 @@ import os
 from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta
 from pathlib import Path
 from datetime import timedelta, datetime
-from pydrodelta.node import Node
+from .node import Node
 import logging
 import json
 from numpy import nan, NaN
-from pydrodelta.a5 import Crud, createEmptyObsDataFrame
+from .a5 import Crud, createEmptyObsDataFrame
 import pandas
 import matplotlib.pyplot as plt
-from pydrodelta.util import getParamOrDefaultTo
-from pydrodelta.observed_node_variable import ObservedNodeVariable
-from pydrodelta.derived_node_variable import DerivedNodeVariable
+from .util import getParamOrDefaultTo
+from .observed_node_variable import ObservedNodeVariable
+from .derived_node_variable import DerivedNodeVariable
 import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
 from typing import Union, List
-from pydrodelta.validation import getSchemaAndValidate
+from .validation import getSchemaAndValidate
 from pandas import DataFrame
-from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
-from pydrodelta.descriptors.duration_descriptor import DurationDescriptor
-from pydrodelta.descriptors.bool_descriptor import BoolDescriptor
-from pydrodelta.descriptors.int_descriptor import IntDescriptor
-from pydrodelta.descriptors.dict_descriptor import DictDescriptor
-from pydrodelta.descriptors.string_descriptor import StringDescriptor
+from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .descriptors.duration_descriptor import DurationDescriptor
+from .descriptors.bool_descriptor import BoolDescriptor
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
+from .descriptors.string_descriptor import StringDescriptor
 
 from pydrodelta.config import config
 
@@ -744,7 +744,7 @@ class Topology():
                     logging.debug("Add original data to plot at node %s" % str(node.name))
                     original_data.plot(ax=ax,kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
                 else:
-                    logging.warn("Missing original data at node %s variable %i" % (node.name, var_id))
+                    logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
                 if node.variables[var_id].series_sim is not None and len(node.variables[var_id].series_sim):
                     sim_colors = list(Color("orange").range_to(Color("red"),len(node.variables[var_id].series_sim)))
                     for i, serie_sim in enumerate(node.variables[var_id].series_sim):
@@ -759,7 +759,7 @@ class Topology():
                     pdf.savefig()
                 plt.close()
             else:
-                logging.warn("topology.plotVariable: Skipping node %s" % str(node.id))
+                logging.debug("topology.plotVariable: Skipping node %s" % str(node.id))
         if output is not None:
             pdf.close()
         else:

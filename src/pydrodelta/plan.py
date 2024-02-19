@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 from typing import Union, List
 from pandas import DataFrame
 
-from pydrodelta.a5 import Crud, createEmptyObsDataFrame
-from pydrodelta.topology import Topology
+from .a5 import Crud, createEmptyObsDataFrame
+from .topology import Topology
 import pydrodelta.util as util
-from pydrodelta.procedure import Procedure
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.descriptors.string_descriptor import StringDescriptor
-from pydrodelta.descriptors.int_descriptor import IntDescriptor
-from pydrodelta.descriptors.bool_descriptor import BoolDescriptor
+from .procedure import Procedure
+from .validation import getSchemaAndValidate
+from .descriptors.string_descriptor import StringDescriptor
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.bool_descriptor import BoolDescriptor
 
 from pydrodelta.config import config
 

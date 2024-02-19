@@ -19,7 +19,7 @@ def interval2timedelta(interval : Union[dict,float,timedelta]):
     
     Parameters:
     -----------
-    interval : dict or float (decimal number of days)
+    interval : dict or float (decimal number of days) or datetime.timedelta
         If dict, allowed keys are:
         - days
         - seconds
@@ -285,10 +285,15 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
     # logging.debug("after. data.index.name: %s. other_data.index.name: %s" % (data.index.name, other_data.index.name))
     return data
 
-def serieMovingAverage(obs_df : pandas.DataFrame,offset : timedelta, column : str="valor", tag_column : str=None):
-    data = obs_df[column].rolling(offset, min_periods=1).mean()
+def serieMovingAverage(
+    obs_df : pandas.DataFrame,
+    offset : timedelta,
+    column : str = "valor",
+    tag_column : str = None
+    ) -> pandas.DataFrame:
+    data = pandas.DataFrame(obs_df[column].rolling(offset, min_periods=1).mean())
     if tag_column is not None:
-        obs_df[tag_column] = [x if not pandas.isna(x) else "moving_average" for x in obs_df[tag_column]]
+        data.insert(1,'tag', [x if not pandas.isna(x) else "moving_average" for x in obs_df[tag_column]], True)
     return data
 
 def applyTimeOffsetToIndex(obs_df,x_offset):

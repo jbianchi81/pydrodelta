@@ -2,6 +2,18 @@
 
 * [pydrodelta.topology](#pydrodelta.topology)
   * [Topology](#pydrodelta.topology.Topology)
+    * [timestart](#pydrodelta.topology.Topology.timestart)
+    * [timeend](#pydrodelta.topology.Topology.timeend)
+    * [forecast\_timeend](#pydrodelta.topology.Topology.forecast_timeend)
+    * [time\_offset\_start](#pydrodelta.topology.Topology.time_offset_start)
+    * [time\_offset\_end](#pydrodelta.topology.Topology.time_offset_end)
+    * [interpolation\_limit](#pydrodelta.topology.Topology.interpolation_limit)
+    * [extrapolate](#pydrodelta.topology.Topology.extrapolate)
+    * [nodes](#pydrodelta.topology.Topology.nodes)
+    * [cal\_id](#pydrodelta.topology.Topology.cal_id)
+    * [plot\_params](#pydrodelta.topology.Topology.plot_params)
+    * [report\_file](#pydrodelta.topology.Topology.report_file)
+    * [graph](#pydrodelta.topology.Topology.graph)
     * [\_\_init\_\_](#pydrodelta.topology.Topology.__init__)
     * [addNode](#pydrodelta.topology.Topology.addNode)
     * [batchProcessInput](#pydrodelta.topology.Topology.batchProcessInput)
@@ -49,6 +61,88 @@ class Topology()
 ```
 
 The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
+
+<a id="pydrodelta.topology.Topology.timestart"></a>
+
+#### timestart
+
+start date of observations period
+
+<a id="pydrodelta.topology.Topology.timeend"></a>
+
+#### timeend
+
+end date of observations period
+
+<a id="pydrodelta.topology.Topology.forecast_timeend"></a>
+
+#### forecast\_timeend
+
+forecast horizon
+
+<a id="pydrodelta.topology.Topology.time_offset_start"></a>
+
+#### time\_offset\_start
+
+time of day where first timestep start
+
+<a id="pydrodelta.topology.Topology.time_offset_end"></a>
+
+#### time\_offset\_end
+
+time of day where last timestep ends
+
+<a id="pydrodelta.topology.Topology.interpolation_limit"></a>
+
+#### interpolation\_limit
+
+maximum duration between observations for interpolation
+
+<a id="pydrodelta.topology.Topology.extrapolate"></a>
+
+#### extrapolate
+
+Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit
+
+<a id="pydrodelta.topology.Topology.nodes"></a>
+
+#### nodes
+
+```python
+@property
+def nodes() -> List[Node]
+```
+
+Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
+
+<a id="pydrodelta.topology.Topology.cal_id"></a>
+
+#### cal\_id
+
+Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)
+
+<a id="pydrodelta.topology.Topology.plot_params"></a>
+
+#### plot\_params
+
+Plotting configuration. See .plotProno
+
+<a id="pydrodelta.topology.Topology.report_file"></a>
+
+#### report\_file
+
+Write analysis report into this file
+
+<a id="pydrodelta.topology.Topology.graph"></a>
+
+#### graph
+
+```python
+@property
+def graph() -> nx.DiGraph
+```
+
+Directional graph representing this topology
 
 <a id="pydrodelta.topology.Topology.__init__"></a>
 
@@ -119,7 +213,7 @@ Initiate topology
 #### addNode
 
 ```python
-def addNode(node, plan=None) -> None
+def addNode(node: Union[dict, Node], plan=None) -> None
 ```
 
 Append node into .nodes
@@ -127,10 +221,10 @@ Append node into .nodes
 **Arguments**:
 
   -----------
-  node : dict
+  node : dict or Node
   Node to append
   
-  plan : Node or None
+  plan : Plan or None
   Plan that contains the topology
 
 <a id="pydrodelta.topology.Topology.batchProcessInput"></a>

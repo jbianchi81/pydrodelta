@@ -19,7 +19,7 @@
 #### interval2timedelta
 
 ```python
-def interval2timedelta(interval: Union[dict, float])
+def interval2timedelta(interval: Union[dict, float, timedelta])
 ```
 
 Parses duration dict or number of days into datetime.timedelta object
@@ -27,7 +27,7 @@ Parses duration dict or number of days into datetime.timedelta object
 **Arguments**:
 
   -----------
-  interval : dict or float (decimal number of days)
+  interval : dict or float (decimal number of days) or datetime.timedelta
   If dict, allowed keys are:
   - days
   - seconds
@@ -78,6 +78,16 @@ Datetime parser. If duration is provided, computes date relative to now.
 
   --------
   datetime object
+  
+
+**Examples**:
+
+  ---------
+``` 
+tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
+tryParseAndLocalizeDate(1.5)
+tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
+```
 
 <a id="pydrodelta.util.serieRegular"></a>
 

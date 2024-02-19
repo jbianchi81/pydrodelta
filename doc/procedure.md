@@ -3,6 +3,7 @@
 * [pydrodelta.procedure](#pydrodelta.procedure)
   * [Procedure](#pydrodelta.procedure.Procedure)
     * [getCalibrationPeriod](#pydrodelta.procedure.Procedure.getCalibrationPeriod)
+    * [getResultIndex](#pydrodelta.procedure.Procedure.getResultIndex)
     * [toDict](#pydrodelta.procedure.Procedure.toDict)
     * [loadInput](#pydrodelta.procedure.Procedure.loadInput)
     * [loadOutputObs](#pydrodelta.procedure.Procedure.loadOutputObs)
@@ -76,6 +77,16 @@ def getCalibrationPeriod() -> Union[tuple, None]
 
 Read the calibration period from the calibration configuration
 
+<a id="pydrodelta.procedure.Procedure.getResultIndex"></a>
+
+#### getResultIndex
+
+```python
+def getResultIndex() -> int
+```
+
+Read the calibration period from the calibration configuration
+
 <a id="pydrodelta.procedure.Procedure.toDict"></a>
 
 #### toDict
@@ -132,11 +143,10 @@ Load observed values of output variables defined in self.function.outputs. Used 
 #### computeStatistics
 
 ```python
-def computeStatistics(
-    obs: Optional[list] = None,
-    sim: Optional[list] = None,
-    calibration_period: Optional[tuple] = None
-) -> Tuple[List[ResultStatistics]]
+def computeStatistics(obs: Optional[list] = None,
+                      sim: Optional[list] = None,
+                      calibration_period: Optional[tuple] = None,
+                      result_index: int = 0) -> Tuple[List[ResultStatistics]]
 ```
 
 Compute statistics over procedure results.

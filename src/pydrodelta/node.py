@@ -1,12 +1,12 @@
-from pydrodelta.util import interval2timedelta, createDatetimeSequence
-from pydrodelta.derived_node_variable import DerivedNodeVariable
-from pydrodelta.observed_node_variable import ObservedNodeVariable
-from pydrodelta.a5 import createEmptyObsDataFrame, Serie
-from pydrodelta.descriptors.int_descriptor import IntDescriptor
-from pydrodelta.descriptors.string_descriptor import StringDescriptor
-from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
-from pydrodelta.descriptors.duration_descriptor import DurationDescriptor
-from pydrodelta.descriptors.dict_descriptor import DictDescriptor
+from .util import interval2timedelta, createDatetimeSequence
+from .derived_node_variable import DerivedNodeVariable
+from .observed_node_variable import ObservedNodeVariable
+from .a5 import createEmptyObsDataFrame, Serie
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.string_descriptor import StringDescriptor
+from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .descriptors.duration_descriptor import DurationDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
 import pandas
 import json
 from datetime import datetime, timedelta
