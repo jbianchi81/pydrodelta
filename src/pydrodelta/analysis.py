@@ -8,16 +8,6 @@ from pydrodelta.config import config
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
 
-# from pydrodelta.node_serie import NodeSerie
-# from pydrodelta.node_serie_prono import NodeSerieProno
-# from pydrodelta.node_serie_prono_metadata import NodeSeriePronoMetadata
-# from pydrodelta.derived_node_serie import DerivedNodeSerie
-# from pydrodelta.node_variable import NodeVariable
-# from pydrodelta.observed_node_variable import ObservedNodeVariable
-# from pydrodelta.derived_node_variable import DerivedNodeVariable
-# from pydrodelta.node import Node      
-# from pydrodelta.derived_origin import DerivedOrigin
-# from pydrodelta.interpolated_origin import InterpolatedOrigin
 from pydrodelta.topology import Topology
 
 @click.command()

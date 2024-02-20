@@ -1,30 +1,104 @@
-from pydrodelta.derived_origin import DerivedOrigin
-from pydrodelta.interpolated_origin import InterpolatedOrigin
+from .derived_origin import DerivedOrigin
+from .interpolated_origin import InterpolatedOrigin
 import logging
 from datetime import timedelta
-from pydrodelta.a5 import createEmptyObsDataFrame
-from pydrodelta.util import applyTimeOffsetToIndex
+from .a5 import createEmptyObsDataFrame
+from .util import applyTimeOffsetToIndex
+from .types.derived_origin_dict import DerivedOriginDict
+from .types.interpolated_origin_dict import InterpolatedOriginDict
+from .types.tvp import TVP
+from .descriptors.dataframe_descriptor import DataFrameDescriptor
+from typing import Union, List
+from pandas import Series
 
 class DerivedNodeSerie:
-    def __init__(self,params,topology):
-        self.series_id = params["series_id"] if params["series_id"] else None
-        if "derived_from" in params:
-            self.derived_from = DerivedOrigin(params["derived_from"],topology)
-        else:
-            self.derived_from = None
-        if "interpolated_from" in params:
-            self.interpolated_from = InterpolatedOrigin(params["interpolated_from"],topology)
-        else:
-            self.interpolated_from = None
+    """
+    Represents a timeseries of a variable at a node derived or interpolated from another timeseries, i.e. of the same variable at a nearby node or another variable at the same (or nearby) node
+    """
+    @property
+    def derived_from(self) -> DerivedOrigin:
+        """Derivation configuration"""
+        return self._derived_from
+    @derived_from.setter
+    def derived_from(
+        self,
+        derived_from : DerivedOriginDict
+        ) -> None:
+        self._derived_from = derived_from if isinstance(derived_from,DerivedOrigin) else DerivedOrigin(**derived_from,topology=self._topology) if derived_from is not None else None
+
+    @property
+    def interpolated_from(self) -> InterpolatedOrigin:
+        """Interpolation configuration"""
+        return self._interpolated_from
+    @interpolated_from.setter
+    def interpolated_from(
+        self,
+        interpolated_from : InterpolatedOriginDict
+        ) -> None: 
+            self._interpolated_from = interpolated_from if isinstance(interpolated_from,InterpolatedOrigin) else InterpolatedOrigin(**interpolated_from,topology=self._topology) if interpolated_from is not None else None
+
+    data = DataFrameDescriptor()
+    """DataFrame containing the timestamped values. Index is the time (with time zone), column 'valor' contains the values (floats) and column 'tag' contains the tag indicating the origin of the value (one of: observed, simulated, interpolated, moving_average, extrapolated, derived)"""
+    def __init__(
+        self,
+        topology,
+        series_id : int = None,
+        derived_from : Union[DerivedOrigin,DerivedOriginDict] = None,
+        interpolated_from : Union[InterpolatedOrigin,InterpolatedOriginDict] = None
+        ):
+        """
+        Parameters:
+        -----------
+        topology : Topology
+
+            Topology that contains the node_variable that contains this series and the node_variable pointed out by derived_from/interpolated_from
+        
+        series_id : int
+
+            Series identifier
+
+        derived_from : DerivedOriginDict = None
+
+            Derivation configuration
+            
+        interpolated_from : InterpolatedOriginDict = None
+        
+        """
+        self.series_id = series_id
+        self._topology = topology
+        self.derived_from = derived_from
+        self.interpolated_from = interpolated_from
         self.data = None
-    def deriveTag(self,row,tag_column,tag="derived"):
+    def deriveTag(
+        self,
+        row : Series,
+        tag_column : str,
+        tag : str = "derived"
+        ) -> str:
+        """Generate tag for derived row"""
         if row[tag_column] is None:
             return tag
         else:
             return "%s,%s" % (row[tag_column], tag)
-    def deriveOffsetIndex(self,row,x_offset):
+    def deriveOffsetIndex(
+        self,
+        row : Series,
+        x_offset : int
+        ) -> Union[int,timedelta]:
+        """Apply offset to index of row"""
         return row.name + x_offset
-    def derive(self,keep_index=True):
+    def derive(
+        self,
+        keep_index : bool = True
+        ) -> None:
+        """Derive this series from .derived_origin
+        
+        Parameters:
+        -----------
+        keep_index : bool = True
+
+            Don't overwrite index (apply offset in-place)
+        """
         if self.derived_from is not None:
             logging.debug("Deriving %i from %s" % (self.series_id, self.derived_from.origin.name))
             if not len(self.derived_from.origin.data):
@@ -63,13 +137,49 @@ class DerivedNodeSerie:
             if hasattr(self.interpolated_from.origin_1,"max_obs_date"):
                 self.max_obs_date = self.interpolated_from.origin_1.max_obs_date
             
-    def toCSV(self,include_series_id=False):
+    def toCSV(
+        self,
+        include_series_id : bool = False
+        ) -> str:
+        """Convert series to csv string
+        
+        Parameters:
+        -----------
+        include_series_id : bool = False
+        
+            Add series_id column
+        
+        Returns:
+        --------
+        csv string : str
+        """
         if include_series_id:
             data = self.data
             data["series_id"] = self.series_id
             return data.to_csv()
         return self.data.to_csv()
-    def toList(self,include_series_id=False,timeSupport=None):
+    def toList(
+        self,
+        include_series_id : bool = False,
+        timeSupport : timedelta = None
+        ) -> List[TVP]:
+        """
+        Convert series to list of time-value pair dicts
+
+        Parameters:
+        -----------
+        include_series_id : bool = False
+
+            Add series_id property
+
+        timeSupport : timedelta = None
+
+            Time support of the timeseries (i.e., None for instantaneous observations, 1 day for daily mean)
+
+        Returns:
+        --------
+        List of time-value pair dicts : List[TVP]
+        """
         data = self.data
         data["timestart"] = data.index
         data["timeend"] = [x + timeSupport for x in data["timestart"]] if timeSupport is not None else data["timestart"]

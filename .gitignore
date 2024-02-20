@@ -10,6 +10,9 @@ share
 etc
 __pycache__
 pydrodelta/__pycache__
+pydrodelta/descriptors/__pycache__
+pydrodelta/types/__pycache__
+pydrodelta/procedures/__pycache__
 src/pydrodelta.egg-info
 pydrodelta.egg-info
 log/analysis.log

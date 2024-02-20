@@ -3,8 +3,8 @@ from .node_variable import NodeVariable
 from .derived_node_serie import DerivedNodeSerie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
-from .derived_origin import DerivedOriginDict
-from .interpolated_origin import InterpolatedOriginDict
+from .types.derived_origin_dict import DerivedOriginDict
+from .types.interpolated_origin_dict import InterpolatedOriginDict
 from .descriptors.dict_descriptor import DictDescriptor
 
 class DerivedNodeVariable(NodeVariable):
@@ -24,11 +24,9 @@ class DerivedNodeVariable(NodeVariable):
         for serie in self.series_output:
             self._series.append(
                 DerivedNodeSerie(
-                    {
-                        "series_id": serie.series_id, 
-                        "derived_from": self.derived_from
-                    },
-                    self._node._topology
+                    series_id = serie.series_id, 
+                    derived_from = self.derived_from,
+                    topology = self._node._topology
                 )
             )
     def _setInterpolatedSeries(self) -> None:
@@ -38,11 +36,9 @@ class DerivedNodeVariable(NodeVariable):
         for serie in self.series_output:
             self._series.append(
                 DerivedNodeSerie(
-                    {
-                        "series_id": serie.series_id, 
-                        "interpolated_from": self.interpolated_from
-                    },
-                    self._node._topology
+                    series_id = serie.series_id, 
+                    interpolated_from = self.interpolated_from,
+                    topology = self._node._topology
                 )
             )
     @property
@@ -62,6 +58,27 @@ class DerivedNodeVariable(NodeVariable):
         series : List[Union[dict,NodeSerie]] = None,
         series_prono : List[Union[dict,NodeSerieProno]] = None,
         **kwargs):
+        """
+        derived_from : DerivedOriginDict = None
+
+            Derivation configuration
+
+        interpolated_from : InterpolatedOriginDict = None
+
+            Interpolation configuration
+
+        series : List[Union[dict,NodeSerie]] = None
+            
+            Additional timeseries
+            
+        series_prono : List[Union[dict,NodeSerieProno]] = None
+
+            Forecast timeseries
+
+        **kwargs
+
+            Keyword arguments. See NodeVariable (:class:`~pydrodelta.NodeVariable`)
+        """
         super().__init__(**kwargs)
         self.series = []
         self.derived_from = derived_from

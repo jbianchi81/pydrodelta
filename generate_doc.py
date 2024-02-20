@@ -14,7 +14,12 @@ selected_files = [
     "procedures.uh_linear_channel",
     "util",
     "node_serie",
-    "node_serie_prono"
+    "node_serie_prono",
+    "validation",
+    "derived_node_serie",
+    "calibration",
+    "interpolated_origin",
+    "derived_origin"
 ]
 
 for filename in selected_files:

@@ -122,7 +122,7 @@ class Procedure():
         self.overwrite_original : bool = bool(overwrite_original)
         """When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data"""
         # self.simplex : list = None
-        self.calibration : Calibration = Calibration(self,calibration) if calibration is not None else None
+        self.calibration : Calibration = Calibration(self,**calibration) if calibration is not None else None
         """Configuration for calibration """
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""

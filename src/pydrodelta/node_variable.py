@@ -18,6 +18,7 @@ from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.duration_descriptor import DurationDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
+from .descriptors.string_descriptor import StringDescriptor
 
 input_crud = Crud(config["input_api"])
 output_crud = Crud(config["output_api"])
@@ -88,10 +89,8 @@ class NodeVariable:
     """DataFrame containing the original variable time series data"""
     adjust_results = DictDescriptor()
     """Model resultant of the adjustment procedure"""
-    @property
-    def name(self) -> str:
-        """Name of the node_variable"""
-        return "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
+    name = StringDescriptor()
+    """Arbitrary name of the variable"""
     time_interval = DurationDescriptor()
     """Intended time spacing of the variable"""
     def __init__(
@@ -107,7 +106,8 @@ class NodeVariable:
         linear_combination : LinearCombination = None,
         interpolation_limit : int = None,
         extrapolate : bool = False,
-        time_interval : Union[timedelta,dict,float] = None
+        time_interval : Union[timedelta,dict,float] = None,
+        name : str = None
         ):
         """
         Parameters:
@@ -147,6 +147,10 @@ class NodeVariable:
 
         time_interval : Union[timedelta,dict,float] = None
             Intended time spacing of the variable
+        
+        name :  str = None
+
+            Arbitrary name of the variable
         """
         self.id = id
         self._node = node
@@ -167,6 +171,7 @@ class NodeVariable:
         self.original_data = None
         self.adjust_results = None
         self.time_interval = time_interval if time_interval is not None else self._node.time_interval
+        self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
