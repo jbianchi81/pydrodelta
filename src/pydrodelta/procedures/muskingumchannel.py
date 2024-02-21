@@ -82,9 +82,9 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         data_ = data[["valor"]].rename(columns={"valor":"output"}).join(input[0][["valor"]].rename(columns={"valor":"input"}))
         return (
             [data], 
-            ProcedureFunctionResults({
-                "data": data_
-            })
+            ProcedureFunctionResults(
+                data = data_
+            )
         )
     
     def setParameters(

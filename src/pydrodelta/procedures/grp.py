@@ -185,14 +185,14 @@ class GRPProcedureFunction(PQProcedureFunction):
                 obs.append(q_obs)
         results = results.set_index("timestart")
         # logging.debug(str(results))
-        procedure_results = ProcedureFunctionResults({
-            "border_conditions": results[["pma","etp","q_obs","smc_obs"]],
-            "initial_states": {
+        procedure_results = ProcedureFunctionResults(
+            border_conditions = results[["pma","etp","q_obs","smc_obs"]],
+            initial_states = {
                 "Sk": self.Sk_init,
                 "Rk": self.Rk_init
             },
-            "states": results[["Sk","Rk","runoff","inflow","leakages"]].rename(columns={"Sk":"SoilStorage","Rk":"RoutingStorage","runoff":"Runoff","inflow":"Inflow","leakages":"Leakages"}),
-            "parameters": {
+            states = results[["Sk","Rk","runoff","inflow","leakages"]].rename(columns={"Sk":"SoilStorage","Rk":"RoutingStorage","runoff":"Runoff","inflow":"Inflow","leakages":"Leakages"}),
+            parameters = {
                 "X0": self.X0,
                 "X1": self.X1,
                 "X2": self.X2,
@@ -203,8 +203,8 @@ class GRPProcedureFunction(PQProcedureFunction):
                 "wp": self.wp,
                 "ae": self.ae
             },
-            "data": results
-        })
+            data = results
+        )
         return (
             [results[["q"]].rename(columns={"q":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
             procedure_results

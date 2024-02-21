@@ -68,11 +68,11 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
         # data_for_stats = results_data[["obs","output_1"]].rename(columns={"output_1": "sim"}).dropna
         return (
             output, 
-            ProcedureFunctionResults({
-                "data": results_data,
-                "parameters": {
+            ProcedureFunctionResults(
+                data = results_data,
+                parameters = {
                     "coefficients": self.coefficients,
                     "intercept": self.intercept
                 }
-            })
+            )
         )

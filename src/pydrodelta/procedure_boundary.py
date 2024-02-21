@@ -1,10 +1,43 @@
 # from pydrodelta.node_variable import NodeVariable 
 import logging
+from .descriptors.bool_descriptor import BoolDescriptor
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.string_descriptor import StringDescriptor
+from .node import Node
+from .node_variable import NodeVariable
 
 class ProcedureBoundary():
     """
     A variable at a node which is used as a procedure boundary condition
     """
+
+    optional = BoolDescriptor()
+    """If true, null values in this boundary will not raise an error"""
+
+    node_id = IntDescriptor()
+    """node identitifier. Must be present int plan.topology.nodes"""
+
+    var_id = IntDescriptor()
+    """variable identifier. Must be present in node.variables"""
+
+    name = StringDescriptor()
+    """name of the boundary. Must be one of the procedureFunction's boundaries or outputs"""
+
+    @property
+    def node(self) -> Node:
+        """Reference to the Node instance of the topology that this boundary is assigned to"""
+        self._node
+
+    @property
+    def variable(self) -> NodeVariable:
+        """Reference to the NodeVariable instance of the topology that this boundary is assigned to"""
+        self._variable
+
+    warmup_only = BoolDescriptor()
+    """If true, null values in the forecast horizon will not raise an error"""
+        
+    compute_statistics = BoolDescriptor()
+    """Compute result statistics for this boundary"""
     def __init__(
             self,
             node_id : int,
@@ -41,24 +74,18 @@ class ProcedureBoundary():
             Compute result statistics for this boundary
         """
         self.optional = optional
-        """If true, null values in this boundary will not raise an error"""
-        self.node_id = int(node_id)
-        """node identitifier. Must be present int plan.topology.nodes"""
-        self.var_id = int(var_id)
-        """variable identifier. Must be present in node.variables"""
+        self.node_id = node_id
+        self.var_id = var_id
         self.name = name
-        """name of the boundary. Must be one of the procedureFunction's boundaries or outputs"""
-        if plan is not None:
-            self.setNodeVariable(plan)
-            self._plan = plan
+        self._plan = plan
+        if self._plan is not None:
+            self.setNodeVariable(self._plan)
         else:
             self._variable = None
             self._node = None
-            self._plan = None
         self.warmup_only = warmup_only
-        """If true, mull values in the forecast horizon will not raise an error"""
         self.compute_statistics = compute_statistics
-        """Compute result statistics for this boundary"""
+    
     def toDict(self) -> dict:
         """Convert object into dict"""
         return {

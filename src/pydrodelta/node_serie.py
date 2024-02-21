@@ -38,7 +38,7 @@ class NodeSerie():
         if values is None:
             self._lim_outliers = None
         elif isinstance(values,(tuple, list)):
-            if values.len < 2:
+            if len(values) < 2:
                 raise ValueError("lim_outliers must be of length 2")
             else:
                 self._lim_outliers = (values[0],values[1])
@@ -74,6 +74,8 @@ class NodeSerie():
         self._observations = util.parseObservations(values) if values is not None else None
     save_post = StringDescriptor()
     """Save upload payload into this file"""
+    comment = StringDescriptor()
+    """Comment about this series"""
     def __init__(
         self,
         series_id : int,
@@ -85,7 +87,8 @@ class NodeSerie():
         moving_average : timedelta = None,
         csv_file : str = None,
         observations : Union[List[TVP],List[tuple[datetime,float]]] = None,
-        save_post : str = None
+        save_post : str = None,
+        comment : str = None
         ):
         """
         Parameters:
@@ -133,6 +136,7 @@ class NodeSerie():
         self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],csv_file) if csv_file is not None else None
         self.observations = observations
         self.save_post = save_post
+        self.comment = comment
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
     def toDict(self) -> dict:

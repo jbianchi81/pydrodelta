@@ -70,8 +70,8 @@ class JunctionProcedureFunction(ProcedureFunction):
         output = output.join(output_obs[0][["valor"]].rename(columns={"valor":"output_obs"}))
         return (
             [output[["valor"]]], 
-            ProcedureFunctionResults({
-                "border_conditions": input,
-                "data": output.rename(columns={"valor":"output","valor_1":"input_1"})
-            })
+            ProcedureFunctionResults(
+                border_conditions = input,
+                data = output.rename(columns={"valor":"output","valor_1":"input_1"})
+            )
         )

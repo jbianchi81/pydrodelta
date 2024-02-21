@@ -377,12 +377,12 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
         results = results.set_index("timestart")
         # logging.debug(str(results))
-        procedure_results = ProcedureFunctionResults({
-            "border_conditions": results[["pma","etp","q_obs","smc_obs"]],
-            "initial_states": self.initial_states,
-            "states": results[["x0","x1","x2","x3"]],
-            "parameters": self.parameters,
-            "extra_pars": {
+        procedure_results = ProcedureFunctionResults(
+            border_conditions =  results[["pma","etp","q_obs","smc_obs"]],
+            initial_states =  self.initial_states,
+            states = results[["x0","x1","x2","x3"]],
+            parameters = self.parameters,
+            extra_pars = {
                 "rho": self.rho,
                 "area": self.area,
                 "ae": self.ae,
@@ -400,8 +400,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             #     "sim": sim,
             #     "compute": True
             # },
-            "data": results    
-        })
+            data = results    
+        )
         return (
             [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
             procedure_results

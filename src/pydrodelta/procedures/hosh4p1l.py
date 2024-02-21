@@ -77,9 +77,9 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
         data_["EVR2"] = self.engine.EVR2[0:len(self.Boundaries)]
         return (
             [q_sim,smc_sim], 
-            ProcedureFunctionResults({
-                "data": data_
-            })
+            ProcedureFunctionResults(
+                data = data_
+            )
         )
 
     def setInitialStates(

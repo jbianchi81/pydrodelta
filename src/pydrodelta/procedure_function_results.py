@@ -2,26 +2,97 @@ from pydrodelta.result_statistics import ResultStatistics
 from pandas import DataFrame
 import numpy as np
 import logging
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 class ProcedureFunctionResults:
-    def __init__(self,params:dict={}):
-        self.border_conditions : Union[list,DataFrame,None] = params["border_conditions"] if "border_conditions" in params else None
-        self.initial_states = params["initial_states"] if "initial_states" in params else None
-        self.states = params["states"] if "states" in params else None
-        self.parameters : Union[list,dict] = params["parameters"] if "parameters" in params else None
-        self.statistics : Optional[list] = [ResultStatistics(**x) for x in params["statistics"]] if "statistics" in params and type(params["statistics"]) == list else [ResultStatistics(**params["statistics"])] if "statistics" in params else None
-        self.statistics_val : Optional[list] = [ResultStatistics(**x) for x in params["statistics_val"]] if "statistics_val" in params and type(params["statistics_val"]) == list else [ResultStatistics(**params["statistics_val"])] if "statistics_val" in params else None
-        self.data : Optional[DataFrame] = DataFrame(params["data"]) if "data" in params else None
-        self.extra_pars : Optional[dict] = params["extra_pars"] if "extra_pars" in params else None
+    """The results of a ProcedureFunction run"""
+    def __init__(
+        self,
+        border_conditions : Union[List[DataFrame],DataFrame] = None,
+        initial_states : Union[list,dict] = None,
+        states : Union[list,DataFrame] = None,
+        parameters : Union[list,dict] = None,
+        statistics : Union[list,dict] = None,
+        statistics_val : list = None,
+        data : DataFrame = None,
+        extra_pars : dict = None
+        ):
+        """
+        border_conditions : Union[List[DataFrame],DataFrame] = None
+
+            Border conditions timeseries
+
+        initial_states : Union[list,dict] = None
+
+            Initial states
+
+        states : Union[List[DataFrame],DataFrame] = None
+
+            States timeseries
+
+        parameters : Union[list,dict] = None
+
+            Procedure function calibratable parameters
+
+        statistics : Union[list,dict] = None
+
+            Result statistics
+
+        statistics_val : list = None
+
+            Validation result statistics
+
+        data : DataFrame = None
+
+            Procedure function pivoted table. May include boundaries, states and/or outputs
+
+        extra_pars : dict = None
+
+            Additional, non-calibratable parameters
+
+        """
+        self.border_conditions : Union[list,DataFrame,None] = border_conditions
+        """Border conditions timeseries"""
+        self.initial_states = initial_states
+        """Initial states"""
+        self.states = states
+        """State timeseries"""
+        self.parameters : Union[list,dict] = parameters
+        """Procedure function calibratable  parameters"""
+        self.statistics : Optional[list] = [ResultStatistics(**x) for x in statistics] if isinstance(statistics,(list,tuple)) else [ResultStatistics(**statistics)] if statistics is not None else None
+        """Result statistics"""
+        self.statistics_val : Optional[list] = [ResultStatistics(**x) for x in statistics_val] if isinstance(statistics_val,(list,tuple)) else [ResultStatistics(**statistics_val)] if statistics_val is not None else None
+        """Validation results statistics"""
+        self.data : Optional[DataFrame] = DataFrame(data) if data is not None else None
+        """Procedure function pivoted table including boundaries, states and outputs"""
+        self.extra_pars : Optional[dict] = extra_pars
+        """Additional, non-calibratable parameters"""
     # def toJSON(self):
     #     return json.dumps(self, default=lambda o: o.__dict__, 
     #         sort_keys=True, indent=4)
-    def setStatistics(self,result_statistics:Optional[list]=None):
+    def setStatistics(
+        self,
+        result_statistics : Optional[list] = None
+        ) -> None:
+        """Set .statistics from result_statistics"""
         self.statistics = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
-    def setStatisticsVal(self,result_statistics:Optional[list]=None):
+    def setStatisticsVal(
+        self,
+        result_statistics : Optional[list] = None
+        ) -> None:
+        """Set .statistics_val from result_statistics"""
         self.statistics_val = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
-    def save(self,output):   
+    def save(
+        self,
+        output : str
+        ) -> None:
+        """Save procedure function data as csv file
+        
+        Parameters:
+        -----------
+        output : str
+                
+            Path of csv file to write"""   
         if self.data is None:
             logging.warn("Procedure function produced no result to save. File %s not saved" % output)
             return
@@ -31,7 +102,8 @@ class ProcedureFunctionResults:
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.ERROR(f"Couldn't write to file ({e})")
-    def toDict(self):
+    def toDict(self) -> dict:
+        """Convert procedure function results to dict"""
         # logging.debug({ 
         #     "border_conditions": str(type(self.border_conditions)),
         #     "initial_states": str(type(self.initial_states)),

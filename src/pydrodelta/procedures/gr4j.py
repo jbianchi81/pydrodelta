@@ -99,10 +99,10 @@ class GR4JProcedureFunction(PQProcedureFunction):
             )
         return (
             [data, smcdata], 
-            ProcedureFunctionResults({
-                "data": data_,
-                "states": data_[["SoilStorage","RoutingStorage","Runoff","Inflow","Leakages"]]
-            })
+            ProcedureFunctionResults(
+                data = data_,
+                states = data_[["SoilStorage","RoutingStorage","Runoff","Inflow","Leakages"]]
+            )
         )
     
     def setParameters(self,parameters:Union[list,tuple]=[]):

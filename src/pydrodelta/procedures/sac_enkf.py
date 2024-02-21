@@ -735,24 +735,24 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         results_h2.set_index("timestart",inplace=True)
         # logging.debug(str(results))
         # results_no_na = results[["q_obs","q4"]].dropna()
-        procedure_results = ProcedureFunctionResults({
-            "border_conditions": results[["pma","etp","q_obs","smc_obs","smc_var"]],
-            "initial_states": self.initial_states,
-            "states": results[["x1","x2","x3","x4"]],
-            "parameters": self.parameters,
+        procedure_results = ProcedureFunctionResults(
+            border_conditions = results[["pma","etp","q_obs","smc_obs","smc_var"]],
+            initial_states = self.initial_states,
+            states = results[["x1","x2","x3","x4"]],
+            parameters = self.parameters,
             # "statistics": {
             #     "obs": results_no_na["q_obs"].tolist(),
             #     "sim": results_no_na["q4"].tolist(),
             #     "compute": True
             # }, 
-            "data": results.join([
+            data = results.join([
                 results_al.rename(columns={"x1":"x1_al","x2":"x2_al","x3":"x3_al","x4":"x4_al","q3":"q3_al","q4":"q4_al","smc":"smc_al"}), 
                 results_min.rename(columns={"x1":"x1_min","x2":"x2_min","x3":"x3_min","x4":"x4_min","q4":"q4_min","smc":"smc_min"}), 
                 results_h1.rename(columns={"x1":"x1_h1","x2":"x2_h1","x3":"x3_h1","x4":"x4_h1","q4":"q4_h1","smc":"smc_h1"}), 
                 results_h2.rename(columns={"x1":"x1_h2","x2":"x2_h2","x3":"x3_h2","x4":"x4_h2","q4":"q4_h2","smc":"smc_h2"}), 
                 DataFrame(KG_list).set_index("timestart")
             ])
-        })
+        )
         return (
             [
                 results[["q4"]].rename(columns={"q4":"valor"}),

@@ -1,26 +1,144 @@
-from pydrodelta.procedure_boundary import ProcedureBoundary
-from pydrodelta.procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union, Tuple
+from .procedure_boundary import ProcedureBoundary
+from .procedure_function_results import ProcedureFunctionResults
+from typing import Optional, Union, Tuple, List
+from .types.procedure_boundary_dict import ProcedureBoundaryDict
+from .descriptors.list_descriptor import ListDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
+from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 # import logging
 
 class ProcedureFunction:
     """
     Abstract class to represent the transformation function of the procedure. It is instantiation, 'params' should be a dictionary which may contain an array of numerical or string 'parameters', an array of numerical or string 'initial_states', whereas 'procedure' must be the Procedure element which contains the function. The .run() method should accept an optional array of seriesData as 'input' and return an array of seriesData and a procedureFunctionResults object. When extending this class, any additional parameters may be added to 'params'.
     """
+
     _boundaries = [] 
     """ static list of function boundaries (of class function_boundary.FunctionBoundary)
     """
+    
     _outputs = [] 
     """ static list of function outputs (of class function_boundary.FunctionBoundary)
     """
+    
     _additional_boundaries = False
     """ set to true to allow for additional boundaries """
+    
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
+    
     _parameters = []
     """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
+    
     _states = []
     """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
+
+    parameters = ListOrDictDescriptor()
+    """function parameter values. Ordered list or dict"""
+
+    initial_states = ListOrDictDescriptor()
+    """list or dict of function initial state values"""
+    
+    @property
+    def boundaries(self) -> List[ProcedureBoundary]:
+        """List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        return self.__boundaries
+    @boundaries.setter
+    def boundaries(
+        self,
+        boundaries : List[ProcedureBoundaryDict]
+        ) -> None:
+        """Setter of boundaries
+        
+        Parameters:
+        ----------
+        boundaries : list
+            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
+        self.__boundaries = []
+        for b in self.__class__._boundaries:
+            if b.name in [boundary["name"] for boundary in boundaries]:
+                # if len(boundaries[b.name]) < 3:
+                #     boundaries[b.name].append(b.name)
+                # print("%s" % str(boundaries[b.name]))
+                boundary = [boundary for boundary in boundaries if boundary["name"] == b.name][0]
+                self.__boundaries.append(
+                    ProcedureBoundary(
+                        name = boundary["name"],
+                        node_id = boundary["node_variable"][0],
+                        var_id = boundary["node_variable"][1],
+                        plan = self._procedure._plan,
+                        optional = b.optional,
+                        warmup_only = b.warmup_only
+                    ))
+            else:
+                raise Exception("Missing NodeVariableIdTuple for boundary %s of procedure %s" % (str(b.name), str(self._procedure.id)))
+        if self.__class__._additional_boundaries:
+            for key in [boundary["name"] for boundary in boundaries]:
+                if key not in [b.name for b in self.__boundaries]:
+                    # if len(boundaries[key]) < 3:
+                    #     boundaries[key].append(key)
+                    boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
+                    self.__boundaries.append(
+                        ProcedureBoundary(
+                            name = boundary["name"],
+                            node_id = boundary["node_variable"][0],
+                            var_id = boundary["node_variable"][1],
+                            plan = self._procedure._plan
+                        ))
+    
+    @property
+    def outputs(self) -> List[ProcedureBoundary]:
+        """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        return self.__outputs
+    @outputs.setter
+    def outputs(
+        self,
+        outputs : List[ProcedureBoundaryDict]
+        ) -> None:
+        """Setter for outputs
+        
+        Parameters:
+        -----------
+        outputs : list of dict
+            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id, variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
+        self.__outputs = []
+        for b in self.__class__._outputs:
+            if b.name in [o["name"] for o in outputs]:
+                # if len(outputs[b.name]) < 3:
+                #     outputs[b.name].append(b.name)
+                output = [o for o in outputs if o["name"] == b.name][0]
+                self.__outputs.append(
+                    ProcedureBoundary(
+                        name = output["name"],
+                        node_id = output["node_variable"][0],
+                        var_id = output["node_variable"][1],
+                        plan = self._procedure._plan,
+                        optional = b.optional,
+                        compute_statistics=b.compute_statistics
+                    ))
+            else:
+                raise Exception("Missing nodeVariable for output %s of procedure %s" % (str(b.name), str(self._procedure.id)))
+        if self.__class__._additional_outputs:
+            for key in [o["name"] for o in outputs]:
+                if key not in [o.name for o in self.__outputs]:
+                    # if len(outputs[key]) < 3:
+                    #     outputs[key].append(key)
+                    output = [o for o in outputs if o["name"] == key][0]
+                    self.__outputs.append(
+                        ProcedureBoundary(
+                            name = output["name"],
+                            node_id = output["node_variables"][0],
+                            var_id = output["node_variables"][1],
+                            plan = self._procedure._plan
+                        ))
+    
+    input = ListDescriptor()
+    """Input of the procedure function"""
+
+    extra_pars = DictDescriptor()
+    """Additional (non-calibratable) parameters"""
+
     def __init__(
         self,
         procedure,
@@ -36,39 +154,36 @@ class ProcedureFunction:
         Parameters:
         -----------
         procedure : Procedure
+        
             Procedure containing this function
         
         parameters : list or dict of floats 
+        
             function parameter values. Ordered list or dict
             
         initial_states : list or dict of floats
+        
             list of function initial state values. Ordered list or dict
         
         boundaries : list of dict
+        
             List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>
         
         outputs : list of dict
+        
             list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>
         
         extra_pars: dict
+        
             Additional (non-calibratable) parameters"""
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
-        """Procedure containing this function"""
         self.parameters = parameters
-        """list or dict of function parameter values"""
         self.initial_states = initial_states
-        """list or dict of function initial state values"""
-        self.boundaries = []
-        """List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
-        self.setBoundaries(boundaries)
-        self.outputs = []
-        """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
-        self.setOutputs(outputs)
+        self.boundaries = boundaries
+        self.outputs = outputs
         self.input = None
-        """Input of the procedure function"""
         self.extra_pars = extra_pars
-        """Additional (non-calibratable) parameters"""
     def toDict(self) -> dict:
         """Convert this procedureFunction to a dict
         
@@ -83,91 +198,7 @@ class ProcedureFunction:
             "outputs": [o.toDict() for o in self.outputs],
             "extra_pars": self.extra_pars
         }
-    def setBoundaries(
-        self,
-        boundaries : list = []
-        ) -> None:
-        """Setter of boundaries
-        
-        Parameters:
-        ----------
-        boundaries : list
-            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
-        """
-        self.boundaries = []
-        for b in self.__class__._boundaries:
-            if b.name in [boundary["name"] for boundary in boundaries]:
-                # if len(boundaries[b.name]) < 3:
-                #     boundaries[b.name].append(b.name)
-                # print("%s" % str(boundaries[b.name]))
-                boundary = [boundary for boundary in boundaries if boundary["name"] == b.name][0]
-                self.boundaries.append(
-                    ProcedureBoundary(
-                        name = boundary["name"],
-                        node_id = boundary["node_variable"][0],
-                        var_id = boundary["node_variable"][1],
-                        plan = self._procedure._plan,
-                        optional = b.optional,
-                        warmup_only = b.warmup_only
-                    ))
-            else:
-                raise Exception("Missing NodeVariableIdTuple for boundary %s of procedure %s" % (str(b.name), str(self._procedure.id)))
-        if self.__class__._additional_boundaries:
-            for key in [boundary["name"] for boundary in boundaries]:
-                if key not in [b.name for b in self.boundaries]:
-                    # if len(boundaries[key]) < 3:
-                    #     boundaries[key].append(key)
-                    boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
-                    self.boundaries.append(
-                        ProcedureBoundary(
-                            name = boundary["name"],
-                            node_id = boundary["node_variable"][0],
-                            var_id = boundary["node_variable"][1],
-                            plan = self._procedure._plan
-                        ))
 
-    def setOutputs(
-        self,
-        outputs : list = []
-        ) -> None:
-        """Setter for outputs
-        
-        Parameters:
-        -----------
-        outputs : list of dict
-            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
-        """
-
-        for b in self.__class__._outputs:
-            if b.name in [o["name"] for o in outputs]:
-                # if len(outputs[b.name]) < 3:
-                #     outputs[b.name].append(b.name)
-                output = [o for o in outputs if o["name"] == b.name][0]
-                self.outputs.append(
-                    ProcedureBoundary(
-                        name = output["name"],
-                        node_id = output["node_variable"][0],
-                        var_id = output["node_variable"][1],
-                        plan = self._procedure._plan,
-                        optional = b.optional,
-                        compute_statistics=b.compute_statistics
-                    ))
-            else:
-                raise Exception("Missing nodeVariable for output %s of procedure %s" % (str(b.name), str(self._procedure.id)))
-        if self.__class__._additional_outputs:
-            for key in [o["name"] for o in outputs]:
-                if key not in [o.name for o in self.outputs]:
-                    # if len(outputs[key]) < 3:
-                    #     outputs[key].append(key)
-                    output = [o for o in outputs if o["name"] == key][0]
-                    self.outputs.append(
-                        ProcedureBoundary(
-                            name = output["name"],
-                            node_id = output["node_variables"][0],
-                            var_id = output["node_variables"][1],
-                            plan = self._procedure._plan
-                        ))
-    
     def rerun(
         self,
         input : list = None,
@@ -215,7 +246,7 @@ class ProcedureFunction:
         if input is None:
             input = self._procedure.loadInput(inplace=False)
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
-        return input, ProcedureFunctionResults({"initial_states": input})
+        return input, ProcedureFunctionResults(initial_states = input)
     
     def makeSimplex(
         self,

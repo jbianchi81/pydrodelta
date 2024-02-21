@@ -102,11 +102,11 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         for i, input_ in enumerate(input):
             colname = "input_%i" % (i + 1)
             results_data = results_data.join(input_[["valor"]].rename(columns={"valor": colname}),how="outer")
-        return [output], ProcedureFunctionResults({
-            "data": results_data,
-            "parameters": {
+        return [output], ProcedureFunctionResults(
+            data = results_data,
+            parameters = {
                 "forecast_steps": self.forecast_steps,
                 "lookback_steps": self.lookback_steps,
                 "coefficients": [x.toDict() for x in self.coefficients]
             }
-        })
+        )
