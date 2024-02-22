@@ -1,6 +1,6 @@
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.function_boundary import FunctionBoundary
+from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..validation import getSchemaAndValidate
+from ..function_boundary import FunctionBoundary
 
 class ExpressionProcedureFunction(ProcedureFunction):
     """Procedure function that evaluates an arbitrary expression where 'value' is replaced with the values of input"""
@@ -17,14 +17,12 @@ class ExpressionProcedureFunction(ProcedureFunction):
         expression : str,
         **kwargs):
         """
-        Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-        Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
-        
-        Parameters:
-        -----------
         expression :str
+
             Expression to evaluate. For each step of input, 'value' is replaced with the value of input and the expression is evaluated
-        \**kwargs : keyword arguments"""
+        
+        \**kwargs : keyword arguments (see ProcedureFunction)
+        """
         super().__init__(**kwargs)
         getSchemaAndValidate(kwargs,"ExpressionProcedureFunction")
         self.expression = expression

@@ -63,6 +63,6 @@ class NodeSerieProno(NodeSerie):
             self.data = createEmptyObsDataFrame()
         self.original_data = self.data.copy(deep=True)
         del self.metadata["pronosticos"]
-        self.metadata = NodeSeriePronoMetadata(self.metadata)
+        self.metadata = NodeSeriePronoMetadata(**self.metadata)
     def setData(self,data):
         self.data = data

@@ -1,19 +1,46 @@
-import logging
-# from numpy import tanh
-# from typing import Optional
-# from pydrodelta.series_data import SeriesData
 import numpy as np
-from pandas import DataFrame, Series, concat
-from typing import Union
+from pandas import DataFrame
+from typing import Union, List
+import logging
 
-from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.procedures.pq import PQProcedureFunction
-from pydrodelta.pydrology import GR4J
-from pydrodelta.model_parameter import ModelParameter
-from pydrodelta.model_state import ModelState
+from ..procedure_function import ProcedureFunctionResults
+from ..procedures.pq import PQProcedureFunction
+from ..pydrology import GR4J
+from ..model_parameter import ModelParameter
+from ..model_state import ModelState
 from numpy import inf
 
 class GR4JProcedureFunction(PQProcedureFunction):
+    """Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo almacenamiento en reservorio de propagación, coeficiente de intercambio."""
+
+    @property
+    def X0(self) -> float:
+        """capacite du reservoir de production (mm)"""
+        return self.parameters["X0"]
+    @property
+    def X1(self) -> float:
+        """capacite du reservoir de routage (mm)"""
+        return self.parameters["X1"]
+    @property
+    def X2(self) -> float:
+        """facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
+        return self.parameters["X2"]
+    @property
+    def X3(self) -> float:
+        """temps de base de l'hydrogramme unitaire (d)"""
+        return self.parameters["X3"]
+    @property
+    def Sk_init(self) -> float:
+        """Initial soil storage"""
+        return self.initial_states["Sk"] if "Sk" in self.initial_states else 0
+    @property
+    def Rk_init(self) -> float:
+        """Initial routing storage"""
+        return self.initial_states["Rk"] if "Rk" in self.initial_states else 0
+    @property
+    def dt(self) -> float:
+        """Time step duration [days]"""
+        return self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 
     _parameters = [
         #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
@@ -42,30 +69,70 @@ class GR4JProcedureFunction(PQProcedureFunction):
 
     def __init__(
         self,
+        parameters : Union[list,tuple,dict],
+        initial_states : Union[list,tuple,dict] = None,
+        extra_pars : dict = None,
         **kwargs
         ):
-        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
-        self.X0 = self.parameters["X0"]
-        """X0	capacite du reservoir de production (mm)"""
-        self.X1 = self.parameters["X1"]
-        """X1	capacite du reservoir de routage (mm)"""
-        self.X2 = self.parameters["X2"]
-        """X2	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
-        self.X3 = self.parameters["X3"]
-        """X3	temps de base de l'hydrogramme unitaire (d)"""
-
-        self.Sk_init = self.initial_states["Sk"] if "Sk" in self.initial_states else 0
-        """Initial Soil Storage"""
-        self.Rk_init = self.initial_states["Rk"] if "Rk" in self.initial_states else 0
-        """Initial Routing Storage"""
-
-        self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
-        """Time step duration (days, default 1)"""        
-
-    def run(self,input=None) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
-        Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
+        parameters : list or tuple or dict
+
+            If list or tuple: (X0 : float, X1 : float, X2 : float, X3 : float)
+
+            If dict: {"X0": float, "X1": float, "X2": float, "X3": float}
+
+            Where:
+            - X0:	capacite du reservoir de production (mm)
+            - X1:	capacite du reservoir de routage (mm)
+            - X2:	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
+            - X3:	temps de base de l'hydrogramme unitaire (d)
+        
+        initial_states: list, tuple or dict
+
+            If list or tuple: (Sk_init : float, Rk_init : float)
+
+            If dict: {"Sk_init": float, "Rk_init": float}
+
+            where:
+            - Sk_init: Initial soil storage [mm]
+            - Rk_init: Initial routing storage [mm]
+
+        extra_pars : dict = None
+
+            Additional, non-calibratable parameters
+
+            Properties:
+            - dt : float
+
+                Time step duration (days, default 1)
+|
+        \**kwargs : keyword arguments (see ProcedureFunction)"""
+        super().__init__(
+            parameters=parameters, 
+            initial_states=initial_states,
+            extra_pars=extra_pars,
+            **kwargs)
+    
+    def run(
+        self,
+        input : List[DataFrame] = None
+        ) -> tuple[list, dict]:
+        """
+        Runs the procedure function.
+        
+        Parameters:
+        -----------
+        
+        input : List[DataFrame] = None
+        
+            If input is None, it loads the boundaries. Else, input must be a list of DataFrames
+        
+        Returns:
+        --------
+        
+        tuple[List[DataFrame], ProcedureFunctionResults]
+            
+            Devuelve una lista de DataFrames (uno por output del procedimiento) y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
@@ -105,14 +172,41 @@ class GR4JProcedureFunction(PQProcedureFunction):
             )
         )
     
-    def setParameters(self,parameters:Union[list,tuple]=[]):
-        super().setParameters(parameters)
-        self.X0 = self.parameters["X0"]
-        self.X1 = self.parameters["X1"]
-        self.X2 = self.parameters["X2"]
-        self.X3 = self.parameters["X3"]
+    def setParameters(
+        self,
+        parameters : Union[list, tuple] = []
+        ) -> None:
+        """Set parameters from ordered list
+        
+        Parameters:
+        -----------
+        parameters : Union[list, tuple] = []
 
-    def setInitialStates(self,states:Union[list,tuple]=[]):
+            (X0 : float, X1 : float, X2 : float, X3 : float)
+            
+            Where:
+            - X0:	capacite du reservoir de production (mm)
+            - X1:	capacite du reservoir de routage (mm)
+            - X2:	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
+            - X3:	temps de base de l'hydrogramme unitaire (d)
+
+        """
+        super().setParameters(parameters)
+
+    def setInitialStates(
+        self,
+        states : Union[list, tuple] = []
+        ):
+        """Set initial states from ordered list
+        
+        Parameters:
+        -----------
+        states : Union[list, tuple] = []
+        
+            (Sk_init : float, Rk_init : float)
+
+            where:
+            - Sk_init: Initial soil storage [mm]
+            - Rk_init: Initial routing storage [mm]
+        """
         super().setInitialStates(states)
-        self.Sk_init = self.initial_states["Sk"]
-        self.Rk_init = self.initial_states["Rk"]

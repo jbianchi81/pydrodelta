@@ -1,5 +1,5 @@
-from pydrodelta.procedures.junction import JunctionProcedureFunction
-from pydrodelta.function_boundary import FunctionBoundary
+from ..procedures.junction import JunctionProcedureFunction
+from ..function_boundary import FunctionBoundary
 
 class DifferenceProcedureFunction(JunctionProcedureFunction):
     """Procedure function that substracts second boundary from the first"""

@@ -1,5 +1,6 @@
 class StringDescriptor:
     def __set_name__(self, owner, name):
+        """A string descriptor with default None"""
         self._name = name
 
     def __get__(self, instance, owner):

@@ -155,12 +155,7 @@ Model resultant of the adjustment procedure
 
 #### name
 
-```python
-@property
-def name() -> str
-```
-
-Name of the node_variable
+Arbitrary name of the variable
 
 <a id="pydrodelta.node_variable.NodeVariable.time_interval"></a>
 
@@ -184,7 +179,8 @@ def __init__(id: int,
              linear_combination: LinearCombination = None,
              interpolation_limit: int = None,
              extrapolate: bool = False,
-             time_interval: Union[timedelta, dict, float] = None)
+             time_interval: Union[timedelta, dict, float] = None,
+             name: str = None)
 ```
 
 **Arguments**:
@@ -225,6 +221,10 @@ def __init__(id: int,
   
   time_interval : Union[timedelta,dict,float] = None
   Intended time spacing of the variable
+  
+  name :  str = None
+  
+  Arbitrary name of the variable
 
 <a id="pydrodelta.node_variable.NodeVariable.setOriginalData"></a>
 

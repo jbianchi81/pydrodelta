@@ -4,6 +4,7 @@
   * [GenericLinearChannelProcedureFunction](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction)
     * [coefficients](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.coefficients)
     * [Proc](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.Proc)
+    * [dt](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.dt)
     * [\_\_init\_\_](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.__init__)
     * [run](#pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.run)
 
@@ -18,6 +19,8 @@
 ```python
 class GenericLinearChannelProcedureFunction(ProcedureFunction)
 ```
+
+Abstract class
 
 Método de tránsito hidrológico implementado sobre la base de teoría de sistemas lineales. Así, considera al tránsito de energía, materia o información como un proceso lineal desde un nodo superior hacia un nodo inferior. Específicamente, sea I=[I1,I2,...,IN] el vector de pulsos generados por el borde superior y U=[U1,U2,..,UM] una función de distribución que representa el prorateo de un pulso unitario durante el tránsito desde un nodo superior (borde) hacia un nodo inferior (salida), el sistema opera aplicando las propiedades de proporcionalidad y aditividad, de manera tal que es posible propagar cada pulso a partir de U y luego mediante la suma de estos prorateos obtener el aporte de este tránsito sobre el nodo inferior (convolución).
 
@@ -43,6 +46,12 @@ def Proc()
 
 Linear channel procedure
 
+<a id="pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.dt"></a>
+
+#### dt
+
+computation time step
+
 <a id="pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.__init__"></a>
 
 #### \_\_init\_\_
@@ -51,19 +60,14 @@ Linear channel procedure
 def __init__(**kwargs)
 ```
 
-Generic linear channel. Abstract class
+/**kwargs : keyword arguments
 
-**Arguments**:
-
-  -----------
-  /**kwargs : keyword arguments
-  
-  Keyword arguments:
-  ------------------
-  extra_pars : dict
-  properties:
-  dt : float
-  calculation timestep
+Keyword arguments:
+------------------
+extra_pars : dict
+    properties:
+    dt : float 
+        calculation timestep
 
 <a id="pydrodelta.procedures.generic_linear_channel.GenericLinearChannelProcedureFunction.run"></a>
 

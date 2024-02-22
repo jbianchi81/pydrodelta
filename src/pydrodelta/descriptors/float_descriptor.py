@@ -1,5 +1,5 @@
 class FloatDescriptor:
-    """Float descriptor with default None"""
+    """A float descriptor with default None"""
     def __set_name__(self, owner, name):
         self._name = name
 

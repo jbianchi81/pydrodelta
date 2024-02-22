@@ -6,6 +6,7 @@
     * [interpolated\_from](#pydrodelta.derived_node_variable.DerivedNodeVariable.interpolated_from)
     * [series](#pydrodelta.derived_node_variable.DerivedNodeVariable.series)
     * [series\_prono](#pydrodelta.derived_node_variable.DerivedNodeVariable.series_prono)
+    * [\_\_init\_\_](#pydrodelta.derived_node_variable.DerivedNodeVariable.__init__)
     * [derive](#pydrodelta.derived_node_variable.DerivedNodeVariable.derive)
 
 <a id="pydrodelta.derived_node_variable"></a>
@@ -55,6 +56,38 @@ def series_prono() -> List[NodeSerieProno]
 ```
 
 Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs
+
+<a id="pydrodelta.derived_node_variable.DerivedNodeVariable.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(derived_from: DerivedOriginDict = None,
+             interpolated_from: InterpolatedOriginDict = None,
+             series: List[Union[dict, NodeSerie]] = None,
+             series_prono: List[Union[dict, NodeSerieProno]] = None,
+             **kwargs)
+```
+
+derived_from : DerivedOriginDict = None
+
+    Derivation configuration
+
+interpolated_from : InterpolatedOriginDict = None
+
+    Interpolation configuration
+
+series : List[Union[dict,NodeSerie]] = None
+
+    Additional timeseries
+
+series_prono : List[Union[dict,NodeSerieProno]] = None
+
+    Forecast timeseries
+
+**kwargs
+
+    Keyword arguments. See NodeVariable (:class:`~pydrodelta.NodeVariable`)
 
 <a id="pydrodelta.derived_node_variable.DerivedNodeVariable.derive"></a>
 

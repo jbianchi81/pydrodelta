@@ -16,6 +16,7 @@
     * [csv\_file](#pydrodelta.node_serie.NodeSerie.csv_file)
     * [observations](#pydrodelta.node_serie.NodeSerie.observations)
     * [save\_post](#pydrodelta.node_serie.NodeSerie.save_post)
+    * [comment](#pydrodelta.node_serie.NodeSerie.comment)
     * [\_\_init\_\_](#pydrodelta.node_serie.NodeSerie.__init__)
     * [toDict](#pydrodelta.node_serie.NodeSerie.toDict)
     * [loadData](#pydrodelta.node_serie.NodeSerie.loadData)
@@ -139,6 +140,12 @@ Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, o
 
 Save upload payload into this file
 
+<a id="pydrodelta.node_serie.NodeSerie.comment"></a>
+
+#### comment
+
+Comment about this series
+
 <a id="pydrodelta.node_serie.NodeSerie.__init__"></a>
 
 #### \_\_init\_\_
@@ -154,7 +161,8 @@ def __init__(series_id: int,
              csv_file: str = None,
              observations: Union[List[TVP], List[tuple[datetime,
                                                        float]]] = None,
-             save_post: str = None)
+             save_post: str = None,
+             comment: str = None)
 ```
 
 **Arguments**:

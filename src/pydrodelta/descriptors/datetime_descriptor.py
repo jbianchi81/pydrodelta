@@ -3,9 +3,9 @@ from pydrodelta.util import tryParseAndLocalizeDate
 class DatetimeDescriptor:
     """Datetime descriptor
     
-    Reads: for absolute date: ISO-8601 datetime string or datetime.datetime. For relative date: dict (duration key-values) or float (decimal number of days)
+    Reads: for absolute date: ISO-8601 datetime string or datetime.datetime. For relative date: dict (duration key-values) or float (decimal number of days). Defaults to None
     
-    Returns: datetime.datetime"""
+    Returns: None or datetime.datetime"""
     def __set_name__(self, owner, name):
         self._name = name
 

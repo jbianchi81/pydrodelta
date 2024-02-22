@@ -11,7 +11,6 @@ selected_files = [
     "procedure",
     "result_statistics",
     "topology",
-    "procedures.uh_linear_channel",
     "util",
     "node_serie",
     "node_serie_prono",
@@ -19,7 +18,17 @@ selected_files = [
     "derived_node_serie",
     "calibration",
     "interpolated_origin",
-    "derived_origin"
+    "derived_origin",
+    "procedure_boundary",
+    "procedure_function",
+    "procedure_function_results",
+    "procedures.uh_linear_channel",
+    "procedures.gr4j",
+    "procedures.difference",
+    "procedures.expression",
+    "model_parameter",
+    "model_state",
+    "node_serie_prono_metadata"
 ]
 
 for filename in selected_files:
