@@ -1,56 +1,80 @@
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.function_boundary import FunctionBoundary
+from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..validation import getSchemaAndValidate
+from ..function_boundary import FunctionBoundary
 import numpy as np
+from typing import List
+from pandas import DataFrame
 
 class JunctionProcedureFunction(ProcedureFunction):
     """Procedure function that represents the addition of two or more inputs"""
+    
     _boundaries = [
         FunctionBoundary({"name": "input_1"}),
         FunctionBoundary({"name": "input_2"})
     ]
     """input_1 and input_2 are added together. Additional boundaries (input_3, input_4, etc..) are allowed."""
+    
     _additional_boundaries = True
     """Allow for additional boundaries"""
+    
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
     """One output of the procedure"""
+    
+    @property
+    def truncate_negative(self) -> bool:
+        """Replace negative output values to zero"""
+        return bool(self.extra_pars["truncate_negative"]) if "truncate_negative" in self.extra_pars else False
+
     def __init__(
         self,
+        extra_pars : dict = None,
         **kwargs):
         """
-        Adds input_1 with input_2 (and input_3, etc... if present) and saves into output
+        extra_pars :dict
 
-        Parameters:
-        """
-        super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"JunctionProcedureFunction")
-        """Option to replace negative values with zero"""
-        self.truncate_negative = bool(self.extra_pars["truncate_negative"]) if "truncate_negative" in self.extra_pars else False
-        """Replace negative output values to zero"""
+            Properties:
+            - truncate_negative : bool = False
+
+                Replace negative output values to zero
+
+        \**kwargs (see [..procedure_function.ProcedureFunction][])
+        """        
+        super().__init__(extra_pars = extra_pars, **kwargs)
+        getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")
 
     def run(
         self,
-        input : list = None
-        ) -> tuple:
+        input : List[DataFrame] = None
+        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the procedure
         
-        Parameters:
+        Arguments:
         -----------
         input : list of DataFrames
             Procedure function input (boundary conditions). If None, loads using .loadInput()
 
         Returns:
         --------
-        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         return self.runJunction(input=input,substract=False)
     def runJunction(
         self,
-        input : list = None,
+        input : list[DataFrame] = None,
         substract : bool = False,
         truncate_negative : bool = None
-        ) -> tuple:
+        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        """Run junction procedure
+
+        Args:
+            input (list[DataFrame], optional): Input series. Defaults to None.
+            substract (bool, optional): Instead of adding, substract second input series from first. Defaults to False.
+            truncate_negative (bool, optional): Set negative results to zero. Defaults to None.
+
+        Returns:
+            tuple[List[DataFrame],ProcedureFunctionResults]: first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+        """
         truncate_negative = truncate_negative if truncate_negative is not None else self.truncate_negative
         sign = -1 if substract else 1
         if input is None:

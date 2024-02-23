@@ -15,21 +15,43 @@ class HOSH4P1LNashProcedureFunction(HOSH4P1LProcedureFunction):
     ]
     """Model parameters: maxSurfaceStorage, maxSoilStorage, k of Nash cascade, n  of Nash cascade"""
 
+    @property
+    def Proc(self) -> str:
+        """Routing procedure (model parameter)"""
+        return "Nash"
+
     def __init__(
             self,
+            parameters : Union[list,tuple,dict],
             **kwargs
         ):
-        if "parameters" not in kwargs:
-            raise TypeError("Missing parameters kwarg")
-        kwargs["parameters"]["Proc"] = "Nash"
-        super().__init__(**kwargs)
+        """
+        parameters : 
+        
+            Model parameters. Ordered list or dict
+
+            Properties:
+            - maxSurfaceStorage
+            - maxSoilStorage
+            - k of Nash cascade
+            - n of Nash cascade
+        
+        \**kwargs : keyword arguments (see [..hosh4p1l.HOSH4P1L][])"""
+        super().__init__(parameters = parameters, **kwargs)
 
     def setParameters(
         self, 
         parameters : Union[list,tuple] = []
         ) -> None:
+        """Parameters setter
+        
+        Parameters:
+        -----------
+        parameters : Union[list,tuple] = []
+        
+            (maxSurfaceStorage : float, maxSoilStorage : float, k : float, n : float)"""
         super().setParameters(parameters)
-        self.maxSurfaceStorage = self.parameters["maxSurfaceStorage"]
-        self.maxSoilStorage = self.parameters["maxSoilStorage"]
-        self.k = self.parameters["k"]
-        self.n = self.parameters["n"]
+        # self.maxSurfaceStorage = self.parameters["maxSurfaceStorage"]
+        # self.maxSoilStorage = self.parameters["maxSoilStorage"]
+        # self.k = self.parameters["k"]
+        # self.n = self.parameters["n"]

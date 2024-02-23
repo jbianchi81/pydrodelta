@@ -8,11 +8,13 @@ import numpy as np
 from typing import Union
 
 class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
+    """Nash Linear channel procedure (gamma distribution)"""
 
     _parameters = [
        ModelParameter(name="k", constraints=(0.2,0.5,8,25)),
        ModelParameter(name="n", constraints=(1,1,5,8))
     ]
+    """Model parameters: k, n"""
 
     @property
     def coefficients(self):
@@ -22,11 +24,11 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
     @property
     def Proc(self):
         """Linear channel procedure"""
-        return "Nash"
-        
+        return "Nash"    
 
     def __init__(
         self,
+        parameters : Union[dict,list,tuple],
         **kwargs
         ):
         """
@@ -34,21 +36,22 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
 
         Parameters:
         -----------
-        /**kwargs : keyword arguments
-
-        Keyword arguments:
-        ------------------
         parameters : dict
+
             properties:
             k : float residence time
             n : float number of reservoirs
         
+        /**kwargs : keyword arguments
+
+        Keyword arguments:
+        ------------------
         extra_pars: dict
             properties
             dt : float calculation timestep
         """
-        super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"LinearChannelProcedureFunction")
+        super().__init__(parameters = parameters, **kwargs)
+        getSchemaAndValidate(dict(kwargs,parameters = parameters),"LinearChannelProcedureFunction")
         # self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
         # self.Proc = "Nash"
         

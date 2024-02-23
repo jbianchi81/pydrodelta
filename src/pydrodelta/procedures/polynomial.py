@@ -1,31 +1,51 @@
-# import pandas as pd
-# from datetime import datetime, timedelta
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import os
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
-# from pathlib import Path
-# import jsonschema
-# import yaml
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.function_boundary import FunctionBoundary
-from pydrodelta.a5 import createEmptyObsDataFrame
+from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..validation import getSchemaAndValidate
+from ..function_boundary import FunctionBoundary
+from ..a5 import createEmptyObsDataFrame
+from typing import Union, List
+from pandas import DataFrame
 
 class PolynomialTransformationProcedureFunction(ProcedureFunction):
+    """Polynomial transformation procedure"""
+
     _boundaries = [
         FunctionBoundary({"name": "input"})
     ]
+
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
+    
+    @property
+    def coefficients(self) -> list[float]:
+        """coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic"""
+        return self.parameters["coefficients"]
+    
+    @property
+    def intercept(self) -> float:
+        """intercept : float - default 0"""
+        return self.parameters["intercept"] if "intercept" in self.parameters else 0
+
     def __init__(
         self,
+        parameters : Union[dict,list,tuple],
         **kwargs
         ):
-        super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"PolynomialTransformationProcedureFunction")
-        self.coefficients = self.parameters["coefficients"]
-        self.intercept = self.parameters["intercept"] if "intercept" in self.parameters else 0
+        """_summary_
+
+        Arguments:
+        ----------
+        parameters (Union[dict,list,tuple]): Model parameters
+            
+            Properties:
+            - coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic coefficient, and so on
+            - intercept : float - default 0
+        
+        \**kwargs : see ..procedure_function.ProcedureFunction
+        """
+        super().__init__(parameters = parameters, **kwargs)
+        getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")
+    
     def transformation_function(
         self,
         value : float
@@ -50,8 +70,17 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
         return result
     def run(
         self,
-        input : list = None
-        ) -> tuple:
+        input : list[DataFrame] = None
+        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        """Run the function procedure
+        
+        Parameters:
+        -----------
+        input : list of DataFrames
+            Boundary conditions. If None, runs .loadInput
+
+        Returns:
+        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output  = []

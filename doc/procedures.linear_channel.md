@@ -18,6 +18,8 @@
 class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction)
 ```
 
+Nash Linear channel procedure (gamma distribution)
+
 <a id="pydrodelta.procedures.linear_channel.LinearChannelProcedureFunction.coefficients"></a>
 
 #### coefficients
@@ -45,7 +47,7 @@ Linear channel procedure
 #### \_\_init\_\_
 
 ```python
-def __init__(**kwargs)
+def __init__(parameters: Union[dict, list, tuple], **kwargs)
 ```
 
 Nash linear channel (gamma distribution)
@@ -53,15 +55,16 @@ Nash linear channel (gamma distribution)
 **Arguments**:
 
   -----------
-  /**kwargs : keyword arguments
-  
-  Keyword arguments:
-  ------------------
   parameters : dict
+  
   properties:
   k : float residence time
   n : float number of reservoirs
   
+  /**kwargs : keyword arguments
+  
+  Keyword arguments:
+  ------------------
 - `extra_pars` - dict
   properties
   dt : float calculation timestep

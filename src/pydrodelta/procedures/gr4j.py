@@ -67,6 +67,11 @@ class GR4JProcedureFunction(PQProcedureFunction):
     ]
     """Procedure function states definitions"""
 
+    @property
+    def engine(self) -> GR4J:
+        """Reference to instance of GR4J procedure engine"""
+        return self._engine
+
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
@@ -112,6 +117,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
             initial_states=initial_states,
             extra_pars=extra_pars,
             **kwargs)
+        self._engine = None
     
     def run(
         self,
@@ -136,8 +142,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        boundaries = [ ( input[0]["valor"][i], input[1]["valor"][i]) for i in range(len(input[0])) ]
-        self.engine = GR4J(pars=[self.X0,self.X3,self.X2,self.X1],Boundaries=np.array(boundaries),InitialConditions=[self.Sk_init,self.Rk_init])
+        self.setEngine([ ( input[0]["valor"][i], input[1]["valor"][i]) for i in range(len(input[0])) ])
         self.engine.executeRun()
         q = [x / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae for x in self.engine.Q][0:len(input[0].index)]
         smc = [x / self.engine.prodStoreMaxStorage * (self.rho - self.wp) + self.wp for x in self.engine.prodStore.SoilStorage][0:len(input[0].index)]
@@ -171,6 +176,19 @@ class GR4JProcedureFunction(PQProcedureFunction):
                 states = data_[["SoilStorage","RoutingStorage","Runoff","Inflow","Leakages"]]
             )
         )
+    
+    def setEngine(
+        self,
+        input : list[tuple[float,float]]
+        ) -> None:
+        """Instantiate GR4J procedure engine using input as Boundaries
+        
+        Args:
+        input : list[tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)"""
+        self._engine = GR4J(
+            pars=[self.X0,self.X3,self.X2,self.X1],
+            Boundaries=np.array(input),
+            InitialConditions=[self.Sk_init,self.Rk_init])
     
     def setParameters(
         self,

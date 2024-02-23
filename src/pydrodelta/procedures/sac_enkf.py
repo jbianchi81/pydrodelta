@@ -1,79 +1,138 @@
 import logging
-from typing import Optional, List, Tuple
-from pydrodelta.series_data import SeriesData
+from typing import Optional, List, Tuple, Union
+from ..series_data import SeriesData
 import numpy as np 
 from pandas import DataFrame, Series, concat
 from datetime import datetime
 
-from pydrodelta.procedure_function import ProcedureFunctionResults
+from ..procedure_function import ProcedureFunctionResults
 import pydrodelta.procedures.sacramento_simplified as sac
 
-kalman_def = {
-	"stddev_forzantes": [0.25,0.1],
-	"x_stddev": 0.15,
-	"var_innov": (0.03,"rule"),
-	"trim_sm": (False,True),
-	"asim": (None,'q'),
-	"update": ('x1','x2','x3','x4'),
-	"xpert": True,
-	"sm_transform": (1,0),
-	"replicates": 35,
-	"windowsize": 1,
-}
+from ..descriptors.list_descriptor import ListDescriptor
 
 class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
     """Simplified (10-parameter) Sacramento for precipitation - discharge transformation - ensemble with data assimilation. 
     
     Reference: https://www.researchgate.net/publication/348234919_Implementacion_de_un_procedimiento_de_pronostico_hidrologico_para_el_alerta_de_inundaciones_utilizando_datos_de_sensores_remotos"""
-    def __init__(
-        self,
-        **kwargs
-        ):
-        super().__init__(**kwargs)
-        
-        self.p_stddev : float = self.extra_pars["stddev_forzantes"][0] if "stddev_forzantes" in self.extra_pars else kalman_def["stddev_forzantes"]
+
+    _kalman_def = {
+        "stddev_forzantes": [0.25,0.1],
+        "x_stddev": 0.15,
+        "var_innov": (0.03,"rule"),
+        "trim_sm": (False,True),
+        "asim": (None,'q'),
+        "update": ('x1','x2','x3','x4'),
+        "xpert": True,
+        "sm_transform": (1,0),
+        "replicates": 35,
+        "windowsize": 1,
+    }
+
+    @property
+    def p_stddev(self) -> float:
         """Standard deviation of the error of input precipitation"""
-        self.pet_stddev : float = self.extra_pars["stddev_forzantes"][1] if "stddev_forzantes" in self.extra_pars else kalman_def["stddev_forzantes"]
+        return self.extra_pars["stddev_forzantes"][0] if "stddev_forzantes" in self.extra_pars else self._kalman_def["stddev_forzantes"]
+
+    @property
+    def pet_stddev(self) -> float:
         """Standard deviation of the error of input potential evapotranspiration"""
-        self.x_stddev : float = self.extra_pars['stddev_estados'] if "stddev_estados" in self.extra_pars else kalman_def["x_stddev"]
+        return self.extra_pars["stddev_forzantes"][1] if "stddev_forzantes" in self.extra_pars else self._kalman_def["stddev_forzantes"]
+
+    @property
+    def x_stddev(self) -> float:
         """Standard deviation of the model states"""
-        self.var_innov : tuple = self.extra_pars["var_innov"] if "var_innov" in self.extra_pars else kalman_def["var_innov"]
+        return self.extra_pars['stddev_estados'] if "stddev_estados" in self.extra_pars else self._kalman_def["x_stddev"]
+
+    @property
+    def var_innov(self) -> tuple[Union[str,float],Union[str,float]]:
         """variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs"""
-        self.trim_sm : tuple = self.extra_pars["trim_sm"] if "trim_sm" in self.extra_pars else kalman_def["trim_sm"]
+        return self.extra_pars["var_innov"] if "var_innov" in self.extra_pars else self._kalman_def["var_innov"]
+
+    @property
+    def trim_sm(self) -> tuple[bool,bool]:
         """2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively"""
+        return self.extra_pars["trim_sm"] if "trim_sm" in self.extra_pars else self._kalman_def["trim_sm"]
+
+    @property
+    def Rqobs(self) -> list[tuple[float,float,float]]:
+        """Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)"""
         if self.var_innov[1] == "rule":
             if "rule" not in self.extra_pars:
                 raise Exception("Missing parameter 'rule'")
-            self.Rqobs : list = self.extra_pars["rule"]
-            """Rule to determine observed discharge error variance"""
+            return self.extra_pars["rule"]
         else:
-            self.Rqobs : list = [[0,self.var_innov[0],0]]
-            """Rule to determine observed discharge error variance"""
-        self.asim = self.extra_pars["asim"] if "asim" in self.extra_pars else kalman_def["asim"]
+            return [[0,self.var_innov[0],0]]
+
+    @property
+    def asim(self) -> tuple[str,str]:
         """2-tuple of str or None. Option to assimilate soil moisture and discharge, respectively"""
-        self.update : tuple = [x.lower() if x is not None else None for x in self.extra_pars["update"]] if "update" in self.extra_pars else kalman_def["update"]
+        return self.extra_pars["asim"] if "asim" in self.extra_pars else self._kalman_def["asim"]
+
+    @property
+    def update(self) -> tuple[str,str,str,str]:
         """4-tuple of str or None. Option to correct model states via data assimilation (x1, x2, x3, x4) """
-        self.xpert : bool = self.extra_pars["xpert"] if "xpert" in self.extra_pars else kalman_def["xpert"]
+        return [x.lower() if x is not None else None for x in self.extra_pars["update"]] if "update" in self.extra_pars else self._kalman_def["update"]
+
+    @property
+    def xpert(self) -> bool:
         """Option to add noise to model states at the beginning of each step"""
-        self.c1dia = self.c1
-        self.c3dia = self.c3
-        self.alfadia = self.alfa
-        self.replicates : int = self.extra_pars["replicates"] if "replicates" in self.extra_pars else kalman_def["replicates"]
+        return self.extra_pars["xpert"] if "xpert" in self.extra_pars else self._kalman_def["xpert"]
+
+    @property
+    def replicates(self) -> int:
         """Number of ensemble members"""
+        return self.extra_pars["replicates"] if "replicates" in self.extra_pars else self._kalman_def["replicates"]
+
+    ens = ListDescriptor()
+    """Ensemble of model states (length = len(self.replicates) list of 4-tuples)"""
+
+    ens1 = ListDescriptor()
+    """Ensemble of model states without data assimilation in the last step (length = len(self.replicates) list of 4-tuples)"""
+    
+    ens2 = ListDescriptor()
+    """Ensemble of model states without data assimilation in the last 2 steps (length = len(self.replicates) list of 4-tuples)"""
+    
+    mediassinpert = ListDescriptor()
+    
+    sm_obs = ListDescriptor()
+    
+    sm_sim = ListDescriptor()
+
+    H = ListDescriptor()
+    """The states transformation matrix"""
+
+    def __init__(
+        self,
+        extra_pars : dict = dict(),
+        **kwargs
+        ):
+        """
+        extra_pars : dict = dict()
+        
+            Properties:
+            - p_stddev : float - Standard deviation of the error of input precipitation
+            - pet_stddev : float - Standard deviation of the error of input potential evapotranspiration
+            - x_stddev : float - Standard deviation of the model states
+            - var_innov : tuple - variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs
+            - trim_sm : tuple - 2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively
+            - rule : list[tuple[float,float,float]] - Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
+            - asim : 2-tuple of str or None - Option to assimilate soil moisture and discharge, respectively
+            - update : 4-tuple or str or None - Option to correct model states via data assimilation (x1, x2, x3, x4)
+            - xpert : bool - Option to add noise to model states at the beginning of each step
+            - replicates : int - Number of ensemble members"""
+        super().__init__(extra_pars = extra_pars, **kwargs)
+        # self.c1dia = self.c1
+        # self.c3dia = self.c3
+        # self.alfadia = self.alfa
         self.setH()
 
         # states
-        self.ens : list = list()
-        """Ensemble of model states (length = len(self.replicates) list of 4-tuples)"""
-        self.ens1 : list = list()
-        """Ensemble of model states without data assimilation in the last step (length = len(self.replicates) list of 4-tuples)"""
-        self.ens2 : list = list()
-        """Ensemble of model states without data assimilation in the last 2 steps (length = len(self.replicates) list of 4-tuples)"""
+        self.ens = list()
+        self.ens1 = list()
+        self.ens2 = list()
         self.mediassinpert = list()
         self.sm_obs = list()
         self.sm_sim = list()
-
-        
 
     def xnoise(
         self,
@@ -295,7 +354,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         return [x[0],x[1],x[2],x[3]]
 
     def setH(self) -> None:
-        """Set transformation matrix self.H"""
+        """Set transformation matrix .H"""
         self.H = list()
         for i in range(2):
             if self.asim[i] is not None:
@@ -315,6 +374,11 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         -----------
         init_states : list
             Initial states [x1,x2,x3,x4]"""
+        self.ens = list()
+        self.ens1 = list()
+        self.ens2 = list()
+        self.sm_sim = list()
+        self.sm_obs = list()
         for i in range(self.replicates):
             x1 =  max(0, min(init_states[0] + np.random.normal(0, self.x1_0 * self.x_stddev), self.x1_0))
             x2 =  max(0, min(init_states[1] + np.random.normal(0, self.x2_0 * self.x_stddev), self.x2_0))
@@ -326,7 +390,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             self.ens2.append([x1,x2,x3,x4])
             #~ $json_rep[$i] = "{\"id\":$i,\"name\":\"replicate $i\",\"values\":[";
     
-    def getC(self) -> list():
+    def getC(self) -> list:
         """Generate covariance matrix C
         
         Returns:

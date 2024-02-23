@@ -1,9 +1,9 @@
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.pydrology import MuskingumChannel
+from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..validation import getSchemaAndValidate
+from ..pydrology import MuskingumChannel
 from pandas import DataFrame
-from pydrodelta.function_boundary import FunctionBoundary
-from pydrodelta.model_parameter import ModelParameter
+from ..function_boundary import FunctionBoundary
+from ..model_parameter import ModelParameter
 from numpy import inf
 from typing import Union
 import logging
@@ -15,10 +15,12 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "input"})
     ]
     """input: discharge at upstream node"""
+    
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
     """output: discharge at dowstream node"""
+    
     _parameters = [
         #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
         # -----+----------+--------+---------+-----------+-----------+----------+-------
@@ -28,32 +30,56 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         #  297 |       49 | x1c    |         |       0.1 |       0.5 | Infinity |     2
     ]
     """K: transit time. X: shape factor"""
+    
+    @property
+    def K(self) -> float:
+        """Model parameter: transit time"""
+        return self.parameters["K"]
+    
+    @property
+    def X(self) -> float:
+        """Model parameter: shape factor"""
+        return self.parameters["X"]
+
+    @property
+    def Proc(self) -> str:
+        """Routing procedure"""
+        return self.extra_pars["Proc"] if "Proc" in self.extra_pars else "Muskingum" # NOT USED
+        
+    @property
+    def engine(self) -> MuskingumChannel:
+        """Reference to the MuskingumChannel procedure engine"""
+        return self._engine
+    
     def __init__(
         self,
+        parameters : dict,
+        initial_states : Union[list,dict] = [0],
         **kwargs):
         """
-        Instancia la clase. Lee la configuración del dict params, opcionalmente la valida contra un esquema y los guarda los parámetros y estados iniciales como propiedades de self.
-        Guarda procedure en self._procedure (procedimiento al cual pertenece la función)
+        Arguments:
+            parameters : dict
 
-        Parameters:
-        -----------
-        input : list of DataFrames
-            Procedure function input (boundary conditions). If None, loads using .loadInput()
+                Properties:
 
-        Returns:
-        --------
-        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+                - K : float - transit time
+                
+                - X : float - shape factor
+
+            initial_states : list - Initial discharge at the output. Defaults to [0]
+        
+        Keyword arguments:
+            See ..procedure_function.ProcedureFunction
         """
         super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"MuskingumChannelProcedureFunction")
-        self.K : float = self.parameters["K"]
-        """Model parameter: transit time"""
-        self.X : float = self.parameters["X"]
-        """Model parameter: shape factor"""
-        self.Proc : str = self.extra_pars["Proc"] if "Proc" in self.extra_pars else "Muskingum" # NOT USED
-        self.initial_states : list = self.initial_states if self.initial_states is not None and len(self.initial_states) else [0] # None
-        """Model initial states: initial discharge at the downstreams node"""
-        self.engine : MuskingumChannel = None
+        getSchemaAndValidate(
+            dict(
+                kwargs, 
+                parameters = parameters,
+                initial_states = initial_states
+            ),
+            "MuskingumChannelProcedureFunction")
+        self._engine = None
 
     def run(
         self,
@@ -76,9 +102,9 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         # logging.debug(input)
         # if self.initial_states is None:
         #     self.initial_states = [input[0].dropna().valor[0], input[1].dropna().valor[0]]
-        self.engine = MuskingumChannel([self.K, self.X], input[0]["valor"].to_list(),self.initial_states,self.Proc)
-        self.engine.computeOutFlow()
-        data = DataFrame({"valor": self.engine.Outflow},index=input[0].index)
+        self.setEngine(input[0])
+        self._engine.computeOutFlow()
+        data = DataFrame({"valor": self._engine.Outflow},index=input[0].index)
         data_ = data[["valor"]].rename(columns={"valor":"output"}).join(input[0][["valor"]].rename(columns={"valor":"input"}))
         return (
             [data], 
@@ -86,6 +112,20 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
                 data = data_
             )
         )
+    
+    def setEngine(
+        self, 
+        input : DataFrame
+        ) -> None:
+        """Initialize MuskingumChannel procedure engine using provided input. Takes column "valor" from  input as upstream boundary condition
+        
+        Args:
+            input : DataFrame - The Procedure boundary"""
+        self._engine = MuskingumChannel(
+            [self.K, self.X], 
+            input["valor"].to_list(),
+            self.initial_states,
+            self.Proc) 
     
     def setParameters(
         self, 
@@ -97,11 +137,10 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         Parameters:
         -----------
         parameters : list or tuple
+
             Muskingum procedure function parameters to set (K : float, X : float)
         """
         super().setParameters(parameters)
-        self.K = self.parameters["K"]
-        self.X = self.parameters["X"]
     
     def setInitialStates(
         self,

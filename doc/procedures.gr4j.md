@@ -9,8 +9,10 @@
     * [Sk\_init](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.Sk_init)
     * [Rk\_init](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.Rk_init)
     * [dt](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.dt)
+    * [engine](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.engine)
     * [\_\_init\_\_](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.__init__)
     * [run](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.run)
+    * [setEngine](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.setEngine)
     * [setParameters](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.setParameters)
     * [setInitialStates](#pydrodelta.procedures.gr4j.GR4JProcedureFunction.setInitialStates)
 
@@ -105,6 +107,17 @@ def dt() -> float
 
 Time step duration [days]
 
+<a id="pydrodelta.procedures.gr4j.GR4JProcedureFunction.engine"></a>
+
+#### engine
+
+```python
+@property
+def engine() -> GR4J
+```
+
+Reference to instance of GR4J procedure engine
+
 <a id="pydrodelta.procedures.gr4j.GR4JProcedureFunction.__init__"></a>
 
 #### \_\_init\_\_
@@ -175,6 +188,20 @@ Runs the procedure function.
   tuple[List[DataFrame], ProcedureFunctionResults]
   
   Devuelve una lista de DataFrames (uno por output del procedimiento) y opcionalmente un objeto ProcedureFunctionResults
+
+<a id="pydrodelta.procedures.gr4j.GR4JProcedureFunction.setEngine"></a>
+
+#### setEngine
+
+```python
+def setEngine(input: list[tuple[float, float]]) -> None
+```
+
+Instantiate GR4J procedure engine using input as Boundaries
+
+**Arguments**:
+
+  input : list[tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)
 
 <a id="pydrodelta.procedures.gr4j.GR4JProcedureFunction.setParameters"></a>
 

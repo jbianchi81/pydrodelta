@@ -55,6 +55,18 @@
                 "fill_nulls": {
                     "type": "boolean",
                     "description": "If missing PMAD values, fill up with zeros"
+                },
+                "rho":  {
+                    "type": "number",
+                    "description": "soil porosity (0-1)"
+                },
+                "ae": {
+                    "type": "number",
+                    "description": "effective area (0-1)"
+                },
+                "wp": {
+                    "type": "number",
+                    "description": "wilting point of soil (0-1)"
                 }
             },
             "required": ["area"]
