@@ -46,8 +46,15 @@ selected_files = [
     "node_serie_prono_metadata"
 ]
 
+index_rows = []
 for filename in selected_files:
     path = "pydrodelta.%s" % filename
     output = open("doc/%s.md" % filename,"w")
     subprocess.run(["pydoc-markdown", "-I","src","-m",path,"--render-toc"],stdout = output)
     output.close()
+    index_rows.append("- [%s](../blob/main/doc/%s.md)" % (filename ,filename))
+
+index_md = "# Modules\n\n%s" % "\n".join(index_rows)
+with open("doc/api_index.md","w") as f:
+    f.write(index_md)
+    f.close()
