@@ -103,7 +103,7 @@ def serieRegular(data: pandas.DataFrame,
                  interpolate=True,
                  interpolation_limit=1,
                  tag_column=None,
-                 extrapolate=False)
+                 extrapolate=False) -> pandas.DataFrame
 ```
 
 genera serie regular y rellena nulos interpolando

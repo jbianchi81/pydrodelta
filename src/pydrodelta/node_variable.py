@@ -35,16 +35,21 @@ class NodeVariable:
     """
     Variables represent the hydrologic observed/simulated properties at the node (such as discharge, precipitation, etc.). They are stored as a dictionary where and integer, the variable identifier, is used as the key, and the values are dictionaries. They may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
     """
+    
     id = IntDescriptor()
     """Id of the variable"""
+    
     metadata = DictDescriptor()
     """Variable metadata"""
+    
     fill_value = FloatDescriptor()
     """Value used to fill missing values"""
+    
     @property
     def series_output(self) -> List[NodeSerie]:
         """Output series of the analysis procedure"""
         return self._series_output
+    
     @series_output.setter
     def series_output(
         self,
@@ -54,6 +59,7 @@ class NodeVariable:
             self._series_output = None
             return
         self._series_output = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
+    
     @property
     def series_sim(self) -> List[NodeSerieProno]:
         """Output series of the simulation procedure"""
@@ -73,26 +79,40 @@ class NodeVariable:
             else:
                 serie["cal_id"] = serie["cal_id"] if "cal_id" in serie else self._node._plan.id if self._node is not None and self._node._plan is not None else None
                 self._series_sim.append(NodeSerieProno(**serie))
+    
     time_support = DurationDescriptor()
     """Time support of the observations . The time interval that the observation is representative of."""
+    
     adjust_from = DictDescriptor()
     """Adjust configuration. 'truth' and 'sim' are the indexes of the .series to be used for the linear regression adjustment."""
+    
     linear_combination = DictDescriptor()
     """Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)."""
+    
     interpolation_limit = IntDescriptor()
     """Maximum rows to interpolate"""
+    
     extrapolate = BoolDescriptor()
     """If true, extrapolate data up to a distance of limit"""
+    
     data = DataFrameDescriptor()
     """DataFrame containing the variable time series data"""
+    
     original_data = DataFrameDescriptor()
     """DataFrame containing the original variable time series data"""
+    
     adjust_results = DictDescriptor()
     """Model resultant of the adjustment procedure"""
+    
     name = StringDescriptor()
     """Arbitrary name of the variable"""
+    
     time_interval = DurationDescriptor()
     """Intended time spacing of the variable"""
+
+    derived = BoolDescriptor()
+    """Indicates wether the variable is derived"""
+
     def __init__(
         self,
         id : int,
@@ -172,6 +192,8 @@ class NodeVariable:
         self.adjust_results = None
         self.time_interval = time_interval if time_interval is not None else self._node.time_interval
         self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
+        self.derived = False
+    
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
@@ -934,4 +956,4 @@ class NodeVariable:
             obsLine = getParamOrDefaultTo("obsLine",obsLine,serie_prono.plot_params)
             footnote = getParamOrDefaultTo("footnote",footnote,serie_prono.plot_params)
             xlim = getParamOrDefaultTo("xlim",xlim,serie_prono.plot_params)
-            plot_prono(self.data,serie_prono.data,output_file=output_file,title=title,markersize=markersize,prono_label=prono_label,obs_label=obs_label,forecast_date=serie_prono.metadata.forecast_date,errorBand=error_band,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,station_name=station_name,thresholds=thresholds,datum=datum,footnote=footnote,figsize=figsize,ylim=ylim,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,tz=tz,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)
+            plot_prono(self.data,serie_prono.data,output_file=output_file,title=title,markersize=markersize,prono_label=prono_label,obs_label=obs_label,forecast_date=serie_prono.metadata["forecast_date"],errorBand=error_band,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,station_name=station_name,thresholds=thresholds,datum=datum,footnote=footnote,figsize=figsize,ylim=ylim,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,tz=tz,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)

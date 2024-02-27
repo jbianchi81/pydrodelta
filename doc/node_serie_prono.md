@@ -2,6 +2,7 @@
 
 * [pydrodelta.node\_serie\_prono](#pydrodelta.node_serie_prono)
   * [NodeSerieProno](#pydrodelta.node_serie_prono.NodeSerieProno)
+    * [metadata](#pydrodelta.node_serie_prono.NodeSerieProno.metadata)
     * [loadData](#pydrodelta.node_serie_prono.NodeSerieProno.loadData)
 
 <a id="pydrodelta.node_serie_prono"></a>
@@ -17,6 +18,17 @@ class NodeSerieProno(NodeSerie)
 ```
 
 Forecasted timeseries
+
+<a id="pydrodelta.node_serie_prono.NodeSerieProno.metadata"></a>
+
+#### metadata
+
+```python
+@property
+def metadata() -> dict
+```
+
+series metadata
 
 <a id="pydrodelta.node_serie_prono.NodeSerieProno.loadData"></a>
 

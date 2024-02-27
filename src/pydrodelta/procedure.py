@@ -154,7 +154,7 @@ class Procedure():
             'save_results': self.save_results, 
             'overwrite': self.overwrite, 
             'overwrite_original': self.overwrite_original, 
-            'calibration': self.calibration
+            'calibration': self.calibration.toDict() if self.calibration is not None else None
         }
     def loadInput(
         self,
@@ -486,7 +486,7 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
-            output_data = self.setIndexOfDataFrame(self.output[index])
+            output_data = self.setIndexOfDataFrame(self.output[index],time_interval = o.node.time_interval)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=False)
             if overwrite_original:
                 o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
@@ -498,17 +498,17 @@ class Procedure():
     
     def setIndexOfDataFrame(
         self,
-        data : DataFrame
+        data : DataFrame,
+        time_interval : timedelta,
     ) -> DataFrame:
         """Set index of data frame from topology begin and end dates and time_interval"""
         data = util.serieRegular(
-            data,
-            self._plan.topology.time_interval,
-            self._plan.topology.timestart,
-            self._plan.topology.timeend,
-            self._plan.topology.time_offset,
+            data = data,
+            time_interval  = time_interval if time_interval is not None else self._plan.time_interval,
+            timestart = self._plan.topology.timestart,
+            timeend = self._plan.topology.forecast_timeend if self._plan.topology.forecast_timeend is not None else self._plan.topology.timeend,
+            time_offset = self._plan.topology.time_offset_start,
             interpolation_limit=0,
-            tag_column="tag",
             interpolate=False)
         return data
     def testPlot(

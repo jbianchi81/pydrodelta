@@ -26,12 +26,12 @@ class ProcedureBoundary():
     @property
     def node(self) -> Node:
         """Reference to the Node instance of the topology that this boundary is assigned to"""
-        self._node
+        return self._node
 
     @property
     def variable(self) -> NodeVariable:
         """Reference to the NodeVariable instance of the topology that this boundary is assigned to"""
-        self._variable
+        return self._variable
 
     warmup_only = BoolDescriptor()
     """If true, null values in the forecast horizon will not raise an error"""

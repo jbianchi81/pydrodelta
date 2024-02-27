@@ -29,7 +29,7 @@ class JunctionProcedureFunction(ProcedureFunction):
 
     def __init__(
         self,
-        extra_pars : dict = None,
+        extra_pars : dict = dict(),
         **kwargs):
         """
         extra_pars :dict

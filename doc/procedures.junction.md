@@ -37,7 +37,7 @@ Replace negative output values to zero
 #### \_\_init\_\_
 
 ```python
-def __init__(extra_pars: dict = None, **kwargs)
+def __init__(extra_pars: dict = dict(), **kwargs)
 ```
 
 extra_pars :dict

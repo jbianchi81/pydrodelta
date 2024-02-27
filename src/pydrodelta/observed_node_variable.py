@@ -1,9 +1,9 @@
-from pydrodelta.node_variable import NodeVariable
-from pydrodelta.node_serie import NodeSerie
-from pydrodelta.node_serie_prono import NodeSerieProno
-from pydrodelta.a5 import createEmptyObsDataFrame
+from .node_variable import NodeVariable
+from .node_serie import NodeSerie
+from .node_serie_prono import NodeSerieProno
+from .a5 import createEmptyObsDataFrame
 import logging
-from pydrodelta.util import serieFillNulls
+from .util import serieFillNulls, serieRegular
 import numpy as np
 from typing import List, Union
 from datetime import datetime
@@ -50,6 +50,7 @@ class ObservedNodeVariable(NodeVariable):
             Keyword arguments inherited from the parent class (see NodeVariable :func:`~pydrodelta.NodeVariable.__init__`)
         """
         super().__init__(**kwargs)
+        self.derived = False
         self.series = series
         self.series_prono = series_prono
     def loadData(
@@ -93,7 +94,8 @@ class ObservedNodeVariable(NodeVariable):
                     try:
                         serie.loadData(timestart,forecast_timeend)
                     except Exception as e:
-                        raise "Node %s, Variable: %i, series_id %i, cal_id %: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e))
+                        logging.error(e)
+                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e)))
                 else:
                     try:
                         serie.loadData(timestart,timeend)
@@ -195,7 +197,17 @@ class ObservedNodeVariable(NodeVariable):
             else:
                 return data
         else:
+            data = createEmptyObsDataFrame(extra_columns={"tag":str})
+            data = serieRegular(
+                data, 
+                time_interval = self._node.time_interval, 
+                timestart = self._node.timestart, 
+                timeend = self._node.timeend, 
+                time_offset = self._node.time_offset, 
+                interpolate = False,
+                tag_column = "tag"
+            )
             if inline:
-                self.data = createEmptyObsDataFrame(extra_columns={"tag":str})
+                self.data = data
             else:
-                return createEmptyObsDataFrame(extra_columns={"tag":str})
+                return data

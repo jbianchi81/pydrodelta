@@ -71,7 +71,7 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
         Keyword arguments:
             See ..procedure_function.ProcedureFunction
         """
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, parameters = parameters, initial_states = initial_states)
         getSchemaAndValidate(
             dict(
                 kwargs, 

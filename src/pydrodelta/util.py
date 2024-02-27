@@ -158,7 +158,13 @@ def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=No
     else:
         return date_0 - timeInterval
 
-def createDatetimeSequence(datetime_index : pandas.DatetimeIndex=None, timeInterval=timedelta(days=1), timestart=None, timeend=None, timeOffset=None):
+def createDatetimeSequence(
+    datetime_index : pandas.DatetimeIndex=None, 
+    timeInterval  = timedelta(days=1), 
+    timestart = None, 
+    timeend = None, 
+    timeOffset = None
+    ) -> pandas.DatetimeIndex:
     #Fechas desde timestart a timeend con un paso de timeInterval
     #data: dataframe con index tipo datetime64[ns, America/Argentina/Buenos_Aires]
     #timeOffset sólo para timeInterval n days
@@ -196,7 +202,18 @@ def f4(row,column="valor",tag_column="tag"):
     else:
         return row[tag_column]
 
-def serieRegular(data : pandas.DataFrame, time_interval : timedelta, timestart=None, timeend=None, time_offset=None, column="valor", interpolate=True, interpolation_limit=1,tag_column=None, extrapolate=False):
+def serieRegular(
+    data : pandas.DataFrame, 
+    time_interval : timedelta, 
+    timestart = None, 
+    timeend = None, 
+    time_offset = None, 
+    column = "valor", 
+    interpolate = True, 
+    interpolation_limit = 1,
+    tag_column = None, 
+    extrapolate = False
+    ) -> pandas.DataFrame:
     """
     genera serie regular y rellena nulos interpolando
     if interpolate=False, interpolates only to the closest timestep of the regular timeseries. If observation is equidistant to preceding and following timesteps it interpolates to both.

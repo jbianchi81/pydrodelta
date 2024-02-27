@@ -21,6 +21,10 @@
       "description": "time of day where timesteps start",
       "$ref": "dateorinterval.json"
     },
+    "time_offset_start": {
+      "description": "time of day where first timestep starts",
+      "$ref": "dateorinterval.json"
+    },
     "nodes": {
       "description": "information nodes of the topology",
       "type": "array",
@@ -52,6 +56,9 @@
     "extrapolate": {
       "description": "Extrapolate observations outside the observation time domain, up to a maximum duration equal to interpolation_limit",
       "type": "boolean"
+    },
+    "report_file": {
+      "description": "Write analysis report into this file"
     }
   },
   "required": [

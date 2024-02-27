@@ -22,10 +22,13 @@ output_crud = Crud(config["output_api"])
 
 class NodeSerie():
     """Represents a timestamped series of observed or simulated values for a variable in a node. """
+    
     series_id = IntDescriptor()
     """Identifier of the series. If csv_file is set, reads the column identified in the header with this id. Else, unless observations is set, retrieves the identified series from the input api"""
+    
     type = StringDescriptor()
     """Type of the series (only for retrieval from input api). One of 'puntual', 'areal', 'raster'"""
+    
     @property
     def lim_outliers(self) -> tuple[float,float]:
         """Minimum and maximum values for outliers removal (2-tuple of float)"""
@@ -44,22 +47,31 @@ class NodeSerie():
                 self._lim_outliers = (values[0],values[1])
         else:
             raise ValueError("lim_outliers must be a 2-tuple of floats")
+    
     lim_jump = FloatDescriptor()
     """Maximum absolute value for jump detection"""
+    
     x_offset = DurationDescriptor()
     """Time offset applied to the timestamps of the input data on import"""
+    
     y_offset = FloatDescriptor()
     """Offset applied to the values of the input data on import"""
+    
     moving_average = DurationDescriptorDefaultNone()
     """Size of the time window used to compute a moving average to the input data"""
+    
     data = DataFrameDescriptor()
     """DataFrame containing the timestamped values. Index is the time (with time zone), column 'valor' contains the values (floats) and column 'tag' contains the tag indicating the origin of the value (one of: observed, simulated, interpolated, moving_average, extrapolated, derived)"""
+    
     metadata = DictDescriptor()
     """Metadata of the series"""
+    
     outliers_data = DataFrameDescriptor()
     """Data rows containing removed outliers"""
+    
     jumps_data = DataFrameDescriptor()
     """Data rows containing detected jumps"""
+    
     csv_file = StringDescriptor()
     """Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header"""
     @property

@@ -66,6 +66,7 @@ def __init__(derived_from: DerivedOriginDict = None,
              interpolated_from: InterpolatedOriginDict = None,
              series: List[Union[dict, NodeSerie]] = None,
              series_prono: List[Union[dict, NodeSerieProno]] = None,
+             derived: bool = True,
              **kwargs)
 ```
 

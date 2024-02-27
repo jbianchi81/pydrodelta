@@ -17,6 +17,7 @@
     * [observations](#pydrodelta.node_serie.NodeSerie.observations)
     * [save\_post](#pydrodelta.node_serie.NodeSerie.save_post)
     * [comment](#pydrodelta.node_serie.NodeSerie.comment)
+    * [name](#pydrodelta.node_serie.NodeSerie.name)
     * [\_\_init\_\_](#pydrodelta.node_serie.NodeSerie.__init__)
     * [toDict](#pydrodelta.node_serie.NodeSerie.toDict)
     * [loadData](#pydrodelta.node_serie.NodeSerie.loadData)
@@ -146,6 +147,12 @@ Save upload payload into this file
 
 Comment about this series
 
+<a id="pydrodelta.node_serie.NodeSerie.name"></a>
+
+#### name
+
+Series name
+
 <a id="pydrodelta.node_serie.NodeSerie.__init__"></a>
 
 #### \_\_init\_\_
@@ -162,7 +169,8 @@ def __init__(series_id: int,
              observations: Union[List[TVP], List[tuple[datetime,
                                                        float]]] = None,
              save_post: str = None,
-             comment: str = None)
+             comment: str = None,
+             name: str = None)
 ```
 
 **Arguments**:

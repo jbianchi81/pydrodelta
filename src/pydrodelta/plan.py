@@ -375,8 +375,7 @@ class Plan():
                 try:
                     json.dumps(proc_dict[key])
                 except TypeError as e:
-                    logging.error("proc_dict['%s'] is not JSON serializable." % key)
-                    raise(e)
+                    raise Exception("proc_dict['%s'] is not JSON serializable." % key)
             DG.add_node(proc_id,object=proc_dict)
             for b in procedure.function.boundaries:
                 edges.append((b.node_id, proc_id))

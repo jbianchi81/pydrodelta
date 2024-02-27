@@ -11,6 +11,18 @@ output_crud = Crud(config["output_api"])
 
 class NodeSerieProno(NodeSerie):
     """Forecasted timeseries"""
+
+    @property
+    def metadata(self) -> dict:
+        """series metadata"""
+        return self._metadata.to_dict() if self._metadata is not None else None
+    @metadata.setter
+    def metadata(
+        self,
+        metadata : dict
+    ) -> None:
+        self._metadata = NodeSeriePronoMetadata(**metadata) if metadata is not None else None
+    
     def __init__(
         self,
         cal_id : int,
@@ -55,14 +67,14 @@ class NodeSerieProno(NodeSerie):
         timeend : datetime
             End time of forecast"""
         logging.debug("Load prono data for series_id: %i, cal_id: %i" % (self.series_id, self.cal_id))
-        self.metadata = input_crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier)
-        if len(self.metadata["pronosticos"]):
-            self.data = observacionesListToDataFrame(self.metadata["pronosticos"],tag="prono")
+        metadata = input_crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier)
+        if len(metadata["pronosticos"]):
+            self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
         else:
             logging.warning("No data found for series_id=%i, cal_id=%i" % (self.series_id, self.cal_id))
             self.data = createEmptyObsDataFrame()
         self.original_data = self.data.copy(deep=True)
-        del self.metadata["pronosticos"]
-        self.metadata = NodeSeriePronoMetadata(**self.metadata)
+        del metadata["pronosticos"]
+        self.metadata = metadata
     def setData(self,data):
         self.data = data

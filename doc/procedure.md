@@ -13,6 +13,7 @@
     * [run](#pydrodelta.procedure.Procedure.run)
     * [getOutputNodeData](#pydrodelta.procedure.Procedure.getOutputNodeData)
     * [outputToNodes](#pydrodelta.procedure.Procedure.outputToNodes)
+    * [setIndexOfDataFrame](#pydrodelta.procedure.Procedure.setIndexOfDataFrame)
     * [testPlot](#pydrodelta.procedure.Procedure.testPlot)
     * [calibrate](#pydrodelta.procedure.Procedure.calibrate)
 
@@ -285,6 +286,17 @@ Saves procedure output into the topology. Each element of self.output is concate
   Overwrite observations in NodeVariable.data
   overwrite_original : bool
   Overwrite observations in NodeVariable.original_data
+
+<a id="pydrodelta.procedure.Procedure.setIndexOfDataFrame"></a>
+
+#### setIndexOfDataFrame
+
+```python
+def setIndexOfDataFrame(data: DataFrame,
+                        time_interval: timedelta) -> DataFrame
+```
+
+Set index of data frame from topology begin and end dates and time_interval
 
 <a id="pydrodelta.procedure.Procedure.testPlot"></a>
 

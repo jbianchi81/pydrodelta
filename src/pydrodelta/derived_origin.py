@@ -32,6 +32,7 @@ class DerivedOrigin:
     def origin(self) -> NodeVariable:
         """Origin NodeVariable"""
         return self._origin
+    @origin.setter
     def origin(
         self,
         ignored

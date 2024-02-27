@@ -234,14 +234,14 @@ class GRPProcedureFunction(PQProcedureFunction):
             smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
             smc = (self.rho-self.wp)*Sk/self.X0+self.wp
             if isnan(pma):
-                if self.fillnulls:
+                if self.fill_nulls:
                     logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0
                 else:
                     logging.warn("Missing pma value for date: %s. Unable to continue" % i)
                     break
             if isnan(etp):
-                if self.fillnulls:
+                if self.fill_nulls:
                     logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
                     etp = 0
                 else:

@@ -17,6 +17,7 @@
     * [adjust\_results](#pydrodelta.node_variable.NodeVariable.adjust_results)
     * [name](#pydrodelta.node_variable.NodeVariable.name)
     * [time\_interval](#pydrodelta.node_variable.NodeVariable.time_interval)
+    * [derived](#pydrodelta.node_variable.NodeVariable.derived)
     * [\_\_init\_\_](#pydrodelta.node_variable.NodeVariable.__init__)
     * [setOriginalData](#pydrodelta.node_variable.NodeVariable.setOriginalData)
     * [toDict](#pydrodelta.node_variable.NodeVariable.toDict)
@@ -162,6 +163,12 @@ Arbitrary name of the variable
 #### time\_interval
 
 Intended time spacing of the variable
+
+<a id="pydrodelta.node_variable.NodeVariable.derived"></a>
+
+#### derived
+
+Indicates wether the variable is derived
 
 <a id="pydrodelta.node_variable.NodeVariable.__init__"></a>
 

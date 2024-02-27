@@ -111,7 +111,7 @@ def boundaries(boundaries: List[BoundaryDict]) -> None
 
 ```python
 def __init__(intercept: float, boundaries: List[BoundaryDict],
-             procedure_function)
+             procedure_function, step: int)
 ```
 
 **Arguments**:

@@ -9,14 +9,18 @@ from .descriptors.dict_descriptor import DictDescriptor
 
 class DerivedNodeVariable(NodeVariable):
     """This class represents a variable at a node where it is not observed, but values are derived from observations of the same variable at a nearby node or from observations of another variable at the same  (or nearby) node"""
+    
     derived_from = DictDescriptor()
     """Derivation configuration"""
+    
     interpolated_from = DictDescriptor()
     """Interpolation configuration"""
+    
     @property
     def series(self) -> List[DerivedNodeSerie]:
         """Series of derived data of this variable at this node."""
         return self._series
+    
     def _setDerivedSeries(self) -> None:
         if self.series_output is None:
             raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
@@ -29,6 +33,7 @@ class DerivedNodeVariable(NodeVariable):
                     topology = self._node._topology
                 )
             )
+    
     def _setInterpolatedSeries(self) -> None:
         if self.series_output is None:
             raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
@@ -41,10 +46,12 @@ class DerivedNodeVariable(NodeVariable):
                     topology = self._node._topology
                 )
             )
+    
     @property
     def series_prono(self) -> List[NodeSerieProno]:
         """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
         return self._series_prono
+    
     @series_prono.setter
     def series_prono(
         self,
@@ -57,6 +64,7 @@ class DerivedNodeVariable(NodeVariable):
         interpolated_from : InterpolatedOriginDict = None,
         series : List[Union[dict,NodeSerie]] = None,
         series_prono : List[Union[dict,NodeSerieProno]] = None,
+        derived : bool = True,
         **kwargs):
         """
         derived_from : DerivedOriginDict = None
@@ -80,7 +88,7 @@ class DerivedNodeVariable(NodeVariable):
             Keyword arguments. See NodeVariable (:class:`~pydrodelta.NodeVariable`)
         """
         super().__init__(**kwargs)
-        self.series = []
+        self.derived = True
         self.derived_from = derived_from
         self.interpolated_from = interpolated_from
         if derived_from is not None:

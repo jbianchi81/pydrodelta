@@ -177,6 +177,30 @@ class Calibration:
         self.save_result = save_result
         self.calibration_period = calibration_period
 
+    def toDict(self):
+        cal_dict = {
+            "calibrate": self.calibrate,
+            "result_index": self.result_index,
+            "objective_function": self.objective_function,
+            "limit": self.limit,
+            "sigma": self.sigma,
+            "ranges": self.ranges,
+            "no_improve_thr": self.no_improve_thr,
+            "max_stagnations": self.max_stagnations,
+            "max_iter": self.max_iter,
+            "save_result": self.save_result,
+            "calibration_period": [self.calibration_period[0].isoformat(), self.calibration_period[0].isoformat()] if self.calibration_period is not None else None,
+            "calibration_result": self.calibration_result,
+            "simplex": self.simplex
+        }
+        for key in cal_dict:
+            try:
+                json.dumps(cal_dict[key])
+            except TypeError as e:
+                logging.error("calibration['%s'] is not JSON serializable" % key)
+                raise(e)
+        return cal_dict
+    
     def parseCalibrationPeriod(
         self, 
         cal_period : tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
@@ -437,7 +461,7 @@ class Calibration:
                 indent=4
             )
         if inplace:
-            self._calibration_result = calibration_result
+            self._calibration_result = (list(calibration_result[0]),calibration_result[1])
         else:
             return calibration_result
         

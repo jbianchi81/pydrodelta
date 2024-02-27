@@ -18,6 +18,8 @@
 class UHLinearChannelProcedureFunction(GenericLinearChannelProcedureFunction)
 ```
 
+Unit hydrograph linear channel procedure
+
 <a id="pydrodelta.procedures.uh_linear_channel.UHLinearChannelProcedureFunction.coefficients"></a>
 
 #### coefficients
