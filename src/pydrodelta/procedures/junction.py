@@ -2,7 +2,7 @@ from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 import numpy as np
-from typing import List
+from typing import List, Tuple
 from pandas import DataFrame
 
 class JunctionProcedureFunction(ProcedureFunction):
@@ -47,7 +47,7 @@ class JunctionProcedureFunction(ProcedureFunction):
     def run(
         self,
         input : List[DataFrame] = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the procedure
         
         Arguments:
@@ -57,23 +57,23 @@ class JunctionProcedureFunction(ProcedureFunction):
 
         Returns:
         --------
-        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         return self.runJunction(input=input,substract=False)
     def runJunction(
         self,
-        input : list[DataFrame] = None,
+        input : List[DataFrame] = None,
         substract : bool = False,
         truncate_negative : bool = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run junction procedure
 
         Args:
-            input (list[DataFrame], optional): Input series. Defaults to None.
+            input (List[DataFrame], optional): Input series. Defaults to None.
             substract (bool, optional): Instead of adding, substract second input series from first. Defaults to False.
             truncate_negative (bool, optional): Set negative results to zero. Defaults to None.
 
         Returns:
-            tuple[List[DataFrame],ProcedureFunctionResults]: first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+            Tuple[List[DataFrame],ProcedureFunctionResults]: first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         truncate_negative = truncate_negative if truncate_negative is not None else self.truncate_negative
         sign = -1 if substract else 1

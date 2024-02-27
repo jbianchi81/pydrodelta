@@ -44,17 +44,17 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         return self.extra_pars['stddev_estados'] if "stddev_estados" in self.extra_pars else self._kalman_def["x_stddev"]
 
     @property
-    def var_innov(self) -> tuple[Union[str,float],Union[str,float]]:
+    def var_innov(self) -> Tuple[Union[str,float],Union[str,float]]:
         """variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs"""
         return self.extra_pars["var_innov"] if "var_innov" in self.extra_pars else self._kalman_def["var_innov"]
 
     @property
-    def trim_sm(self) -> tuple[bool,bool]:
+    def trim_sm(self) -> Tuple[bool,bool]:
         """2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively"""
         return self.extra_pars["trim_sm"] if "trim_sm" in self.extra_pars else self._kalman_def["trim_sm"]
 
     @property
-    def Rqobs(self) -> list[tuple[float,float,float]]:
+    def Rqobs(self) -> List[Tuple[float,float,float]]:
         """Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)"""
         if self.var_innov[1] == "rule":
             if "rule" not in self.extra_pars:
@@ -64,12 +64,12 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             return [[0,self.var_innov[0],0]]
 
     @property
-    def asim(self) -> tuple[str,str]:
+    def asim(self) -> Tuple[str,str]:
         """2-tuple of str or None. Option to assimilate soil moisture and discharge, respectively"""
         return self.extra_pars["asim"] if "asim" in self.extra_pars else self._kalman_def["asim"]
 
     @property
-    def update(self) -> tuple[str,str,str,str]:
+    def update(self) -> Tuple[str,str,str,str]:
         """4-tuple of str or None. Option to correct model states via data assimilation (x1, x2, x3, x4) """
         return [x.lower() if x is not None else None for x in self.extra_pars["update"]] if "update" in self.extra_pars else self._kalman_def["update"]
 
@@ -115,7 +115,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             - x_stddev : float - Standard deviation of the model states
             - var_innov : tuple - variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs
             - trim_sm : tuple - 2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively
-            - rule : list[tuple[float,float,float]] - Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
+            - rule : List[Tuple[float,float,float]] - Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
             - asim : 2-tuple of str or None - Option to assimilate soil moisture and discharge, respectively
             - update : 4-tuple or str or None - Option to correct model states via data assimilation (x1, x2, x3, x4)
             - xpert : bool - Option to add noise to model states at the beginning of each step

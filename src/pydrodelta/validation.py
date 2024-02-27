@@ -2,11 +2,12 @@ import os
 import jsonschema
 from pathlib import Path
 import yaml
+from typing import Tuple
 
 def getSchema(
         name : str,
         rel_base_path : str = "data/schemas/json"
-    ) -> tuple[dict,jsonschema.validators.RefResolver]:
+    ) -> Tuple[dict,jsonschema.validators.RefResolver]:
     """
     Reads schema from json or yaml, returns dict of schemas and jsonschema resolver
 
@@ -20,7 +21,7 @@ def getSchema(
 
     Returns:
     --------
-    (dict of parsed schemas, resolver) : tuple[dict,jsonschema.validators.RefResolver]
+    (dict of parsed schemas, resolver) : Tuple[dict,jsonschema.validators.RefResolver]
     """
     schemas = {}
     plan_schema = open("%s/%s/%s.json" % (os.environ["PYDRODELTA_DIR"], rel_base_path, name.lower()))

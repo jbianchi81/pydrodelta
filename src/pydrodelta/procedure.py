@@ -109,7 +109,7 @@ class Procedure():
         """Ordered list of input DataFrames of the procedure (the boundary conditions). Run .loadInput(inplace=True) to populate"""
         self.output : List[DataFrame] = None # <- outputs
         """Ordered list of output DataFrames of the procedure. Run .run(inplace=True) to populate"""
-        self.output_obs : list[DataFrame] = None # <- observed values for error calculation
+        self.output_obs : List[DataFrame] = None # <- observed values for error calculation
         """List of DataFrames of observed values for error calculation. Same order than .output. Run .loadOutputObs(inplace=True) to populate"""
         self.states : DataFrame = None
         """Pivot DataFrame of procedure states. Byproduct of .run(inplace=True) execution"""
@@ -323,7 +323,7 @@ class Procedure():
             {
                 "procedure_id": int,
                 "function_type": str,
-                "results": list[dict]
+                "results": List[dict]
             }
         """
         return {
@@ -356,7 +356,7 @@ class Procedure():
         initial_states : Union[list,tuple] = None, 
         load_input : bool = True, 
         load_output_obs : bool = True
-        ) -> Union[list[DataFrame], None]:
+        ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
 

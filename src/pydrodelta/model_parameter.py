@@ -1,4 +1,5 @@
 from numpy import random
+from typing import Tuple
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 
@@ -29,14 +30,14 @@ class ModelParameter:
     def __init__(
         self,
         name : str, 
-        constraints : tuple[float,float,float,float]
+        constraints : Tuple[float,float,float,float]
         ):
         """
         name : str
         
             The name of the parameter
         
-        constraints : tuple[float,float,float,float]
+        constraints : Tuple[float,float,float,float]
 
             tuple(min, range_min, range_max, max), where:
             - min: The minimum allowed value. A lower value is either physically impossible and/or would make the procedure crash

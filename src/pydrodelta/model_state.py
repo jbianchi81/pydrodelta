@@ -1,5 +1,6 @@
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
+from typing import Tuple
 
 class ModelState:
     """Represents a procedure function state described by a name, a constraint range (min, max) and a default value"""
@@ -19,7 +20,7 @@ class ModelState:
     def __init__(
         self, 
         name : str, 
-        constraints : tuple[float,float],
+        constraints : Tuple[float,float],
         default = None
         ):
         """
@@ -27,7 +28,7 @@ class ModelState:
 
             The state name
         
-        constraints : tuple[float,float]
+        constraints : Tuple[float,float]
 
             tuple(min,max) where:
             - min: The minimum allowed value. A lower value is either physically impossible and/or would make the procedure crash

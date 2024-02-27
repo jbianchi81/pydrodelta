@@ -44,8 +44,12 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 
 ### tested with
 
-- **OS**: Ubuntu 22.04.3 LTS
-- **python version**: 3.10.12
+- **OS**
+    - Ubuntu 18.04.6 LTS
+    - Ubuntu 22.04.3 LTS
+- **python**: 
+    - 3.8.15
+    - 3.10.12 
 
 ### use examples
 

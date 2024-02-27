@@ -2,7 +2,7 @@ from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from ..a5 import createEmptyObsDataFrame
-from typing import Union, List
+from typing import Union, List, Tuple
 from pandas import DataFrame
 
 class PolynomialTransformationProcedureFunction(ProcedureFunction):
@@ -17,7 +17,7 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
     ]
     
     @property
-    def coefficients(self) -> list[float]:
+    def coefficients(self) -> List[float]:
         """coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic"""
         return self.parameters["coefficients"]
     
@@ -70,8 +70,8 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
         return result
     def run(
         self,
-        input : list[DataFrame] = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        input : List[DataFrame] = None
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
         Parameters:
@@ -80,7 +80,7 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
             Boundary conditions. If None, runs .loadInput
 
         Returns:
-        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output  = []

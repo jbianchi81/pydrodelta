@@ -1,6 +1,6 @@
 import numpy as np
 from pandas import DataFrame
-from typing import Union, List
+from typing import Union, List, Tuple
 import logging
 
 from ..procedure_function import ProcedureFunctionResults
@@ -122,7 +122,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
     def run(
         self,
         input : List[DataFrame] = None
-        ) -> tuple[list, dict]:
+        ) -> Tuple[list, dict]:
         """
         Runs the procedure function.
         
@@ -136,7 +136,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
         Returns:
         --------
         
-        tuple[List[DataFrame], ProcedureFunctionResults]
+        Tuple[List[DataFrame], ProcedureFunctionResults]
             
             Devuelve una lista de DataFrames (uno por output del procedimiento) y opcionalmente un objeto ProcedureFunctionResults
         """
@@ -179,12 +179,12 @@ class GR4JProcedureFunction(PQProcedureFunction):
     
     def setEngine(
         self,
-        input : list[tuple[float,float]]
+        input : List[Tuple[float,float]]
         ) -> None:
         """Instantiate GR4J procedure engine using input as Boundaries
         
         Args:
-        input : list[tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)"""
+        input : List[Tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)"""
         self._engine = GR4J(
             pars=[self.X0,self.X3,self.X2,self.X1],
             Boundaries=np.array(input),

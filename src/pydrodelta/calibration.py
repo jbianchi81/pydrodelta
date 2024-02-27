@@ -4,7 +4,7 @@ import logging
 import os
 import json
 from .util import tryParseAndLocalizeDate
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Tuple
 from datetime import datetime
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.int_descriptor import IntDescriptor
@@ -34,13 +34,13 @@ class Calibration:
     """Factor of the variance of the initial distribution of the parameter values"""
 
     @property
-    def ranges(self) ->  List[tuple[float,float]]: 
+    def ranges(self) ->  List[Tuple[float,float]]: 
         """Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)"""
         return self._ranges
     @ranges.setter
     def ranges(
         self,
-        ranges : List[tuple[float,float]]
+        ranges : List[Tuple[float,float]]
         ) -> None:
         if ranges is not None:
             if not isinstance(ranges,(list,tuple)):
@@ -67,7 +67,7 @@ class Calibration:
     """maximum iterations"""
 
     @property
-    def calibration_result(self) -> tuple[List[float],float]:
+    def calibration_result(self) -> Tuple[List[float],float]:
         """Calibration result. First element is the list of obtained parameters. The second element is the obtained objective function value"""
         return self._calibration_result
 
@@ -75,18 +75,18 @@ class Calibration:
     """Save calibration result into this file"""
 
     @property
-    def calibration_period(self) -> tuple[datetime, datetime]:
+    def calibration_period(self) -> Tuple[datetime, datetime]:
         """Calibration period (begin date, end date)"""
         return self._calibration_period
     @calibration_period.setter
     def calibration_period(
         self,
-        calibration_period : tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
+        calibration_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
         ) -> None:
         self._calibration_period = self.parseCalibrationPeriod(calibration_period) if calibration_period is not None else None
 
     @property
-    def simplex(self) -> List[tuple[List[float],float]]:
+    def simplex(self) -> List[Tuple[List[float],float]]:
         return self._simplex
 
     @property
@@ -102,7 +102,7 @@ class Calibration:
             objective_function : str = 'rmse',
             limit : bool = True,
             sigma : float = 0.25,
-            ranges : List[tuple[float,float]] = None,
+            ranges : List[Tuple[float,float]] = None,
             no_improve_thr : float = 0.0000001,
             max_stagnations : int = 10,
             max_iter : int = 5000,
@@ -135,7 +135,7 @@ class Calibration:
 
             Ratio of the standard deviation of the initial distribution of the parameter values with the min-max range. sigma = stddev / (0.5 * (max_range - min_range)) I.e., if sigma=1, the standard deviation of the parameter values will be equal to half the min-max range
 
-        ranges : List[tuple[float,float]] = None
+        ranges : List[Tuple[float,float]] = None
 
             Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
 
@@ -203,8 +203,8 @@ class Calibration:
     
     def parseCalibrationPeriod(
         self, 
-        cal_period : tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
-        ) -> tuple[datetime, datetime]:
+        cal_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
+        ) -> Tuple[datetime, datetime]:
         if len(cal_period) < 2:
             raise ValueError("calibration_period must be a list of length 2")
         return (
@@ -259,8 +259,8 @@ class Calibration:
         result_index : Optional[int] = None,
         sigma : Optional[float] = None,
         limit : Optional[bool] = None,
-        ranges : Optional[List[tuple[float,float]]] = None
-        ) -> Union[None,List[tuple[List[float],float]]]:
+        ranges : Optional[List[Tuple[float,float]]] = None
+        ) -> Union[None,List[Tuple[List[float],float]]]:
         """Generate simplex
         
         Parameters:
@@ -285,13 +285,13 @@ class Calibration:
 
             Limit values of the parameters to the provided min-max ranges
 
-        ranges : List[tuple[float,float]] = None
+        ranges : List[Tuple[float,float]] = None
 
             Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
         
         Returns:
         --------
-        None or simplex : Union[None,List[tuple[List[float],float]]] 
+        None or simplex : Union[None,List[Tuple[List[float],float]]] 
 
             First element of each item is the parameter list. Second element is the obtained objective function value
         """
@@ -321,7 +321,7 @@ class Calibration:
         inplace : bool = True, 
         sigma : Optional[int] = None,
         limit : Optional[bool] = None,
-        ranges : Optional[List[tuple[float,float]]] = None,
+        ranges : Optional[List[Tuple[float,float]]] = None,
         no_improve_thr : Optional[float] = None, 
         max_stagnations : Optional[int] = None, 
         max_iter : Optional[int] = None
@@ -343,7 +343,7 @@ class Calibration:
 
             Limit values of the parameters to the provided min-max ranges
 
-        ranges : List[tuple[float,float]] = None
+        ranges : List[Tuple[float,float]] = None
 
             Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
         
@@ -391,12 +391,12 @@ class Calibration:
         inplace : bool = True, 
         sigma : Optional[int] = None,
         limit : Optional[bool] = None,
-        ranges : Optional[List[tuple[float,float]]] = None,
+        ranges : Optional[List[Tuple[float,float]]] = None,
         no_improve_thr : Optional[float] = None, 
         max_stagnations : Optional[int] = None, 
         max_iter : Optional[int] = None,
         save_result : Optional[str] = None
-        ) -> Union[None,tuple[List[float],float]]:
+        ) -> Union[None,Tuple[List[float],float]]:
         """
         Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
         
@@ -414,7 +414,7 @@ class Calibration:
 
             Limit values of the parameters to the provided min-max ranges
 
-        ranges : List[tuple[float,float]] = None
+        ranges : List[Tuple[float,float]] = None
 
             Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
         
@@ -436,7 +436,7 @@ class Calibration:
         
         Returns:
         --------
-        None or calibration result : tuple[List[float],float]
+        None or calibration result : Tuple[List[float],float]
 
             First element is the list of calibrated parameters. Second element is the obtained objective function value
         """

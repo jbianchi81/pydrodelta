@@ -1,5 +1,5 @@
-from typing import TypedDict
+from typing import TypedDict, List
 
 class BoundaryDict(TypedDict):
     name : str
-    coefficients : list[float]
+    coefficients : List[float]

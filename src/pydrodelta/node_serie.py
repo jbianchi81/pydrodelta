@@ -5,7 +5,7 @@ import logging
 from .a5 import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame
 from .config import config
-from typing import Union, List
+from typing import Union, List, Tuple
 from .types.tvp import TVP
 from .types.series_dict import SeriesDict
 from .types.series_prono_dict import SeriesPronoDict
@@ -30,13 +30,13 @@ class NodeSerie():
     """Type of the series (only for retrieval from input api). One of 'puntual', 'areal', 'raster'"""
     
     @property
-    def lim_outliers(self) -> tuple[float,float]:
+    def lim_outliers(self) -> Tuple[float,float]:
         """Minimum and maximum values for outliers removal (2-tuple of float)"""
         return self._lim_outliers
     @lim_outliers.setter
     def lim_outliers(
         self,
-        values : tuple[float,float]
+        values : Tuple[float,float]
         ) -> None:
         if values is None:
             self._lim_outliers = None
@@ -94,13 +94,13 @@ class NodeSerie():
         self,
         series_id : int,
         tipo : str = "puntual",
-        lim_outliers : tuple[float,float] = None,
+        lim_outliers : Tuple[float,float] = None,
         lim_jump : float = None,
         x_offset : timedelta = timedelta(seconds=0),
         y_offset : float = 0,
         moving_average : timedelta = None,
         csv_file : str = None,
-        observations : Union[List[TVP],List[tuple[datetime,float]]] = None,
+        observations : Union[List[TVP],List[Tuple[datetime,float]]] = None,
         save_post : str = None,
         comment : str = None,
         name : str = None
@@ -114,7 +114,7 @@ class NodeSerie():
         tipo : str = "puntual"
             Type of the series (only for retrieval from input api). One of 'puntual', 'areal', 'raster'
         
-        lim_outliers : tuple[float,float] = None
+        lim_outliers : Tuple[float,float] = None
             Minimum and maximum values for outliers removal (2-tuple of float)
 
         lim_jump : float = None
@@ -132,14 +132,14 @@ class NodeSerie():
         csv_file : str = None
             Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header
 
-        observations : Union[List[TVP],List[tuple[datetime,float]]] = None
+        observations : Union[List[TVP],List[Tuple[datetime,float]]] = None
             Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)
 
         save_post : str = None
             Save upload payload into this file"""
         self.series_id = series_id
         self.type = tipo
-        self.lim_outliers : tuple[float,float] = lim_outliers
+        self.lim_outliers : Tuple[float,float] = lim_outliers
         self.lim_jump = lim_jump
         self.x_offset = x_offset # util.interval2timedelta(x_offset) if isinstance(x_offset,dict) else x_offset # shift_by
         self.y_offset = y_offset # bias

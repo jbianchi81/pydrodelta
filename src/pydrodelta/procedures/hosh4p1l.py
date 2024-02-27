@@ -4,7 +4,7 @@ import logging
 # from pydrodelta.series_data import SeriesData
 import numpy as np
 from pandas import DataFrame, Series, concat
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from ..procedure_function import ProcedureFunctionResults
 from ..procedures.pq import PQProcedureFunction
@@ -152,8 +152,8 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             raise Exception("Missing parameter n")
     def run(
         self,
-        input : list[DataFrame] = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        input : List[DataFrame] = None
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
         Parameters:
@@ -162,7 +162,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             Boundary conditions. If None, runs .loadInput
 
         Returns:
-        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         pma = input[0]["valor"].to_list()

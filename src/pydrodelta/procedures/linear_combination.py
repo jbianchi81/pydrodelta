@@ -2,7 +2,7 @@ from pandas import DataFrame
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
-from typing import Union, List
+from typing import Union, List, Tuple
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
@@ -23,13 +23,13 @@ class BoundaryCoefficients():
     def __init__(
         self,
         name : str,
-        values : list[float],
+        values : List[float],
         procedure_function
         ):
         """
         Args:
             name (str): Name of the boundary. Must map to a name of a procedureFunction's boundary_
-            values (list[float]): List of coefficients (floats). First is for the last observation time step, second is for the previous step, and so on
+            values (List[float]): List of coefficients (floats). First is for the last observation time step, second is for the previous step, and so on
             procedure_function (ProcedureFunction): Reference to the ProcedureFunction that contains this
 
         Raises:
@@ -164,8 +164,8 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     
     def run(
         self,
-        input : list[DataFrame] = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        input : List[DataFrame] = None
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
         Arguments:
@@ -173,7 +173,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 Boundary conditions. If None, runs .loadInput
 
         Returns:
-            tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+            Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         
         Raises:
             Exception : If data is missing in a boundary at a required timestep"""

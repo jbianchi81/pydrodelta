@@ -1,6 +1,6 @@
-from typing import TypedDict
+from typing import TypedDict, List
 from .boundary_dict import BoundaryDict
 
 class ForecastStepDict(TypedDict):
     intercept : float
-    boundaries : list[BoundaryDict]
+    boundaries : List[BoundaryDict]

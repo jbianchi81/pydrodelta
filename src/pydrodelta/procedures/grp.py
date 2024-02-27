@@ -3,7 +3,7 @@ from numpy import tanh
 # from typing import Optional
 # from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Series, concat
-from typing import Union, List
+from typing import Union, List, Tuple
 from numpy import inf, isnan
 
 from ..procedure_function import ProcedureFunctionResults
@@ -147,7 +147,7 @@ class GRPProcedureFunction(PQProcedureFunction):
     def createUnitHydrograph(
         X3 : float,
         alpha : float
-        ) -> tuple[list,list]:
+        ) -> Tuple[list,list]:
         """Creates unit hydrograph
         
         Parameters:
@@ -160,7 +160,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         
         Returns:
         --------
-        tuple[list,list] : where first element is the pulses Unit hydrograph and the second is the accumulated unit hydrograph"""
+        Tuple[list,list] : where first element is the pulses Unit hydrograph and the second is the accumulated unit hydrograph"""
         t = 0
         UH1 = []
         SH1 = []
@@ -180,8 +180,8 @@ class GRPProcedureFunction(PQProcedureFunction):
 
     def run(
         self,
-        input : list[DataFrame] = None
-        ) -> tuple[List[DataFrame],ProcedureFunctionResults]:
+        input : List[DataFrame] = None
+        ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
@@ -192,7 +192,7 @@ class GRPProcedureFunction(PQProcedureFunction):
             Boundary conditions. If None, runs .loadInput
 
         Returns:
-        tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+        Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         -------- 
         """
         if input is None:
@@ -290,7 +290,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         etp: float,
         k: int,
         q_obs=None
-        ) -> tuple[float,float,float,float,float,float]:
+        ) -> Tuple[float,float,float,float,float,float]:
         """Advances model time step
         
         Parameters:
@@ -321,7 +321,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         
         Returns:
         --------
-        tuple[float,float,float,float,float,float] : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)"""
+        Tuple[float,float,float,float,float,float] : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)"""
         Pn = pma - etp if pma >= etp else 0
         Ps = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0
         Es = Sk*(2-Sk/self.X0)*tanh((etp-pma)/self.X0)/(1+(1-Sk/self.X0)*tanh((etp-pma)/self.X0)) if Pn == 0 else 0
