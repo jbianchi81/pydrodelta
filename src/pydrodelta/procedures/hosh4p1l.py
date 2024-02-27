@@ -105,11 +105,11 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,dist]
         else:
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,self.n,self.k]
-        self._engine = HOSH4P1L({
-            "pars": hosh_pars,
-            "Boundaries": np.array(input),
-            "InitialConditions": [self.SurfaceStorage,self.SoilStorage],
-            "Proc" : self.Proc})
+        self._engine = HOSH4P1L(
+            pars = hosh_pars,
+            Boundaries = np.array(input),
+            InitialConditions = [self.SurfaceStorage,self.SoilStorage],
+            Proc = self.Proc)
         
     def __init__(
         self,

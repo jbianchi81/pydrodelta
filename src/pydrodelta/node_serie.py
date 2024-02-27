@@ -76,6 +76,8 @@ class NodeSerie():
     """Save upload payload into this file"""
     comment = StringDescriptor()
     """Comment about this series"""
+    name = StringDescriptor()
+    """Series name"""
     def __init__(
         self,
         series_id : int,
@@ -88,7 +90,8 @@ class NodeSerie():
         csv_file : str = None,
         observations : Union[List[TVP],List[tuple[datetime,float]]] = None,
         save_post : str = None,
-        comment : str = None
+        comment : str = None,
+        name : str = None
         ):
         """
         Parameters:
@@ -137,6 +140,7 @@ class NodeSerie():
         self.observations = observations
         self.save_post = save_post
         self.comment = comment
+        self.name = name
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
     def toDict(self) -> dict:

@@ -73,6 +73,8 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         data = input[0][["valor"]].rename(columns={"valor":"input"})
+        if not len(data.dropna().index):
+            raise Exception("Missing input data: no valid values found")
         last_date = max(data.dropna().index)
         linear_channel_input = data[data.index <= last_date]["input"].values
         if True in np.isnan(linear_channel_input):

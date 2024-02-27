@@ -147,7 +147,9 @@ class Topology():
         plan : Plan
             Plan containing this topology
         """
-        getSchemaAndValidate(params=locals(), name="topology")
+        params = locals()
+        del params["plan"]
+        getSchemaAndValidate(params=params, name="topology")
         self.timestart = timestart
         self.timeend = timeend
         self.forecast_timeend = forecast_timeend

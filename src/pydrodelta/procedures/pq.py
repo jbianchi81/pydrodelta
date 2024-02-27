@@ -51,6 +51,6 @@ class PQProcedureFunction(ProcedureFunction):
         **kwargs):
         super().__init__(extra_pars = extra_pars, **kwargs)
         getSchemaAndValidate(dict(kwargs, extra_pars = extra_pars),"PQProcedureFunction")
-        if self.fillnulls:
+        if self.fill_nulls:
             logging.debug("PQProcedure - fillnulls: setting pma boundary to optional")
             self.boundaries[0].optional = True

@@ -52,8 +52,12 @@
                                         }
                                     }
                                 }
+                            },
+                            "step" : {
+                                "type": "integer"
                             }
-                        }
+                        },
+                        "additionalProperties": false
                     },
                     "description": "List of objects where each item represents a forecast time step (index 0 is first step). Each object has 'intercept' <number> and 'boundaries' <array>. Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
                     "minItems": 1

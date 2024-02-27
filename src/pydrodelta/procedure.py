@@ -138,9 +138,24 @@ class Procedure():
             return 0
     def toDict(self) -> dict:
         """Convert this instance into a dict"""
-        d = self.__dict__
-        d.function = self.function.toDict()
-        return d
+        return {
+            'id': self.id, 
+            'initial_states': self.initial_states, 
+            'function_type_name': self.function_type_name, 
+            'function': self.function.toDict(),
+            'parameters': self.parameters, 
+            'time_interval': self.time_interval, 
+            'time_offset': self.time_offset, 
+            'input': [x.to_dict(orient="records") for x in self.input] if self.input is not None else None, 
+            'output': [x.to_dict(orient="records") for x in self.output] if self.output is not None else None, 
+            'output_obs': [x.to_dict(orient="records") for x in self.output_obs] if self.output_obs is not None else None, 
+            'states': self.states.to_dict(orient="records") if isinstance(self.states,DataFrame) else self.states,
+            'procedure_function_results': self.procedure_function_results.toDict(), 
+            'save_results': self.save_results, 
+            'overwrite': self.overwrite, 
+            'overwrite_original': self.overwrite_original, 
+            'calibration': self.calibration
+        }
     def loadInput(
         self,
         inplace : bool = True,
@@ -471,7 +486,8 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
-            o._variable.concatenate(self.output[index],overwrite=overwrite,extend=False)
+            output_data = self.setIndexOfDataFrame(self.output[index])
+            o._variable.concatenate(output_data,overwrite=overwrite,extend=False)
             if overwrite_original:
                 o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
             for serie in o._variable.series_sim:
@@ -479,6 +495,22 @@ class Procedure():
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
                 serie.applyOffset()
             index = index + 1
+    
+    def setIndexOfDataFrame(
+        self,
+        data : DataFrame
+    ) -> DataFrame:
+        """Set index of data frame from topology begin and end dates and time_interval"""
+        data = util.serieRegular(
+            data,
+            self._plan.topology.time_interval,
+            self._plan.topology.timestart,
+            self._plan.topology.timeend,
+            self._plan.topology.time_offset,
+            interpolation_limit=0,
+            tag_column="tag",
+            interpolate=False)
+        return data
     def testPlot(
         self,
         index : int = 0

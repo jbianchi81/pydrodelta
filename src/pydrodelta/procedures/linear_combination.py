@@ -6,6 +6,7 @@ from typing import Union, List
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
+from ..descriptors.int_descriptor import IntDescriptor
 from ..types.boundary_dict import BoundaryDict
 from ..types.forecast_step_dict import ForecastStepDict
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
@@ -55,6 +56,8 @@ class ForecastStep():
     intercept = FloatDescriptor()
     """Intercept of the linear combination"""
 
+    step = IntDescriptor()
+
     @property
     def boundaries(self) -> List[BoundaryCoefficients]:
         return self._boundaries
@@ -80,7 +83,8 @@ class ForecastStep():
         self,
         intercept : float,
         boundaries : List[BoundaryDict],
-        procedure_function
+        procedure_function,
+        step : int,
         ):
         """
         Args:
@@ -90,7 +94,8 @@ class ForecastStep():
         """
         self._procedure_function = procedure_function
         self.intercept = intercept
-        self.boundaries = boundaries 
+        self.boundaries = boundaries
+        self.step = step
     
     def toDict(self) -> dict:
         """Convert to dict"""

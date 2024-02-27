@@ -144,6 +144,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] colored log
 - [ ] nodes list / procedures list to dataframe
 - [ ] implement linear regression as functionProcedure
+- [ ]  cache variables
 
 ### References
 

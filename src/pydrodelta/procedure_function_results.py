@@ -104,14 +104,16 @@ class ProcedureFunctionResults:
             logging.ERROR(f"Couldn't write to file ({e})")
     def toDict(self) -> dict:
         """Convert procedure function results to dict"""
-        # logging.debug({ 
-        #     "border_conditions": str(type(self.border_conditions)),
-        #     "initial_states": str(type(self.initial_states)),
-        #     "states": str(type(self.states)),
-        #     "parameters": str(type(self.parameters)),
-        #     "extra_pars": str(type(self.extra_pars)),
-        #     "statistics": str(type(self.statistics)),
-        #     "data": str(type(self.data))
+        # logging.debug({
+        #     "border_conditions": self.border_conditions.replace({np.nan:None}).to_dict("records") if self.border_conditions is not None and type(self.border_conditions) == DataFrame else [df.replace({np.nan:None}).to_dict("records") if type(df) == DataFrame else df for df in self.border_conditions] if self.border_conditions is not None and type(self.border_conditions) == list else self.border_conditions,
+        #     "initial_states": self.initial_states,
+        #     "states": self.states.replace({np.nan:None}).to_dict("records") if self.states is not None and type(self.states) == DataFrame else self.states,
+        #     "parameters": self.parameters if type(self.parameters) == dict or type(self.parameters) == list else self.parameters.toDict() if self.parameters is not None else None,
+        #     "extra_pars": self.extra_pars,
+        #     "statistics": [x.toDict() for x in self.statistics] if self.statistics is not None else None,
+        #     "statistics_val": [x.toDict() for x in self.statistics_val] if self.statistics_val is not None else None,
+        #     "data": self.data.replace({np.nan:None}).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [df.replace({np.nan:None}).to_dict("records") for df in self.data] if self.data is not None else None
+        #     # .apply(lambda c: list(c) if isinstance(c[0], np.ndarray) else c)
         # })
         return {
             "border_conditions": self.border_conditions.replace({np.nan:None}).to_dict("records") if self.border_conditions is not None and type(self.border_conditions) == DataFrame else [df.replace({np.nan:None}).to_dict("records") if type(df) == DataFrame else df for df in self.border_conditions] if self.border_conditions is not None and type(self.border_conditions) == list else self.border_conditions,

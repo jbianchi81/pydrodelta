@@ -24,7 +24,11 @@ class ExpressionProcedureFunction(ProcedureFunction):
         \**kwargs : keyword arguments (see ProcedureFunction)
         """
         super().__init__(**kwargs)
-        getSchemaAndValidate(kwargs,"ExpressionProcedureFunction")
+        getSchemaAndValidate(
+            dict(
+                kwargs, 
+                expression = expression),
+            "ExpressionProcedureFunction")
         self.expression = expression
     def transformation_function(
         self,

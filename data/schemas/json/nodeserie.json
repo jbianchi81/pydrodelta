@@ -52,6 +52,9 @@
     "save_post": {
       "type": "string",
       "description": "Local path where to save output data sent to API (when uploading analysis results)"
+    },
+    "name": {
+      "type": "string"
     }
   },
   "required": [

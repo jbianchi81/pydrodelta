@@ -6,16 +6,35 @@ from math import sqrt
 from typing import Union, Tuple
 import numpy as np
 
-from pydrodelta.procedure_function import ProcedureFunctionResults
-from pydrodelta.procedures.pq import PQProcedureFunction
-from pydrodelta.util import interval2timedelta
-from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.model_parameter import ModelParameter
-from pydrodelta.model_state import ModelState
+from ..procedure_function import ProcedureFunctionResults
+from ..procedures.pq import PQProcedureFunction
+from ..util import interval2timedelta
+from ..validation import getSchemaAndValidate
+from ..model_parameter import ModelParameter
+from ..model_state import ModelState
+from ..descriptors.float_descriptor import FloatDescriptor
+from ..descriptors.list_descriptor import ListDescriptor
 
-class par_fg():
-    def __init__(self,parameters,area=None):
+class ParFg():
+    """Flood guidance parameters"""
+    def __init__(
+        self,
+        parameters : dict,
+        area : float = None
+        ):
+        """
+        parameters : dict
+
+            Properties:
+            - CN2  
+            - hp1dia
+            - hp2dias
+            - Qbanca
+
+        area : float = None
+        """
         self.CN2 = parameters["CN2"]
+        """Curve number"""
         self.hp1dia = parameters["hp1dia"]
         self.hp2dias = parameters["hp2dias"]
         self.Qbanca = parameters["Qbanca"]
@@ -24,18 +43,29 @@ class par_fg():
         self.hp1dia = self.hp1dia * area/1000/1000 if area is not None else self.hp1dia
         self.hp2dias = self.hp2dias * area/1000/1000 if area is not None else self.hp2dias
 
-class sm_transform():
-    def __init__(self,parameters: list):
+class SmTransform():
+    """Soil moisture linear transformation parameters"""
+    def __init__(
+        self,
+        parameters: list
+        ):
+        """
+        parameters : list or tuple: [slope, intercept] """
         self.slope = parameters[0]
+        """slope"""
         self.intercept = parameters[1]
-    def toDict(self):
+        """intercept"""
+    def toDict(self) -> dict:
+        """Convert to dict"""
         return {
             "slope": self.slope,
             "intercept": self.intercept
         }
 
 class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
-
+    """Simplified (10-parameter) Sacramento for precipitation - discharge transformation. 
+    
+    Reference: https://www.researchgate.net/publication/348234919_Implementacion_de_un_procedimiento_de_pronostico_hidrologico_para_el_alerta_de_inundaciones_utilizando_datos_de_sensores_remotos"""
     _parameters = [
             #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
             # -----+----------+--------+---------+-----------+-----------+----------+-------
@@ -74,72 +104,199 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         #  38 |       27 | x4     |         0 |  Infinity |       0 |     4
     ]
 
+    @property
+    def x1_0(self) -> float:
+        """top soil layer storage capacity [L]"""
+        return self.parameters["x1_0"]
+    
+    @property
+    def x2_0(self) -> float:
+        """bottom soil layer storage capacity [L]"""
+        return self.parameters["x2_0"]
+    
+    @property
+    def m1(self) -> float:
+        """runoff function exponent [-]"""
+        return self.parameters["m1"]
+    
+    @property
+    def c1(self) -> float:
+        return self.parameters["c1"]
+        """interflow function coefficient [1/T]"""
+        
+    @property
+    def c2(self) -> float:
+        """percolation function coefficient [-]"""
+        return self.parameters["c2"]
+    
+    @property
+    def c3(self) -> float:
+        """base flow recession rate [1/T]"""
+        return self.parameters["c3"]
+    
+    @property
+    def mu(self) -> float:
+        """base flow/deep percolation partition parameter [-]"""
+        return self.parameters["mu"]
+    
+    @property
+    def alfa(self) -> float:
+        """linear reservoir coefficient [1/T]"""
+        return self.parameters["alfa"]
+    
+    @property
+    def m2(self) -> float:
+        """percolation function exponent [-]"""
+        return self.parameters["m2"]
+    
+    @property
+    def m3(self) -> float:
+        """evapotranspiration function exponent [-]"""
+        return self.parameters["m3"]
+
+    @property
+    def windowsize(self) -> int:
+        """Window size for soil moisture adjustment"""
+        return self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
+    
+    @property
+    def dt_sec(self) -> int:
+        """Time step in seconds"""
+        return interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
+    
+    @property
+    def rho(self) -> float:
+        """Soil porosity"""
+        return self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
+    
+    @property
+    def ae(self) -> float:
+        """Effective area of runnof generation [0-1]"""
+        return self.extra_pars["ae"] if "ae" in self.extra_pars else 1
+    
+    @property
+    def wp(self) -> float:
+        """Wilting point"""
+        return self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
+    
+    @property
+    def sm_transform(self) -> SmTransform:
+        """soil moisture rescaling parameters (scale, bias)"""
+        return SmTransform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else SmTransform([1,0])
+
+    @property
+    def x(self) -> list:
+        """Model states (x1,x2,x3,x4)"""
+        return [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
+    
+    @property
+    def par_fg(self) -> dict:
+        """Flood guidance parameters"""
+        return ParFg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
+    
+    @property
+    def max_npasos(self) -> int:
+        """Maximum substeps for model computations"""
+        return self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
+
+    @property
+    def no_check1(self) -> bool:
+        """Perform step subdivision based on precipitation intensity nsteps = pma/2  (for numerical stability)"""
+        return self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
+    
+    @property
+    def no_check2(self) -> bool:
+        """Perform step subdivision based on states derivatives (for numerical stability)"""
+        return self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
+    
+    @property
+    def rk2(self) -> bool:
+        """Use Runge-Kutta-2 instead of Runge-Kutta-4"""
+        return self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
+
+    volume = FloatDescriptor()
+    """Water balance"""    
+
+    _denom_rk = (2,2,1)
+    """Runge-Kutta denominators"""
+    
+    _statenames = ['x1','x2','x3','x4']
+    """Model state names"""
+
+    sm_obs = ListDescriptor()
+    """Soil moisture observations"""
+
+    sm_sim = ListDescriptor()
+    """Simulated soil moisture"""
+
     def __init__(
         self,
+        parameters : Union[dict,list,tuple],
+        initial_states : list,
         **kwargs
         ):
-        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
-        getSchemaAndValidate(kwargs,"SacramentoSimplifiedProcedureFunction")
-        self.volume : float = 0
-        """Water balance"""
-        self.x1_0 : float = self.parameters["x1_0"]
-        """top soil layer storage capacity [L]"""
-        self.x2_0 : float = self.parameters["x2_0"]
-        """bottom soil layer storage capacity [L]"""
-        self.m1 : float = self.parameters["m1"]
-        """runoff function exponent [-]"""
-        self.c1 : float = self.parameters["c1"]
-        """interflow function coefficient [1/T]"""
-        self.c2 : float = self.parameters["c2"]
-        """percolation function coefficient [-]"""
-        self.c3 : float = self.parameters["c3"]
-        """base flow recession rate [1/T]"""
-        self.mu : float = self.parameters["mu"]
-        """base flow/deep percolation partition parameter [-]"""
-        self.alfa : float = self.parameters["alfa"]
-        """linear reservoir coefficient [1/T]"""
-        self.m2 : float = self.parameters["m2"]
-        """percolation function exponent [-]"""
-        self.m3 : float = self.parameters["m3"]
-        """evapotranspiration function exponent [-]"""
-        self.denom_rk : tuple = (2,2,1)
-        """Runge-Kutta denominators"""
-        self.statenames : list = ['x1','x2','x3','x4']
-        """Model state names"""
-        # self.npasos
-        # self.max_npasos
-        self.sm_obs : list = []
-        """Soil moisture observations"""
-        self.sm_sim : list = []
-        """Simulated soil moisture"""
-        # self.fillnulls = self.extra_pars["fill_nulls"] if "fill_nulls" in self.extra_pars else False
-        self.windowsize : int = self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
-        """Window size for soil moisture adjustment"""
-        self.dt_sec : int = interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
-        """Time step in seconds"""
-        self.rho : float = self.extra_pars["rho"] if "rho" in self.extra_pars else 0.5
-        # self.area = self.extra_pars["area"]
-        """Soil porosity"""
-        self.ae : float = self.extra_pars["ae"] if "ae" in self.extra_pars else 1
-        """Effective area of runnof generation [0-1]"""
-        self.wp : float = self.extra_pars["wp"] if "wp" in self.extra_pars else 0.03
-        """Wilting point"""
-        self.sm_transform : tuple = sm_transform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else sm_transform([1,0])
-        """soil moisture rescaling parameters (scale, bias)"""
-        self.x : list = [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
-        """Model states (x1,x2,x3,x4)"""
-        # FLOOD GUIDANCE
-        self.par_fg : dict = par_fg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
-        """Flood guidance parameters"""
-        # max substeps
-        self.max_npasos : int = self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
-        """Maximum substeps for model computations"""
-        self.no_check1 : bool = self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
-        """Perform step subdivision based on precipitation intensity nsteps = pma/2  (for numerical stability)"""
-        self.no_check2 : bool = self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
-        """Perform step subdivision based on states derivatives (for numerical stability)"""
-        self.rk2 : bool = self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
-        """Use Runge-Kutta-2 instead of Runge-Kutta-4"""
+        """
+        parameters : Union[dict,list,tuple]
+        
+            Properties:
+            - x1_0 : float
+                top soil layer storage capacity [L]
+            - x2_0 : float
+                bottom soil layer storage capacity [L]
+            - m1 : float
+                runoff function exponent [-]
+            - c1 : float
+                interflow function coefficient [1/T]        
+            - c2 : float
+                percolation function coefficient [-]        
+            - c3 : float
+                base flow recession rate [1/T]        
+            - mu : float
+                base flow/deep percolation partition parameter [-]        
+            - alfa : float
+                linear reservoir coefficient [1/T]        
+            - m2 : float
+                percolation function exponent [-]        
+            - m3
+                evapotranspiration function exponent [-]
+        
+        extra_pars : Union[dict,list,tuple]
+        
+            - windowsize : int
+                Window size for soil moisture adjustment        
+            - dt_sec : int
+                Time step in seconds        
+            - rho : float
+                Soil porosity        
+            - ae : float
+                Effective area of runnof generation [0-1]        
+            - wp : float
+                Wilting point        
+            - sm_transform : tuple
+                soil moisture rescaling parameters (scale, bias)
+            - par_fg : dict
+                Flood guidance parameters
+            - max_npasos : int
+                Maximum substeps for model computations        
+            - no_check1 : bool
+                Perform step subdivision based on precipitation intensity nsteps = pma/2  (for numerical stability)        
+            - no_check2 : bool
+                Perform step subdivision based on states derivatives (for numerical stability)        
+            - rk2 : bool
+                Use Runge-Kutta-2 instead of Runge-Kutta-4
+        
+        initial_states : list
+        
+                Initial model states (x1,x2,x3,x4)
+                """
+        super().__init__(
+            parameters = parameters, 
+            initial_states = initial_states,
+            **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
+        getSchemaAndValidate(dict(kwargs, parameters = parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")
+        self.volume = 0
+        self.sm_obs = []
+        self.sm_sim = []
     
     def constraint(self,value,name):
         if name == 'x1':
@@ -202,13 +359,13 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             X[rk].append(pc - et2 - gw)
             X[rk].append(sr + bf)
             if(rk<3):
-                n1 = max(n1,self.check3(x1n,X[rk][0],1 / self.denom_rk[rk]))
+                n1 = max(n1,self.check3(x1n,X[rk][0],1 / self._denom_rk[rk]))
             (n, fl) = self.check2(x2, self.x2_0, x1)
             n2 = max(n, n2)
             rk = 3 if fl == 1 else rk
             if(rk < 3):
-                x1 = self.constraint(x1n + X[rk][0] / self.denom_rk[rk],'x1')
-                x2 = self.constraint(x2n + X[rk][1] / self.denom_rk[rk],'x2')
+                x1 = self.constraint(x1n + X[rk][0] / self._denom_rk[rk],'x1')
+                x2 = self.constraint(x2n + X[rk][1] / self._denom_rk[rk],'x2')
             rk = rk + 1
         return (n1, n2)
 
@@ -246,23 +403,23 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             if self.rk2:
                 if rk == 0:
                     for i in range(4):
-                        x_[i] = self.constraint(x_n[i] + X[rk][i]/npasos,self.statenames[i])         
+                        x_[i] = self.constraint(x_n[i] + X[rk][i]/npasos,self._statenames[i])         
                 else:
                     out = []
                     for k in range(4):
-                        out.append(self.constraint(x_n[k] + (X[0][k] + X[1][k]) / 2 / npasos,self.statenames[k]))
+                        out.append(self.constraint(x_n[k] + (X[0][k] + X[1][k]) / 2 / npasos,self._statenames[k]))
                     #~ @x = @out;
                     return [out[0], out[1], out[2], out[3]]
                 #~ last;
             else:    #### rk4
                 if rk < 3:
                     for i in range(4):
-                        x_[i] = self.constraint(x_n[i] + X[rk][i] / self.denom_rk[rk]/npasos,self.statenames[i])
+                        x_[i] = self.constraint(x_n[i] + X[rk][i] / self._denom_rk[rk]/npasos,self._statenames[i])
                 else:
                     out = []
                     max = (self.x1_0,self.x2_0)
                     for k in range(4):
-                        out.append(self.constraint(x_n[k] + (X[0][k] + 2 * X[1][k] + 2 * X[2][k] + X[3][k]) / 6 / npasos, self.statenames[k]))
+                        out.append(self.constraint(x_n[k] + (X[0][k] + 2 * X[1][k] + 2 * X[2][k] + X[3][k]) / 6 / npasos, self._statenames[k]))
                     return [out[0], out[1], out[2], out[3]]
 
 
@@ -314,7 +471,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         })
         results.set_index("timestart", inplace=True)
         # initialize states
-        x = [self.constraint(self.x[i],self.statenames[i]) for i in range(4)]
+        x = [self.constraint(self.x[i],self._statenames[i]) for i in range(4)]
         step = 0
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
@@ -407,19 +564,12 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             procedure_results
         )
 
-    def setParameters(self, parameters: Union[list,tuple] = ...):
+    def setParameters(
+        self, 
+        parameters: Union[list,tuple] = ...) -> None:
         super().setParameters(parameters)
-        self.x1_0 = self.parameters["x1_0"]
-        self.x2_0 = self.parameters["x2_0"]
-        self.m1 = self.parameters["m1"]
-        self.c1 = self.parameters["c1"]
-        self.c2 = self.parameters["c2"]
-        self.c3 = self.parameters["c3"]
-        self.mu = self.parameters["mu"]
-        self.alfa = self.parameters["alfa"]
-        self.m2 = self.parameters["m2"]
-        self.m3 = self.parameters["m3"]
     
-    def setInitialStates(self, states: Union[list,tuple] = ...):
+    def setInitialStates(
+        self, 
+        states: Union[list,tuple] = ...) -> None:
         super().setInitialStates(states)
-        self.x = [self.initial_states["x1"],self.initial_states["x2"],self.initial_states["x3"],self.initial_states["x4"]]

@@ -563,7 +563,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                     m = m + 1
                 self.ens2[j][k] = self.ens1[j][k]
                 self.ens1[j][k] = self.ens[j][k]
-                self.ens[j][k] = self.constraint(self.ens[j][k] + z, self.statenames[k])
+                self.ens[j][k] = self.constraint(self.ens[j][k] + z, self._statenames[k])
         return err
 
     def resultsDF(self) -> DataFrame:
@@ -597,7 +597,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         self,
         input : Optional[List[SeriesData]]=None
         ) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
-        init_states = [self.constraint(self.x[i],self.statenames[i]) for i in range(4)]
+        init_states = [self.constraint(self.x[i],self._statenames[i]) for i in range(4)]
         self.setInitialEnsemble(init_states)
         x = list(init_states)
         x_al = list(init_states)
@@ -706,9 +706,9 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
                 if self.update[i] is not None:
                     self.mediassinpert.append(media_f[0])
                     j = j + 1
-                new_row_min.loc[[0],self.statenames[i]] = media_f[0] # $json_min .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[0];
-                new_row_h1.loc[[0],self.statenames[i]] = media_f[1] # $json_h1 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[1];
-                new_row_h1.loc[[0],self.statenames[i]] = media_f[2] # $json_h2 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[2];
+                new_row_min.loc[[0],self._statenames[i]] = media_f[0] # $json_min .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[0];
+                new_row_h1.loc[[0],self._statenames[i]] = media_f[1] # $json_h1 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[1];
+                new_row_h1.loc[[0],self._statenames[i]] = media_f[2] # $json_h2 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[2];
                 
                 if i == 0:
                     sm_f = list()
@@ -738,7 +738,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             
             KG_list.append({
                 "timestart": timestart,
-                "KG": KG_j
+                "KG": KG_j.tolist() if KG_j is not None else None
             })
             
             ######CALCULA SMC Y Q SIMULADOS (PROMEDIO DEL ENSAMBLE)  ###############

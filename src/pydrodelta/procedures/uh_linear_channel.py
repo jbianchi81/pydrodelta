@@ -1,9 +1,5 @@
-from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.function_boundary import FunctionBoundary
-from pydrodelta.pydrology import LinearChannel
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
-import numpy as np
 from typing import TypedDict
 
 class UHParameters(TypedDict):
@@ -13,6 +9,7 @@ class UHExtraPars(TypedDict):
     dt: float
 
 class UHLinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
+    """Unit hydrograph linear channel procedure"""
 
     @property
     def coefficients(self):
@@ -50,5 +47,13 @@ class UHLinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
         )
         ```
         """
-        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
-        getSchemaAndValidate(dict(kwargs,**{"parameters": parameters, "extra_pars": extra_pars}),"UHLinearChannelProcedureFunction")
+        super().__init__(
+            parameters = parameters, 
+            extra_pars = extra_pars, 
+            **kwargs)
+        getSchemaAndValidate(
+            dict(
+                kwargs, 
+                parameters = parameters, 
+                extra_pars = extra_pars),
+            "UHLinearChannelProcedureFunction")
