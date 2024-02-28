@@ -172,8 +172,8 @@ class NodeSerie():
         }
     def loadData(
         self,
-        timestart : timedelta,
-        timeend : timedelta
+        timestart : datetime,
+        timeend : datetime
         ) -> None:
         """Load data from source according to configuration. 
         
@@ -184,14 +184,17 @@ class NodeSerie():
         
         Parameters:
         -----------
-        timestart : timedelta
+        timestart : datetime
             Begin time of the timeseries
         
-        timeend : timedelta
+        timeend : datetime
             End time of the timeseries"""
+        timestart = util.tryParseAndLocalizeDate(timestart)
+        timeend = util.tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
-            self.data = observacionesListToDataFrame(self.observations,tag="obs")
+            data = observacionesListToDataFrame(self.observations,tag="obs")
+            self.data = data[(data.index >= timestart) & (data.index <= timeend)]
             self.metadata = {"id": self.series_id, "tipo": self.type}
         elif(self.csv_file is not None):
             logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.csv_file))
