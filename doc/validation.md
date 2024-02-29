@@ -17,7 +17,7 @@
 def getSchema(
     name: str,
     rel_base_path: str = "data/schemas/json"
-) -> tuple[dict, jsonschema.validators.RefResolver]
+) -> Tuple[dict, jsonschema.validators.RefResolver]
 ```
 
 Reads schema from json or yaml, returns dict of schemas and jsonschema resolver
@@ -35,7 +35,7 @@ Reads schema from json or yaml, returns dict of schemas and jsonschema resolver
 **Returns**:
 
   --------
-  (dict of parsed schemas, resolver) : tuple[dict,jsonschema.validators.RefResolver]
+  (dict of parsed schemas, resolver) : Tuple[dict,jsonschema.validators.RefResolver]
 
 <a id="pydrodelta.validation.validate"></a>
 

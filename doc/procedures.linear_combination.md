@@ -47,13 +47,13 @@ List of coefficients (floats). First is for the last observation time step, seco
 #### \_\_init\_\_
 
 ```python
-def __init__(name: str, values: list[float], procedure_function)
+def __init__(name: str, values: List[float], procedure_function)
 ```
 
 **Arguments**:
 
 - `name` _str_ - Name of the boundary. Must map to a name of a procedureFunction's boundary_
-- `values` _list[float]_ - List of coefficients (floats). First is for the last observation time step, second is for the previous step, and so on
+- `values` _List[float]_ - List of coefficients (floats). First is for the last observation time step, second is for the previous step, and so on
 - `procedure_function` _ProcedureFunction_ - Reference to the ProcedureFunction that contains this
   
 
@@ -179,8 +179,8 @@ def __init__(parameters: LinearCombinationParametersDict, **kwargs)
 
 ```python
 def run(
-    input: list[DataFrame] = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+    input: List[DataFrame] = None
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Run the function procedure
@@ -193,7 +193,7 @@ Run the function procedure
 
 **Returns**:
 
-  tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+  Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
   
 
 **Raises**:

@@ -65,14 +65,14 @@ The maximum allowed value. A higher value is either physically impossible or wou
 #### \_\_init\_\_
 
 ```python
-def __init__(name: str, constraints: tuple[float, float, float, float])
+def __init__(name: str, constraints: Tuple[float, float, float, float])
 ```
 
 name : str
 
     The name of the parameter
 
-constraints : tuple[float,float,float,float]
+constraints : Tuple[float,float,float,float]
 
     tuple(min, range_min, range_max, max), where:
     - min: The minimum allowed value. A lower value is either physically impossible and/or would make the procedure crash

@@ -21,7 +21,7 @@ from .descriptors.bool_descriptor import BoolDescriptor
 
 from pydrodelta.config import config
 
-output_crud = Crud(config["output_api"])
+output_crud = Crud(**config["output_api"])
 
 class Plan():
     """

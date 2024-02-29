@@ -81,6 +81,37 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")   
         self.assertEqual(len(node_serie.data),24)
 
+    def test_series_bad_id(self):
+        self.assertRaises(
+            ValueError,
+            NodeSerie,
+            series_id = "a"
+        )
+
+    def test_series_bad_date(self):
+        self.assertRaises(
+            ValueError,
+            NodeSerie,
+            series_id = 1,
+            tipo = "puntual",
+            observations = [
+                ["200a0-01-01T03:00:00.000Z", 1.01],
+                ["2000-01-02T03:00:00.000Z", 2.02],
+            ]
+        )
+
+    def test_series_bad_value(self):
+        self.assertRaises(
+            ValueError,
+            NodeSerie,
+            series_id = 1,
+            tipo = "puntual",
+            observations = [
+                ["2000-01-01T03:00:00.000Z", "a1.01"],
+                ["2000-01-02T03:00:00.000Z", 2.02],
+            ]
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

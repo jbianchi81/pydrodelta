@@ -28,3 +28,4 @@ dist
 data_a5
 data_
 results
+tests/__pycache__

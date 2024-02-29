@@ -28,7 +28,7 @@ Polynomial transformation procedure
 
 ```python
 @property
-def coefficients() -> list[float]
+def coefficients() -> List[float]
 ```
 
 coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic
@@ -93,8 +93,8 @@ Return polynomial function result. self.intercept + self.coefficients[0] * value
 
 ```python
 def run(
-    input: list[DataFrame] = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+    input: List[DataFrame] = None
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Run the function procedure
@@ -108,5 +108,5 @@ Run the function procedure
 
 **Returns**:
 
-  tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+  Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
 

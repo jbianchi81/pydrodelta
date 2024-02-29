@@ -51,14 +51,14 @@ The default value
 #### \_\_init\_\_
 
 ```python
-def __init__(name: str, constraints: tuple[float, float], default=None)
+def __init__(name: str, constraints: Tuple[float, float], default=None)
 ```
 
 name : str
 
     The state name
 
-constraints : tuple[float,float]
+constraints : Tuple[float,float]
 
     tuple(min,max) where:
     - min: The minimum allowed value. A lower value is either physically impossible and/or would make the procedure crash

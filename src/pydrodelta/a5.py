@@ -4,1253 +4,94 @@ import pandas
 import pydrodelta.util as util
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import yaml
 import logging
 from pydrodelta.config import config
-
+from typing import List, Union
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.string_descriptor import StringDescriptor
+from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .descriptors.float_descriptor import FloatDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
 
+from .a5_schemas import schemas
 
-schemas = {
-    "components":{
-        "schemas": {
-            "Modelo": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "identificador único del modelo"
-                    },
-                    "nombre": {
-                        "type": "string",
-                        "description": "Nombre del modelo"
-                    },
-                    "tipo": {
-                        "type": "string",
-                        "description": "Tipo de modelo"
-                    }
-                }
-            },
-            "ArrayOfModelos": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/Modelo"
-                }
-            },
-            "Calibrado": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único del calibrado"
-                    },
-                    "model_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único del modelo"
-                    },
-                    "nombre": {
-                        "type": "string",
-                        "description": "nombre del calibrado",
-                        "format": "regexp"
-                    },
-                    "activar": {
-                        "type": "boolean",
-                        "description": "activar el calibrado",
-                        "default": True
-                    },
-                    "outputs": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Output"
-                        },
-                        "description": "Series de salida del calibrado"
-                    },
-                    "parametros": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Parametro"
-                        },
-                        "description": "Parámetros del calibrado"
-                    },
-                    "estados_iniciales": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Estado"
-                        },
-                        "description": "Estados iniciales del calibrado"
-                    },
-                    "forzantes": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Forzante"
-                        },
-                        "description": "Series de entrada del calibrado"
-                    },
-                    "selected": {
-                        "type": "boolean",
-                        "description": "Si el calibrado debe seleccionarse como el principal para las series de salida",
-                        "defaultValue": False
-                    },
-                    "out_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "id de estación de salida del calibrado"
-                    },
-                    "area_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "id de area del calibrado"
-                    },
-                    "tramo_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "id de tramo de curso de agua del calibrado"
-                    },
-                    "dt": {
-                        "$ref": "#/components/schemas/TimeInterval",
-                        "description": "intervalo temporal del calibrado en formato SQL, p. ej '1 days' o '12 hours' o '00:30:00'",
-                        "defaultValue": "1 days"
-                    },
-                    "t_offset": {
-                        "$ref": "#/components/schemas/TimeInterval",
-                        "description": "offset temporal del modelo en formato SQL, p ej '9 hours'",
-                        "defaultValue": "9 hours"
-                    },
-                    "grupo_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "id de grupo de calibrados"
-                    }
-                },
-                "required": [
-                    "model_id",
-                    "nombre"
-                ],
-                "table_name" : "calibrados"
-            },
-            "TimeInterval": {
-                "oneOf": [
-                    {
-                        "type": "string",
-                        "format": "time-interval"
-                    },
-                    {
-                        "type": "object",
-                        "properties": {
-                            "milliseconds": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "seconds": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "minutes": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "hours": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "days": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "months": {
-                                "type": "integer",
-                                "format": "int64"
-                            },
-                            "years": {
-                                "type": "integer",
-                                "format": "int64"
-                            }
-                        }
-                    }
-                ]
-            },
-            "Output": {
-                "type": "object",
-                "properties": {
-                    "series_table": {
-                        "type": "string",
-                        "description": "tabla a la que pertenece la serie de salida",
-                        "enum": [
-                            "series",
-                            "series_areal"
-                        ],
-                        "defaultValue": "series"
-                    },
-                    "series_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de la serie de salida"
-                    },
-                    "orden": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "número de orden de salida",
-                        "minimum": 1
-                    },
-                    "cal_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de calibrado",
-                        "readOnly": True
-                    },
-                    "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único",
-                        "readOnly": True
-                    }
-                },
-                "required": [
-                    "series_id",
-                    "orden"
-                ],
-                "table_name": "cal_out"
-            },
-            "Parametro": {
-                "type": "object",
-                "properties": {
-                    "valor": {
-                        "type": "number",
-                        "format": "float",
-                        "description": "valor del parámetro"
-                    },
-                    "orden": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "número de orden del parámetro",
-                        "minimum": 1
-                    },
-                    "cal_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de calibrado",
-                        "readOnly": True
-                    },
-                    "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único",
-                        "readOnly": True
-                    }
-                },
-                "required": [
-                    "valor",
-                    "orden"
-                ],
-                "table_name": "cal_pars"
-            },
-            "Estado": {
-                "type": "object",
-                "properties": {
-                    "valor": {
-                        "type": "number",
-                        "format": "float",
-                        "description": "valor del estado"
-                    },
-                    "orden": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "número de orden del estado",
-                        "minimum": 1
-                    },
-                    "cal_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de calibrado",
-                        "readOnly": True
-                    },
-                    "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único",
-                        "readOnly": True
-                    }
-                },
-                "required": [
-                    "valor",
-                    "orden"
-                ],
-                "table_name": "cal_estados"
-            },
-            "Forzante": {
-                "type": "object",
-                "properties": {
-                    "series_table": {
-                        "type": "string",
-                        "description": "tabla a la que pertenece la serie de entrada",
-                        "enum": [
-                            "series",
-                            "series_areal"
-                        ],
-                        "defaultValue": "series"
-                    },
-                    "series_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de la serie de entrada"
-                    },
-                    "orden": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "número de orden de entrada",
-                        "minimum": 1
-                    },
-                    "cal_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de calibrado",
-                        "readOnly": True
-                    },
-                    "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único",
-                        "readOnly": True
-                    },
-                    "model_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de modelo",
-                        "readOnly": True
-                    },
-                    "serie": {
-                        "$ref":"#/components/schemas/Serie",
-                        "description": "serie: objeto Serie",
-                        "foreign_key": "series_id"
-                    }
-                },
-                "required": [
-                    "series_id",
-                    "orden"
-                ],
-                "table_name": "forzantes"
-            },
-            "Corrida": {
-                "type": "object",
-                "properties": {
-                    "forecast_date": {
-                        "type": "string",
-                        "description": "Fecha de emisión"
-                    },
-                    "series": {
-                        "type": "array",
-                        "description": "series temporales simuladas",
-                        "items": {
-                            "$ref": "#/components/schemas/SerieTemporalSim"
-                        }
-                    }
-                },
-                "required": [
-                    "forecast_date",
-                    "series"
-                ]
-            },
-            "SerieTemporalSim": {
-                "type": "object",
-                "properties": {
-                    "series_table": {
-                        "type": "string",
-                        "description": "tabla de la serie simulada",
-                        "enum": [
-                            "series",
-                            "series_areal"
-                        ],
-                        "defaultValue": "series"
-                    },
-                    "series_id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "identificador único de serie simulada"
-                    },
-                    "pronosticos": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Pronostico"
-                        },
-                        "description": "Tuplas de la serie simulada"
-                    }
-                },
-                "required": [
-                    "series_table",
-                    "series_id",
-                    "pronosticos"
-                ]
-            },
-            "Pronostico": {
-                "type": "object",
-                "properties": {
-                    "timestart": {
-                        "type": "string",
-                        "description": "fecha-hora inicial del pronóstico",
-                        "format": "date-time",
-                        "interval": "begin"
-                    },
-                    "timeend": {
-                        "type": "string",
-                        "description": "fecha-hora final del pronóstico",
-                        "format": "date-time",
-                        "interval": "end"
-                    },
-                    "valor": {
-                        "type": "number",
-                        "format": "float",
-                        "description": "valor del pronóstico"
-                    },
-                    "qualifier": {
-                        "type": "string",
-                        "description": "calificador opcional para diferenciar subseries, default:'main'",
-                        "defaultValue": "main"
-                    }
-                },
-                "required": [
-                    "timestart",
-                    "timeend",
-                    "valor"
-                ]
-            },
-            "Observacion": {
-                "type": "object",
-                "properties": {
-                    "tipo": {
-                        "type": "string",
-                        "description": "tipo de registro",
-                        "enum": [
-                            "areal",
-                            "puntual",
-                            "raster"
-                        ]
-                    },
-                    "timestart": {
-                        "type": "string",
-                        "description": "fecha-hora inicial del registro"
-                    },
-                    "timeend": {
-                        "type": "string",
-                        "description": "fecha-hora final del registro"
-                    },
-                    "valor": {
-                        "oneOf": [
-                            {
-                                "type": "number",
-                                "format": "float"
-                            },
-                            {
-                                "type": "string",
-                                "format": "binary"
-                            }
-                        ],
-                        "description": "valor del registro"
-                    },
-                    "series_id": {
-                        "type": "integer",
-                        "description": "id de serie"
-                    }
-                },
-                "required": ["timestart", "valor"]
-            },
-            "Accessor": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "nombre identificador del recurso"
-                    },
-                    "url": {
-                        "type": "string",
-                        "description": "ubicación del recurso"
-                    },
-                    "class": {
-                        "type": "string",
-                        "description": "tipo de recurso"
-                    },
-                    "series_tipo": {
-                        "type": "string",
-                        "enum": [
-                            "puntual",
-                            "areal",
-                            "raster"
-                        ],
-                        "description": "tipo de la serie temporal correspondiente al recurso"
-                    },
-                    "series_source_id": {
-                        "type": "integer",
-                        "description": "id de la fuente correspondiente al recurso"
-                    },
-                    "time_update": {
-                        "type": "string",
-                        "description": "última fecha de actualización del recurso"
-                    },
-                    "config": {
-                        "type": "object",
-                        "properties": {
-                            "download_dir": {
-                                "type": "string",
-                                "description": "directorio de descargas"
-                            },
-                            "tmp_dir": {
-                                "type": "string",
-                                "description": "directorio temporal"
-                            },
-                            "tables_dir": {
-                                "type": "string",
-                                "description": "directorio de tablas"
-                            },
-                            "host": {
-                                "type": "string",
-                                "description": "IP o url del recurso"
-                            },
-                            "user": {
-                                "type": "string",
-                                "description": "nombre de usuario del recurso"
-                            },
-                            "password": {
-                                "type": "string",
-                                "description": "contraseña del recurso"
-                            },
-                            "path": {
-                                "type": "string",
-                                "description": "ruta del recurso"
-                            }
-                        }
-                    },
-                    "series_id": {
-                        "type": "integer",
-                        "description": "id de la serie temporal correspondiente al recurso"
-                    }
-                }
-            },
-            "Fuente": {
-                "oneOf": [ 
-                    {"$ref": "#/components/schemas/FuenteRaster"},
-                    {"$ref": "#/components/schemas/FuentePuntual"}
-                ]
-            },
-            "FuenteRaster": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "id de la fuente"
-                    },
-                    "nombre": {
-                        "type": "string",
-                        "description": "nombre de la fuente"
-                    },
-                    "data_table": {
-                        "type": "string",
-                        "description": ""
-                    },
-                    "data_column": {
-                        "type": "string",
-                        "description": ""
-                    },
-                    "tipo": {
-                        "type": "string",
-                        "description": "tipo de la fuente"
-                    },
-                    "def_proc_id": {
-                        "type": "string",
-                        "description": "id de procedimiento por defecto de la fuente"
-                    },
-                    "def_dt": {
-                        "type": "string",
-                        "description": "intervalo temporal por defecto de la fuente"
-                    },
-                    "hora_corte": {
-                        "type": "string",
-                        "description": "hora de corte por defecto de la fuente"
-                    },
-                    "def_unit_id": {
-                        "type": "integer",
-                        "description": "id de unidades por defecto de la fuente"
-                    },
-                    "def_var_id": {
-                        "type": "integer",
-                        "description": "id de variable por defecto de la fuente"
-                    },
-                    "fd_column": {
-                        "type": "string",
-                        "description": ""
-                    },
-                    "mad_table": {
-                        "type": "string",
-                        "description": ""
-                    },
-                    "scale_factor": {
-                        "type": "number",
-                        "description": "factor de escala por defecto de la fuente"
-                    },
-                    "data_offset": {
-                        "type": "number",
-                        "description": "offset por defecto de la fuente"
-                    },
-                    "def_pixel_height": {
-                        "type": " number",
-                        "description": "altura de pixel por defecto de la fuente"
-                    },
-                    "def_pixel_width": {
-                        "type": "number",
-                        "description": "ancho de pixel por defecto de la fuente"
-                    },
-                    "def_srid": {
-                        "type": "integer",
-                        "description": "código SRID de georeferenciación por defecto de la fuente"
-                    },
-                    "def_extent": {
-                        "type": "string",
-                        "description": "id de procedimiento por defecto de la fuente"
-                    },
-                    "date_column": {
-                        "type": "string",
-                        "description": ""
-                    },
-                    "def_pixel_type": {
-                        "type": "string",
-                        "description": "tipo de dato del pixel por defecto de la fuente"
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "description": "descripción de la fuente"
-                    },
-                    "source": {
-                        "type": "string",
-                        "description": "ubicación del origen de la fuente"
-                    }
-                }
-            },
-            "FuentePuntual": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "id numérico de la fuente"
-                    },
-                    "tabla_id": {
-                        "type": "string",
-                        "description": "id alfanumérico de la fuente"
-                    },
-                    "nombre": {
-                        "type": "string",
-                        "description": "nombre de la fuente"
-                    },
-                    "public": {
-                        "type": "boolean",
-                        "description": "si la fuente es pública"
-                    },
-                    "public_his_plata": {
-                        "type": "boolean",
-                        "description": "si la fuente está disponible para HIS-Plata"
-                    }
-                }
-            },
-            "Variable": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "id de la variable"
-                    },
-                    "var": {
-                        "description": "código alfanumérico de la variable",
-                        "type": "string"
-                    },
-                    "nombre": {
-                        "description": "Nombre de la variable",
-                        "type": "string"
-                    },
-                    "abrev": {
-                        "description": "Abreviatura de la variable",
-                        "type": "string"
-                    },
-                    "type": {
-                        "description": "tipo de la variable",
-                        "type": "string"
-                    },
-                    "dataType": {
-                        "description": "tipo de dato de la variable según ODM",
-                        "type": "string"
-                    },
-                    "valueType": {
-                        "description": "tipo de valor de la variable según ODM",
-                        "type": "string"
-                    },
-                    "GeneralCategory": {
-                        "description": "categoría general de la variable según ODM",
-                        "type": "string"
-                    },
-                    "VariableName": {
-                        "description": "nombre de la variable según ODM",
-                        "type": "string"
-                    },
-                    "SampleMedium": {
-                        "description": "Medio de muestreo según ODM",
-                        "type": "string"
-                    },
-                    "def_unit_id": {
-                        "description": "id de unidades por defecto",
-                        "type": "integer"
-                    },
-                    "timeSupport": {
-                        "description": "soporte temporal de la medición",
-                        "type": "string"
-                    }
-                }
-            },
-            "Procedimiento": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "description": "id del Procedimiento",
-                        "type": "integer"
-                    },
-                    "nombre": {
-                        "description": "Nombre del Procedimiento",
-                        "type": "string"
-                    },
-                    "abrev": {
-                        "description": "Nombre abreviado del Procedimiento",
-                        "type": "string"
-                    },
-                    "descripicion": {
-                        "description": "descripción del Procedimiento",
-                        "type": "string"
-                    }
-                }
-            },
-            "Unidad": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "description": "id de la Unidad",
-                        "type": "integer"
-                    },
-                    "nombre": {
-                        "description": "Nombre de la Unidad",
-                        "type": "string"
-                    },
-                    "abrev": {
-                        "description": "Nombre abreviado de la Unidad",
-                        "type": "string"
-                    },
-                    "UnitsID": {
-                        "description": "ID de unidades según ODM",
-                        "type": "string"
-                    },
-                    "UnitsType": {
-                        "description": "tipo de unidades según ODM",
-                        "type": "string"
-                    }
-                }
-            },
-            "Estacion": {
-                "type": "object",
-                "properties": {
-                    "fuentes_id": {
-                        "description": "id de la fuente",
-                        "type": "integer"
-                    },
-                    "nombre": {
-                        "description": "nombre de la estación (parcial o completo)",
-                        "type": "string"
-                    },
-                    "unid": {
-                        "description": "identificador único de la estación",
-                        "type": "integer"
-                    },
-                    "id": {
-                        "description": "identificador de la estación dentro de la fuente (red) a la que pertenece",
-                        "type": "integer"
-                    },
-                    "id_externo": {
-                        "description": "id externo de la estación",
-                        "type": "string"
-                    },
-                    "distrito": {
-                        "description": "jurisdicción de segundo orden en la que se encuentra la estación (parcial o completa)",
-                        "type": "string"
-                    },
-                    "pais": {
-                        "description": "jurisdicción de primer orden en la que se encuentra la estación (parcial o completa)",
-                        "type": "string"
-                    },
-                    "has_obs": {
-                        "description": "si la estación posee registros observados",
-                        "type": "boolean"
-                    },
-                    "real": {
-                        "name": "real",
-                        "type": "boolean"
-                    },
-                    "habilitar": {
-                        "description": "si la estación se encuentra habilitada",
-                        "type": "boolean"
-                    },
-                    "tipo": {
-                        "description": "tipo de la estación",
-                        "type": "string"
-                    },
-                    "has_prono": {
-                        "description": "si la estación posee registros pronosticados",
-                        "type": "boolean"
-                    },
-                    "rio": {
-                        "description": "curso de agua de la estación (parcial o completo)",
-                        "type": "string"
-                    },
-                    "tipo_2": {
-                        "description": "tipo de estación: marca y/o modelo",
-                        "type": "string"
-                    },
-                    "geom": {
-                        "description": "coordenadas geográficas de la estación",
-                        "$ref": "#/components/schemas/Geometry"
-                    },
-                    "propietario": {
-                        "description": "propietario de la estación (nombre parcial o completo)",
-                        "type": "string"
-                    },
-                    "automatica": {
-                        "description": "si la estación es automática",
-                        "type": "boolean"
-                    },
-                    "ubicacion": {
-                        "description": "ubicación de la estación",
-                        "type": "string"
-                    },
-                    "localidad": {
-                        "description": "localidad en la que se encuentra la estación",
-                        "type": "string"
-                    },
-                    "tabla": {
-                        "description": "identificación alfanumérica de la fuente (red) a la que pertenece la estación",
-                        "type": "string"
-                    }
-                }
-            },
-            "Area": {
-                "type": "object",
-                "properties": {
-                    "nombre": {
-                        "description": "nombre del área",
-                        "type": "string"
-                    },
-                    "id": {
-                        "description": "identificador único del área",
-                        "type": "integer"
-                    },
-                    "geom": {
-                        "description": "geometría del área (polígono)",
-                        "$ref": "#/components/schemas/Geometry"
-                    },
-                    "exutorio": {
-                        "description": "geometría de la sección de salida (punto)",
-                        "$ref": "#/components/schemas/Geometry"
-                    }
-                }
-            },
-            "Escena": {
-                "type": "object",
-                "properties": {
-                    "nombre": {
-                        "description": "nombre de la escena",
-                        "type": "string"
-                    },
-                    "unid": {
-                        "description": "identificador único de la escena",
-                        "type": "integer"
-                    },
-                    "geom": {
-                        "description": "geometría de la escena (polígono)",
-                        "$ref": "#/components/schemas/Geometry"
-                    }
-                }
-            },
-            "Geometry": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "description": "tipo de geometría",
-                        "type": "string",
-                        "enum": [ "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection" ]
-                    },
-                    "coordinates": {
-                        "description": "coordenadas",
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/Position"
-                            },
-                            {
-                                "$ref": "#/components/schemas/LineString"
-                            },
-                            {
-                                "$ref": "#/components/schemas/Polygon"
-                            },
-                            {
-                                "$ref": "#/components/schemas/MultiPolygon"
-                            }
-                        ]
-                    }
-                },
-                "required": [ "type", "coordinates"]
-            },
-        "Position": {
-                "type": "array",
-                "items": {
-                    "type": "number"
-                },
-                "minItems": 2,
-                "maxItems": 3
-            },
-            "LineString": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/Position"
-                },
-                "minItems": 2
-            },
-            "Polygon": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/LineString"
-                }
-            },
-            "MultiPolygon": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/Polygon"
-                }
-            },
-            "Serie": {
-                "type": "object",
-                "properties": {
-                    "tipo": {
-                        "description": "tipo de observación",
-                        "type": "string",
-                        "enum": [ "puntual", "areal", "raster" ]
-                    },
-                    "id": {
-                        "description": "id de la serie",
-                        "type": "integer"
-                    },
-                    "estacion": {
-                        "description": "estación/área/escena (para tipo: puntual/areal/raster respectivamente)",
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/Estacion"
-                            },
-                            {
-                                "$ref": "#/components/schemas/Area"
-                            },
-                            {
-                                "$ref": "#/components/schemas/Escena"
-                            }
-                        ],
-                        "foreign_key": "estacion_id"
-                    },
-                    "var": {
-                        "description": "variable",
-                        "$ref": "#/components/schemas/Variable"
-                    },
-                    "procedimiento": {
-                        "description": "procedimiento",
-                        "$ref": "#/components/schemas/Procedimiento",
-                        "foreign_key": "proc_id"
-                    },
-                    "unidades": {
-                        "description": "unidades",
-                        "$ref": "#/components/schemas/Unidad",
-                        "foreign_key": "unit_id"
-                    },
-                    "fuente": {
-                        "description": "fuente (para tipo: areal/raster)",
-                        "$ref": "#/components/schemas/Fuente",
-                        "foreign_key": "fuentes_id"
-                    },
-                    "observaciones": {
-                        "description": "arreglo de observaciones correspondientes a la serie",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Observacion"
-                        }
-                    }
-                },
-                "required": [ "tipo", "estacion_id", "var_id", "proc_id", "unit_id"],
-                "table_name" : "series"
-            },
-            "ObservacionDia": {
-                "type": "object",
-                "properties": {
-                    "date": {
-                        "description": "fecha de la observación",
-                        "type": "string"
-                    },
-                    "series_id": {
-                        "description": "id de serie",
-                        "type": "integer"
-                    },
-                    "var_id": {
-                        "description": "id de variable",
-                        "type": "integer"
-                    },
-                    "proc_id": {
-                        "description": "id de procedimiento",
-                        "type": "integer"
-                    },
-                    "unit_id": {
-                        "description": "id de unidades",
-                        "type": "integer"
-                    },
-                    "estacion_id": {
-                        "description": "id de estacion (tipo puntual)",
-                        "type": "integer"
-                    },
-                    "valor": {
-                        "description": "valor de la observación",
-                        "type": "number"
-                    }, 
-                    "fuentes_id": {
-                        "description": "id de fuente (tipo areal y raster)",
-                        "type": "integer"
-                    },
-                    "area_id":  {
-                        "description": "id de area (tipo areal)",
-                        "type": "integer"
-                    },
-                    "tipo": {
-                        "description": "tipo de observación",
-                        "type": "string",
-                        "enum": ["puntual", "areal", "raster"]
-                    },
-                    "doy": {
-                        "description": "día del año",
-                        "type": "integer"
-                    },
-                    "cume_dist": {
-                        "description": "valor de distribución acumulada",
-                        "type": "number"
-                    }
-                }
-            },
-            "Asociacion": {
-                "type": "object",
-                "properties": {
-                    "id":{
-                        "type": "integer"
-                    },
-                    "source_tipo":{
-                        "type": "string"
-                    },
-                    "source_series_id":{
-                        "type": "integer"
-                    },
-                    "dest_tipo":{
-                        "type": "string"
-                    },
-                    "dest_series_id":{
-                        "type": "integer"
-                    },
-                    "agg_func":{
-                        "type": "string"
-                    },
-                    "dt":{
-                        "type": "string"
-                    },
-                    "t_offset": {
-                        "type": "string"
-                    },
-                    "precision":{
-                        "type": "integer"
-                    }, 
-                    "source_time_support":{
-                        "type": "string"
-                    },
-                    "source_is_inst":{
-                        "type": "boolean"
-                    },
-                    "source_series": {
-                        "$ref": "#/components/schemas/Serie"
-                    },
-                    "dest_series": {
-                        "$ref": "#/components/schemas/Serie"
-                    },
-                    "site": {
-                        "$ref": "#/components/schemas/Estacion"
-                    },
-                    "expresion": {
-                        "type": "string"
-                    }
-                }
-            },
-            "EstadisticosDiarios": {
-                "type": "object",
-                "properties": {
-                    "tipo":{
-                        "description": "tipo de observación",
-                        "type": "string"
-                    },
-                    "series_id":{
-                        "description": "id de serie",
-                        "type": "integer"
-                    },
-                    "doy":{
-                        "description": "día del año",
-                        "type": "integer"
-                    },
-                    "count":{
-                        "description": "cantidad de registros",
-                        "type": "integer"
-                    },
-                    "min":{
-                        "description": "valor mínimo",
-                        "type": "number"
-                    },
-                    "max":{
-                        "description": "valor máximo",
-                        "type": "number"
-                    },
-                    "mean":{
-                        "description": "valor medio",
-                        "type": "number"
-                    },
-                    "p01":{
-                        "description": "percentil 1",
-                        "type": "number"
-                    },
-                    "p10":{
-                        "description": "percentil 10",
-                        "type": "number"
-                    },
-                    "p50":{
-                        "description": "percentil 50",
-                        "type": "number"
-                    },
-                    "p90":{
-                        "description": "percentil 90",
-                        "type": "number"
-                    },
-                    "p99":{
-                        "description": "percentil 99",
-                        "type": "number"
-                    },
-                    "window_size":{
-                        "description": "ventana temporal para el suavizado en días (a partir de y hasta el día del año en cuestión)",
-                        "type": "integer"
-                    },
-                    "timestart":{
-                        "description": "fecha inicial",
-                        "type": "string"
-                    },
-                    "timeend":{
-                        "description": "fecha final",
-                        "type": "string"
-                    }
-                }
-            },
-            "Percentil": {
-                "type": "object",
-                "properties": {
-                    "tipo":{
-                        "type": "string"
-                    },
-                    "series_id":{
-                        "type": "integer"
-                    },
-                    "cuantil":{
-                        "type": "number"
-                    },
-                    "window_size":{
-                        "type": "integer"
-                    },
-                    "doy":{
-                        "type": "integer"
-                    },
-                    "timestart":{
-                        "type": "string"
-                    },
-                    "timeend":{
-                        "type": "string"
-                    },
-                    "count":{
-                        "type": "integer"
-                    },
-                    "valor":{
-                        "type": "number"
-                    }
-                }
-            },
-            "GeoJSON": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string"
-                    },
-                    "features": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Feature"
-                        }
-                    }
-                }
-            },
-            "Feature": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "number"
-                    },
-                    "geometry": {
-                        "$ref": "#/components/schemas/Geometry"
-                    },
-                    "properties": {
-                        "type": "object"
-                    }
-                }
-            }
-        }
-    }
-}
 serie_schema = open("%s/data/schemas/yaml/serie.yml" % os.environ["PYDRODELTA_DIR"])
 serie_schema = yaml.load(serie_schema,yaml.CLoader)
 
-def validate(instance,classname):
+def validate(
+    instance : dict,
+    classname : str
+    ) -> None:
+    """_summary_
+
+    Args:
+        instance (dict): An instance of the class to validate
+        classname (str): the name of the class to validate against
+
+    Raises:
+        Exception: Invalid class if classname is not in schemas
+
+        ValidationError: If instance does not validate against schema
+    """
     if classname not in schemas["components"]["schemas"].keys():
         raise Exception("Invalid class")
     return json_validate(instance,schema=schemas) #[classname])
 
 # CLASSES
 
-class Serie():
-    def __init__(self,params):
-        json_validate(params,schema=serie_schema)
-        self.id = params["id"] if "id" in params else None
-        self.tipo = params["tipo"] if "tipo" in params else None
-        self.observaciones = [Observacion(o) for o in params["observaciones"]] if "observaciones" in params else []
-    def toDict(self):
-        return {
-            "id": self.id,
-            "tipo": self.tipo,
-            "observaciones": [o.toDict() for o in self.observaciones]
-        }
-
 class Observacion():
-    def __init__(self,params):
+    """Represents a time-value pair of an observed variable"""
+
+    timestart = DatetimeDescriptor() # util.tryParseAndLocalizeDate(params["timestart"])
+    """begin timestamp of the observation"""
+
+    valor = FloatDescriptor()
+    """value of the observation"""
+    
+    timeend = DatetimeDescriptor() # (None, False) if "timeend" not in params else util.tryParseAndLocalizeDate(params["timeend"])
+    """end timestamp of the observation"""
+
+    series_id = IntDescriptor()
+    """Series identifier"""
+
+    tipo = StringDescriptor()
+    """Series geometry type (puntual, areal, raster)"""
+
+    tag = StringDescriptor()
+    """Observation tag"""
+
+    def __init__(
+        self,
+        timestart : datetime,
+        valor : float,
+        timeend : datetime = None,
+        series_id : int = None,
+        tipo : str = "puntual",
+        tag : str = None
+    ):
+        """
+        Args:
+            timestart (datetime): begin timestamp of the observation
+            valor (float): value of the observation
+            timeend (datetime, optional): end timestamp of the observation. Defaults to None.
+            series_id (int, optional): Series identifier. Defaults to None.
+            tipo (str, optional): Series geometry type (puntual, areal, raster) . Defaults to "puntual".
+            tag (str, optional): Observation tag. Defaults to None.
+        """
         # json_validate(params,"Observacion")
-        self.timestart= util.tryParseAndLocalizeDate(params["timestart"])
-        self.timeend = (None, False) if "timeend" not in params else util.tryParseAndLocalizeDate(params["timeend"])
-        self.valor = params["valor"]
-        self.series_id = params["series_id"] if "series_id" in params else None
-        self.tipo = params["tipo"] if "tipo" in params else "puntual"
-        self.tag = params["tag"] if "tag" in params else None
-    def toDict(self):
+        self.timestart = timestart
+        self.timeend = timeend
+        self.valor = valor
+        self.series_id = series_id
+        self.tipo = tipo
+        self.tag = tag
+
+    def toDict(self) -> dict:
+        """Convert to dict"""
         return {
             "timestart": self.timestart.isoformat(),
             "timeend": self.timeend.isoformat() if self.timeend is not None else None,
@@ -1259,16 +100,136 @@ class Observacion():
             "tipo": self.tipo,
             "tag": self.tag
         }
+
+class Serie():
+    """Represents a timeseries of a variable in a site, obtained through a method, and measured in a units"""
+
+    id = IntDescriptor()
+    """Identifier"""
+
+    tipo = StringDescriptor()
+    """Geometry type: puntual, areal, raster"""
+
+    @property
+    def observaciones(self) -> List[Observacion]:
+        """Observations"""
+        return self._observaciones
+    @observaciones.setter
+    def observaciones(
+        self,
+        observaciones : List[dict] = []
+    ) -> None:
+        self._observaciones = [o if isinstance(o,Observacion) else Observacion(**o) for o in observaciones]
+
+    def __init__(
+        self,
+        id : int = None,
+        tipo : str = None,
+        observaciones : List[dict] = []
+        ):
+        """
+        Args:
+            id (int, optional): Identifier. Defaults to None.
+            tipo (str, optional): Geometry type: puntual, areal, raster. Defaults to None.
+            observaciones (List[dict], optional): Observations. Each dict must have timestart (datetime) and valor (float). Defaults to [].
+        """
+        json_validate({"id": id, "tipo": tipo, "observaciones": observaciones}, schema=serie_schema)
+        self.id = id
+        self.tipo = tipo
+        self.observaciones = observaciones
+    def toDict(self) -> dict:
+        """Convert to dict"""
+        return {
+            "id": self.id,
+            "tipo": self.tipo,
+            "observaciones": [o.toDict() for o in self.observaciones]
+        }
             
 # CRUD
 
 class Crud():
-    def __init__(self,params):
-        self.url = params["url"]
-        self.token = params["token"]
-        self.proxy_dict = params["proxy_dict"] if "proxy_dict" in params else None
+    """a5 api client"""
+
+    url = StringDescriptor()
+    """api url"""
+
+    token = StringDescriptor()
+    """ api authorization token"""
+
+    proxy_dict = DictDescriptor()
+    """proxy parameters"""
+
+    def __init__(
+        self,
+        url : str,
+        token : str,
+        proxy_dict : dict = None
+        ):
+        """
+        Args:
+            url (str): api url
+            token (str): api authorization token
+            proxy_dict (dict, optional): proxy parameters. Defaults to None.
+        """
+        self.url = url
+        self.token = token
+        self.proxy_dict = proxy_dict
     
-    def readSeries(self,tipo="puntual",series_id=None,area_id=None,estacion_id=None,escena_id=None,var_id=None,proc_id=None,unit_id=None,fuentes_id=None,tabla=None,id_externo=None,geom=None,include_geom=None,no_metadata=None,date_range_before=None,date_range_after=None,getMonthlyStats=None,getStats=None,getPercentiles=None,percentil=None,use_proxy=False):
+    def readSeries(
+        self,
+        tipo : str = "puntual",
+        series_id : int = None,
+        area_id : int = None,
+        estacion_id : int = None,
+        escena_id : int = None,
+        var_id : int = None,
+        proc_id : int = None,
+        unit_id : int = None,
+        fuentes_id : int = None,
+        tabla : str = None,
+        id_externo : str = None,
+        geom : Union[str,dict] = None,
+        include_geom : bool = None,
+        no_metadata : bool = None,
+        date_range_before : datetime = None,
+        date_range_after : datetime = None,
+        getMonthlyStats : bool = None,
+        getStats : bool = None,
+        getPercentiles : bool = None,
+        percentil : float = None,
+        use_proxy : bool = False
+        ) -> dict:
+        """Retrieve series
+
+        Args:
+            tipo (str, optional): series type: puntual, areal, raster. Defaults to "puntual".
+            series_id (int, optional): Series identifier. Defaults to None.
+            area_id (int, optional): Area identifier (with tipo=areal). Defaults to None.
+            estacion_id (int, optional): Estacion identifier (with tipo=puntual). Defaults to None.
+            escena_id (int, optional): Escena identifier (with tipo=raster). Defaults to None.
+            var_id (int, optional): Variable identifier. Defaults to None.
+            proc_id (int, optional): Procedure identifier. Defaults to None.
+            unit_id (int, optional): Unit identifier. Defaults to None.
+            fuentes_id (int, optional): Fuente (source) identifier (with tipo=areal or tipo=raster). Defaults to None.
+            tabla (str, optional): Network identifier (with tipo="puntual"). Defaults to None.
+            id_externo (str, optional): External station identifier (with tipo=puntual). Defaults to None.
+            geom (Union[str,dict], optional): Bounding box. Defaults to None.
+            include_geom (bool, optional): Include geometry in response. Defaults to None.
+            no_metadata (bool, optional): Exclude metadata from response. Defaults to None.
+            date_range_before (datetime, optional): Only retrieve series starting before this date. Defaults to None.
+            date_range_after (datetime, optional): Only retrieve series ending after this date. Defaults to None.
+            getMonthlyStats (bool, optional): retrieve monthly statistics. Defaults to None.
+            getStats (bool, optional): Retrieve statistics. Defaults to None.
+            getPercentiles (bool, optional): Retrieve percentiles. Defaults to None.
+            percentil (float, optional): Percentile [0-1]. Defaults to None.
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            data : dict. Api response. Retrieved series list is in data["rows"]
+        """
         if date_range_before is not None:
             date_range_before = date_range_before if isinstance(date_range_before,str) else date_range_before.isoformat()
         if date_range_after is not None:
@@ -1286,7 +247,29 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def readSerie(self,series_id,timestart=None,timeend=None,tipo="puntual",use_proxy=False):
+    def readSerie(
+        self,
+        series_id : int,
+        timestart : datetime = None,
+        timeend : datetime = None,
+        tipo : str = "puntual",
+        use_proxy : bool = False
+        ) -> dict:
+        """Retrieve serie
+
+        Args:
+            series_id (int): Series identifier
+            timestart (datetime, optional): Begin timestamp. Defaults to None.
+            timeend (datetime, optional): End timestamp. Defaults to None.
+            tipo (str, optional): Geometry type: puntual, areal, raster. Defaults to "puntual".
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            dict: raw serie dict
+        """
         params = {}
         if timestart is not None and timeend is not None:
             params = {
@@ -1303,7 +286,31 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def createObservaciones(self,data,series_id : int,column="valor",tipo="puntual", timeSupport=None,use_proxy=False):
+    def createObservaciones(
+        self,
+        data : Union[pandas.DataFrame, list],
+        series_id : int,
+        column : str= "valor",
+        tipo : str = "puntual", 
+        timeSupport : timedelta = None,
+        use_proxy : bool = False
+        ) -> list:
+        """Create observations
+
+        Args:
+            data (Union[pandas.DataFrame, list]): Observations DataFrame or list
+            series_id (int): series identifier
+            column (str, optional): If data is a DataFrame, name of the column containing the values. Defaults to "valor".
+            tipo (str, optional): geometry type (puntual, areal, raster). Defaults to "puntual".
+            timeSupport (timedelta, optional): Observation time support. Used to set timeend. Defaults to None.
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            list: list of created observations
+        """
         if isinstance(data,pandas.DataFrame):
             data = observacionesDataFrameToList(data,series_id,column,timeSupport)
         [validate(x,"Observacion") for x in data]
@@ -1318,9 +325,23 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def readCalibrado(self,cal_id,use_proxy=False):
-        if cal_id is None:
-            raise Exception("Missing parameter cal_id")
+    def readCalibrado(
+        self,
+        cal_id : int,
+        use_proxy : bool = False
+        ) -> dict:
+        """Retrieve simulation configuration ("calibrado")
+
+        Args:
+            cal_id (int): Identifier
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            dict: _description_
+        """
         url = "%s/sim/calibrados/%i" % (self.url, cal_id)
         response = requests.get(url,headers = {'Authorization': 'Bearer ' + self.token},
             proxies = self.proxy_dict if use_proxy else None
@@ -1330,7 +351,26 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def createCorrida(self,data,cal_id=None,use_proxy=False):
+    def createCorrida(
+        self,
+        data : dict,
+        cal_id : int = None,
+        use_proxy : bool = False
+        ) -> dict:
+        """Create simulation run
+
+        Args:
+            data (dict): Must validate against Corrida schema
+            cal_id (int, optional): simulation configuration identifier. Defaults to None.
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: if cal_id is missing from args and from data
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            dict: created simulation run
+        """
         validate(data,"Corrida")
         cal_id = cal_id if cal_id is not None else data["cal_id"] if "cal_id" in data else None
         if cal_id is None:
@@ -1345,7 +385,23 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def readVar(self,var_id,use_proxy=False):
+    def readVar(
+        self,
+        var_id : int,
+        use_proxy : bool = False
+        ) -> dict:
+        """Retrieve variable
+
+        Args:
+            var_id (int): Identifier
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            dict: the retrieved variable
+        """
         response = requests.get("%s/obs/variables/%i" % (self.url, var_id),
             headers = {'Authorization': 'Bearer ' + self.token},
             proxies = self.proxy_dict if use_proxy else None
@@ -1355,11 +411,37 @@ class Crud():
         json_response = response.json()
         return json_response
 
-    def readSerieProno(self,series_id,cal_id,timestart=None,timeend=None,use_proxy=False,cor_id=None,forecast_date=None,qualifier=None):
+    def readSerieProno(
+        self,
+        series_id : int,
+        cal_id : int,
+        timestart : datetime = None,
+        timeend : datetime = None,
+        use_proxy : bool = False,
+        cor_id : int = None,
+        forecast_date : datetime = None,
+        qualifier : str = None
+        ) -> dict:
         """
         Reads prono serie from a5 API
         if forecast_date is not None, cor_id is overwritten by first corridas match
         returns Corridas object { series_id: int, cor_id: int, forecast_date: str, pronosticos: [{timestart:str,valor:float},...]}
+
+        Args:
+            series_id (int): series identifier
+            cal_id (int): simulation configuration identifier
+            timestart (datetime, optional): begin timestamp. Defaults to None.
+            timeend (datetime, optional): end timestamp. Defaults to None.
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+            cor_id (int, optional): simulation run identifier. Defaults to None.
+            forecast_date (datetime, optional): execution timestamp. Defaults to None.
+            qualifier (str, optional): simulations qualifier (used to discriminate between simulations of the same series and timestamp, for example, from different ensemble members). Defaults to None.
+
+        Raises:
+            Exception: Request failed if status code is not 200
+
+        Returns:
+            dict : a forecast run 
         """
         params = {}
         if forecast_date is not None:
@@ -1389,6 +471,7 @@ class Crud():
             }
         if qualifier is not None:
             params["qualifier"] = qualifier
+        params["includeProno"] = True
         url = "%s/sim/calibrados/%i/corridas/last" % (self.url, cal_id)
         if cor_id is not None:
             url = "%s/sim/calibrados/%i/corridas/%i" % (self.url, cal_id, cor_id)
@@ -1440,19 +523,38 @@ class Crud():
                 "qualifier": json_response["series"][0]["qualifier"],
                 "pronosticos": []
             }
-        json_response["series"][0]["pronosticos"] = [ { "timestart": x[0], "valor": x[2]} for x in json_response["series"][0] ["pronosticos"]] # "series_id": series_id, "timeend": x[1] "qualifier":x[3]
+        json_response["series"][0]["pronosticos"] = [ { "timestart": x[0], "valor": x[2]} if type(x) == list else { "timestart": x["timestart"], "valor": x["valor"]} for x in json_response["series"][0]["pronosticos"]] # "series_id": series_id, "timeend": x[1] "qualifier":x[3]
         return {
             "forecast_date": json_response["forecast_date"],
             "cal_id": json_response["cal_id"],
-            "cor_id": json_response["cor_id"],
+            "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
             "series_id": json_response["series"][0]["series_id"],
-            "qualifier": json_response["series"][0]["qualifier"],
+            "qualifier": json_response["series"][0]["qualifier"] if "qualifier" in json_response["series"][0] else None,
             "pronosticos": json_response["series"][0]["pronosticos"]
         }
 
 ## AUX functions
 
-def observacionesDataFrameToList(data : pandas.DataFrame,series_id : int,column="valor",timeSupport=None):
+def observacionesDataFrameToList(
+    data : pandas.DataFrame,
+    series_id : int,
+    column : str = "valor",
+    timeSupport : timedelta = None
+    ) -> List[dict]:
+    """Convert Observations DataFrame to list of dict
+
+    Args:
+        data (pandas.DataFrame): dataframe con índice tipo datetime y valores en columna "column"
+        series_id (int): Series identifier
+        column (str, optional): Column that contains the values. Defaults to "valor".
+        timeSupport (timedelta, optional): Time support of the observation. Used to set timeend. Defaults to None.
+
+    Raises:
+        Exception: Column column not found in data
+
+    Returns:
+        List[dict]: Observations
+    """
     # data: dataframe con índice tipo datetime y valores en columna "column"
     # timeSupport: timedelta object
     if data.index.dtype.name != 'datetime64[ns, America/Argentina/Buenos_Aires]':
@@ -1462,13 +564,28 @@ def observacionesDataFrameToList(data : pandas.DataFrame,series_id : int,column=
         raise Exception("column %s not found in data" % column)
     data = data.sort_index()
     data["series_id"] = series_id
+    data["timeend"] = data.index.map(lambda x: x.isoformat()) if timeSupport is None else data.index.map(lambda x: (x + timeSupport).isoformat())
     data["timestart"] = data.index.map(lambda x: x.isoformat()) # strftime('%Y-%m-%dT%H:%M:%SZ') 
-    data["timeend"] = data["timestart"] if timeSupport is None else data["timestart"].apply(lambda x: x + timeSupport)
     data["valor"] = data[column]
     data = data[["series_id","timestart","timeend","valor"]]
     return data.to_dict(orient="records")
 
-def observacionesListToDataFrame(data: list, tag: str=None):
+def observacionesListToDataFrame(
+    data: list, 
+    tag: str = None
+    ) -> pandas.DataFrame:
+    """Convert observaciones list to DataFrame
+
+    Args:
+        data (list): Observaciones
+        tag (str, optional): String to set in tag column. Defaults to None.
+
+    Raises:
+        Exception: Empty list
+
+    Returns:
+        pandas.DataFrame: A DataFrame with datetime index and float column "valor". If tag was set, a "tag" column is added
+    """
     if len(data) == 0:
         raise Exception("empty list")
     data = pandas.DataFrame.from_dict(data)
@@ -1481,7 +598,17 @@ def observacionesListToDataFrame(data: list, tag: str=None):
     else:
         return data[["valor",]]
 
-def createEmptyObsDataFrame(extra_columns : dict=None):
+def createEmptyObsDataFrame(
+    extra_columns : dict = None
+    ) -> pandas.DataFrame:
+    """Create Observations DataFrame with no rows
+
+    Args:
+        extra_columns (dict, optional): Additional columns. Keys are the column names, values are the column types. Defaults to None.
+
+    Returns:
+        pandas.DataFrame: Observations dataframe
+    """
     data = pandas.DataFrame({
         "timestart": pandas.Series(dtype='datetime64[ns, America/Argentina/Buenos_Aires]'),
         "valor": pandas.Series(dtype="float")

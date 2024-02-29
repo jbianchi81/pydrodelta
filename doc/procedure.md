@@ -185,7 +185,7 @@ statistics : dict of the form:
     {
         "procedure_id": int,
         "function_type": str,
-        "results": list[dict]
+        "results": List[dict]
     }
 
 <a id="pydrodelta.procedure.Procedure.read_results"></a>
@@ -217,7 +217,7 @@ def run(inplace: bool = True,
         parameters: Union[list, tuple] = None,
         initial_states: Union[list, tuple] = None,
         load_input: bool = True,
-        load_output_obs: bool = True) -> Union[list[DataFrame], None]
+        load_output_obs: bool = True) -> Union[List[DataFrame], None]
 ```
 
 Run self.function.run()

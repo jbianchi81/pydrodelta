@@ -65,7 +65,7 @@ Type of the series (only for retrieval from input api). One of 'puntual', 'areal
 
 ```python
 @property
-def lim_outliers() -> tuple[float, float]
+def lim_outliers() -> Tuple[float, float]
 ```
 
 Minimum and maximum values for outliers removal (2-tuple of float)
@@ -160,13 +160,13 @@ Series name
 ```python
 def __init__(series_id: int,
              tipo: str = "puntual",
-             lim_outliers: tuple[float, float] = None,
+             lim_outliers: Tuple[float, float] = None,
              lim_jump: float = None,
              x_offset: timedelta = timedelta(seconds=0),
              y_offset: float = 0,
              moving_average: timedelta = None,
              csv_file: str = None,
-             observations: Union[List[TVP], List[tuple[datetime,
+             observations: Union[List[TVP], List[Tuple[datetime,
                                                        float]]] = None,
              save_post: str = None,
              comment: str = None,
@@ -182,7 +182,7 @@ def __init__(series_id: int,
   tipo : str = "puntual"
   Type of the series (only for retrieval from input api). One of 'puntual', 'areal', 'raster'
   
-  lim_outliers : tuple[float,float] = None
+  lim_outliers : Tuple[float,float] = None
   Minimum and maximum values for outliers removal (2-tuple of float)
   
   lim_jump : float = None
@@ -200,7 +200,7 @@ def __init__(series_id: int,
   csv_file : str = None
   Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header
   
-  observations : Union[List[TVP],List[tuple[datetime,float]]] = None
+  observations : Union[List[TVP],List[Tuple[datetime,float]]] = None
   Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)
   
   save_post : str = None
@@ -221,7 +221,7 @@ Convert series to dict
 #### loadData
 
 ```python
-def loadData(timestart: timedelta, timeend: timedelta) -> None
+def loadData(timestart: datetime, timeend: datetime) -> None
 ```
 
 Load data from source according to configuration.
@@ -234,10 +234,10 @@ Priority is in this order:
 **Arguments**:
 
   -----------
-  timestart : timedelta
+  timestart : datetime
   Begin time of the timeseries
   
-  timeend : timedelta
+  timeend : datetime
   End time of the timeseries
 
 <a id="pydrodelta.node_serie.NodeSerie.getThresholds"></a>

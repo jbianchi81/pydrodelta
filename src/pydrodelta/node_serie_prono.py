@@ -5,8 +5,8 @@ from pydrodelta.node_serie_prono_metadata import NodeSeriePronoMetadata
 from pydrodelta.config import config
 from datetime import datetime
 
-input_crud = Crud(config["input_api"])
-output_crud = Crud(config["output_api"])
+input_crud = Crud(**config["input_api"])
+output_crud = Crud(**config["output_api"])
 
 
 class NodeSerieProno(NodeSerie):

@@ -167,7 +167,7 @@ parameters : list or tuple or dict
 #### run
 
 ```python
-def run(input: List[DataFrame] = None) -> tuple[list, dict]
+def run(input: List[DataFrame] = None) -> Tuple[list, dict]
 ```
 
 Runs the procedure function.
@@ -185,7 +185,7 @@ Runs the procedure function.
 
   --------
   
-  tuple[List[DataFrame], ProcedureFunctionResults]
+  Tuple[List[DataFrame], ProcedureFunctionResults]
   
   Devuelve una lista de DataFrames (uno por output del procedimiento) y opcionalmente un objeto ProcedureFunctionResults
 
@@ -194,14 +194,14 @@ Runs the procedure function.
 #### setEngine
 
 ```python
-def setEngine(input: list[tuple[float, float]]) -> None
+def setEngine(input: List[Tuple[float, float]]) -> None
 ```
 
 Instantiate GR4J procedure engine using input as Boundaries
 
 **Arguments**:
 
-  input : list[tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)
+  input : List[Tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)
 
 <a id="pydrodelta.procedures.gr4j.GR4JProcedureFunction.setParameters"></a>
 

@@ -220,8 +220,8 @@ parameters  : Union[list,tuple,dict]
 
 ```python
 def run(
-    input: list[DataFrame] = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+    input: List[DataFrame] = None
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Run the function procedure
@@ -235,7 +235,7 @@ Run the function procedure
 
 **Returns**:
 
-  tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+  Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
 
 <a id="pydrodelta.procedures.hosh4p1l.HOSH4P1LProcedureFunction.setInitialStates"></a>
 

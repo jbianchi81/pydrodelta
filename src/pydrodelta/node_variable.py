@@ -20,8 +20,8 @@ from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 
-input_crud = Crud(config["input_api"])
-output_crud = Crud(config["output_api"])
+input_crud = Crud(**config["input_api"])
+output_crud = Crud(**config["output_api"])
 
 class AdjustFrom(TypedDict):
     truth: int
@@ -335,11 +335,11 @@ class NodeVariable:
         """
         observaciones = self.toList(include_series_id=include_series_id,use_node_id=use_node_id)
         series_id = self.series_output[0].series_id if not use_node_id else self._node.id
-        return Serie({
-            "tipo": self._node.tipo,
-            "id": series_id,
-            "observaciones": observaciones
-        })
+        return Serie(
+            tipo = self._node.tipo,
+            id = series_id,
+            observaciones = observaciones
+        )
     def toList(
         self,
         include_series_id : bool = False,

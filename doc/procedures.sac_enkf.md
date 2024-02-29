@@ -90,7 +90,7 @@ Standard deviation of the model states
 
 ```python
 @property
-def var_innov() -> tuple[Union[str, float], Union[str, float]]
+def var_innov() -> Tuple[Union[str, float], Union[str, float]]
 ```
 
 variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs
@@ -101,7 +101,7 @@ variance of the innovations (observation error): soil moisture (first element) a
 
 ```python
 @property
-def trim_sm() -> tuple[bool, bool]
+def trim_sm() -> Tuple[bool, bool]
 ```
 
 2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively
@@ -112,7 +112,7 @@ def trim_sm() -> tuple[bool, bool]
 
 ```python
 @property
-def Rqobs() -> list[tuple[float, float, float]]
+def Rqobs() -> List[Tuple[float, float, float]]
 ```
 
 Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
@@ -123,7 +123,7 @@ Rule to determine observed discharge error variance as a function of the observe
 
 ```python
 @property
-def asim() -> tuple[str, str]
+def asim() -> Tuple[str, str]
 ```
 
 2-tuple of str or None. Option to assimilate soil moisture and discharge, respectively
@@ -134,7 +134,7 @@ def asim() -> tuple[str, str]
 
 ```python
 @property
-def update() -> tuple[str, str, str, str]
+def update() -> Tuple[str, str, str, str]
 ```
 
 4-tuple of str or None. Option to correct model states via data assimilation (x1, x2, x3, x4)
@@ -201,7 +201,7 @@ extra_pars : dict = dict()
     - x_stddev : float - Standard deviation of the model states
     - var_innov : tuple - variance of the innovations (observation error): soil moisture (first element) and discharge (second element). If second element is 'rule', get variance of discharge from the rule defined in self.Rqobs
     - trim_sm : tuple - 2-tuple of bool. Option to trim soil moisture observations at the low (wilting point, self.wf) and high (soil porosity, self.rho) values, respectively
-    - rule : list[tuple[float,float,float]] - Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
+    - rule : List[Tuple[float,float,float]] - Rule to determine observed discharge error variance as a function of the observed value. Ordered list of (threshold, bias, variance)
     - asim : 2-tuple of str or None - Option to assimilate soil moisture and discharge, respectively
     - update : 4-tuple or str or None - Option to correct model states via data assimilation (x1, x2, x3, x4)
     - xpert : bool - Option to add noise to model states at the beginning of each step

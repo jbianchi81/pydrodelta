@@ -17,8 +17,8 @@ from .descriptors.duration_descriptor_default_none import DurationDescriptorDefa
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 
-input_crud = Crud(config["input_api"])
-output_crud = Crud(config["output_api"])
+input_crud = Crud(**config["input_api"])
+output_crud = Crud(**config["output_api"])
 
 class NodeSerie():
     """Represents a timestamped series of observed or simulated values for a variable in a node. """

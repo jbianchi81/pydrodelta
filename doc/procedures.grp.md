@@ -234,7 +234,7 @@ parameters : list or tuple or dict
 
 ```python
 @staticmethod
-def createUnitHydrograph(X3: float, alpha: float) -> tuple[list, list]
+def createUnitHydrograph(X3: float, alpha: float) -> Tuple[list, list]
 ```
 
 Creates unit hydrograph
@@ -252,7 +252,7 @@ Creates unit hydrograph
 **Returns**:
 
   --------
-  tuple[list,list] : where first element is the pulses Unit hydrograph and the second is the accumulated unit hydrograph
+  Tuple[list,list] : where first element is the pulses Unit hydrograph and the second is the accumulated unit hydrograph
 
 <a id="pydrodelta.procedures.grp.GRPProcedureFunction.run"></a>
 
@@ -260,8 +260,8 @@ Creates unit hydrograph
 
 ```python
 def run(
-    input: list[DataFrame] = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+    input: List[DataFrame] = None
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
@@ -276,7 +276,7 @@ Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunc
 
 **Returns**:
 
-  tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+  Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
   --------
 
 <a id="pydrodelta.procedures.grp.GRPProcedureFunction.advance_step"></a>
@@ -290,7 +290,7 @@ def advance_step(Sk: float,
                  etp: float,
                  k: int,
                  q_obs=None
-                 ) -> tuple[float, float, float, float, float, float]
+                 ) -> Tuple[float, float, float, float, float, float]
 ```
 
 Advances model time step
@@ -326,7 +326,7 @@ Advances model time step
 **Returns**:
 
   --------
-  tuple[float,float,float,float,float,float] : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)
+  Tuple[float,float,float,float,float,float] : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)
 
 <a id="pydrodelta.procedures.grp.GRPProcedureFunction.computeUnitHydrograph"></a>
 

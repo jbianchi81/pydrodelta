@@ -43,7 +43,8 @@ selected_files = [
     "procedures.uh_linear_channel",
     "model_parameter",
     "model_state",
-    "node_serie_prono_metadata"
+    "node_serie_prono_metadata",
+    "a5"
 ]
 
 index_rows = []

@@ -56,7 +56,7 @@ extra_pars :dict
 ```python
 def run(
     input: List[DataFrame] = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Run the procedure
@@ -71,7 +71,7 @@ Run the procedure
 **Returns**:
 
   --------
-  tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+  Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
 
 <a id="pydrodelta.procedures.junction.JunctionProcedureFunction.runJunction"></a>
 
@@ -79,22 +79,22 @@ Run the procedure
 
 ```python
 def runJunction(
-    input: list[DataFrame] = None,
+    input: List[DataFrame] = None,
     substract: bool = False,
     truncate_negative: bool = None
-) -> tuple[List[DataFrame], ProcedureFunctionResults]
+) -> Tuple[List[DataFrame], ProcedureFunctionResults]
 ```
 
 Run junction procedure
 
 **Arguments**:
 
-- `input` _list[DataFrame], optional_ - Input series. Defaults to None.
+- `input` _List[DataFrame], optional_ - Input series. Defaults to None.
 - `substract` _bool, optional_ - Instead of adding, substract second input series from first. Defaults to False.
 - `truncate_negative` _bool, optional_ - Set negative results to zero. Defaults to None.
   
 
 **Returns**:
 
-- `tuple[List[DataFrame],ProcedureFunctionResults]` - first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+- `Tuple[List[DataFrame],ProcedureFunctionResults]` - first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
 

@@ -71,7 +71,7 @@ Factor of the variance of the initial distribution of the parameter values
 
 ```python
 @property
-def ranges() -> List[tuple[float, float]]
+def ranges() -> List[Tuple[float, float]]
 ```
 
 Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
@@ -100,7 +100,7 @@ maximum iterations
 
 ```python
 @property
-def calibration_result() -> tuple[List[float], float]
+def calibration_result() -> Tuple[List[float], float]
 ```
 
 Calibration result. First element is the list of obtained parameters. The second element is the obtained objective function value
@@ -117,7 +117,7 @@ Save calibration result into this file
 
 ```python
 @property
-def calibration_period() -> tuple[datetime, datetime]
+def calibration_period() -> Tuple[datetime, datetime]
 ```
 
 Calibration period (begin date, end date)
@@ -144,7 +144,7 @@ def __init__(procedure,
              objective_function: str = 'rmse',
              limit: bool = True,
              sigma: float = 0.25,
-             ranges: List[tuple[float, float]] = None,
+             ranges: List[Tuple[float, float]] = None,
              no_improve_thr: float = 0.0000001,
              max_stagnations: int = 10,
              max_iter: int = 5000,
@@ -178,7 +178,7 @@ def __init__(procedure,
   
   Ratio of the standard deviation of the initial distribution of the parameter values with the min-max range. sigma = stddev / (0.5 * (max_range - min_range)) I.e., if sigma=1, the standard deviation of the parameter values will be equal to half the min-max range
   
-  ranges : List[tuple[float,float]] = None
+  ranges : List[Tuple[float,float]] = None
   
   Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
   
@@ -247,8 +247,8 @@ def makeSimplex(
     result_index: Optional[int] = None,
     sigma: Optional[float] = None,
     limit: Optional[bool] = None,
-    ranges: Optional[List[tuple[float, float]]] = None
-) -> Union[None, List[tuple[List[float], float]]]
+    ranges: Optional[List[Tuple[float, float]]] = None
+) -> Union[None, List[Tuple[List[float], float]]]
 ```
 
 Generate simplex
@@ -276,7 +276,7 @@ Generate simplex
   
   Limit values of the parameters to the provided min-max ranges
   
-  ranges : List[tuple[float,float]] = None
+  ranges : List[Tuple[float,float]] = None
   
   Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
   
@@ -284,7 +284,7 @@ Generate simplex
 **Returns**:
 
   --------
-  None or simplex : Union[None,List[tuple[List[float],float]]]
+  None or simplex : Union[None,List[Tuple[List[float],float]]]
   
   First element of each item is the parameter list. Second element is the obtained objective function value
 
@@ -297,7 +297,7 @@ def downhillSimplex(
         inplace: bool = True,
         sigma: Optional[int] = None,
         limit: Optional[bool] = None,
-        ranges: Optional[List[tuple[float, float]]] = None,
+        ranges: Optional[List[Tuple[float, float]]] = None,
         no_improve_thr: Optional[float] = None,
         max_stagnations: Optional[int] = None,
         max_iter: Optional[int] = None) -> Union[None, DownhillSimplex]
@@ -320,7 +320,7 @@ Instantiate DownhillSimplex object. Every parameter is optional. If missing or N
   
   Limit values of the parameters to the provided min-max ranges
   
-  ranges : List[tuple[float,float]] = None
+  ranges : List[Tuple[float,float]] = None
   
   Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
   
@@ -351,12 +351,12 @@ def run(
     inplace: bool = True,
     sigma: Optional[int] = None,
     limit: Optional[bool] = None,
-    ranges: Optional[List[tuple[float, float]]] = None,
+    ranges: Optional[List[Tuple[float, float]]] = None,
     no_improve_thr: Optional[float] = None,
     max_stagnations: Optional[int] = None,
     max_iter: Optional[int] = None,
     save_result: Optional[str] = None
-) -> Union[None, tuple[List[float], float]]
+) -> Union[None, Tuple[List[float], float]]
 ```
 
 Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
@@ -376,7 +376,7 @@ Execute calibration. Every parameter is optional. If missing or None, the corres
   
   Limit values of the parameters to the provided min-max ranges
   
-  ranges : List[tuple[float,float]] = None
+  ranges : List[Tuple[float,float]] = None
   
   Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)
   
@@ -400,7 +400,7 @@ Execute calibration. Every parameter is optional. If missing or None, the corres
 **Returns**:
 
   --------
-  None or calibration result : tuple[List[float],float]
+  None or calibration result : Tuple[List[float],float]
   
   First element is the list of calibrated parameters. Second element is the obtained objective function value
 
