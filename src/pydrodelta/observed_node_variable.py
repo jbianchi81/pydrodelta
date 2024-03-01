@@ -3,7 +3,7 @@ from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 from .a5 import createEmptyObsDataFrame
 import logging
-from .util import serieFillNulls, serieRegular
+from .util import serieFillNulls, serieRegular, createDatetimeSequence
 import numpy as np
 from typing import List, Union
 from datetime import datetime
@@ -11,16 +11,18 @@ from pandas import DataFrame
 
 class ObservedNodeVariable(NodeVariable):
     """This class represents a variable observed at a node"""
+    
     @property
     def series(self) -> List[NodeSerie]:
         """Series of observed data of this variable at this node. They may represent different data sources such as different instruments at the same station or different stations at (or near) the same site"""
-        return self._series
+        return self._series    
     @series.setter
     def series(
         self,
         series
         ) -> None:
         self._series = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
+    
     @property
     def series_prono(self) -> List[NodeSerieProno]:
         """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
@@ -31,6 +33,7 @@ class ObservedNodeVariable(NodeVariable):
         series
         ) -> None:
         self._series_prono = [x if isinstance(x,NodeSerieProno) else NodeSerieProno(**x) for x in series] if series is not None else None
+    
     def __init__(
         self,
         series : List[Union[dict,NodeSerie]] = None,
@@ -53,12 +56,14 @@ class ObservedNodeVariable(NodeVariable):
         self.derived = False
         self.series = series
         self.series_prono = series_prono
+
     def loadData(
         self,
         timestart : datetime,
         timeend : datetime,
         include_prono : bool = True,
-        forecast_timeend : datetime = None
+        forecast_timeend : datetime = None,
+        input_api_config : dict = None
         ) -> None:
         """
         Load data of each serie in .series from source
@@ -76,44 +81,58 @@ class ObservedNodeVariable(NodeVariable):
         
         forecast_timeend : datetime = None
             End date of forecasted data
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
         """
         logging.debug("Load data for observed node: %i" % (self.id))
         if self.series is not None:
             for serie in self.series:
-                # try:
-                    serie.loadData(timestart,timeend)
-                # except Exception as e:
-                #     raise Exception("Node %s, Variable: %i, series_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,str(e)))
+                serie.loadData(timestart,timeend,input_api_config)
         elif hasattr(self,"derived_from") and self.derived_from is not None:
             self.series = []
         else:
             self.series = []
         if include_prono and self.series_prono is not None and len(self.series_prono):
+            forecast_timeend = forecast_timeend if forecast_timeend is not None else self.forecast_timeend
             for serie in self.series_prono:
                 if forecast_timeend is not None:
                     try:
-                        serie.loadData(timestart,forecast_timeend)
+                        serie.loadData(timestart,forecast_timeend,input_api_config)
                     except Exception as e:
                         logging.error(e)
-                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e)))
+                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (self.node_id,self.id,serie.series_id,serie.cal_id,str(e)))
                 else:
                     try:
-                        serie.loadData(timestart,timeend)
+                        serie.loadData(timestart,timeend,input_api_config)
                     except Exception as e:
-                        raise "Node %s, Variable: %i, series_id %i, cal_id %: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e))
+                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (str(self.node_id),self.id,serie.series_id,serie.cal_id,str(e)))
         if self.data is None and self.series is not None and len(self.series):
             self.setDataWithNoValues()
             self.concatenate(self.series[0].data)
         else:
             self.setDataWithNoValues()
+    
     def setDataWithNoValues(self) -> None:
         """Sets .data with null values and tags"""
-        index = self._node.createDatetimeIndex()
+        if self.time_interval is None:
+            raise Exception("Cant' create datetime sequence: time_interval is not set")
+        if self.timestart is None:
+            raise Exception("Cant' create datetime sequence: timestart is not set")
+        if self.timeend is None:
+            raise Exception("Cant' create datetime sequence: timeend is not set")
+        index = createDatetimeSequence(None, self.time_interval, self.timestart, self.timeend, self.time_offset) # self._node.createDatetimeIndex()
         data = index.to_frame(index=False,name="timestart")
         data = data.set_index("timestart")
         data["valor"] = np.nan
         data["tag"] = ""
         self.data = data
+    
     def removeOutliers(self) -> bool:
         """For each serie in .series, remove outliers. Only series where lim_outliers is set are checked.
         
@@ -125,6 +144,7 @@ class ObservedNodeVariable(NodeVariable):
             found_outliers_ = serie.removeOutliers()
             found_outliers = found_outliers_ if found_outliers_ else found_outliers
         return found_outliers
+    
     def detectJumps(self) -> bool:
         """For each serie in .series, detect jumps. Only series where lim_jump is set are checked
         
@@ -136,28 +156,37 @@ class ObservedNodeVariable(NodeVariable):
             found_jumps_ = serie.detectJumps()
             found_jumps = found_jumps_ if found_jumps_ else found_jumps
         return found_jumps
+    
     def applyOffset(self) -> None:
         """For each serie in .series, apply offset where .x_offset and/or .y_offset is set"""
         for serie in self.series:
             serie.applyOffset()
+    
     def regularize(
         self,
         interpolate : bool = False
         ) -> None:
-        """For each serie in .series, apply timestep regularization using parameters stored in ._node (timestart, timeend, time_interval, time_offset)
+        """For each serie in .series, apply timestep regularization using stored parameters (timestart, timeend, time_interval, time_offset, forecast_timeend)
         
         Parameters:
         -----------
         interpolate : bool = False
             Interpolate missing values up to a limit of self.interpolation_limit. If false, values will be assigned to closest regular step up to a distance of self.interpolation_limit"""
+        if self.timestart is None:
+            raise Exception("Can't regularize: timestart is not set")
+        if self.timeend is None:
+            raise Exception("Can't regularize: timeend is not set")
+        if self.time_interval is None:
+            raise Exception("Can't regularize: time_interval is not set")
         for serie in self.series:
-            serie.regularize(self._node.timestart,self._node.timeend,self._node.time_interval,self._node.time_offset,self.interpolation_limit,interpolate=interpolate)
+            serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
         if self.series_prono is not None:
             for serie in self.series_prono:
-                if self._node.forecast_timeend is not None:
-                    serie.regularize(self._node.timestart,self._node.forecast_timeend,self._node.time_interval,self._node.time_offset,self.interpolation_limit,interpolate=interpolate)
+                if self.forecast_timeend is not None:
+                    serie.regularize(self.timestart,self.forecast_timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
                 else:
-                    serie.regularize(self._node.timestart,self._node.timeend,self._node.time_interval,self._node.time_offset,self.interpolation_limit,interpolate=interpolate)
+                    serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
+    
     def fillNulls(
         self,
         inline : bool = True,
@@ -197,13 +226,19 @@ class ObservedNodeVariable(NodeVariable):
             else:
                 return data
         else:
+            if self.time_interval is None:
+                raise Exception("Can't create regular series. Missing time_interval")
+            if self.timestart is None:
+                raise Exception("Can't create regular series. Missing timestart")
+            if self.timeend is None:
+                raise Exception("Can't create regular series. Missing timeend")
             data = createEmptyObsDataFrame(extra_columns={"tag":str})
             data = serieRegular(
                 data, 
-                time_interval = self._node.time_interval, 
-                timestart = self._node.timestart, 
-                timeend = self._node.timeend, 
-                time_offset = self._node.time_offset, 
+                time_interval = self.time_interval, 
+                timestart = self.timestart, 
+                timeend = self.timeend, 
+                time_offset = self.time_offset, 
                 interpolate = False,
                 tag_column = "tag"
             )

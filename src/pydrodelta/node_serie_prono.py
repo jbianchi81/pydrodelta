@@ -6,7 +6,7 @@ from pydrodelta.config import config
 from datetime import datetime
 
 input_crud = Crud(**config["input_api"])
-output_crud = Crud(**config["output_api"])
+# output_crud = Crud(**config["output_api"])
 
 
 class NodeSerieProno(NodeSerie):
@@ -30,15 +30,16 @@ class NodeSerieProno(NodeSerie):
         adjust : bool = False,
         plot_params : dict = None,
         upload : bool = True,
-        **params):
-        super().__init__(**params)        
+        cor_id : int = None,
+        **kwargs):
+        super().__init__(**kwargs)        
         self.cal_id : int = cal_id
         """Identifier of simulation procedure configuration at the source (input api)"""
         self.qualifier :str = qualifier
         """Forecast qualifier at the source. Used to identify multiple timeseries of the same variable at the same node simulated by the same procedure. For example, the members of an ensemble simulation."""
         self.adjust : bool = adjust
         """By means of a linear regression, adjust the forecasted timeseries to the observations (if available)"""
-        self.cor_id : int = None
+        self.cor_id : int = cor_id
         """Identifier of simulation procedure run"""
         self.forecast_date : datetime = None
         """Date of production of the simulation"""
@@ -55,7 +56,8 @@ class NodeSerieProno(NodeSerie):
     def loadData(
         self,
         timestart : datetime,
-        timeend : datetime
+        timeend : datetime,
+        input_api_config : dict = None
         ) -> None:
         """Load forecasted data from source (input api). Retrieves forecast from input api using series_id, cal_id, timestart, and timeend
         
@@ -65,9 +67,18 @@ class NodeSerieProno(NodeSerie):
             Begin time of forecast
         
         timeend : datetime
-            End time of forecast"""
-        logging.debug("Load prono data for series_id: %i, cal_id: %i" % (self.series_id, self.cal_id))
-        metadata = input_crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier)
+            End time of forecast
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict"""
+        logging.debug("Load prono data for series_id: %i, cal_id: %i, cor_id: %s" % (self.series_id, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
+        crud = Crud(**input_api_config) if input_api_config is not None else input_crud
+        metadata = crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier, cor_id = self.cor_id)
         if len(metadata["pronosticos"]):
             self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
         else:

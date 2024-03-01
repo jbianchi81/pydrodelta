@@ -113,10 +113,26 @@ class NodeVariable:
     derived = BoolDescriptor()
     """Indicates wether the variable is derived"""
 
+    @property
+    def node_id(self) -> Union[int,str]:
+        self._node.id if self._node is not None else "unknown"
+    
+    timestart = DatetimeDescriptor()
+    """Begin date (overrides _node.timestart)"""
+
+    timeend = DatetimeDescriptor()
+    """End date (overrides _node.timeend)"""
+
+    time_offset = DurationDescriptor()
+    """Time start offset relative to 00:00 (overrides _node.time_offset)"""
+
+    forecast_timeend = DatetimeDescriptor()
+    """Forecast end date"""
+
     def __init__(
         self,
         id : int,
-        node,
+        node = None,
         fill_value : float = None,
         series_output : List[Union[dict,NodeSerie]] = None,
         output_series_id : int = None,
@@ -127,7 +143,11 @@ class NodeVariable:
         interpolation_limit : int = None,
         extrapolate : bool = False,
         time_interval : Union[timedelta,dict,float] = None,
-        name : str = None
+        name : str = None,
+        timestart : datetime = None,
+        timeend : datetime = None,
+        time_offset : timedelta = None,
+        forecast_timeend : datetime = None
         ):
         """
         Parameters:
@@ -171,6 +191,22 @@ class NodeVariable:
         name :  str = None
 
             Arbitrary name of the variable
+
+        timestart : datetime = None
+
+            Begin date (overrides _node.timestart)
+
+        timeend : datetime = None
+
+            End date (overrides _node.timeend)
+
+        time_offset : timedelta = None
+
+            Time start offset relative to 00:00 (overrides _node.time_offset)
+
+        forecast_timeend : datetime = None
+
+            Forecast end date
         """
         self.id = id
         self._node = node
@@ -190,16 +226,22 @@ class NodeVariable:
         self.data = None
         self.original_data = None
         self.adjust_results = None
-        self.time_interval = time_interval if time_interval is not None else self._node.time_interval
+        self.time_interval = time_interval if time_interval is not None else self._node.time_interval if self._node is not None else None
         self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
         self.derived = False
+        self.timestart = timestart if timestart is not None else self._node.timestart if self._node is not None else None
+        self.timeend = timeend if timeend is not None else self._node.timeend if self._node is not None else None
+        self.time_offset = time_offset if time_offset is not None else self._node.time_offset if self._node is not None else None
+        self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
     
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
+    
     def setOriginalData(self):
         """copies .data into .original_data"""
         self.original_data = self.data.copy(deep=True)
+    
     def toDict(self) -> dict:
         """Convert this variable to dict"""
         return {
@@ -221,6 +263,7 @@ class NodeVariable:
     def toJSON(self) -> str:
         """Convert this variable to JSON string"""
         return json.dumps(self.toDict())
+    
     def dataAsDict(self) -> List[dict]:
         """Convert this variable's data to a list of records (dict)"""
         if self.data is None:
@@ -229,6 +272,7 @@ class NodeVariable:
         for row in data:
             row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
         return data
+    
     def originalDataAsDict(self) -> List[dict]:
         """Convert this variable's original data to a list of records (dict)"""
         if self.original_data is None:
@@ -237,6 +281,7 @@ class NodeVariable:
         for row in data:
             row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
         return data
+    
     def getData(
         self,
         include_series_id : bool = False
@@ -257,6 +302,7 @@ class NodeVariable:
         if include_series_id:
             data["series_id"] = self.series_output.series_id if type(self.series_output) == NodeSerie else self.series_output[0].series_id if type(self.series_output) == list else None
         return data
+    
     def toCSV(
         self,
         include_series_id : bool = False,
@@ -279,6 +325,7 @@ class NodeVariable:
         """
         data = self.getData(include_series_id=include_series_id)
         return data.to_csv(header=include_header) # self.series[0].toCSV()
+    
     def mergeOutputData(self) -> pandas.DataFrame:
         """
         Merges data of all self.series_output into a single dataframe
@@ -295,6 +342,7 @@ class NodeVariable:
             series_data["series_id"] = serie.series_id
             data = series_data if i == 1 else pandas.concat([data,series_data],axis=0)
         return data
+    
     def outputToCSV(
         self,
         include_header : bool = True
@@ -313,6 +361,7 @@ class NodeVariable:
         """
         data = self.mergeOutputData()
         return data.to_csv(header=include_header) # self.series[0].toCSV()
+    
     def toSerie(
         self,
         include_series_id : bool = False,
@@ -333,13 +382,16 @@ class NodeVariable:
         --------
         A Serie object : Serie
         """
+        if use_node_id and self._node is None:
+            raise Exception("Can't use_node_id: node is not set")
         observaciones = self.toList(include_series_id=include_series_id,use_node_id=use_node_id)
-        series_id = self.series_output[0].series_id if not use_node_id else self._node.id
+        series_id = self.series_output[0].series_id if not use_node_id else self.node_id
         return Serie(
-            tipo = self._node.tipo,
+            tipo = self._node.tipo if self._node is not None else None,
             id = series_id,
             observaciones = observaciones
         )
+    
     def toList(
         self,
         include_series_id : bool = False,
@@ -360,14 +412,17 @@ class NodeVariable:
         --------
         A list of records : List[dict]
         """
+        if use_node_id and self._node is None:
+            raise Exception("Can't use_node_id: node is not set")
         data = self.data[self.data.valor.notnull()].copy()
         data.loc[:,"timestart"] = data.index
         data.loc[:,"timeend"] = [x + self.time_support for x in data["timestart"]] if self.time_support is not None else data["timestart"]
         data.loc[:,"timestart"] = [x.isoformat() for x in data["timestart"]]
         data.loc[:,"timeend"] = [x.isoformat() for x in data["timeend"]]
         if len(data) and include_series_id:
-            data.loc[:,"series_id"] = self._node.id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
+            data.loc[:,"series_id"] = self.node_id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
         return data.to_dict(orient="records")
+    
     def outputToList(
         self,
         flatten : bool = True
@@ -396,6 +451,7 @@ class NodeVariable:
                 series_dict = serie.toDict(timeSupport=self.time_support, as_prono=False, remove_nulls=True)
                 list.append(series_dict)
         return list
+    
     def pronoToList(
         self,
         flatten : bool = True
@@ -422,6 +478,7 @@ class NodeVariable:
                 series_dict = serie.toDict(timeSupport=self.time_support, as_prono=True, remove_nulls=True)
                 list.append(series_dict)
         return list
+    
     def adjust(
         self,
         plot : bool = True,
@@ -461,6 +518,7 @@ class NodeVariable:
         if error_band:
             self.data.loc[:,"error_band_01"] = adj_serie + self.adjust_results["quant_Err"][0.001]
             self.data.loc[:,"error_band_99"] = adj_serie + self.adjust_results["quant_Err"][0.999]     
+    
     def apply_linear_combination(
         self,
         plot : bool = True,
@@ -484,12 +542,14 @@ class NodeVariable:
         self.series[series_index].original_data = self.series[series_index].data.copy(deep=True)
         #self.series[series_index].data.loc[:,"valor"] = util.linearCombination(self.pivotData(),self.linear_combination,plot=plot)
         self.data.loc[:,"valor"],  self.data.loc[:,"tag"] = linearCombination(self.pivotData(),linear_combination if linear_combination is not None else self.linear_combination,plot=plot,tag_column="tag")
+    
     def applyMovingAverage(self) -> None:
         """For each serie in .series, apply moving average"""
         if self.series is not None:
             for serie in self.series:
                 if isinstance(serie,NodeSerie) and serie.moving_average is not None:
                     serie.applyMovingAverage()
+    
     def adjustProno(
         self,
         error_band : bool = True
@@ -518,15 +578,18 @@ class NodeVariable:
             if error_band:
                 serie_prono.data.loc[:,"error_band_01"] = adj_serie + serie_prono.adjust_results["quant_Err"][0.001]
                 serie_prono.data.loc[:,"error_band_99"] = adj_serie + serie_prono.adjust_results["quant_Err"][0.999]     
+    
     def setOutputData(self) -> None:
         """Copies .data into each series_output .data, and applies offset where .x_offset and/or y_offset are set"""
         if self.series_output is not None and self.data is not None:
             for serie in self.series_output:
                 serie.data = self.data[["valor","tag"]]
                 serie.applyOffset()
+    
     def uploadData(
         self,
-        include_prono : bool = False
+        include_prono : bool = False,
+        api_config : dict = None,
         ) -> list:
         """
         Uploads series_output (analysis results) to output API. For each serie in series_output, it converts .data into a list of records, uploads the records using .series_id as the series identifier, then concatenates all responses into a single list which it returns
@@ -536,10 +599,19 @@ class NodeVariable:
         include_prono : bool = False
             Includes the forecast period of data
 
+        api_config : dict = None
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+
         Returns:
         --------
         Created observations : list 
         """
+        api_client = Crud(**api_config) if api_config is not None else output_crud
         if self.series_output is not None:
             if self.series_output[0].data is None:
                 self.setOutputData()
@@ -548,16 +620,17 @@ class NodeVariable:
                 obs_list = serie.toList(remove_nulls=True,max_obs_date=None if include_prono else self.max_obs_date if hasattr(self,"max_obs_date") else None) # include_series_id=True)
                 if serie.save_post is not None:
                     json.dump(obs_list,open("%s/%s" % (os.environ["PYDRODELTA_DIR"], serie.save_post),"w"))
-                    logging.info("Wrote output of node #%i, variable %i, serie %i to %s" % (self._node.id,self.id, serie.series_id, serie.save_post))
+                    logging.info("Wrote output of node %s, variable %i, serie %i to %s" % (self.node_id,self.id, serie.series_id, serie.save_post))
                 try:
-                    created = output_crud.createObservaciones(obs_list,series_id=serie.series_id)
+                    created = api_client.createObservaciones(obs_list,series_id=serie.series_id)
                     obs_created.extend(created)
                 except Exception as e:
                     logging.error(str(e))
             return obs_created
         else:
-            logging.info("Missing output series for node #%i, variable %i, skipping upload" % (self._node.id,self.id))
+            logging.info("Missing output series for node %i, variable %i, skipping upload" % (self.node_id, self.id))
             return []
+    
     def pivotData(
         self,
         include_prono : bool = True
@@ -581,6 +654,7 @@ class NodeVariable:
                 data = data.join(serie.data[["valor",]],how='outer',rsuffix="_prono_%s" % serie.series_id,sort=True)
         del data["valor"]
         return data
+    
     def pivotOutputData(
         self,
         include_tag : bool = True
@@ -603,6 +677,7 @@ class NodeVariable:
         for column in columns:
             del data[column]
         return data
+    
     def seriesToDataFrame(
         self,
         pivot : bool = False,
@@ -636,6 +711,7 @@ class NodeVariable:
                     other_data.reset_index
                     data = data.append(other_data,ignore_index=True)
         return data
+    
     def saveSeries(
         self,
         output : str,
@@ -661,6 +737,7 @@ class NodeVariable:
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
+    
     def concatenate(
         self,
         data: pandas.DataFrame, 
@@ -743,6 +820,7 @@ class NodeVariable:
             return
         else:
             return concatenated_data
+    
     def concatenateProno(
         self,
         inline : bool = True,
@@ -777,6 +855,7 @@ class NodeVariable:
             logging.warning("No series_prono data found for node %i" % self.id)
             if not inline:
                 return self.data
+    
     def interpolate(
         self,
         limit : timedelta = None,
@@ -799,6 +878,7 @@ class NodeVariable:
             if interpolation_limit is not None and interpolation_limit <= 0:
                 return
             self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)
+    
     def saveData(
         self,
         output : str,
@@ -820,19 +900,21 @@ class NodeVariable:
             return self.data.to_csv(output)
         else:
             return json.dump(self.data.to_dict(orient="records"),output)
+    
     def plot(self) -> None:
         """Plot .data together with .series"""
         data = self.data[["valor",]]
         pivot_series = self.pivotData()
         data = data.join(pivot_series,how="outer")
         plt.figure(figsize=(16,8))
-        if self._node.timeend is not None:
+        if self._node is not None and self._node.timeend is not None:
             plt.axvline(x=self._node.timeend, color="black",label="timeend")
-        if self._node.forecast_timeend is not None:
+        if self._node is not None and self._node.forecast_timeend is not None:
             plt.axvline(x=self._node.forecast_timeend, color="red",label="forecast_timeend")
         plt.plot(data)
         plt.legend(data.columns)
         plt.title(self.name if self.name is not None else self.id)
+    
     def plotProno(
         self,
         output_dir : str = None,

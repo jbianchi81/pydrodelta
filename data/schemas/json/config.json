@@ -1,0 +1,93 @@
+{
+    "$id": "config.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "log": {
+            "type": "object",
+            "description": "logging configuration",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "Logfile location",
+                    "default": "log/analysis.log"
+                }
+            },
+            "required": ["filename"]
+        },
+        "input_api": {
+            "type": "object",
+            "description": "Connection paramterers to a5 api from where to download data",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "api url",
+                    "default": "https://alerta.ina.gob.ar/test"
+                },
+                "token": {
+                    "type": "string",
+                    "description": "Authorization token",
+                    "default": "MY_TOKEN"
+                }
+            },
+            "required": ["url", "token"]
+        },
+        "output_api": {
+            "type": "object",
+            "description": "Connection paramterers to a5 api where to upload results",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "api url",
+                    "default": "https://alerta.ina.gob.ar/test"
+                },
+                "token": {
+                    "type": "string",
+                    "description": "Authorization token",
+                    "default": "MY_TOKEN"
+                }
+            },
+            "required": ["url", "token"]
+        },
+        "proxy_dict": {
+            "type": "object",
+            "description": "Proxy connection parameters",
+            "properties": {
+                "http": {
+                    "type": "string",
+                    "description": "HTTP proxy url"
+                },
+                "https": {
+                    "type": "string",
+                    "description": "HTTPS proxy url"
+                },
+                "ftp": {
+                    "type": "string",
+                    "description": "FTP proxy url"
+                }
+            }
+        },
+        "use_proxy": {
+            "type": "boolean",
+            "description": "Option to use proxy",
+            "default": false
+        },
+        "graph": {
+            "type": "object",
+            "description": "Graph image parameters",
+            "properties": {
+                "height": {
+                    "type": "number",
+                    "description": "Image height in cm",
+                    "default": 10
+                },
+                "width": {
+                    "type": "number",
+                    "description": "Image width in cm",
+                    "default": 14
+                }
+            }
+        }
+    },
+    "required": ["log", "input_api", "output_api"]
+}

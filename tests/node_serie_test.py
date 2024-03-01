@@ -81,6 +81,20 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")   
         self.assertEqual(len(node_serie.data),24)
 
+    def test_series_load_api_len(self):
+        node_serie = NodeSerie(
+            series_id = 8,
+            tipo = "puntual"
+        )
+        node_serie.loadData(
+            "2022-07-15T03:00:00.000Z",
+            "2022-07-18T03:00:00.000Z",
+            input_api_config = {
+                "url": "https://alerta.ina.gob.ar/test",
+                "token": "MY_TOKEN"
+            })   
+        self.assertEqual(len(node_serie.data),3)
+
     def test_series_bad_id(self):
         self.assertRaises(
             ValueError,

@@ -70,16 +70,16 @@ class Test_a5Crud(unittest.TestCase):
     
     def test_constructor(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/a5",
+            url = "https://alerta.ina.gob.ar/test",
             token = "my_token"
         )
-        self.assertEqual(crud.url, "https://alerta.ina.gob.ar/a5")
+        self.assertEqual(crud.url, "https://alerta.ina.gob.ar/test")
         self.assertEqual(crud.token, "my_token")
         self.assertIsNone(crud.proxy_dict)
     
     def test_read_series(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/a5",
+            url = "https://alerta.ina.gob.ar/test",
             token = "my_token"
         )
         data = crud.readSeries(include_geom=False, no_metadata=True, var_id=2, proc_id=1)
@@ -92,13 +92,14 @@ class Test_a5Crud(unittest.TestCase):
 
     def test_read_serie(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/a5",
+            url = "https://alerta.ina.gob.ar/test",
             token = "my_token"
         )
-        timestart = tryParseAndLocalizeDate("2000-01-01T03:00:00.000Z")
-        timeend = tryParseAndLocalizeDate("2001-01-01T03:00:00.000Z")
+        series_id = 8
+        timestart = tryParseAndLocalizeDate("2022-07-15T03:00:00.000Z")
+        timeend = tryParseAndLocalizeDate("2022-07-17T03:00:00.000Z")
         data = crud.readSerie(
-            24721,
+            series_id,
             timestart = timestart,
             timeend = timeend,
             tipo = "puntual"
@@ -107,20 +108,21 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(data["observaciones"]), list)
         self.assert_(len(data["observaciones"]) > 0)
         for row in data["observaciones"]:
-            self.assertEqual(row["series_id"],24721)
+            self.assertEqual(row["series_id"],series_id)
             self.assert_(tryParseAndLocalizeDate(row["timestart"]) >= timestart)
             self.assert_(tryParseAndLocalizeDate(row["timestart"]) <= timeend)
             self.assertEqual(type(row["valor"]),float)
     
     def test_read_calibrado(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/a5",
+            url = "https://alerta.ina.gob.ar/test",
             token = "my_token"
         )
-        data = crud.readCalibrado(32)
+        cal_id = 288
+        data = crud.readCalibrado(cal_id)
         self.assertEqual(type(data),dict)
         self.assert_("id" in data)
-        self.assertEqual(data["id"],32)
+        self.assertEqual(data["id"],cal_id)
 
     def test_read_var(self):
         crud = Crud(

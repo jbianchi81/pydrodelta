@@ -127,13 +127,16 @@ class Node:
         self._topology = topology
         self.variables = variables
         self.node_type = node_type
+    
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
         return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
+    
     def setOriginalData(self):
         """For each variable in .variables, set original data"""
         for variable in self.variables.values():
             variable.setOriginalData()
+    
     def toDict(self) -> dict:
         """Convert node to dict"""
         return {
@@ -149,9 +152,11 @@ class Node:
             "variables": [self.variables[key].toDict() for key in self.variables], 
             "node_type": self.node_type
         }
+    
     def createDatetimeIndex(self) -> DatetimeIndex:
         """Create DatetimeIndex from .time_interval, .timestart, .timeend and .time_offset"""
         return createDatetimeSequence(None, self.time_interval, self.timestart, self.timeend, self.time_offset)
+    
     def toCSV(
             self,
             include_series_id : bool = True,
@@ -176,6 +181,7 @@ class Node:
         for variable in self.variables.values():
             data = pandas.concat([data,variable.getData(include_series_id=include_series_id)])
         return data.to_csv(header=include_header)
+    
     def outputToCSV(
             self,
             include_header : bool = True
@@ -196,6 +202,7 @@ class Node:
         for variable in self.variables.values():
             data = data.join(variable.mergeOutputData())
         return data.to_csv(header=include_header) # self.series[0].toCSV()
+    
     def variablesToSeries(
             self,
             include_series_id : bool = False,
@@ -217,6 +224,7 @@ class Node:
         list of Series : List[Serie]
         """
         return [variable.toSerie(include_series_id=include_series_id,use_node_id=use_node_id) for variable in self.variables.values()]
+    
     def variablesOutputToList(
             self,
             flatten : bool = True
@@ -239,6 +247,7 @@ class Node:
             if output_list is not None:
                 list.extend(output_list)
         return list
+    
     def variablesPronoToList(
             self,
             flatten : bool = True
@@ -261,6 +270,7 @@ class Node:
             if pronolist is not None:
                 list.extend(pronolist)
         return list
+    
     def adjust(
         self,
         plot : bool = True,
@@ -278,6 +288,7 @@ class Node:
         for variable in self.variables.values():
             if variable.adjust_from is not None:
                 variable.adjust(plot,error_band)
+    
     def apply_linear_combination(
         self,
         plot : bool = True,
@@ -295,6 +306,7 @@ class Node:
         for variable in self.variables.values():
             if variable.linear_combination is not None:
                 variable.apply_linear_combination(plot,series_index)
+    
     def adjustProno(
         self,
         error_band : bool = True
@@ -307,14 +319,17 @@ class Node:
             Add 01-99 error band to result data"""
         for variable in self.variables.values():
             variable.adjustProno(error_band=error_band)
+    
     def setOutputData(self) -> None:
         """For each variable in .variables run setOutputData()
         """
         for variable in self.variables.values():
             variable.setOutputData()
+    
     def uploadData(
         self,
-        include_prono : bool = False
+        include_prono : bool = False,
+        api_config : dict = None
         ) -> list:
         """For each variable in .variables run .uploadData()
         
@@ -326,12 +341,23 @@ class Node:
         Returns:
         --------
         created observations : list
+
+        api_config : dict = None
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
         """
         created = []
         for variable in self.variables.values():
-            result = variable.uploadData(include_prono=include_prono)
+            result = variable.uploadData(
+                include_prono = include_prono,
+                api_config = api_config)
             created.extend(result)
         return created
+    
     def pivotData(
         self,
         include_prono : bool = True
@@ -351,6 +377,7 @@ class Node:
         for variable in self.variables.values():
             data = data.join(variable.pivotData(include_prono=include_prono))
         return data
+    
     def pivotOutputData(
         self,
         include_tag : bool = True
@@ -370,6 +397,7 @@ class Node:
         for variable in self.variables.values():
             data = data.join(variable.pivotOutputData(include_tag=include_tag))
         return data
+    
     def seriesToDataFrame(
         self,
         pivot : bool = False,
@@ -396,6 +424,7 @@ class Node:
             for variable in self.variables.values():
                 data = data.append(variable.seriesToDataFrame(include_prono=include_prono),ignore_index=True)
         return data
+    
     def saveSeries(
         self,
         output : str,
@@ -420,6 +449,7 @@ class Node:
             return data.to_csv(output)
         else:
             return json.dump(data.to_dict(orient="records"),output)
+    
     def concatenateProno(
         self,
         inline : bool = True,
@@ -448,6 +478,7 @@ class Node:
             for variable in self.variables.values():
                 data = data.append(variable.concatenateProno(inline=False,ignore_warmup=ignore_warmup))
             return data
+    
     def interpolate(
         self,
         limit : timedelta = None,
@@ -465,12 +496,14 @@ class Node:
         """
         for variable in self.variables.values():
                 variable.interpolate(limit=limit,extrapolate=extrapolate)
+    
     def plot(self) -> None:
         """
         For each variable of .variables run .plot()
         """
         for variable in self.variables.values():
             variable.plot()
+    
     def plotProno(
         self,
         output_dir : str = None,
@@ -573,12 +606,14 @@ class Node:
         """
         for variable in self.variables.values():
             variable.plotProno(output_dir=output_dir,figsize=figsize,title=title,markersize=markersize,obs_label=obs_label,tz=tz,prono_label=prono_label,footnote=footnote,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,ylim=ylim,station_name=station_name,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)
+    
     def loadData(
         self,
         timestart : Union[datetime,str,dict],
         timeend : Union[datetime,str,dict],
         include_prono : bool = True,
-        forecast_timeend : Union[datetime,str,dict] = None
+        forecast_timeend : Union[datetime,str,dict] = None,
+        input_api_config : dict = None
         ) -> None:
         """
         For each variable in variables, if variable is an ObservedNodeVariable run .loadData()
@@ -596,10 +631,23 @@ class Node:
         
         forecast_timeend : Union[datetime,str,dict] = None
             End date of forecast retrieval. If None, uses timeend
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
         """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
-                variable.loadData(timestart,timeend,include_prono,forecast_timeend)
+                variable.loadData(
+                    timestart,
+                    timeend,
+                    include_prono,
+                    forecast_timeend,
+                    input_api_config)
     def removeOutliers(self) -> bool:
         """
         For each variable of .variables, if variable is an ObservedNodeVariable, run .removeOutliers(). Removes outilers and returns True if any outliers were removed

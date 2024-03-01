@@ -1,7 +1,15 @@
+# yaml-language-server: $schema=../data/schemas/json/config.json
+---
 log:
   filename: log/analysis.log
+input_api:
+  url: https://alerta.ina.gob.ar/test
+  token: MY_TOKEN
+output_api:
+  url: https://alerta.ina.gob.ar/test
+  token: MY_TOKEN
 use_proxy: false
 graph:
-  height: 8
-  width: 10
+  height: 10
+  width: 14
   

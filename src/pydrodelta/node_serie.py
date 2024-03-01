@@ -18,7 +18,7 @@ from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 
 input_crud = Crud(**config["input_api"])
-output_crud = Crud(**config["output_api"])
+# output_crud = Crud(**config["output_api"])
 
 class NodeSerie():
     """Represents a timestamped series of observed or simulated values for a variable in a node. """
@@ -74,6 +74,7 @@ class NodeSerie():
     
     csv_file = StringDescriptor()
     """Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header"""
+    
     @property
     def observations(self) -> List[TVP]:
         """Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)"""
@@ -84,12 +85,16 @@ class NodeSerie():
         values : List[TVP]
         ) -> None:
         self._observations = util.parseObservations(values) if values is not None else None
+    
     save_post = StringDescriptor()
     """Save upload payload into this file"""
+    
     comment = StringDescriptor()
     """Comment about this series"""
+    
     name = StringDescriptor()
     """Series name"""
+    
     def __init__(
         self,
         series_id : int,
@@ -153,8 +158,10 @@ class NodeSerie():
         self.save_post = save_post
         self.comment = comment
         self.name = name
+    
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
+    
     def toDict(self) -> dict:
         """Convert series to dict"""
         return {
@@ -170,10 +177,12 @@ class NodeSerie():
             "outliers_data": self.outliers_data,
             "jumps_data": self.jumps_data
         }
+    
     def loadData(
         self,
         timestart : datetime,
-        timeend : datetime
+        timeend : datetime,
+        input_api_config : dict = None
         ) -> None:
         """Load data from source according to configuration. 
         
@@ -188,7 +197,16 @@ class NodeSerie():
             Begin time of the timeseries
         
         timeend : datetime
-            End time of the timeseries"""
+            End time of the timeseries
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+        """
         timestart = util.tryParseAndLocalizeDate(timestart)
         timeend = util.tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
@@ -203,7 +221,8 @@ class NodeSerie():
             self.metadata = {"id": self.series_id, "tipo": self.type}
         else:
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
-            self.metadata = input_crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
+            crud = Crud(**input_api_config) if input_api_config is not None else input_crud
+            self.metadata = crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
             if len(self.metadata["observaciones"]):
                 self.data = observacionesListToDataFrame(self.metadata["observaciones"],tag="obs")
             else:
@@ -211,6 +230,7 @@ class NodeSerie():
                 self.data = createEmptyObsDataFrame(extra_columns={"tag":"str"})
             self.original_data = self.data.copy(deep=True)
             del self.metadata["observaciones"]
+    
     def getThresholds(self) -> dict:
         """Read level threshold information from .metadata"""
         if self.metadata is None:
@@ -224,6 +244,7 @@ class NodeSerie():
         if self.metadata["estacion"]["nivel_aguas_bajas"]:
             thresholds["nivel_aguas_bajas"] = self.metadata["estacion"]["nivel_aguas_bajas"]
         return thresholds
+    
     def removeOutliers(self) -> bool:
         """If .lim_outliers is set, removes outilers and returns True if any outliers were removed. Removed data rows are saved into .outliers_data"""
         if self.lim_outliers is None:
@@ -233,6 +254,7 @@ class NodeSerie():
             return True
         else:
             return False
+    
     def detectJumps(self) -> bool:
         """If lim_jump is set, detects jumps. Returns True if any jumps were found. Data rows containing jumps are saved into .jumps_data"""
         if self.lim_jump is None:
@@ -242,16 +264,19 @@ class NodeSerie():
             return True
         else:
             return False
+    
     def applyMovingAverage(self) -> None:
         """If .moving_average is set, apply a moving average with a time window size equal to .moving_average to the values of the series"""
         if self.moving_average is not None:
             # self.data["valor"] = util.serieMovingAverage(self.data,self.moving_average)
             self.data = util.serieMovingAverage(self.data,self.moving_average,tag_column = "tag")
+    
     def applyTimedeltaOffset(
         self,
         row,
         x_offset) -> datetime:
         return row.name + x_offset
+    
     def applyOffset(self) -> None:
         """Applies .x_offset (time axis) and .y_offset (values axis) to the data"""
         if self.data is None:
@@ -268,6 +293,7 @@ class NodeSerie():
             self.data["tag"] = self.data["tag"].shift(self.x_offset, axis = 0) 
         if self.y_offset != 0:
             self.data["valor"] = self.data["valor"] + self.y_offset
+    
     def regularize(
         self,
         timestart : datetime,
@@ -307,6 +333,7 @@ class NodeSerie():
             self.data = data
         else:
             return data
+    
     def fillNulls(
         self,
         other_data : DataFrame,
@@ -338,6 +365,7 @@ class NodeSerie():
             self.data = data
         else:
             return data
+    
     def toCSV(
         self,
         include_series_id : bool = False
@@ -353,6 +381,7 @@ class NodeSerie():
             data["series_id"] = self.series_id
             return data.to_csv()
         return self.data.to_csv()
+    
     def toList(
         self,
         include_series_id : bool = False,
@@ -395,6 +424,7 @@ class NodeSerie():
         if remove_nulls:
             obs_list = [x for x in obs_list if x["valor"] is not None] # remove nulls
         return obs_list
+    
     def toDict(
         self,
         timeSupport : timedelta = None,
@@ -429,6 +459,7 @@ class NodeSerie():
             return {"series_id": self.series_id, "series_table": series_table, "pronosticos": obs_list}
         else:
             return {"series_id": self.series_id, "series_table": series_table, "observaciones": obs_list}
+    
     def getSeriesTable(self) -> str:
         """Retrieve series table name (of a5 schema) for this timeseries"""
         return "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"

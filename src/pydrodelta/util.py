@@ -684,3 +684,15 @@ def tryParseFloat(value,allow_none=True):
         except ValueError:
             raise(ValueError)
     return parsed_float
+
+def ParseApiConfig(api_config = None):
+    if api_config is not None:
+        pars = api_config.split("@")
+        if len(pars) < 2:
+            raise ValueError("Invalid string. Valid sintax is: token@url")
+        return {
+            "url": pars[1],
+            "token": pars[0]
+        }
+    else:
+        return None

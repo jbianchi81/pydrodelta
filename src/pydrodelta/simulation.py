@@ -3,10 +3,10 @@ import os
 import yaml
 import click
 import sys
-from pydrodelta.plan import Plan
-from pydrodelta.config import config
+from .plan import Plan
+from .config import config
 from json import dump as json_dump 
-
+from .util import ParseApiConfig
 
 logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
@@ -75,7 +75,9 @@ root_logger.addHandler(str_handler)
 @click.option("--quiet", "-q", is_flag=True, help="quiet mode", default=False, show_default=True)
 @click.option("--upload-prono", "-U", is_flag=True, help="Upload simulation output to database API", default=False, show_default=True)
 @click.option("--save-upload-response", help="save analysis output response to this file (json)", default=None)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response):
+@click.option("--input-api",help="Override config.input_api. sintax: token@url. Token and url of the service from where to load data", type=str)
+@click.option("--output-api",help="Override config.output_api. sintax: token@url. Token and url of the service where to upload analysis output", type=str)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response,input_api,output_api):
     """
     run plan from plan config file
     
@@ -99,19 +101,32 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         t_config["output_analysis"] = output_analysis
     if pivot is not None:
         t_config["pivot"] = pivot
+    try:
+        input_api_config = ParseApiConfig(input_api)
+    except ValueError as e:
+        raise ValueError("Invalid parameter --input-api: %s" % str(e))
+    try:
+        output_api_config = ParseApiConfig(output_api)
+    except ValueError as e:
+        raise ValueError("Invalid parameter --output-api: %s" % str(e))   
     plan = Plan(**t_config)
-    plan.execute(include_prono=include_prono,upload=upload_prono,pretty=pretty)
+    plan.execute(
+        include_prono = include_prono,
+        upload = upload_prono,
+        pretty = pretty,
+        input_api_config = input_api_config,
+        output_api_config = output_api_config)
     if csv is not None:
         plan.topology.saveData(csv,pivot=pivot)
     if json is not None:
         plan.topology.saveData(json,format="json",pivot=pivot,pretty=pretty)
     if upload:
-        created = plan.topology.uploadData(include_prono)
+        created = plan.topology.uploadData(include_prono, api_config = output_api_config)
         if save_upload_response is not None:
             json_dump(created,open(save_upload_response,"w"))
             logging.info("Analysis upload response saved to %s" % save_upload_response)
         if include_prono:
-            plan.topology.uploadDataAsProno()
+            plan.topology.uploadDataAsProno(api_config = output_api_config)
     if export_corrida_json is not None:
         plan.toCorridaJson(export_corrida_json,pretty=pretty)
     if export_corrida_csv is not None:

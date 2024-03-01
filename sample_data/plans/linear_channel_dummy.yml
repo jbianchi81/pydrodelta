@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
+name: linear_channel_dummy
+id: 505
+forecast_date: "2024-01-03T03:00:00.000Z"
+topology:
+  timestart: "2024-01-01T03:00:00.000Z"
+  timeend: "2024-01-15T03:00:00.000Z"
+  # forecast_timeend: "2024-01-15T03:00:00.000Z"
+  nodes:
+  - id: 1
+    name: dummy_input
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      series:
+      - series_id: 1
+        tipo: puntual
+        observations:
+        - timestart: "2024-01-01T03:00:00.000Z"
+          valor: 10
+        - timestart: "2024-01-02T03:00:00.000Z"
+          valor: 20
+        - timestart: "2024-01-03T03:00:00.000Z"
+          valor: 5
+  - id: 2
+    name: dummy_output
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      series:
+      - tipo: puntual
+        series_id: 2
+        observations:
+        - ["2024-01-01T03:00:00.000Z", 2.01]
+        - ["2024-01-02T03:00:00.000Z", 7.50]
+        - ["2024-01-03T03:00:00.000Z", 10.11]
+        - ["2024-01-04T03:00:00.000Z", 7.60]
+        - ["2024-01-05T03:00:00.000Z", 4.15]
+        - ["2024-01-06T03:00:00.000Z", 2.03]
+      series_sim:
+      - tipo: puntual
+        series_id: 2
+procedures:
+- id: nash_linear_channel
+  function:
+    type: LinearChannel
+    parameters:
+      k: 1
+      n: 2
+    boundaries:
+    - name: input
+      node_variable: [1,40]
+    outputs:
+    - name: output
+      node_variable: [2,40]
+  save_results: results/lc_results.csv

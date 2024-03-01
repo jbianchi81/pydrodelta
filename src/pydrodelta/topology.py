@@ -202,7 +202,10 @@ class Topology():
                     topology=self
                 )
             )
-    def batchProcessInput(self,include_prono=False) -> None:
+    def batchProcessInput(
+        self,
+        include_prono : bool = False,
+        input_api_config : dict = None) -> None:
         """
         Run input processing sequence. This includes (in this order):
         
@@ -226,9 +229,17 @@ class Topology():
         -----------
         include_prono : bool default False
             For each variable, fill missing observations with values from series_prono
+        
+        input_api_config : dict
+            Api connection parameters (used to load data). Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
         """
         logging.debug("loadData")
-        self.loadData()
+        self.loadData(input_api_config=input_api_config)
         logging.debug("removeOutliers")
         self.removeOutliers()
         logging.debug("detectJumps")
@@ -258,21 +269,37 @@ class Topology():
             f = open(self.report_file,"w")
             json.dump(report,f,indent=2)
             f.close()
-    def loadData(self,include_prono=True) -> None:
+    def loadData(
+        self,
+        include_prono : bool = True,
+        input_api_config : dict = None) -> None:
         """For each series of each variable of each node, load data from the source.
         
         Parameters:
         -----------
         
         include_prono : bool default True
-            Load forecasted data"""
+            Load forecasted data
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict"""
         for node in self.nodes:
             # logging.debug("loadData timestart: %s, timeend: %s, time_interval: %s" % (self.timestart.isoformat(), self.timeend.isoformat(), str(node.time_interval)))
             timestart = self.timestart - node.time_interval if node.time_interval is not None else self.timeend
             timeend = self.timeend + node.time_interval if node.time_interval is not None else self.timeend
             forecast_timeend = self.forecast_timeend+node.time_interval if self.forecast_timeend is not None and node.time_interval is not None else self.forecast_timeend
             if hasattr(node,"loadData"):
-                node.loadData(timestart, timeend, forecast_timeend=forecast_timeend, include_prono=include_prono)
+                node.loadData(
+                    timestart, 
+                    timeend, 
+                    forecast_timeend = forecast_timeend, 
+                    include_prono = include_prono,
+                    input_api_config = input_api_config)
             # for serie in node.series:
             #     if isinstance(serie,NodeSerie):
             #         serie.loadData(self.timestart,self.timeend)
@@ -461,6 +488,7 @@ class Topology():
                 else:
                     obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
         return obs_list
+    
     def outputToList(
         self,
         pivot : bool = False,
@@ -562,7 +590,8 @@ class Topology():
         return
     def uploadData(
         self,
-        include_prono : bool
+        include_prono : bool,
+        api_config : dict = None
         ) -> list:
         """
         Uploads analysis data (series_output) of all variables of all nodes as a5 observaciones (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/observacion.yml)
@@ -572,19 +601,30 @@ class Topology():
         include_prono : bool
             Include the forecast horizon
         
+        api_config : dict = None
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+
         Returns:
         list of Observations
         """
         created = []
         for node in self.nodes:
-            obs_created = node.uploadData(include_prono=include_prono)
+            obs_created = node.uploadData(
+                include_prono = include_prono,
+                api_config = api_config)
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
     def uploadDataAsProno(
         self,
         include_obs : bool = True,
-        include_prono : bool = False
+        include_prono : bool = False,
+        api_config : dict = None,
         ) -> dict:
         """
         Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
@@ -595,7 +635,14 @@ class Topology():
             Include period before the forecast date
         include_prono : bool
             Include period after the forecast date
-        
+        api_config : dict = None
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+
         Returns:
         --------
         dict : server response. Either a successfully created forecast (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml) or an error message
@@ -623,7 +670,8 @@ class Topology():
             for node in self.nodes:
                 serieslist = node.variablesPronoToList(flatten=False)
                 prono["series"].extend(serieslist)
-        return output_crud.createCorrida(prono)
+        api_client = Crud(**api_config) if api_config is not None else output_crud
+        return api_client.createCorrida(prono)
 
     def pivotData(
         self,

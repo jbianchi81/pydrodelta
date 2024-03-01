@@ -165,7 +165,13 @@ class Plan():
         self.pivot = pivot
         self.save_post = save_post
         self.save_response = save_response
-    def execute(self,include_prono=True,upload=True,pretty=False):
+    def execute(
+        self,
+        include_prono : bool = True,
+        upload : bool = True,
+        pretty : bool = False,
+        input_api_config : dict = None,
+        output_api_config : dict = None):
         """
         Runs analysis and then each procedure sequentially
 
@@ -180,13 +186,29 @@ class Plan():
         
         pretty : bool
             Pretty print results. Default False
+        
+        input_api_config : dict
+            Api connection parameters. Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+        
+        output_api_config : dict
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
 
         Returns:
         --------
         
         None
         """
-        self.topology.batchProcessInput(include_prono=include_prono)
+        self.topology.batchProcessInput(include_prono=include_prono,input_api_config=input_api_config)
         if self.output_analysis is not None:
             with open(self.output_analysis,'w') as analysisfile:
                 if pretty:
@@ -203,7 +225,7 @@ class Plan():
             # self.output_stats.append(procedure.procedure_function_results.statistics)
         if upload:
             try:
-                self.uploadSim()
+                self.uploadSim(api_config = output_api_config)
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_stats_file is not None:
@@ -236,13 +258,25 @@ class Plan():
             "forecast_date": self.forecast_date.isoformat(),
             "series": series_sim 
         }
-    def uploadSim(self) -> dict:
+    def uploadSim(
+        self,
+        api_config : dict = None) -> dict:
         """Upload forecast into output api. 
         
         If self.save_post is not None, saves the post message before request into that filepath. 
 
         If self.save_response not None, saves server response (either the created forecast or an error message) into that filepath
         
+        Args:
+        -----
+        api_config : dict = None
+            Api connection parameters. Overrides global config.output_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+
         Returns:
         --------
         
@@ -253,7 +287,8 @@ class Plan():
             save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_post)
             json.dump(corrida,open(save_path,"w"))
             logging.info("Saved simulation post data to %s" % save_path)
-        response = output_crud.createCorrida(corrida)
+        api_client = Crud(**api_config) if api_config is not None else output_crud
+        response = api_client.createCorrida(corrida)
         if self.save_response:
             save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_response)
             json.dump(corrida,open(save_path,"w"))
