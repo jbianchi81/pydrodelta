@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../schemas/json/plan.json
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
 ---
   name: grp_dummy_from_csv_one_node
   id: 666
@@ -60,11 +60,21 @@
         area: 16095267887.9854
         wp: 0.03
         rho: 0.5
+      extra_pars:
+        area: 43634867978
       boundaries:
-        etp: [1, 1]
-        pma: [1, 15]
-        q_obs: [1, 4]
-        smc_obs: [1, 20]
+      - name: etp
+        node_variable: 
+        - 1
+        - 1
+      - name: pma
+        node_variable: [1, 15]
+      - name: q_obs
+        node_variable: [1, 4]
+      - name: smc_obs
+        node_variable: [1, 20]
       outputs:
-        q_sim: [1, 4]
-        smc_sim: [1, 20]
+      - name: q_sim
+        node_variable: [1, 4]
+      - name: smc_sim
+        node_variable: [1, 20]
