@@ -100,30 +100,18 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     
     export PYDRODELTA_DIR=$PWD
 
-    pydrodelta run-analysis data/topologies/288_bordes_curados15d.yml -u -p -c tmp/288_bordes_curados15d_output.csv
+    # dummy run from csv data. Outputs json and pivot csv
+    pydrodelta run-plan sample_data/plans/from_csv.yml -e results/from_csv.json -E tmp/from_csv.csv -p
 
-    pydrodelta run-plan data/plans/dummy_polynomial.yml -c tmp/boundaries.csv -e tmp/corrida.json -E tmp/corrida.csv
+    # Transit between 2 nodes
+    pydrodelta run-plan sample_data/plans/linear_channel_dummy.yml -a  results/linear_channel_dummy_analysis.json -e results/linear_channel_dummy_simulation.json -g results/linear_channel_dummy.png
 
-    # dummy run from csv data. Outputs json and pivot csv plus topology graph 
-    pydrodelta run-plan data/plans/from_csv.yml -e tmp/from_csv.json -E tmp/from_csv.csv -p -g
+    # P-Q transformation, load data from csv. Print plot of Q observed vs. simulated
+    pydrodelta run-plan sample_data/plans/dummy_grp_from_csv_one_node.yml -V 4 results/grp_dummy_q.pdf
 
-    # dummy P-Q from csv
-    pydrodelta run-plan data/plans/dummy_grp_from_csv_one_node.yml -E tmp/grp_out.csv -p
-
-    # P-Q from a5
-    pydrodelta run-plan data/plans/pjau_grp.yml -E tmp/grp_out.csv -p
-
-    # linear combination
-    bin/pydrodelta run-plan data_/plans/paraguay-transitos.yml -j tmp/paraguay.json -g tmp/paraguay.png -c tmp/paraguay.csv --pivot -s tmp/paraguay_stats.json --pretty -V 40 tmp/paraguay_qmd.pdf -V 39 tmp/paraguay_hmd.pdf
-
-    # sacramento simplified
-    bin/pydrodelta run-plan data_/plans/cal_132.yml -j tmp/132.json --pretty -c tmp/132.csv --pivot -e tmp/prono_132.json -s tmp/132_stats.json -V 40 tmp/132_40.pdf -a tmp/132_analysis.json
-
-    # sacramento simplified with ensemble kalman filter
-    bin/pydrodelta run-plan data_/plans/cal_32.yml -j tmp/32.json --pretty -c tmp/32.csv -a tmp/32_analysis.json --pivot -s tmp/32_stats.json -g tmp/32_graph.png -V 1 tmp/32_pma.pdf -V 40 tmp/32_q.pdf
-
-    # linear channel from inline boundary data
-    bin/pydrodelta run-plan data_/plans/linear_channel_dummy.yml -V 40 tmp/lm_q.pdf -g tmp/lm.png -j tmp/lm.json -c tmp/lm.csv --pivot -s tmp/lc_stats.json --pretty 
+    # P-Q transformation, load data from a5 API
+    pydrodelta run-plan sample_data/plans/pjau_grp.yml --input-api my_token@https://alerta.ina.gob.ar/a5
+  
 
 ### TODO list
 
@@ -149,7 +137,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] nodes list / procedures list to dataframe
 - [ ] implement linear regression as functionProcedure
 - [ ] cache variables
-- [ ] test suite
+- [x] test suite
 
 ### References
 

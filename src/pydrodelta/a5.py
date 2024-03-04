@@ -253,7 +253,8 @@ class Crud():
         timestart : datetime = None,
         timeend : datetime = None,
         tipo : str = "puntual",
-        use_proxy : bool = False
+        use_proxy : bool = False,
+        no_metadata : bool = False
         ) -> dict:
         """Retrieve serie
 
@@ -263,6 +264,7 @@ class Crud():
             timeend (datetime, optional): End timestamp. Defaults to None.
             tipo (str, optional): Geometry type: puntual, areal, raster. Defaults to "puntual".
             use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+            no_metadata (bool, optional): Don't retrieve metadata (only data and identifiers). Defaults to False
 
         Raises:
             Exception: Request failed if response status code is not 200
@@ -270,12 +272,12 @@ class Crud():
         Returns:
             dict: raw serie dict
         """
-        params = {}
+        params = {
+            "no_metadata": no_metadata
+        }
         if timestart is not None and timeend is not None:
-            params = {
-                "timestart": timestart if isinstance(timestart,str) else timestart.isoformat(),
-                "timeend": timeend if isinstance(timeend,str) else timeend.isoformat()
-            }
+            params["timestart"] = timestart if isinstance(timestart,str) else timestart.isoformat()
+            params["timeend"] = timeend if isinstance(timeend,str) else timeend.isoformat()
         response = requests.get("%s/obs/%s/series/%i" % (self.url, tipo, series_id),
             params = params,
             headers = {'Authorization': 'Bearer ' + self.token},

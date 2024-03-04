@@ -59,6 +59,11 @@
     },
     "report_file": {
       "description": "Write analysis report into this file"
+    },
+    "no_metadata": {
+      "description": "Don't retrieve series metadata on loading from api",
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

@@ -613,7 +613,8 @@ class Node:
         timeend : Union[datetime,str,dict],
         include_prono : bool = True,
         forecast_timeend : Union[datetime,str,dict] = None,
-        input_api_config : dict = None
+        input_api_config : dict = None,
+        no_metadata : bool = False,
         ) -> None:
         """
         For each variable in variables, if variable is an ObservedNodeVariable run .loadData()
@@ -639,6 +640,10 @@ class Node:
             - url : str
             - token : str
             - proxy_dict : dict
+        
+        no_metadata : bool = False
+            Don't retrieve series metadata on load from api
+
         """
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
@@ -647,7 +652,8 @@ class Node:
                     timeend,
                     include_prono,
                     forecast_timeend,
-                    input_api_config)
+                    input_api_config,
+                    no_metadata = no_metadata)
     def removeOutliers(self) -> bool:
         """
         For each variable of .variables, if variable is an ObservedNodeVariable, run .removeOutliers(). Removes outilers and returns True if any outliers were removed

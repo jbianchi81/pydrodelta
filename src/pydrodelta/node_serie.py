@@ -182,7 +182,8 @@ class NodeSerie():
         self,
         timestart : datetime,
         timeend : datetime,
-        input_api_config : dict = None
+        input_api_config : dict = None,
+        no_metadata : bool = False,
         ) -> None:
         """Load data from source according to configuration. 
         
@@ -201,6 +202,9 @@ class NodeSerie():
         
         input_api_config : dict
             Api connection parameters. Overrides global config.input_api
+
+        no_metadata : bool = True
+            Don't retrieve metadata
             
             Properties:
             - url : str
@@ -222,7 +226,12 @@ class NodeSerie():
         else:
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else input_crud
-            self.metadata = crud.readSerie(self.series_id,timestart,timeend,tipo=self.type)
+            self.metadata = crud.readSerie(
+                self.series_id,
+                timestart,
+                timeend,
+                tipo = self.type, 
+                no_metadata = no_metadata)
             if len(self.metadata["observaciones"]):
                 self.data = observacionesListToDataFrame(self.metadata["observaciones"],tag="obs")
             else:

@@ -1,15 +1,17 @@
-# yaml-language-server: $schema=../schemas/json/plan.json
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
 ---
   name: grp_dummy_from_csv
   id: 666
-  topology: # data/topologies/from_csv.yml
-    timestart: "2023-01-01 00:00:00-03:00"
+  topology:
+    timestart:
+      days: -30
     timeend:
       days: 6
     time_offset_start:
       hours: 9
     interpolation_limit:
-      hours: 12 
+      hours: 12
+    no_metadata: true
     nodes:
     - id: 1
       name: pma
@@ -27,9 +29,6 @@
         - series_id: 189
           tipo: areal
           comment: luján jáuregui pma media areal diaria pronosticada GFS
-        - series_id: 5081
-          tipo: areal
-          comment: luján jáuregui pma media areal diaria pronosticada COSMO
     - id: 2
       name: etp
       time_interval:
@@ -74,7 +73,7 @@
   - id: 1
     function:
       type: GRP
-      init_states:
+      initial_states:
         Sk: 50
         Rk: 5
       parameters:
@@ -82,15 +81,24 @@
         X1: 1101.94
         X2: 1.20439
         X3: 8.11073
+      extra_pars: 
         area: 16095267887.9854
         wp: 0.03
         rho: 0.5
+        fill_nulls: true
       boundaries:
-        pma: [1, 1]
-        etp: [2, 15]
-        q_obs: [3, 4]
-        smc_obs: [4, 20]
+      - name: pma
+        node_variable: [1, 1]
+      - name: etp
+        node_variable: [2, 15]
+      - name: q_obs
+        node_variable: [3, 4]
+      - name: smc_obs
+        node_variable: [4, 20]
       outputs:
-        q_sim: [3, 4]
-        smc_sim: [4, 20]
-  output_stats: tmp/grp_stats.json
+      - name: q_sim
+        node_variable: [3, 4]
+      - name: smc_sim
+        node_variable: [4, 20]
+    save_results: results/pjau_grp.csv
+  output_stats: results/pjau_grp_stats.json

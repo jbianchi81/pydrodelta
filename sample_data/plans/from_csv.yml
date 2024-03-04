@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../schemas/json/plan.json
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
 ---
   name: from_csv
   id: 555
@@ -12,13 +12,12 @@
       name: sample node 1
       time_interval:
         hours: 1
-      downstream_node: 2
       variables:
       - id: 2
         series:
         - series_id: 1
           comment: sample series 1
-          csv_file: data/csv/csv_file_sample.csv
+          csv_file: sample_data/csv/csv_file_sample.csv
         series_sim:
         - series_id: 3
     - id: 2
@@ -30,7 +29,7 @@
         series:
         - series_id: 2
           comment: Sample series 2
-          csv_file: data/csv/csv_file_sample.csv
+          csv_file: sample_data/csv/csv_file_sample.csv
         series_sim:
         - series_id: 4
   forecast_date:
@@ -40,26 +39,25 @@
   procedures:
   - id: 1
     function:
-      type: ProcedureFunction
+      type: Polynomial
+      parameters:
+        intercept: 22.0
+        coefficients: [2.0]
       boundaries:
-        input: [1, 2]
+      - name: input
+        node_variable: [1, 2]
       outputs:
-        output: [1, 2]
+      - name: output
+        node_variable: [1, 2]
   - id: 2
     function:
       type: Polynomial
-      intercept: 22.0
-      coefficients: [2.0]
+      parameters:
+        intercept: -20.0
+        coefficients: [-0.5]
       boundaries:
-        input: [1, 2]
+      - name: input
+        node_variable: [2, 2]
       outputs:
-        output: [1, 2]
-  - id: 3
-    function:
-      type: Polynomial
-      intercept: -20.0
-      coefficients: [-0.5]
-      boundaries:
-        input: [2, 2]
-      outputs:
-        output: [2, 2]
+      - name: output
+        node_variable: [2, 2]

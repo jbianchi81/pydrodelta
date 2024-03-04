@@ -103,7 +103,7 @@ class GRPProcedureFunction(PQProcedureFunction):
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
-        initial_states : Union[list,tuple,dict] = None,
+        initial_states : Union[list,tuple,dict] = [],
         update = False,
         **kwargs):
         """

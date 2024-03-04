@@ -87,6 +87,8 @@ class Topology():
         """Directional graph representing this topology"""
         return self._graph
 
+    no_metadata = BoolDescriptor()
+    """Don't retrieve series metadata on load from api"""
 
     def __init__(
         self,
@@ -102,7 +104,8 @@ class Topology():
         cal_id : Union[int,None] = None,
         plot_params : Union[dict,None] = None,
         report_file : Union[str,None] = None,
-        plan = None
+        plan = None,
+        no_metadata : bool = False,
         ):
         """Initiate topology
         
@@ -146,6 +149,9 @@ class Topology():
         
         plan : Plan
             Plan containing this topology
+        
+        no_metadata : bool = False
+            Don't retrieve series metadata on load from api
         """
         params = locals()
         del params["plan"]
@@ -170,6 +176,7 @@ class Topology():
         self.plot_params = plot_params
         self.report_file = report_file
         self._graph = self.toGraph()
+        self.no_metadata = no_metadata
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
@@ -272,7 +279,8 @@ class Topology():
     def loadData(
         self,
         include_prono : bool = True,
-        input_api_config : dict = None) -> None:
+        input_api_config : dict = None,
+        no_metadata : bool = None) -> None:
         """For each series of each variable of each node, load data from the source.
         
         Parameters:
@@ -287,7 +295,11 @@ class Topology():
             Properties:
             - url : str
             - token : str
-            - proxy_dict : dict"""
+            - proxy_dict : dict
+            
+        no_metadata : bool = None
+            Don't retrieve series metadata on load from api. If not given, reads from self.no_metadata
+        """
         for node in self.nodes:
             # logging.debug("loadData timestart: %s, timeend: %s, time_interval: %s" % (self.timestart.isoformat(), self.timeend.isoformat(), str(node.time_interval)))
             timestart = self.timestart - node.time_interval if node.time_interval is not None else self.timeend
@@ -299,23 +311,14 @@ class Topology():
                     timeend, 
                     forecast_timeend = forecast_timeend, 
                     include_prono = include_prono,
-                    input_api_config = input_api_config)
-            # for serie in node.series:
-            #     if isinstance(serie,NodeSerie):
-            #         serie.loadData(self.timestart,self.timeend)
-                # if include_prono and node.series_prono is not None and len(node.series_prono):
-                #     for serie in node.series_prono:
-                #         if isinstance(serie,NodeSerieProno):
-                #             if self.forecast_timeend is not None:
-                #                 serie.loadData(self.timestart,self.forecast_timeend)
-                #             else:
-                #                 serie.loadData(self.timestart,self.timeend)
-            # if isinstance(node,observedNode):
-            #     node.loadData(self.timestart,self.timeend)
+                    input_api_config = input_api_config,
+                    no_metadata = no_metadata if no_metadata is not None else self.no_metadata)
+
     def setOriginalData(self) -> None:
         """For each variable of each node, copy .data into .original_data"""
         for node in self.nodes:
             node.setOriginalData()
+
     def removeOutliers(self) -> None:
         """For each serie of each variable of each node, perform outlier removal (only in series where lim_outliers is not None)."""
         found_outliers = False
@@ -323,6 +326,7 @@ class Topology():
             found_outliers_ = node.removeOutliers()
             found_outliers = found_outliers_ if found_outliers_ else found_outliers
         return found_outliers
+
     def detectJumps(self) -> None:
         """For each serie of each variable of each node, perform jumps detection (only in series where lim_jump is not None). Results are saved in jumps_data of the series object."""
         found_jumps = False
@@ -330,14 +334,17 @@ class Topology():
             found_jumps_ = node.detectJumps()
             found_jumps = found_jumps_ if found_jumps_ else found_jumps
         return found_jumps
+
     def applyMovingAverage(self) -> None:
         """For each serie of each variable of each node, apply moving average (only in series where moving_average is not None)"""
         for node in self.nodes:
             node.applyMovingAverage()
+
     def applyOffset(self) -> None:
         """For each serie of each variable of each node, apply x and/or y offset (only in series where x_offset (time) or y_offset (value) is defined)"""
         for node in self.nodes:
             node.applyOffset()
+
     def regularize(self,interpolate=False) -> None:
         """For each series and series_prono of each observed variable of each node, regularize the time step according to time_interval and time_offset
         
@@ -348,28 +355,33 @@ class Topology():
         """
         for node in self.nodes:
             node.regularize(interpolate=interpolate)
+
     def fillNulls(self) -> None:
         """For each observed variable of each node, copies data of first series and fills its null values with the other series. In the end it fills nulls with self.fill_value. Saves result in self.data
         """
         for node in self.nodes:
             node.fillNulls()
+
     def derive(self) -> None:
         """For each derived variable of each node, derives data from related variable according to derived_from attribute
         """
         for node in self.nodes:
             node.derive()
+
     def adjust(self) -> None:
         """For each series_prono of each variable of each node, if observations are available, perform error correction by linear regression"""
         for node in self.nodes:
             node.adjust()
             node.apply_linear_combination()
             node.adjustProno()
+
     def concatenateProno(self) -> None:
         """For each variable of each node, if series_prono are available, concatenate series_prono into variable.data"""
         for node in self.nodes:
             for variable in node.variables.values():
                 if variable.series_prono is not None:
                     variable.concatenateProno()
+
     def interpolate(
         self,
         limit : timedelta = None,
@@ -387,10 +399,12 @@ class Topology():
         """
         for node in self.nodes:
             node.interpolate(limit=limit,extrapolate=extrapolate)
+
     def setOutputData(self) -> None:
         """For each series_output of each variable of each node, copy variable.data into series_output.data. If x_offset or y_offset are not 0, applies the offset"""
         for node in self.nodes:
             node.setOutputData()
+
     def toCSV(
         self,
         pivot : bool=False
@@ -412,6 +426,7 @@ class Topology():
             return data.to_csv(index=False)    
         header = ",".join(["timestart","valor","tag","series_id"])
         return header + "\n" + "\n".join([node.toCSV(True,False) for node in self.nodes])
+
     def outputToCSV(
         self,
         pivot=False

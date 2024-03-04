@@ -63,7 +63,8 @@ class ObservedNodeVariable(NodeVariable):
         timeend : datetime,
         include_prono : bool = True,
         forecast_timeend : datetime = None,
-        input_api_config : dict = None
+        input_api_config : dict = None,
+        no_metadata : bool = False
         ) -> None:
         """
         Load data of each serie in .series from source
@@ -89,11 +90,18 @@ class ObservedNodeVariable(NodeVariable):
             - url : str
             - token : str
             - proxy_dict : dict
+        
+        no_metadata : bool = False
+            Don't retrieve series metadata on load from api
         """
         logging.debug("Load data for observed node: %i" % (self.id))
         if self.series is not None:
             for serie in self.series:
-                serie.loadData(timestart,timeend,input_api_config)
+                serie.loadData(
+                    timestart,
+                    timeend,
+                    input_api_config,
+                    no_metadata=no_metadata)
         elif hasattr(self,"derived_from") and self.derived_from is not None:
             self.series = []
         else:
