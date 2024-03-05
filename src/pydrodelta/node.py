@@ -33,6 +33,8 @@ class Node:
     """Start time of the observations/forecasts relative to zero local time"""
     hec_node = DictDescriptor()
     """Mapping of this node to HECRAS geometry"""
+    description = StringDescriptor()
+    """Node description"""
     @property
     def variables(self) -> Dict[int,Union[ObservedNodeVariable,DerivedNodeVariable]]:
         """Variables represent the hydrologic observed/simulated properties at the node (such as discharge, precipitation, etc.). They are stored as a dictionary where an integer, the variable identifier, is used as the key, and the values are dictionaries. They may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
@@ -62,7 +64,8 @@ class Node:
             topology = None,
             hec_node : dict = None,
             variables : List[Union[DerivedNodeVariable,ObservedNodeVariable]] = list(),
-            node_type : str = "station"
+            node_type : str = "station",
+            description : str = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
         
@@ -127,6 +130,7 @@ class Node:
         self._topology = topology
         self.variables = variables
         self.node_type = node_type
+        self.description = description
     
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])

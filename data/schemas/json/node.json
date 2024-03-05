@@ -59,6 +59,10 @@
       "description": "Type of node. 'station' or 'basin'",
       "type": "string",
       "enum": ["station","basin"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Node description"
     }
   },
   "required": [
