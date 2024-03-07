@@ -1,4 +1,7 @@
 from pandas import DataFrame
+from pandas import Series
+from datetime import timedelta
+from sklearn.linear_model import LinearRegression
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
@@ -10,6 +13,7 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..types.boundary_dict import BoundaryDict
 from ..types.forecast_step_dict import ForecastStepDict
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
+from ..result_statistics import ResultStatistics
 
 class BoundaryCoefficients():
     """Linear combination coefficients for a boundary at a given forecast step"""
@@ -209,3 +213,103 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 "coefficients": [x.toDict() for x in self.coefficients]
             }
         )
+    
+    def calibrate(
+        self,
+        input : List[DataFrame] = None
+        ) -> List[dict]:
+        """
+        Find regression coefficients
+        
+        Args:
+            input : List[DataFrame] = None
+                input data. If None, loads from boundaries
+        """
+        is_optional = [x.optional for x in self.boundaries]
+        for b in self.boundaries:
+            b.optional = True
+        input = input if input is not None else self._procedure.loadInput(inplace=False,pivot=False)
+        for i, b in enumerate(self.boundaries):
+            b.optional = is_optional[i]
+        results = DataFrame({
+            "horiz": Series(dtype="int"),
+            "n": Series(dtype="int"),
+            "rmse": Series(dtype="float"),
+            "r": Series(dtype="float"),
+            "nse": Series(dtype="float")
+        })
+        stats_all = []
+        fitted_parameters : LinearCombinationParametersDict = {
+            "forecast_steps": self.forecast_steps,
+            "lookback_steps": self.lookback_steps,
+            "coefficients": [] # List[ForecastStepDict]
+        }
+        for horiz in range(self.forecast_steps):
+            data = self.getTrainingData(horiz, input, dropna=True)
+            training_set = data.loc[:, data.columns!='target'].to_numpy()
+            target = data.loc[:, data.columns=='target'].to_numpy()
+            reg = LinearRegression().fit(training_set, target)
+            predict = reg.predict(training_set)
+            stats = ResultStatistics([x[0] for x in target],[x[0] for x in predict],compute=True)
+            stats_all.append(stats)
+            results.loc[len(results.index)] = [
+                horiz,
+                stats.n,
+                stats.rmse,
+                stats.r,
+                stats.nse
+            ]
+            forecast_step : ForecastStepDict = {
+                "intercept": float(reg.intercept_[0]),
+                "boundaries": []
+            }
+            coef_i = 0
+            for i, feature in enumerate(input):
+                boundary : BoundaryDict = {
+                    "name": self.boundaries[i].name,
+                    "coefficients": []
+                }
+                for lag in range(1,self.lookback_steps+1):
+                    boundary["coefficients"].append(reg.coef_[0][coef_i])
+                    coef_i = coef_i + 1
+                forecast_step["boundaries"].append(boundary)
+            fitted_parameters["coefficients"].append(forecast_step)
+        return fitted_parameters, results, stats_all
+
+
+
+    def getTrainingData(
+        self,
+        horiz : Union[int,timedelta] = 0,
+        input : List[DataFrame] = None,
+        dropna : bool = False 
+        ) -> DataFrame:
+        """
+        Get training set for linear regression. input[0] is the target. One feature of the training set is generated for each input + lag (1 to self.lookback_steps) combination 
+        
+        Args:
+            horiz : Union[int,timedelta] = 0
+                Displace training set by int steps or timedelta
+            input : List[DataFrame] = None
+                First element is the target, the rest is the training set 
+            remove_nan : bool = False
+                If True, remove rows with NaN
+        
+        Returns:
+            Training set of len(input) * self.lookback_steps columns : DataFrame
+        """
+        input = input if input is not None else self._procedure.loadInput(inplace=False,pivot=False)
+        data = input[0][["valor"]].rename(columns={"valor": "target"})
+        for i, feature in enumerate(input):
+            for lag in range(1,self.lookback_steps+1):
+                feature_name = "input_%i_lag_%i" % (i, lag)
+                feature_ = feature[["valor"]].shift(horiz) if type(horiz) == int else feature[["valor"]].shift(freq=horiz)
+                feature_ = feature_.shift(lag)
+                data = data.join(feature_.rename(columns={"valor": feature_name}))
+        if dropna:
+            data.dropna(inplace=True)
+        return data # .to_numpy()
+        
+
+
+
