@@ -18,13 +18,16 @@
                 "seconds": {
                     "type": "number"
                 },
-                "milliseconds": {
+                "days": {
+                    "type": "number"
+                },
+                "weeks": {
                     "type": "number"
                 },
                 "months": {
                     "type": "number"
                 },
-                "days": {
+                "years": {
                     "type": "number"
                 }
             },
