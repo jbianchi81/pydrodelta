@@ -1,4 +1,5 @@
 import dateutil.parser
+import dateutil.relativedelta
 import pytz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
@@ -119,10 +120,10 @@ def tryParseAndLocalizeDate(
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
     is_from_interval = False
     if isinstance(date,dict):
-        date = datetime.now() + interval2timedelta(date)
+        date = datetime.now() + dateutil.relativedelta.relativedelta(**date)
         is_from_interval = True
     elif isinstance(date,(int,float)):
-        date = datetime.now() + interval2timedelta({"days": date})
+        date = datetime.now() + dateutil.relativedelta.relativedelta(days=date)
         is_from_interval = True
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:

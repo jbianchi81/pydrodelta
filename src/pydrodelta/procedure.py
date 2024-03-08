@@ -314,9 +314,16 @@ class Procedure():
                 self.procedure_function_results.setStatisticsVal(result_val)
         return result, result_val
     
-    def read_statistics(self) -> dict:
+    def read_statistics(
+        self, 
+        short : bool = False
+        ) -> dict:
         """Get result statistics as a dict
         
+        Args:
+            short : bool = False
+                Get statistics summary
+
         Returns
         -------
         statistics : dict of the form:
@@ -325,11 +332,12 @@ class Procedure():
                 "function_type": str,
                 "results": List[dict]
             }
+            where results is a list of dict, one per procedure output
         """
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
-            "results": [x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
+            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
         }
     def read_results(self) -> dict:
         """Get results as a dict

@@ -228,9 +228,13 @@ class Plan():
                 self.uploadSim(api_config = output_api_config)
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
+        if self.output_results_file is not None:
+            with open(self.output_results_file,"w") as outfile:
+                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w") as outfile:
-                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+                json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
     def toCorrida(self) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         

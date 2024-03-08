@@ -1,9 +1,11 @@
 import logging
 from pandas import DataFrame
 import math
+from typing import List, Tuple
+from datetime import datetime
 
 class ResultStatistics:
-    """Collection of statistic analysis results for the procedure"""
+    """Collection of statistic analysis results for one output of the procedure"""
     def __init__(
         self,
         obs : list = list(),
@@ -11,7 +13,9 @@ class ResultStatistics:
         metadata: dict = None,
         calibration_period : list = None,
         group : str = "cal",
-        compute : bool = False
+        compute : bool = False,
+        procedure = None,
+        output = None
         ):
         """Initiate collection of statistic analysis for the procedue
         
@@ -35,47 +39,49 @@ class ResultStatistics:
         compute : bool (defaults to False)
             Compute statistical analysis
             """
-        self.obs = list(obs) if obs is not None else list()
+        self.obs : List[float] = list(obs) if obs is not None else list()
         """List of observed values"""
-        self.sim = list(sim) if sim is not None else list()
+        self.sim : List[float] = list(sim) if sim is not None else list()
         """List of simulated values. Must be of the same length as obs"""
-        self.metadata = metadata
+        self.metadata : dict = metadata
         """Metadata of the node and the variable (dict)"""
-        self.calibration_period = [x.isoformat() for x in calibration_period] if calibration_period is not None else None
+        self.calibration_period : Tuple[datetime,datetime] = [x.isoformat() for x in calibration_period] if calibration_period is not None else None
         """start and end date for splitting the data into calibration and validation periods"""
-        self.group = group
+        self.group : str = group
         """cal or val"""
-        self.errors = None
+        self._procedure = procedure
+        self._output = output
+        self.errors : List[float] = None
         """List of errors (difference between sim and obs)"""
-        self.n = None
+        self.n : int = None
         """Number of observations"""
-        self.mse = None
+        self.mse : float = None
         """Mean squared error"""
-        self.rmse = None
+        self.rmse : float = None
         """Root mean squared error"""
-        self.bias =  None
+        self.bias : float =  None
         """Bias (mean error)"""
-        self.mean_obs = None
+        self.mean_obs : float = None
         """Mean of obs"""
-        self.mean_sim = None
+        self.mean_sim : float = None
         """Mean of sim"""
-        self.stdev_obs = None
+        self.stdev_obs : float = None
         """Standard deviation of obs"""
-        self.stdev_sim = None
+        self.stdev_sim : float = None
         """Standard deviation of sim"""
-        self.stdev_diff = None
+        self.stdev_diff : float = None
         """Difference of standard deviations"""
-        self.nse = None
+        self.nse : float = None
         """Nash-Sutcliffe efficiency coefficient"""
-        self.var_obs = None
+        self.var_obs : float = None
         """Observed variance"""
-        self.var_sim = None
+        self.var_sim : float = None
         """Simulated variance"""
-        self.cov = None
+        self.cov : float = None
         """Covariance of obs and sim"""
-        self.r = None
+        self.r : float = None
         """Pearson's r correlation coefficient"""
-        self.oneminusr = None
+        self.oneminusr : float = None
         """One minus Pearson's r correlation coefficient"""
         if compute:
             self.compute()
@@ -125,3 +131,27 @@ class ResultStatistics:
         # dict["obs"] = [v  if not math.isnan(v) else None for v in dict["obs"]]
         # dict["sim"] = [v  if not math.isnan(v) else None for v in dict["sim"]]
         return dict
+
+    def toShortDict(self) -> dict:
+        """Return Statistics summary
+
+        Returns:
+            dict
+        """
+        return {
+            "n": self.n,
+            "mse": self.mse,
+            "rmse": self.rmse,
+            "bias": self.bias,
+            "mean_obs": self.mean_obs,
+            "mean_sim": self.mean_sim,
+            "stdev_obs": self.stdev_obs,
+            "stdev_sim": self.stdev_sim,
+            "stdev_diff": self.stdev_diff,
+            "nse": self.nse,
+            "var_obs": self.var_obs,
+            "var_sim": self.var_sim,
+            "cov": self.cov,
+            "r": self.r,
+            "oneminusr": self.oneminusr
+        }
