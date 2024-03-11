@@ -105,7 +105,7 @@ def tryParseAndLocalizeDate(
     
     Returns:
     --------
-    datetime object
+    datetime.datetime
 
     Examples:
     ---------
@@ -116,7 +116,6 @@ def tryParseAndLocalizeDate(
     ```
     """
     
-    Returns: datetime.datetime
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
     is_from_interval = False
     if isinstance(date,dict):
