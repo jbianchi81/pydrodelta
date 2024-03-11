@@ -48,6 +48,10 @@
         "type": "string",
         "description": "statistics output file"
       },
+      "output_results": {
+        "type": "string",
+        "description": "results output file"
+      },
       "output_analysis": {
         "type": "string",
         "description": "analysis output file"

@@ -451,25 +451,25 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        results = DataFrame({
-            "timestart": Series(dtype='datetime64[ns]'),
-            "pma": Series(dtype='float'),
-            "etp": Series(dtype='float'),
-            "q_obs": Series(dtype='float'),
-            "smc_obs": Series(dtype='float'),
-            "x0": Series(dtype='float'),
-            "x1": Series(dtype='float'),
-            "x2": Series(dtype='float'),
-            "x3": Series(dtype='float'),
-            "q3": Series(dtype='float'),
-            "q4": Series(dtype='float'),
-            "smc": Series(dtype='float'),
-            "k": Series(dtype='int'),
-            "fg1": Series(dtype='float'),
-            "fg2": Series(dtype='float'),
-            "substeps": Series(dtype='int')
-        })
-        results.set_index("timestart", inplace=True)
+        # results = DataFrame({
+        #     "timestart": Series(dtype='datetime64[ns]'),
+        #     "pma": Series(dtype='float'),
+        #     "etp": Series(dtype='float'),
+        #     "q_obs": Series(dtype='float'),
+        #     "smc_obs": Series(dtype='float'),
+        #     "x0": Series(dtype='float'),
+        #     "x1": Series(dtype='float'),
+        #     "x2": Series(dtype='float'),
+        #     "x3": Series(dtype='float'),
+        #     "q3": Series(dtype='float'),
+        #     "q4": Series(dtype='float'),
+        #     "smc": Series(dtype='float'),
+        #     "k": Series(dtype='int'),
+        #     "fg1": Series(dtype='float'),
+        #     "fg2": Series(dtype='float'),
+        #     "substeps": Series(dtype='int')
+        # })
+        # results.set_index("timestart", inplace=True)
         # initialize states
         x = [self.constraint(self.x[i],self._statenames[i]) for i in range(4)]
         step = 0
@@ -483,6 +483,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         sm_obs = []
         sm_sim = []
         k = -1
+        result_rows = []
         # iterate series using pma's index:
         for i, row in input[0].iterrows():
             k = k + 1
@@ -521,18 +522,21 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                 fg1 = None
                 fg2 = None
 
-            # write row
-            new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
+            # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
 
             #advance step
             (x, npasos) = self.advance_step(x,pma,etp)
-            new_row.loc[[0],'substeps'] = npasos
-            results = concat([results,new_row])
+            # new_row.loc[[0],'substeps'] = npasos
+            
+            # write row
+            result_rows.append([i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, npasos])
             if q_obs is not None:
                 sim.append(q4)
                 obs.append(q_obs)
-
-        results = results.set_index("timestart")
+        
+        results = DataFrame(result_rows, columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
+        results.set_index("timestart", inplace=True)
+        # results = concat(result_rows).set_index("timestart")
         # logging.debug(str(results))
         procedure_results = ProcedureFunctionResults(
             border_conditions =  results[["pma","etp","q_obs","smc_obs"]],

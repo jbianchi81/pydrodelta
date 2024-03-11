@@ -5,6 +5,7 @@ from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
+from numpy import array
 # import logging
 
 class ProcedureFunction:
@@ -138,6 +139,11 @@ class ProcedureFunction:
 
     extra_pars = DictDescriptor()
     """Additional (non-calibratable) parameters"""
+
+    @property
+    def limits(self) -> List[Tuple[float,float]]:
+        """Parameter limits"""
+        return [(float(x.min), float(x.max)) for x in self._parameters]
 
     def __init__(
         self,
@@ -287,7 +293,7 @@ class ProcedureFunction:
                     range_min = None
                     range_max = None
                 point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max))
-            points.append(point)
+            points.append(array(point))
         return points
 
     def setParameters(

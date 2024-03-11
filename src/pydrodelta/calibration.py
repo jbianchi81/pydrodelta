@@ -216,7 +216,8 @@ class Calibration:
         self,
         parameters : array, 
         objective_function : Optional[str] = None, 
-        result_index : Optional[int] = None
+        result_index : Optional[int] = None,
+        save_results : str = None,
         ) -> float:
         """
         Runs procedure and returns objective function value
@@ -244,7 +245,7 @@ class Calibration:
         result_index = result_index if result_index is not None else self.result_index
         self._procedure.run(
             parameters=parameters, 
-            save_results="", 
+            save_results=save_results, 
             load_input=False, 
             load_output_obs=False
         )
@@ -305,7 +306,8 @@ class Calibration:
         points = self._procedure.function.makeSimplex(sigma=sigma, limit=limit, ranges=ranges)
         simplex = list()
         for i, p in enumerate(points):
-            score = self.runReturnScore(parameters=p,objective_function=objective_function, result_index=result_index)
+            logging.debug("vertex: %s" % str(p))
+            score = self.runReturnScore(parameters=p,objective_function=objective_function, result_index=result_index, save_results=self._procedure.save_results)
             if score is None:
                 raise Exception("Simplex item %i returned None to objective function %s" % (i, objective_function))
             if isnan(score):
@@ -380,7 +382,9 @@ class Calibration:
             points, 
             no_improve_thr=no_improve_thr, 
             max_stagnations=max_stagnations, 
-            max_iter=max_iter
+            max_iter=max_iter,
+            limit = limit,
+            limits = self._procedure.function.limits
         )
         if inplace:
             self._downhill_simplex = downhill_simplex

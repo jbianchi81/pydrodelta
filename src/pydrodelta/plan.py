@@ -105,6 +105,7 @@ class Plan():
             forecast_date: Union[dict, str] = datetime.now().isoformat(),
             time_interval: Union[dict, str] = None,
             output_stats: str = None,
+            output_results: str = None,
             output_analysis: str = None,
             pivot: bool = False,
             save_post: str = None,
@@ -137,6 +138,9 @@ class Plan():
         output_stats : str or None
             file path where to save result statistics
         
+        output_results : str or None
+            file path where to save results
+        
         output_analysis : str or None
             file path where to save analysis results
         
@@ -161,6 +165,7 @@ class Plan():
         self.forecast_date = forecast_date
         self.time_interval = time_interval
         self.output_stats_file = output_stats
+        self.output_results_file = output_results
         self.output_analysis = output_analysis
         self.pivot = pivot
         self.save_post = save_post
@@ -229,12 +234,11 @@ class Plan():
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_results_file is not None:
-            with open(self.output_results_file,"w") as outfile:
-                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
-
+            with open(self.output_results_file,"w",encoding='utf-8') as outfile:
+                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
-            with open(self.output_stats_file,"w") as outfile:
-                json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4) # json.dump([p.read_statistics() for p in self.procedures],outfile,indent=4) # [o.__dict__ for o in self.output_stats],outfile)
+            with open(self.output_stats_file,"w",encoding='utf-8') as outfile:
+                json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
     def toCorrida(self) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         

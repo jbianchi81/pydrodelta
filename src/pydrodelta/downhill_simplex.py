@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding: UTF-8
 from __future__ import division
-from typing import Optional
+from typing import Optional, List, Tuple
+import logging
 
 '''
     Pure Python/Numpy implementation of the downhill simplex algorithm.
@@ -43,8 +44,22 @@ class DownhillSimplex(object):
     max_stagnations=10
 
     max_iter=1000
-    
-    def __init__(self, f, points,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None):
+
+    @property
+    def limits(self) -> List[Tuple[float,float]]:
+        return self._limits
+    @limits.setter
+    def limits(self,limits : List[Tuple[float,float]]):
+        if limits is None:
+            self._limits = None
+            return
+        self._limits = []
+        for i, r in enumerate(limits):
+            if len(r) < 2:
+                raise Exception("Range for parameter index %i must be of length 2: (min, max)" % i)
+            self._limits.append((float(r[0]), float(r[1])))
+
+    def __init__(self, f, points,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None, limit:bool=False, limits:List[Tuple[float,float]]=None):
         '''
             f: (function): function to optimize, must return a scalar score 
                 and operate over a numpy array of the same dimensions as x_start
@@ -52,6 +67,8 @@ class DownhillSimplex(object):
             no_improve_thr (float): break after max_stagnations iterations with an improvement lower than no_improv_thr
             max_stagnations (int): break after max_stagnations iterations with an improvement lower than no_improv_thr
             max_iter: maximum iterations
+            limit: if True, uses limits to limit parameter values on expansion and reflection
+            limits: if limit=True, use this ordered list of tuples (min, max) to limit parameter values
         '''
         self.f = f
         self.points = points
@@ -62,6 +79,8 @@ class DownhillSimplex(object):
         if max_iter is not None:
             self.max_iter = max_iter
         self.iters = 0
+        self.limit = limit
+        self.limits = limits
 
     def step(self, res):
         # centroid of the lowest face
@@ -122,6 +141,8 @@ class DownhillSimplex(object):
         """
         # reflected point and score
         xr = x0 + refl*(x0 - res[-1][0])
+        xr = self.limitVertex(xr) if self.limit else xr
+        logging.debug("reflection: %s" % str(xr))
         rscore = self.f(xr)
 
         new_res = res[:]
@@ -140,6 +161,8 @@ class DownhillSimplex(object):
         # if it is the new best point, we try to expand
         if rscore < res[0][1]:
             xe = xr + ext*(xr - x0)
+            xe = self.limitVertex(xe) if self.limit else xe
+            logging.debug("expansion: %s" % str(xe))
             escore = self.f(xe)
             if escore < rscore:
                 new_res = res[:]
@@ -175,3 +198,25 @@ class DownhillSimplex(object):
     def make_score(self, points):
         res = [(pt, self.f(pt)) for pt in points]
         return res
+
+    def limitVertex(
+            self,
+            vertex : List[float]
+        ) -> List[float]:
+        """Limit parameters with self.limits
+
+        Args:
+            vertex (List[float]): parameter list
+
+        Returns:
+            List[float]: limited parameter list
+        """
+        if self.limits is None:
+            raise Exception("Can't run limit: limits not set")
+        limited = []
+        for i, p in enumerate(vertex):
+            if len(self.limits) < i + 1:
+                raise Exception("Missing limits for parameter index %i" % i)
+            # logging.debug("i: %i, min: %f, p: %f, max: %f" % (i,self.limits[i][0], p, self.limits[i][1]))
+            limited.append(self.limits[i][0] if p < self.limits[i][0] else p if p < self.limits[i][1] else self.limits[i][1])
+        return np.array(limited)

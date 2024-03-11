@@ -131,7 +131,7 @@ class Procedure():
         else:
             return None
     def getResultIndex(self) -> int:
-        """Read the calibration period from the calibration configuration"""
+        """Read the calibration index from the calibration configuration"""
         if self.calibration is not None:
             return self.calibration.result_index
         else:
@@ -280,7 +280,7 @@ class Procedure():
                         inner_join_cal = df
                     else:
                         inner_join_val = df
-                if i == result_index and not len(inner_join_cal):
+                if i == result_index and (inner_join_cal is None or not len(inner_join_cal)):
                     raise Exception("Invalid calibration period: no data found")
                 result.append(ResultStatistics(
                     obs = inner_join_cal["obs"].values if inner_join_cal is not None else [], 
