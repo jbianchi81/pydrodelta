@@ -375,7 +375,7 @@ class Calibration:
         no_improve_thr = no_improve_thr if no_improve_thr is not None else self.no_improve_thr
         max_stagnations = max_stagnations if max_stagnations is not None else self.max_stagnations
         max_iter = max_iter if max_iter is not None else self.max_iter
-        self._procedure.loadInput()
+        self._procedure.loadInputDefault()
         self._procedure.loadOutputObs()
         downhill_simplex = DownhillSimplex(
             self.runReturnScore, 

@@ -156,10 +156,25 @@ class Procedure():
             'overwrite_original': self.overwrite_original, 
             'calibration': self.calibration.toDict() if self.calibration is not None else None
         }
+
+    def loadInputDefault(self) -> None:
+        """Loads input with default behaviour according to the procedure function"""
+        if self.function.pivot_input:
+            self.loadInput(
+                inplace = True,
+                pivot = True,
+                use_boundary_name = True,
+                tag_column = False
+            )
+        else:
+            self.loadInput()
+
     def loadInput(
         self,
         inplace : bool = True,
-        pivot : bool = False
+        pivot : bool = False,
+        use_boundary_name : bool = False,
+        tag_column : bool = True
         ) -> Union[List[DataFrame],DataFrame]:
         """
         Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
@@ -167,19 +182,42 @@ class Procedure():
         Parameters:
         ----------
 
-        inplace : bool
+        inplace : bool = True
             If True, saves result into self.data and returns None
         
-        pivot: bool
+        pivot: bool = False
             If true, joins all variables into a single DataFrame
+
+        use_boundary_name : bool = False
+            When pivot=True, use boundary name as column name for "valor". If tag_column is True, boundary name will be suffixed to "tag_". If False, a concatenation of node_id and variable_id is used as suffix to the input column names
+        
+        tag_column : bool = True
+            When pivot=True, create a tag column for each boundary
         """
         if pivot:
-            data = createEmptyObsDataFrame(extra_columns={"tag":str})
-            columns = ["valor","tag"]
+            data = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
+            columns = ["valor","tag"] if tag_column else ["valor"] 
             for boundary in self.function.boundaries:
                 if boundary._variable.data is not None and len(boundary._variable.data):
-                    rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id) 
-                    data = data.join(boundary._variable.data[columns][boundary._variable.data.valor.notnull()],how='outer',rsuffix=rsuffix,sort=True)
+
+                    if use_boundary_name:
+                        data = data.join(
+                            boundary._variable.data[columns][boundary._variable.data.valor.notnull()].rename(
+                                columns={
+                                    "valor": boundary.name, 
+                                    "tag": "tag_%s" % boundary.name
+                                }
+                            ),
+                            how='outer',
+                            # rsuffix=rsuffix,
+                            sort=True)
+                    else:
+                        rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id)
+                        data = data.join(
+                            boundary._variable.data[columns][boundary._variable.data.valor.notnull()],
+                            how='outer',
+                            rsuffix=rsuffix,
+                            sort=True)
             for column in columns:
                 del data[column]
             # data = data.replace({np.NaN:None})
@@ -337,7 +375,8 @@ class Procedure():
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
-            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics]
+            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics],
+            "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results.statistics_val is not None else None
         }
     def read_results(self) -> dict:
         """Get results as a dict
@@ -393,7 +432,14 @@ class Procedure():
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
-            input = self.loadInput(inplace)
+            if self.function.pivot_input:
+                input = self.loadInput(
+                    inplace=inplace,
+                    pivot=True,
+                    use_boundary_name=True,
+                    tag_column=False)
+            else:
+                input = self.loadInput(inplace)
         else:
             # logging.debug("Input already loaded")
             input = self.input

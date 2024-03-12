@@ -101,6 +101,9 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
     H = ListDescriptor()
     """The states transformation matrix"""
 
+    _pivot_input : bool = True
+    """Set to True if the run method requires a pivoted input"""
+
     def __init__(
         self,
         extra_pars : dict = dict(),

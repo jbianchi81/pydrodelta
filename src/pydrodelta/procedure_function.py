@@ -145,6 +145,14 @@ class ProcedureFunction:
         """Parameter limits"""
         return [(float(x.min), float(x.max)) for x in self._parameters]
 
+    _pivot_input : bool = False
+    """Set to True if the run method requires a pivoted input"""
+
+    @property
+    def pivot_input(self) -> bool:
+        """Read-only property. Specifies if the run method of the procedure function requires a pivoted input"""
+        return self._pivot_input
+
     def __init__(
         self,
         procedure,

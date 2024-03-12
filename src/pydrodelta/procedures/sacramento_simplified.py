@@ -203,11 +203,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     def no_check1(self) -> bool:
         """Perform step subdivision based on precipitation intensity nsteps = pma/2  (for numerical stability)"""
         return self.extra_pars["no_check1"] if "no_check1" in self.extra_pars else False
+    @no_check1.setter
+    def no_check1(self,value : bool) -> None:
+        self.extra_pars["no_check1"] = bool(value)
     
     @property
     def no_check2(self) -> bool:
         """Perform step subdivision based on states derivatives (for numerical stability)"""
         return self.extra_pars["no_check2"] if "no_check2" in self.extra_pars else False
+    @no_check2.setter
+    def no_check2(self,value : bool) -> None:
+        self.extra_pars["no_check2"] = bool(value)
     
     @property
     def rk2(self) -> bool:
@@ -228,6 +234,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     sm_sim = ListDescriptor()
     """Simulated soil moisture"""
+
+    @property
+    def mock_run(self) -> bool:
+        """Perform mock run"""
+        return True if "mock_run" in self.extra_pars and bool(self.extra_pars["mock_run"]) else False
+    @mock_run.setter
+    def mock_run(self,value : bool):
+        self.extra_pars["mock_run"] = bool(value)
+
+    _pivot_input : bool = True
+    """Set to True if the run method requires a pivoted input"""
 
     def __init__(
         self,
@@ -444,13 +461,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
         return [x[0], x[1], x[2], x[3]], npasos
 
-    def run(self,input: Optional[List[SeriesData]]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
+    def run(self,input: Optional[DataFrame]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self._procedure.loadInput(
+                inplace=False,
+                pivot=True,
+                use_boundary_name=True,
+                tag_column=False)
         # results = DataFrame({
         #     "timestart": Series(dtype='datetime64[ns]'),
         #     "pma": Series(dtype='float'),
@@ -485,13 +506,21 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         k = -1
         result_rows = []
         # iterate series using pma's index:
-        for i, row in input[0].iterrows():
+        for i, row in input.iterrows():
             k = k + 1
-            pma = row["valor"]
-            etp = input[1].loc[[i]].valor.item()
-            q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
-            smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
+            pma = row["pma"]
+            etp = row["etp"] # input[1].loc[[i]].valor.item()
+            q_obs = row["q_obs"] # input[2].loc[[i]].valor.item() if len(input) > 2 else None
+            smc_obs = row["smc_obs"] # input[3].loc[[i]].valor.item() if len(input) > 3 else None
+
+            if self.mock_run:
+                result_rows.append([i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], 0, 0, 0, k, 0, 0, 1])
+                sim.append(0)
+                obs.append(0)
+                continue
+
             smc = (self.rho - self.wp) * x[0] / self.x1_0 + self.wp
+
             if np.isnan(pma):
                 if self.fill_nulls:
                     logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
