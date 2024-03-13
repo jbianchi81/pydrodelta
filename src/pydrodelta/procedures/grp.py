@@ -100,6 +100,9 @@ class GRPProcedureFunction(PQProcedureFunction):
     update = BoolDescriptor()
     """Update states with observed discharge"""
 
+    _pivot_input : bool = True
+    """Set to True if the run method requires a pivoted input"""
+
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
@@ -196,23 +199,28 @@ class GRPProcedureFunction(PQProcedureFunction):
         -------- 
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
-        results = DataFrame({
-            "timestart": Series(dtype='datetime64[ns]'),
-            "pma": Series(dtype='float'),
-            "etp": Series(dtype='float'),
-            "q_obs": Series(dtype='float'),
-            "smc_obs": Series(dtype='float'),
-            "Sk": Series(dtype='float'),
-            "Rk": Series(dtype='float'),
-            "q": Series(dtype='float'),
-            "smc": Series(dtype='float'),
-            "k": Series(dtype='int'),
-            "runoff": Series(dtype="float"), 
-            "inflow": Series(dtype="float"),
-            "leakages": Series(dtype="float")
-        })
-        results.set_index("timestart", inplace=True)
+            input = self._procedure.loadInput(
+                inplace=False,
+                pivot=True,
+                use_boundary_name=True,
+                tag_column=False)
+        # results = DataFrame({
+        #     "timestart": Series(dtype='datetime64[ns]'),
+        #     "pma": Series(dtype='float'),
+        #     "etp": Series(dtype='float'),
+        #     "q_obs": Series(dtype='float'),
+        #     "smc_obs": Series(dtype='float'),
+        #     "Sk": Series(dtype='float'),
+        #     "Rk": Series(dtype='float'),
+        #     "q": Series(dtype='float'),
+        #     "smc": Series(dtype='float'),
+        #     "k": Series(dtype='int'),
+        #     "runoff": Series(dtype="float"), 
+        #     "inflow": Series(dtype="float"),
+        #     "leakages": Series(dtype="float")
+        # })
+        # results.set_index("timestart", inplace=True)
+        result_rows = []
         # initialize states
         Sk = min(self.Sk_init,self.X0)
         self.Pr = []
@@ -226,12 +234,12 @@ class GRPProcedureFunction(PQProcedureFunction):
         sim = []
         obs = []
         # iterate series using pma's index:
-        for i, row in input[0].iterrows():
+        for i, row in input.iterrows():
             k = k + 1
-            pma = row["valor"]
-            etp = input[1].loc[[i]].valor.item()
-            q_obs = input[2].loc[[i]].valor.item() if len(input) > 2 else None
-            smc_obs = input[3].loc[[i]].valor.item() if len(input) > 3 else None
+            pma = row["pma"]
+            etp = row["etp"] # input[1].loc[[i]].valor.item()
+            q_obs = row["q_obs"] # input[2].loc[[i]].valor.item() if len(input) > 2 else None
+            smc_obs = row["smc_obs"] # input[3].loc[[i]].valor.item() if len(input) > 3 else None
             smc = (self.rho-self.wp)*Sk/self.X0+self.wp
             if isnan(pma):
                 if self.fill_nulls:
@@ -248,14 +256,15 @@ class GRPProcedureFunction(PQProcedureFunction):
                     logging.warn("Missing etp value for date: %s. Unable to continue" % i)
                     break
             Sk_, Rk_, q, runoff, inflow, leakages = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
-            new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])
-            results = concat([results,new_row])
+            # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])
+            result_rows.append([i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]) # concat([results,new_row])
             Sk = Sk_
             Rk = Rk_
             if q_obs is not None:
                 sim.append(q)
                 obs.append(q_obs)
-        results = results.set_index("timestart")
+        results = DataFrame(result_rows, columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])
+        results.set_index("timestart", inplace=True)
         # logging.debug(str(results))
         procedure_results = ProcedureFunctionResults(
             border_conditions = results[["pma","etp","q_obs","smc_obs"]],

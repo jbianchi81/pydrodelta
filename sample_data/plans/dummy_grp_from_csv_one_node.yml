@@ -41,8 +41,7 @@
           csv_file: sample_data/csv/pq_dummy_border.csv
         series_sim:
         - series_id: 9
-  forecast_date:
-    hours: 0
+  forecast_date: "2023-05-01 00:00:00-03:00"
   time_interval:
     days: 1
   procedures:
