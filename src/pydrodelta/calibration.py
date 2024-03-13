@@ -189,9 +189,11 @@ class Calibration:
             "max_stagnations": self.max_stagnations,
             "max_iter": self.max_iter,
             "save_result": self.save_result,
-            "calibration_period": [self.calibration_period[0].isoformat(), self.calibration_period[0].isoformat()] if self.calibration_period is not None else None,
+            "calibration_period": [self.calibration_period[0].isoformat(), self.calibration_period[1].isoformat()] if self.calibration_period is not None else None,
             "calibration_result": self.calibration_result,
-            "simplex": self.simplex
+            "simplex": self.simplex,
+            "iters": self._downhill_simplex.iters if self._downhill_simplex is not None else None,
+            "limits": self._downhill_simplex.limits if self._downhill_simplex is not None else None
         }
         for key in cal_dict:
             try:
@@ -464,6 +466,7 @@ class Calibration:
                 open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_result),"w"),
                 indent=4
             )
+        self.runReturnScore(parameters=calibration_result[0], objective_function=self.objective_function)
         if inplace:
             self._calibration_result = (list(calibration_result[0]),calibration_result[1])
         else:

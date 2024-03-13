@@ -27,14 +27,30 @@ class ProcedureFunction:
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
     
-    _parameters = []
+    _parameters : list = []
     """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
     
-    _states = []
+    _states : list = []
     """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
 
     parameters = ListOrDictDescriptor()
     """function parameter values. Ordered list or dict"""
+
+    @property
+    def parameter_list(self) -> list:
+        """Get parameters list"""
+        if type(self.parameters) == list:
+            return self.parameters
+        elif type(self.parameters) == dict:
+            parlist = []
+            for parameter in self._parameters:
+                if parameter.name not in self.parameters:
+                    raise Exception("Key %s missing from parameters" % parameter.name)
+                parlist.append(self.parameters[parameter.name])
+            return parlist
+        else:
+            raise TypeError("parameters must be a list or a dict. Instead, it is a %s " % type(self.parameters).__name__)
+
 
     initial_states = ListOrDictDescriptor()
     """list or dict of function initial state values"""

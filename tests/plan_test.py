@@ -75,3 +75,23 @@ class Test_Plan(TestCase):
                 "url": "https://alerta.ina.gob.ar/test",
                 "token": "MY_TOKEN"
             })
+
+    def test_calibration(self):
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**config)
+        plan.execute(upload = False)
+        stats = plan.procedures[0].read_statistics()
+        self.assertEqual(stats["results"][0]["n"], 3)
+        self.assertEqual(stats["results"][1]["n"], 3)
+        self.assertEqual(stats["results_val"][0]["n"], 2)
+        self.assertEqual(stats["results_val"][1]["n"], 2)
+        calibration = plan.procedures[0].calibration.toDict()
+        self.assertEqual(len(calibration["calibration_result"][0]),10)
+        for i, x in enumerate(calibration["calibration_result"][0]):
+            self.assertEqual(x, plan.procedures[0].function.parameter_list[i])
+        self.assertEqual(calibration["calibration_result"][1], stats["results"][0]["oneminusr"])
+        self.assertEqual(len(calibration["limits"]),10)
+
+
+
+        
