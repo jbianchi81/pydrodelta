@@ -6,7 +6,7 @@ from pydrodelta.a5 import createEmptyObsDataFrame
 from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pydrodelta.pydrology import testPlot
-from pydrodelta.calibration import Calibration
+from pydrodelta.calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from typing import Optional, Union, List, Tuple
 from datetime import timedelta
 from pandas import DataFrame
@@ -49,9 +49,32 @@ class Procedure():
         When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data
 
     calibration : dict
-        Configuration for Downhill Simplex calibration procedure (see Calibration)
+        Configuration for calibration procedure (see Calibration)
 
     """
+
+    _available_calibration_methods : dict = {
+        "downhill-simplex": DownhillSimplexCalibration
+    }
+
+    @property
+    def calibration(self) -> Union[DownhillSimplexCalibration]:
+        return self._calibration
+    @calibration.setter
+    def calibration(self,calibration : dict) -> None:
+        if calibration is not None:
+            if "method" not in calibration:
+                raise KeyError("Required key 'method' missing from calibration argument")
+            if calibration["method"] not in self._available_calibration_methods:
+                raise ValueError("Calibration method '%s' not defined" % calibration["method"])
+            kwargs = calibration.copy()
+            del kwargs["method"]
+            self._calibration = self._available_calibration_methods[calibration["method"]](procedure=self, **kwargs)
+            """Configuration for calibration"""
+        else:
+            self._calibration = None
+
+
     def __init__(
         self,
         id : Union[int, str],
@@ -122,8 +145,8 @@ class Procedure():
         self.overwrite_original : bool = bool(overwrite_original)
         """When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data"""
         # self.simplex : list = None
-        self.calibration : Calibration = Calibration(self,**calibration) if calibration is not None else None
-        """Configuration for calibration """
+        self.calibration = calibration
+        """Configuration for calibration"""
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:

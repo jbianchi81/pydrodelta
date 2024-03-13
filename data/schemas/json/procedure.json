@@ -84,7 +84,11 @@
         "description": "Choice to overwrite original observations at the node-variable with the procedure output"
       },
       "calibration": {
-        "$ref": "calibration.json",
+        "oneOf": [
+          {
+            "$ref": "downhill_simplex_calibration.json"
+          }
+        ],
         "description": "Calibration parameters"
       }
     },

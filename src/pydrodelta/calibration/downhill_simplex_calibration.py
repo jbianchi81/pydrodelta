@@ -1,32 +1,17 @@
 from numpy import array, isnan
-from .downhill_simplex import DownhillSimplex
+from ..downhill_simplex import DownhillSimplex
 import logging
 import os
 import json
-from .util import tryParseAndLocalizeDate
 from typing import Optional, List, Union, Tuple
-from datetime import datetime
-from .descriptors.bool_descriptor import BoolDescriptor
-from .descriptors.int_descriptor import IntDescriptor
-from .descriptors.string_descriptor import StringDescriptor
-from .descriptors.float_descriptor import FloatDescriptor
+from ..descriptors.bool_descriptor import BoolDescriptor
+from ..descriptors.int_descriptor import IntDescriptor
+from ..descriptors.float_descriptor import FloatDescriptor
+from .calibration import Calibration
 
-class Calibration:
+class DownhillSimplexCalibration(Calibration):
     """Calibration procedure using Nelder Mead Downhill Simplex"""
     
-    _valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"]
-
-    calibrate = BoolDescriptor()
-    """Perform the calibration"""
-
-    result_index = IntDescriptor()
-    """Index of the result element to use to compute the objective function"""
-
-    objective_function = StringDescriptor()
-    """
-    Objective function for the calibration procedure. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr' 
-    """
-
     limit = BoolDescriptor()
     """Limit values of the parameters to the provided min-max ranges"""
 
@@ -65,25 +50,6 @@ class Calibration:
 
     max_iter = IntDescriptor()
     """maximum iterations"""
-
-    @property
-    def calibration_result(self) -> Tuple[List[float],float]:
-        """Calibration result. First element is the list of obtained parameters. The second element is the obtained objective function value"""
-        return self._calibration_result
-
-    save_result = StringDescriptor()
-    """Save calibration result into this file"""
-
-    @property
-    def calibration_period(self) -> Tuple[datetime, datetime]:
-        """Calibration period (begin date, end date)"""
-        return self._calibration_period
-    @calibration_period.setter
-    def calibration_period(
-        self,
-        calibration_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
-        ) -> None:
-        self._calibration_period = self.parseCalibrationPeriod(calibration_period) if calibration_period is not None else None
 
     @property
     def simplex(self) -> List[Tuple[List[float],float]]:
@@ -159,12 +125,13 @@ class Calibration:
 
             Calibration period (begin date, end date) 
         """
-        self._procedure = procedure
-        self.calibrate = calibrate
-        self.result_index = result_index
-        self.objective_function = objective_function
-        if self.objective_function not in self._valid_objective_function:
-            raise ValueError("objective_function must be one of %s" % ",".join(self._valid_objective_function))
+        super().__init__(
+            procedure = procedure,
+            calibrate = calibrate,
+            save_result = save_result,
+            calibration_period = calibration_period,
+            objective_function = objective_function,
+            result_index = result_index)
         self.limit = limit
         self.sigma = sigma
         self.ranges = ranges
@@ -173,11 +140,8 @@ class Calibration:
         self.max_iter = max_iter
         self._downhill_simplex = None
         self._simplex = None
-        self._calibration_result = None
-        self.save_result = save_result
-        self.calibration_period = calibration_period
 
-    def toDict(self):
+    def toDict(self) -> dict:
         cal_dict = {
             "calibrate": self.calibrate,
             "result_index": self.result_index,
@@ -203,58 +167,6 @@ class Calibration:
                 raise(e)
         return cal_dict
     
-    def parseCalibrationPeriod(
-        self, 
-        cal_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
-        ) -> Tuple[datetime, datetime]:
-        if len(cal_period) < 2:
-            raise ValueError("calibration_period must be a list of length 2")
-        return (
-            tryParseAndLocalizeDate(cal_period[0]), 
-            tryParseAndLocalizeDate(cal_period[1])
-        )
-    
-    def runReturnScore(
-        self,
-        parameters : array, 
-        objective_function : Optional[str] = None, 
-        result_index : Optional[int] = None,
-        save_results : str = None,
-        ) -> float:
-        """
-        Runs procedure and returns objective function value
-        procedure.input and procedure.output_obs must be already loaded
-
-        Parameters:
-        -----------
-        parameters : array
-
-            Procedure function parameters
-
-        objective_function : Optional[str] = None
-
-            Name of the objective function. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr'
-
-        result_index : Optional[int] = None
-
-            Index of the output to use to compute the objective function
-
-        Returns:
-        --------
-        the objective function value : float
-        """
-        objective_function = objective_function if objective_function is not None else self.objective_function
-        result_index = result_index if result_index is not None else self.result_index
-        self._procedure.run(
-            parameters=parameters, 
-            save_results=save_results, 
-            load_input=False, 
-            load_output_obs=False
-        )
-        value = getattr(self._procedure.procedure_function_results.statistics[result_index],objective_function)
-        logging.debug((parameters, value))
-        return value
-
     def makeSimplex(
         self,
         inplace : bool = True, 

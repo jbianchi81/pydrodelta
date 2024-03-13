@@ -106,6 +106,7 @@ procedures:
       no_check2: false
       mock_run: false
   calibration:
+    method: downhill-simplex
     calibrate: true
     calibration_period:
       - "2000-01-01T12:00:00.000Z"

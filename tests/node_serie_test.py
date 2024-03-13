@@ -76,7 +76,7 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "data/csv/csv_file_sample.csv"
+            csv_file = "sample_data/csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")   
         self.assertEqual(len(node_serie.data),24)

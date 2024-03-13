@@ -2,7 +2,6 @@ from pydrodelta.plan import Plan
 from unittest import TestCase
 import yaml
 import os
-from pandas import DataFrame
 
 class Test_GRP(TestCase):
 

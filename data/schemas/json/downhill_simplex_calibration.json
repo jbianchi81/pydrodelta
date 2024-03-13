@@ -1,0 +1,50 @@
+{
+    "$id": "downhill_simplex_calibration.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "calibration.json"
+        }
+    ],
+    "properties": {
+        "method": {
+            "type": "string",
+            "const": "downhill-simplex"
+        },
+        "limit": {
+            "type": "boolean",
+            "description": "Limit the parameter values inside the min - max range"
+        },
+        "sigma": {
+            "type": "number",
+            "description": "standard deviation of the normal distribution used to generate the initial points"
+        },
+        "ranges": {
+            "type": "array",
+            "description": "list of 2-tuples, one for each function parameter, to use as range for the initial points",
+            "items": {
+                "type": "array",
+                "minLength": 2,
+                "maxLength": 2,
+                "items": {
+                    "type": "number"
+                }
+            }
+        },
+        "no_improve_thr": {
+            "type": "number",
+            "description": "break after max_stagnations iterations with an improvement lower than no_improv_thr"
+        },
+        "max_stagnations": {
+            "type": "integer",
+            "description": "break after max_stagnations iterations with an improvement lower than no_improv_thr"
+        },
+        "max_iter": {
+            "type": "integer",
+            "description": "maximum iterations"
+        }
+    }
+}
+
+

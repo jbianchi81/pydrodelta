@@ -16,38 +16,6 @@
             "description": "objective function to use as the score",
             "enum": ["rmse","mse","bias","stdev_dif","r","nse","cov","oneminusr"]
         },
-        "limit": {
-            "type": "boolean",
-            "description": "Limit the parameter values inside the min - max range"
-        },
-        "sigma": {
-            "type": "number",
-            "description": "standard deviation of the normal distribution used to generate the initial points"
-        },
-        "ranges": {
-            "type": "array",
-            "description": "list of 2-tuples, one for each function parameter, to use as range for the initial points",
-            "items": {
-                "type": "array",
-                "minLength": 2,
-                "maxLength": 2,
-                "items": {
-                    "type": "number"
-                }
-            }
-        },
-        "no_improve_thr": {
-            "type": "number",
-            "description": "break after max_stagnations iterations with an improvement lower than no_improv_thr"
-        },
-        "max_stagnations": {
-            "type": "integer",
-            "description": "break after max_stagnations iterations with an improvement lower than no_improv_thr"
-        },
-        "max_iter": {
-            "type": "integer",
-            "description": "maximum iterations"
-        },
         "save_result": {
             "type": "string",
             "description": "Save resulting parameter set into json file at this path"

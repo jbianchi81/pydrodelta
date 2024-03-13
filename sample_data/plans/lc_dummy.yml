@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
+---
+name: dummy linear combination
+id: 1
+forecast_date: "2024-01-31T03:00:00.000Z"
+time_interval:
+  days: 1
+topology:
+  timestart: "2024-01-01T03:00:00.000Z" # "2021-11-01T00:00:00.000Z"
+  timeend: "2024-02-01T03:00:00.000Z"
+  forecast_timeend: "2024-02-03T03:00:00.000Z"
+  time_offset:
+    hours: 0
+  nodes:
+  - id: 1
+    name: node 1
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      name: QMD
+      series:
+      - series_id: 1
+        tipo: puntual
+        csv_file: sample_data/csv/lc_dummy.csv
+    node_type: station
+  - id: 2
+    name: node 2
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      name: HMD
+      series:
+      - series_id: 2
+        tipo: puntual
+        csv_file: sample_data/csv/lc_dummy.csv
+      series_sim:
+      - tipo: puntual
+        series_id: 2
+    node_type: station
+procedures:
+- id: dummy linear combination
+  function:
+    type: LinearCombination
+    boundaries:
+    - name: input_1
+      node_variable: [2,40]
+    - name: input_2
+      node_variable: [1,40]
+    outputs:
+    - name: output
+      node_variable: [2,40]
+    parameters:
+      coefficients:
+      - boundaries:
+        - name: input_1
+          values:
+          - 0.867876773891227
+          - 0.1527895488183291
+          - -0.07121961298975342
+        - name: input_2
+          values:
+          - 0.24911345507937677
+          - -0.3247890495793394
+          - 0.26530992857842
+        intercept: -262.9770432175919
+        step: 0
+      - boundaries:
+        - name: input_1
+          values:
+          - 0.8345134969231008
+          - -0.2176373911526996
+          - 0.2717294171828299
+        - name: input_2
+          values:
+          - 0.4355954574245819
+          - -0.5803751562417097
+          - 0.5546250974976481
+        intercept: -568.7121171052065
+        step: 1
+      - boundaries:
+        - name: input_1
+          values:
+          - 0.4479279477547653
+          - -0.015216272655353469
+          - 0.4023819354159394
+        - name: input_2
+          values:
+          - 0.17865985667701076
+          - 0.18485264415096544
+          - 0.14244908435691975
+        intercept: -688.2085843292725
+        step: 2
+      forecast_steps: 3
+      lookback_steps: 3

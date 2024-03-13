@@ -260,6 +260,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 stats.nse
             ]
             forecast_step : ForecastStepDict = {
+                "step": horiz,
                 "intercept": float(reg.intercept_[0]),
                 "boundaries": []
             }
@@ -267,10 +268,10 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             for i, feature in enumerate(input):
                 boundary : BoundaryDict = {
                     "name": self.boundaries[i].name,
-                    "coefficients": []
+                    "values": []
                 }
                 for lag in range(1,self.lookback_steps+1):
-                    boundary["coefficients"].append(reg.coef_[0][coef_i])
+                    boundary["values"].append(float(reg.coef_[0][coef_i]))
                     coef_i = coef_i + 1
                 forecast_step["boundaries"].append(boundary)
             fitted_parameters["coefficients"].append(forecast_step)
