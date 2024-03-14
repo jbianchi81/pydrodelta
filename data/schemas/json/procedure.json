@@ -87,6 +87,9 @@
         "oneOf": [
           {
             "$ref": "downhill_simplex_calibration.json"
+          },          
+          {
+            "$ref": "linear_regression_calibration.json"
           }
         ],
         "description": "Calibration parameters"

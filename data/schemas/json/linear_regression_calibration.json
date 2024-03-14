@@ -1,0 +1,18 @@
+{
+    "$id": "linear_regression_calibration.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "allOf": [
+        {
+            "$ref": "calibration.json"
+        }
+    ],
+    "properties": {
+        "method": {
+            "type": "string",
+            "const": "linear-regression"
+        }
+    }
+}
+
+

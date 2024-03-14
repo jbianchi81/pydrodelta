@@ -7,6 +7,7 @@ from datetime import datetime
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
+from ..descriptors.dataframe_descriptor import DataFrameDescriptor
 
 class Calibration:
     """Calibration base/abstract class"""
@@ -42,6 +43,9 @@ class Calibration:
         calibration_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
         ) -> None:
         self._calibration_period = self.parseCalibrationPeriod(calibration_period) if calibration_period is not None else None
+
+    scores = DataFrameDescriptor()
+    """Calibration/Validation scores"""
 
     def __init__(
             self,
@@ -87,6 +91,7 @@ class Calibration:
         self._calibration_result = None
         self.save_result = save_result
         self.calibration_period = calibration_period
+        self.scores = None
 
     def toDict(self) -> dict:
         cal_dict = {

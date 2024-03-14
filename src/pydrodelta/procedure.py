@@ -1,12 +1,13 @@
-from pydrodelta.procedure_function import ProcedureFunction
+from .procedure_function import ProcedureFunction
 import logging
 import json
-import pydrodelta.util as util
-from pydrodelta.a5 import createEmptyObsDataFrame
-from pydrodelta.result_statistics import ResultStatistics
-from pydrodelta.procedure_function_results import ProcedureFunctionResults
-from pydrodelta.pydrology import testPlot
-from pydrodelta.calibration.downhill_simplex_calibration import DownhillSimplexCalibration
+from . import util
+from .a5 import createEmptyObsDataFrame
+from .result_statistics import ResultStatistics
+from .procedure_function_results import ProcedureFunctionResults
+from .pydrology import testPlot
+from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
+from .calibration.linear_regression_calibration import LinearRegressionCalibration
 from typing import Optional, Union, List, Tuple
 from datetime import timedelta
 from pandas import DataFrame
@@ -54,11 +55,12 @@ class Procedure():
     """
 
     _available_calibration_methods : dict = {
-        "downhill-simplex": DownhillSimplexCalibration
+        "downhill-simplex": DownhillSimplexCalibration,
+        "linear-regression": LinearRegressionCalibration
     }
 
     @property
-    def calibration(self) -> Union[DownhillSimplexCalibration]:
+    def calibration(self) -> Union[DownhillSimplexCalibration, LinearRegressionCalibration]:
         return self._calibration
     @calibration.setter
     def calibration(self,calibration : dict) -> None:
@@ -333,14 +335,7 @@ class Procedure():
                 raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
             inner_join = sim[i][["valor"]].rename(columns={"valor":"sim"}).join(obs[i][["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
             if calibration_period is not None:
-                grouped_by_date = inner_join.groupby((inner_join.index >= calibration_period[0]) & (inner_join.index <= calibration_period[1]))
-                inner_join_val = None
-                inner_join_cal = None
-                for k, df in grouped_by_date:
-                    if k == True:
-                        inner_join_cal = df
-                    else:
-                        inner_join_val = df
+                inner_join_cal, inner_join_val = util.groupByCalibrationPeriod(inner_join,calibration_period)
                 if i == result_index and (inner_join_cal is None or not len(inner_join_cal)):
                     raise Exception("Invalid calibration period: no data found")
                 result.append(ResultStatistics(
@@ -481,17 +476,21 @@ class Procedure():
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
         # compute statistics
-        if inplace:
-            self.output = output
-            self.computeStatistics(
-                calibration_period=self.getCalibrationPeriod(),
-                result_index=self.getResultIndex())
+        if not self.function._no_sim:
+            if inplace:
+                self.output = output
+                self.computeStatistics(
+                    calibration_period=self.getCalibrationPeriod(),
+                    result_index=self.getResultIndex())
+            else:
+                self.computeStatistics(
+                    obs=output_obs,
+                    sim=output,
+                    calibration_period=self.getCalibrationPeriod(),
+                    result_index=self.getResultIndex())
         else:
-            self.computeStatistics(
-                obs=output_obs,
-                sim=output,
-                calibration_period=self.getCalibrationPeriod(),
-                result_index=self.getResultIndex())
+            if inplace:
+                self.output = output
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)

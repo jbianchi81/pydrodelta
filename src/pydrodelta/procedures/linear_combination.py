@@ -1,6 +1,6 @@
 from pandas import DataFrame
 from pandas import Series
-from datetime import timedelta
+from datetime import timedelta, datetime
 from sklearn.linear_model import LinearRegression
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
@@ -14,6 +14,7 @@ from ..types.boundary_dict import BoundaryDict
 from ..types.forecast_step_dict import ForecastStepDict
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
 from ..result_statistics import ResultStatistics
+from ..util import groupByCalibrationPeriod
 
 class BoundaryCoefficients():
     """Linear combination coefficients for a boundary at a given forecast step"""
@@ -139,6 +140,8 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         """Coefficients of the linear combination"""
         return self._coefficients
 
+    _no_sim = True
+
     def __init__(
         self,
         parameters : LinearCombinationParametersDict,
@@ -214,16 +217,19 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             }
         )
     
-    def calibrate(
+    def linearRegression(
         self,
-        input : List[DataFrame] = None
+        input : List[DataFrame] = None,
+        calibration_period : Tuple[datetime, datetime] = None
         ) -> List[dict]:
         """
-        Find regression coefficients
+        Fit linear regression coefficients
         
         Args:
             input : List[DataFrame] = None
                 input data. If None, loads from boundaries
+            calibration_period : Tuple[datetime, datetime] = None
+                Begin and end dates of training set. Data outside this period is used for validation. If not set, no validation is performed
         """
         is_optional = [x.optional for x in self.boundaries]
         for b in self.boundaries:
@@ -236,7 +242,11 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             "n": Series(dtype="int"),
             "rmse": Series(dtype="float"),
             "r": Series(dtype="float"),
-            "nse": Series(dtype="float")
+            "nse": Series(dtype="float"),
+            "n_val": Series(dtype="int"),
+            "rmse_val": Series(dtype="float"),
+            "r_val": Series(dtype="float"),
+            "nse_val": Series(dtype="float")
         })
         stats_all = []
         fitted_parameters : LinearCombinationParametersDict = {
@@ -245,20 +255,32 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             "coefficients": [] # List[ForecastStepDict]
         }
         for horiz in range(self.forecast_steps):
-            data = self.getTrainingData(horiz, input, dropna=True)
+            data, data_val = self.getTrainingData(horiz, input, dropna=True, calibration_period = calibration_period)
             training_set = data.loc[:, data.columns!='target'].to_numpy()
             target = data.loc[:, data.columns=='target'].to_numpy()
             reg = LinearRegression().fit(training_set, target)
             predict = reg.predict(training_set)
-            stats = ResultStatistics([x[0] for x in target],[x[0] for x in predict],compute=True)
+            stats = ResultStatistics([x[0] for x in target],[x[0] for x in predict],compute=True, group = "cal", calibration_period = calibration_period)
             stats_all.append(stats)
+            if data_val is not None:
+                predict_val = reg.predict(data_val.loc[:, data_val.columns!='target'].to_numpy())
+                target_val = data_val.loc[:, data_val.columns=='target'].to_numpy()
+                stats_val = ResultStatistics([x[0] for x in target_val],[x[0] for x in predict_val],compute=True, group = "val", calibration_period = calibration_period)
+                stats_all.append(stats_val)
+            else:
+                stats_val = None
             results.loc[len(results.index)] = [
                 horiz,
                 stats.n,
                 stats.rmse,
                 stats.r,
-                stats.nse
+                stats.nse,
+                stats_val.n if stats_val is not None else None,
+                stats_val.rmse if stats_val is not None else None,
+                stats_val.r if stats_val is not None else None,
+                stats_val.nse if stats_val is not None else None,
             ]
+
             forecast_step : ForecastStepDict = {
                 "step": horiz,
                 "intercept": float(reg.intercept_[0]),
@@ -277,14 +299,13 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             fitted_parameters["coefficients"].append(forecast_step)
         return fitted_parameters, results, stats_all
 
-
-
     def getTrainingData(
         self,
         horiz : Union[int,timedelta] = 0,
         input : List[DataFrame] = None,
-        dropna : bool = False 
-        ) -> DataFrame:
+        dropna : bool = False,
+        calibration_period : Tuple[datetime,datetime] = None 
+        ) -> Tuple[DataFrame, DataFrame]:
         """
         Get training set for linear regression. input[0] is the target. One feature of the training set is generated for each input + lag (1 to self.lookback_steps) combination 
         
@@ -295,9 +316,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 First element is the target, the rest is the training set 
             remove_nan : bool = False
                 If True, remove rows with NaN
+            calibration_period : Tuple[datetime,datetime] = None 
         
         Returns:
-            Training set of len(input) * self.lookback_steps columns : DataFrame
+            2-Tuple of DataFrames.
+                First element: Training set of len(input) * self.lookback_steps columns
+                Second element: Validation set of len(input) * self.lookback_steps columns. None if calibration_period is not set or no validation data is found 
         """
         input = input if input is not None else self._procedure.loadInput(inplace=False,pivot=False)
         data = input[0][["valor"]].rename(columns={"valor": "target"})
@@ -309,7 +333,35 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 data = data.join(feature_.rename(columns={"valor": feature_name}))
         if dropna:
             data.dropna(inplace=True)
-        return data # .to_numpy()
+        if calibration_period is not None:
+            data_cal, data_val = groupByCalibrationPeriod(data, calibration_period)
+            if data_cal is None:
+                raise Exception("No data found in calibration period")
+            return data_cal, data_val
+        return data, None # .to_numpy()
+    
+    def setParameters(
+        self,
+        parameters : LinearCombinationParametersDict = None,
+        forecast_steps : int = None,
+        lookback_steps : int = None,
+        coefficients : List[ForecastStepDict] = None        
+    ) -> None:
+        if parameters is not None:
+            self.parameters = parameters
+        else:
+            if forecast_steps is None:
+                raise KeyError("Missing forecast_steps")
+            if lookback_steps is None:
+                raise KeyError("Missing lookback_steps")
+            if coefficients is None:
+                raise KeyError("Missing coefficients")
+            self.parameters = {
+                "forecast_steps": forecast_steps,
+                "lookback_steps": lookback_steps,
+                "coefficients": coefficients
+            }
+            
         
 
 

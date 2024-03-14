@@ -13,7 +13,7 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 import csv
 import os.path
-from typing import Union
+from typing import Union, Tuple
 
 def interval2timedelta(interval : Union[dict,float,timedelta]):
     """Parses duration dict or number of days into datetime.timedelta object
@@ -696,3 +696,27 @@ def ParseApiConfig(api_config = None):
         }
     else:
         return None
+
+def groupByCalibrationPeriod(
+    data : pandas.DataFrame,
+    calibration_period : Tuple[datetime, datetime]
+) -> Tuple[pandas.DataFrame, pandas.DataFrame]:
+    """Split data between calibration and validation periods
+    
+    Args:
+        data : pandas.DataFrame
+            Series DataFrame to split
+        calibration_period : Tuple[datetime, datetime]
+            Begin and end dates of calibration period
+    
+    Returns:
+        Tuple[pandas.DataFrame, pandas.DataFrame] : calibration data (or None if data not  found), validation data (or None if data not  found)."""
+    grouped_by_date = data.groupby((data.index >= calibration_period[0]) & (data.index <= calibration_period[1]))
+    val = None
+    cal = None
+    for k, df in grouped_by_date:
+        if k == True:
+            cal = df
+        else:
+            val = df
+    return cal, val

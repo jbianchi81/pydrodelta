@@ -169,6 +169,9 @@ class ProcedureFunction:
         """Read-only property. Specifies if the run method of the procedure function requires a pivoted input"""
         return self._pivot_input
 
+    _no_sim : bool = False
+    """Set to True if procedure function produces only forecast (no simulation)"""
+
     def __init__(
         self,
         procedure,
