@@ -8,6 +8,8 @@ from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.dataframe_descriptor import DataFrameDescriptor
+import os
+import yaml
 
 class Calibration:
     """Calibration base/abstract class"""
@@ -177,7 +179,7 @@ class Calibration:
 
             Save result inplace (self.downhill_simplex) and return None. Else return result
 
-        save_results : str = None
+        save_result : str = None
 
             Save the calibration result into this file
         
@@ -188,4 +190,16 @@ class Calibration:
             First element is the list of calibrated parameters. Second element is the obtained objective function value
         """
         raise NotImplementedError("run() method not implemented for the base class Calibration. It must be overriden by the derived class")
-        
+
+    def saveResult(self, file : str, format : str ="json") -> None:
+        result = {
+            "parameters": self.calibration_result[0],
+            "scores": self.scores.to_dict(orient="records") if self.scores is not None else None
+        }
+        with open("%s/%s" % (os.environ["PYDRODELTA_DIR"],file) ,"w") as f:
+            if format.lower() == "json":
+                json.dump(result, f)
+            elif format.lower() == "yml" or format.lower() == "yaml":
+                yaml.dump(result, f)
+            else:
+                raise ValueError("Invalid format: must be one of json, yaml")

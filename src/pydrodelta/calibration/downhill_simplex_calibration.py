@@ -379,6 +379,7 @@ class DownhillSimplexCalibration(Calibration):
                 indent=4
             )
         self.runReturnScore(parameters=calibration_result[0], objective_function=self.objective_function)
+        self.score = self._procedure.read_statistics(as_dataframe=True)
         if inplace:
             self._calibration_result = (list(calibration_result[0]),calibration_result[1])
         else:

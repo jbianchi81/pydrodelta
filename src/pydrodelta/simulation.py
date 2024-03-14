@@ -78,7 +78,8 @@ root_logger.addHandler(str_handler)
 @click.option("--save-upload-response", help="save analysis output response to this file (json)", default=None)
 @click.option("--input-api",help="Override config.input_api. sintax: token@url. Token and url of the service from where to load data", type=str)
 @click.option("--output-api",help="Override config.output_api. sintax: token@url. Token and url of the service where to upload analysis output", type=str)
-def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,output_results,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response,input_api,output_api):
+@click.option("--save-calibration-result",help="Save fitter parameters and scores as yaml",type=str, default=None)
+def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,output_results,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response,input_api,output_api,save_calibration_result):
     """
     run plan from plan config file
     
@@ -143,4 +144,8 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
             var_id, filename = var_tuple
             logging.info("plotVariable: var_id: %s, filename: %s" % (var_id, filename))
             plan.topology.plotVariable(var_id,output=filename)
+    if save_calibration_result is not None:
+        for procedure in plan.procedures:
+            if procedure.calibration is not None and procedure.calibration.calibrate:
+                procedure.calibration.saveResult(save_calibration_result, format="yaml")
 

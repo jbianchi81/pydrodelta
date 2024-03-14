@@ -372,13 +372,16 @@ class Procedure():
     
     def read_statistics(
         self, 
-        short : bool = False
+        short : bool = False,
+        as_dataframe = False
         ) -> dict:
-        """Get result statistics as a dict
+        """Get result statistics as a dict or DataFrame
         
         Args:
             short : bool = False
                 Get statistics summary
+            as_dataframe : bool = False
+                return DataFrame instead of dict
 
         Returns
         -------
@@ -389,7 +392,23 @@ class Procedure():
                 "results": List[dict]
             }
             where results is a list of dict, one per procedure output
+        Or DataFrame with columns: n, rmse, r, nse, n_val, rmse_val, r_val, nse_val 
         """
+        if as_dataframe:
+            if not len(self.procedure_function_results.statistics) or self.procedure_function_results.statistics[0] is None:
+                raise Exception("Statistics not found for procedure function")
+            stats = self.procedure_function_results.statistics[0].toShortDict()
+            stats_val = self.procedure_function_results.statistics_val[0].toShortDict() if len(self.procedure_function_results.statistics_val) and self.procedure_function_results.statistics_val[0] is not None else None
+            return DataFrame([[
+                stats["n"],
+                stats["rmse"],
+                stats["r"],
+                stats["nse"],
+                stats_val["n"] if stats_val is not None else None,
+                stats_val["rmse"] if stats_val is not None else None,
+                stats_val["r"] if stats_val is not None else None,
+                stats_val["nse"] if stats_val is not None else None
+            ]], columns = ["n","rmse","r","nse","n_val","rmse_val","r_val","nse_val"])
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,

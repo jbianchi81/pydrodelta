@@ -92,6 +92,19 @@ class Test_Plan(TestCase):
         self.assertEqual(calibration["calibration_result"][1], stats["results"][0]["oneminusr"])
         self.assertEqual(len(calibration["limits"]),10)
 
+    def test_stats_df(self):
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**config)
+        plan.procedures[0].calibration.calibrate = False
+        plan.execute(upload = False)
+        stats_df = plan.procedures[0].read_statistics(as_dataframe=True)
+        self.assertTrue(isinstance(stats_df, DataFrame))
+
+    def test_stats_df_score(self):
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**config)
+        plan.execute(upload = False)
+        self.assertTrue(isinstance(plan.procedures[0].calibration.score, DataFrame))
 
 
         
