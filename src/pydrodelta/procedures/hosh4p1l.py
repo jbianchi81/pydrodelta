@@ -110,7 +110,10 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             Boundaries = np.array(input),
             InitialConditions = [self.SurfaceStorage,self.SoilStorage],
             Proc = self.Proc)
-        
+
+    _required_extra_pars : list = ["area", "ae", "rho", "wp"]
+    """When inheriting this class, override this property according to the procedure requirements. Method self.setBasinMetadata iterates this list to check for missing extra parameters (e.g. basin parameters)"""
+
     def __init__(
         self,
         parameters : Union[list,tuple,dict],

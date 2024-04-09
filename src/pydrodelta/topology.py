@@ -818,8 +818,8 @@ class Topology():
                             data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
                             label = "sim_%i" % serie_sim.series_id
                             data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
-                if hasattr(node,"max_obs_date"):
-                    plt.axvline(node.max_obs_date, color='k', linestyle='--')
+                if hasattr(node.variables[var_id],"max_obs_date"):
+                    plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
                 if output is not None:
                     pdf.savefig()
                 plt.close()

@@ -47,6 +47,7 @@
         },
         "extra_pars": {
             "type": "object",
+            "description": "additional parameters, for example basin parameters. If a particular basin parameter is not set and required by the procedure function, it will try to retrieve it from the boundary node metadata available at the input api",
             "properties": {
                 "area": {
                     "type": "number",
@@ -68,8 +69,7 @@
                     "type": "number",
                     "description": "wilting point of soil (0-1)"
                 }
-            },
-            "required": ["area"]
+            }
         }
     },
     "required": [

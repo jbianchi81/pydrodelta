@@ -247,6 +247,39 @@ class Crud():
         json_response = response.json()
         return json_response
 
+    def readArea(
+        self,
+        area_id : int,
+        use_proxy : bool = False,
+        no_geom : bool = False
+    ) -> dict:
+        """
+        Retrieve area
+        
+        Args:
+            area_id : int - area identifier
+            use_proxy (bool, optional): Perform request through proxy. Defaults to False.
+            no_metadata (bool, optional): Don't retrieve geometry. Defaults to False
+                
+        Raises:
+            Exception: Request failed if response status code is not 200
+
+        Returns:
+            dict: raw area dict
+        """
+        params = {
+            "no_geom": no_geom
+        }
+        response = requests.get("%s/obs/areal/areas/%i" % (self.url, area_id),
+            params = params,
+            headers = {'Authorization': 'Bearer ' + self.token},
+            proxies = self.proxy_dict if use_proxy else None
+        )
+        if response.status_code != 200:
+            raise Exception("request failed for area id: %s. message: %s" % (area_id, response.text))
+        json_response = response.json()
+        return json_response
+
     def readSerie(
         self,
         series_id : int,

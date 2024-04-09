@@ -63,6 +63,46 @@
     "description": {
       "type": "string",
       "description": "Node description"
+    },
+    "basin_pars": {
+      "description": "Basin parameters. For nodes of type = 'basin'. If area_id is set, area metadata is retrieved from input api and missing metadata is completed with retrieved values",
+      "type": "object",
+      "properties": {
+        "area": {
+          "type": "number",
+          "description": "basin area in square meters"
+        },
+        "rho":  {
+            "type": "number",
+            "description": "soil porosity (0-1)"
+        },
+        "ae": {
+            "type": "number",
+            "description": "effective area (0-1)"
+        },
+        "wp": {
+            "type": "number",
+            "description": "wilting point of soil (0-1)"
+        },
+        "area_id": {
+          "type": "integer",
+          "description": "Basin identifier at a5 input API"
+        }
+      }
+    },
+    "api_config": {
+      "description": "Override input api configuration",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "api base url"
+        },
+        "token": {
+          "type": "string",
+          "description": "api authorization token"
+        }
+      }
     }
   },
   "required": [

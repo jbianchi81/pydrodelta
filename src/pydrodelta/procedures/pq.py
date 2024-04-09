@@ -45,6 +45,9 @@ class PQProcedureFunction(ProcedureFunction):
         """wilting point of soil (0-1)"""
         return float(self.extra_pars["wp"]) if "wp" in self.extra_pars else 0.03
 
+    _required_extra_pars : list = ["area"]
+    """When inheriting this class, override this property according to the procedure requirements. Method self.setBasinMetadata iterates this list to check for missing extra parameters (e.g. basin parameters)"""
+
     def __init__(
         self,
         extra_pars : dict = dict(),
@@ -54,3 +57,15 @@ class PQProcedureFunction(ProcedureFunction):
         if self.fill_nulls:
             logging.debug("PQProcedure - fillnulls: setting pma boundary to optional")
             self.boundaries[0].optional = True
+        self.setBasinMetadata()
+
+    def setBasinMetadata(self) -> None:
+        # if self.boundaries[0].node.node_type == "basin":
+        for key in self._required_extra_pars:
+            if key not in self.extra_pars or self.extra_pars[key] is None:
+                if self.boundaries[0].node.basin_pars is None:
+                    raise Exception("Missing key '%s' in self.extra_pars with no self.boundaries[0].node.basin_pars from which to read defaults" % key)
+                if key not in self.boundaries[0].node.basin_pars or self.boundaries[0].node.basin_pars[key] is None:
+                    raise Exception("key '%s' missing from either self.extra_pars or self.boundaries[0].node.basin_pars" % key)
+                logging.debug("Basin parameter '%s' missing from procedure function input. Filling up with self.boundaries[0].node.basin_pars" % key)
+                self.extra_pars[key] = self.boundaries[0].node.basin_pars[key]

@@ -76,16 +76,23 @@ class NodeSerieProno(NodeSerie):
             - url : str
             - token : str
             - proxy_dict : dict"""
-        logging.debug("Load prono data for series_id: %i, cal_id: %i, cor_id: %s" % (self.series_id, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
-        crud = Crud(**input_api_config) if input_api_config is not None else input_crud
-        metadata = crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier, cor_id = self.cor_id)
-        if len(metadata["pronosticos"]):
-            self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
+        if self.observations is not None:
+            self.data = observacionesListToDataFrame(self.observations, tag = "sim")
+            self.metadata = {
+                "cal_id": self.cal_id
+            }
         else:
-            logging.warning("No data found for series_id=%i, cal_id=%i" % (self.series_id, self.cal_id))
-            self.data = createEmptyObsDataFrame()
+            logging.debug("Load prono data for series_id: %i, cal_id: %i, cor_id: %s" % (self.series_id, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
+            crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
+            metadata = crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier, cor_id = self.cor_id)
+            if len(metadata["pronosticos"]):
+                self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
+            else:
+                logging.warning("No data found for series_id=%i, cal_id=%i" % (self.series_id, self.cal_id))
+                self.data = createEmptyObsDataFrame()
+            del metadata["pronosticos"]
+            self.metadata = metadata
         self.original_data = self.data.copy(deep=True)
-        del metadata["pronosticos"]
-        self.metadata = metadata
+    
     def setData(self,data):
         self.data = data

@@ -121,10 +121,10 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] nelder-mead parameter optimization
 - [x] sacramento simplified with ensemble kalman filter
 - [x] move statistics from ProcedureFunctions to Procedure
-- [ ] add hline on forecast date in variable plots
+- [x] add hline on forecast date in variable plots
 - [x] test uh_linear_channel
 - [x] map graph edges from procedure boundaries and outputs
-- [ ] move basin parameters (from procedurefunction.extra_pars) to topology
+- [x] move basin parameters (from procedurefunction.extra_pars) to topology
 - [x] create procedure templates
 - [ ] create node templates
 - [x] move procedures to /procedures

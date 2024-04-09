@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
+---
+name: dummy sac basin_pars from api
+id: 1
+forecast_date:
+  days: 0
+time_interval:
+  days: 1
+topology:
+  timestart: "2000-01-01T12:00:00.000Z"
+  timeend: "2000-01-06T12:00:00.000Z"
+  time_offset:
+    hours: 9
+  nodes:
+  - id: 1
+    name: node 1
+    node_type: basin
+    description: basin area and outlet station
+    basin_pars:
+     area_id: 614
+    api_config:
+      url: https://alerta.ina.gob.ar/test
+      token: MY_TOKEN
+    time_interval:
+      days: 1
+    variables:
+    - id: 1
+      name: PMD
+      series:
+      - series_id: 1
+        tipo: areal
+        csv_file: sample_data/csv/dummy_sac.csv
+    - id: 15
+      name: ETPD
+      series:
+      - series_id: 2
+        tipo: areal
+        csv_file: sample_data/csv/dummy_sac.csv
+    - id: 20
+      name: SMC
+      series:
+      - series_id: 3
+        tipo: areal
+        csv_file: sample_data/csv/dummy_sac.csv
+      series_sim:
+      - series_id: 3
+        tipo: areal
+    - id: 40
+      name: QMD
+      interpolation_limit: 1
+      extrapolate: false
+      series:
+      - series_id: 4
+        tipo: puntual
+        csv_file: sample_data/csv/dummy_sac.csv
+      series_sim:
+      - series_id: 4
+        tipo: puntual
+procedures:
+- id: Sac dummy
+  function:
+    type: SacramentoSimplified
+    boundaries:
+    - name: pma
+      node_variable:
+      - 1
+      - 1
+    - name: etp
+      node_variable:
+      - 1
+      - 15
+    - name: q_obs
+      node_variable:
+      - 1
+      - 40
+    - name: smc_obs
+      node_variable:
+      - 1
+      - 20
+    outputs:
+    - name: q_sim
+      node_variable:
+      - 1
+      - 40
+    - name: smc_sim
+      node_variable:
+      - 1
+      - 20
+    initial_states:
+    - 7
+    - 400
+    - 0.1
+    - 0.1
+    parameters:
+      alfa: 0.9
+      c1: 0.001
+      c2: 110
+      c3: 0.0075
+      m1: 1.2
+      m2: 2.1
+      m3: 2.6
+      mu: 3.4
+      x1_0: 20
+      x2_0: 700
+    extra_pars:
+      fill_nulls: false
+      no_check1: false
+      no_check2: false
+      mock_run: false

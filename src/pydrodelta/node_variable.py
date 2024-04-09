@@ -210,7 +210,7 @@ class NodeVariable:
         """
         self.id = id
         self._node = node
-        self.metadata = input_crud.readVar(self.id)
+        self.metadata = self._node._crud.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
         self.fill_value = fill_value
         self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
         self.series_sim = series_sim if series_sim is not None else None
@@ -908,12 +908,34 @@ class NodeVariable:
         data = data.join(pivot_series,how="outer")
         plt.figure(figsize=(16,8))
         if self._node is not None and self._node.timeend is not None:
-            plt.axvline(x=self._node.timeend, color="black",label="timeend")
+            # plt.axvline(x=self._node.timeend, color="black",label="timeend")
+            plt.vlines(
+                x = [self._node.timeend],
+                ymin = min(data.min()),
+                ymax = max(data.max()),
+                colors = ["gray"], 
+                label = "_forecast_date",
+                linestyles="dashed")
         if self._node is not None and self._node.forecast_timeend is not None:
-            plt.axvline(x=self._node.forecast_timeend, color="red",label="forecast_timeend")
-        plt.plot(data)
-        plt.legend(data.columns)
+            # plt.axvline(x=self._node.forecast_timeend, color="red",label="forecast_timeend")
+            plt.vlines(
+                x = [self._node.forecast_timeend],
+                ymin = min(data.min()),
+                ymax = max(data.max()),
+                colors = ["red"], 
+                label = "_forecast_timeend",
+                linestyles="dashed")
+        data_lines = plt.plot(data)
+        plt.legend(handles=data_lines, labels=[c for c in data.columns]) # plt.legend(data.columns)
         plt.title(self.name if self.name is not None else self.id)
+        # if self._node._topology.forecast_timeend is not None:
+        #     plt.vlines(
+        #         x = [self._node._topology.timeend],
+        #         ymin = min(data.min()),
+        #         ymax = max(data.max()),
+        #         colors = ["gray"], 
+        #         # label = "forecast date",
+        #         linestyles="dashed")
     
     def plotProno(
         self,

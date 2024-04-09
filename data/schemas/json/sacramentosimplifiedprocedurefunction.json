@@ -142,8 +142,7 @@
                     "type": "boolean",
                     "description": "If missing PMAD values, fill up with zeros"
                 }
-            },
-            "required": ["area"]
+            }
         },
         "ParFG": {
             "description": "flood guidance parameters",

@@ -108,7 +108,8 @@ class NodeSerie():
         observations : Union[List[TVP],List[Tuple[datetime,float]]] = None,
         save_post : str = None,
         comment : str = None,
-        name : str = None
+        name : str = None,
+        node_variable = None
         ):
         """
         Parameters:
@@ -141,7 +142,11 @@ class NodeSerie():
             Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)
 
         save_post : str = None
-            Save upload payload into this file"""
+            Save upload payload into this file
+            
+        node_variable : NodeVariable = None
+            NodeVariable of the Topology that contains this Series
+        """
         self.series_id = series_id
         self.type = tipo
         self.lim_outliers : Tuple[float,float] = lim_outliers
@@ -158,6 +163,7 @@ class NodeSerie():
         self.save_post = save_post
         self.comment = comment
         self.name = name
+        self._variable = node_variable
     
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
@@ -201,7 +207,7 @@ class NodeSerie():
             End time of the timeseries
         
         input_api_config : dict
-            Api connection parameters. Overrides global config.input_api
+            Api connection parameters. Overrides self._variable._node._crud and global config.input_api 
 
         no_metadata : bool = True
             Don't retrieve metadata
@@ -225,7 +231,7 @@ class NodeSerie():
             self.metadata = {"id": self.series_id, "tipo": self.type}
         else:
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
-            crud = Crud(**input_api_config) if input_api_config is not None else input_crud
+            crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
             self.metadata = crud.readSerie(
                 self.series_id,
                 timestart,

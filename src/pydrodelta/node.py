@@ -1,7 +1,7 @@
 from .util import interval2timedelta, createDatetimeSequence
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
-from .a5 import createEmptyObsDataFrame, Serie
+from .a5 import createEmptyObsDataFrame, Serie, Crud
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 import isodate
 from typing import Union, List, Dict
 from pandas import DatetimeIndex, DataFrame
+from .config import config
+import logging
 
 class Node:
     id = IntDescriptor()
@@ -48,8 +50,33 @@ class Node:
                     self._variables[variable["id"]] = variable
                 else:
                     self._variables[variable["id"]] = DerivedNodeVariable(node=self,**variable) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(node=self,**variable)
+    
     node_type = StringDescriptor()
     """The type of node: either 'station' or 'basin'"""
+
+    basin_pars = DictDescriptor()
+    """Basin parameters. For nodes of type='basin'
+    
+    Properties:
+    -----------
+    - area : float - Basin area in square meters
+    - ae : float - Basin effective drainage area ([0-1] fraction)
+    - rho : float - Basin mean soil porosity ([0-1] fraction)
+    - wp : float - Basin mean wilting point  ([0-1] fraction)
+    - area_id : int - Basin identifier at a5 input API""" 
+
+    api_config = DictDescriptor()
+    """"Input api configuration
+    
+    Properties:
+    -----------
+    - url : str - api base url
+    - token : str - api authorization token
+    """
+
+    _crud : Crud
+    """Input api client"""
+
     def __init__(
             self,
             id : int,
@@ -65,7 +92,9 @@ class Node:
             hec_node : dict = None,
             variables : List[Union[DerivedNodeVariable,ObservedNodeVariable]] = list(),
             node_type : str = "station",
-            description : str = None
+            description : str = None,
+            basin_pars : dict = None,
+            api_config : dict = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
         
@@ -110,6 +139,15 @@ class Node:
         node_type : str = "station"
             The type of node: either 'station' or 'basin'
 
+        basin_pars : dict = None
+            Basin parameters. For nodes of type = 'basin'
+
+        api_config : dict = None
+            Override global input api configuration
+            
+            - url : str
+            - token : str
+
         """
         # if "id" not in params:
         #     raise ValueError("id of node must be defined")
@@ -128,9 +166,26 @@ class Node:
         self.hec_node = hec_node
         self._plan = plan
         self._topology = topology
+        self.api_config = api_config
+        if self.api_config is None:
+            self.api_config = config["input_api"]
+        self._crud = Crud(**self.api_config)
         self.variables = variables
         self.node_type = node_type
         self.description = description
+        self.basin_pars = basin_pars if self.node_type == 'basin' else None
+        if self.basin_pars is not None and "area_id" in self.basin_pars and self.basin_pars["area_id"] is not None:
+            logging.debug("Retrieving area metadata, id: %i " % self.basin_pars["area_id"])
+            area = self._crud.readArea(
+                area_id = self.basin_pars["area_id"],
+                no_geom = True)
+            for key in ["area","ae","rho","wp"]:
+                if key not in self.basin_pars:
+                    if key not in area:
+                        logging.error("key '%s' missing in area retrieval api response" % key)
+                        continue
+                    self.basin_pars[key] = area[key]
+        
     
     def __repr__(self):
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])

@@ -72,6 +72,10 @@ class GR4JProcedureFunction(PQProcedureFunction):
         """Reference to instance of GR4J procedure engine"""
         return self._engine
 
+    _required_extra_pars : list = ["area", "ae", "rho", "wp"]
+    """When inheriting this class, override this property according to the procedure requirements. Method self.setBasinMetadata iterates this list to check for missing extra parameters (e.g. basin parameters)"""
+
+
     def __init__(
         self,
         parameters : Union[list,tuple,dict],

@@ -65,7 +65,17 @@ class Test_Plan(TestCase):
                 self.assertEqual(len(n.variables[v].data),3)
                 self.assertEqual(min(n.variables[v].data.index).isoformat(),"2022-07-15T00:00:00-03:00")
                 self.assertEqual(max(n.variables[v].data.index).isoformat(),"2022-07-17T00:00:00-03:00")
-    
+
+    def test_api_basin_pars(self):
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac_basin_pars_from_api.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**config)
+        self.assert_("area" in plan.procedures[0].function.extra_pars)
+        self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
+        self.assertEqual(plan.procedures[0].function.extra_pars["area"], 140273473.449287)
+        plan.execute(
+            upload = False
+        )
+        
     def test_api_exec(self):
         config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
