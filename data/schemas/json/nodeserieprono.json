@@ -19,6 +19,10 @@
     "qualifier": {
       "type": "string"
     },
+    "main_qualifier": {
+      "type": "string",
+      "description": "if qualifier == 'all', set this qualifier as the main qualifier"
+    },
     "adjust": {
       "type": "boolean"
     },

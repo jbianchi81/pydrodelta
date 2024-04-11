@@ -11,7 +11,7 @@ import pandas
 import json
 from datetime import datetime, timedelta
 import isodate
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
@@ -587,7 +587,14 @@ class Node:
         title_template_string : str = None,
         x_label : str = None,
         y_label : str = None,
-        xlim : tuple = None
+        xlim : tuple = None,
+        prono_fmt : str = '-',
+        annotate : bool = True,
+        table_columns : list = ["Fecha", "Nivel"],
+        date_form : str = "%H hrs \n %d-%b",
+        xaxis_minor_tick_hours : list = [3,9,15,21],
+        error_band : Tuple[str,str] = None,
+        error_band_fmt : Union[str,Tuple[str,str]] = 'k-' 
         ) -> None:
         """
         For each variable in .variables run .plotProno()
@@ -662,9 +669,66 @@ class Node:
 
         xlim : tuple = None
             Range of x axis (min, max)
+
+        prono_fmt : str = '-'
+            Style for forecast series
+        
+        annotate : bool = True
+            Add observed data/forecast data/forecast date annotations
+        
+        table_columns : list = ["Fecha", "Nivel"]
+            Which forecast dataframe columns to show. Options: 
+            -   Fecha
+            -   Nivel
+            -   Hora
+            -   Fechap
+            -   Dia
+        
+        date_form : str = "%H hrs \n %d-%b"
+            Date formatting string for x axis tick labels
+
+        xaxis_minor_tick_hours : list = [3,9,15,21]
+            Hours of location of minor ticks of x axis  
+
+        error_band : tuple[str,str] = None
+            Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
+
+        error_band_fmt : str = None
+            style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively 
+          
         """
         for variable in self.variables.values():
-            variable.plotProno(output_dir=output_dir,figsize=figsize,title=title,markersize=markersize,obs_label=obs_label,tz=tz,prono_label=prono_label,footnote=footnote,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,ylim=ylim,station_name=station_name,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)
+            variable.plotProno(
+                output_dir=output_dir,
+                figsize=figsize,
+                title=title,
+                markersize=markersize,
+                obs_label=obs_label,
+                tz=tz,
+                prono_label=prono_label,
+                footnote=footnote,
+                errorBandLabel=errorBandLabel,
+                obsLine=obsLine,
+                prono_annotation=prono_annotation,
+                obs_annotation=obs_annotation,
+                forecast_date_annotation=forecast_date_annotation,
+                ylim=ylim,
+                station_name=station_name,
+                ydisplay=ydisplay,
+                text_xoffset=text_xoffset,
+                xytext=xytext,
+                datum_template_string=datum_template_string,
+                title_template_string=title_template_string,
+                x_label=x_label,
+                y_label=y_label,
+                xlim=xlim,
+                prono_fmt=prono_fmt,
+                annotate=annotate,
+                table_columns=table_columns,
+                date_form=date_form,
+                xaxis_minor_tick_hours=xaxis_minor_tick_hours,
+                error_band=error_band,
+                error_band_fmt=error_band_fmt)
     
     def loadData(
         self,

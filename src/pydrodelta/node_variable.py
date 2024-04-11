@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, TypedDict
+from typing import List, Union, TypedDict, Tuple
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -961,7 +961,14 @@ class NodeVariable:
         title_template_string : str = None,
         x_label : str = None,
         y_label : str = None,
-        xlim : tuple = None
+        xlim : tuple = None,
+        prono_fmt : str = None,
+        annotate : bool = True,
+        table_columns : list = None,
+        date_form : str = None,
+        xaxis_minor_tick_hours : list = None,
+        error_band : Tuple[str,str] = None,
+        error_band_fmt : str = None
         ) -> None:
         """For each serie in series_prono, plot .data time series together with observed data series[0].data
 
@@ -1035,6 +1042,32 @@ class NodeVariable:
 
         xlim : tuple = None
             Range of x axis (min, max)
+
+        prono_fmt : str = 'b-'
+            Style of forecast series 
+        
+        annotate : bool = True
+            Add observed data/forecast data/forecast date annotations
+        
+        table_columns : list = ["Fecha", "Nivel"]
+            Which forecast dataframe columns to show. Options: 
+            -   Fecha
+            -   Nivel
+            -   Hora
+            -   dd/mm hh
+            -   Dia
+        
+        date_form : str = "%H hrs \n %d-%b"
+            Date formatting string for x axis tick labels
+
+        xaxis_minor_tick_hours : list = [3,9,15,21]
+            Hours of location of minor ticks of x axis
+        
+        error_band : tuple[str,str] = None
+            Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
+
+        error_band_fmt : str = None
+            style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively
         """
         if self.series_prono is None:
             logging.debug("Missing series_prono, skipping variable")
@@ -1047,7 +1080,8 @@ class NodeVariable:
             station_name = getParamOrDefaultTo("station_name",station_name,serie_prono.plot_params,self.series[0].metadata["estacion"]["nombre"] if self.series[0].metadata is not None else None)
             thresholds = self.series[0].getThresholds() if self.series[0].metadata is not None else None
             datum = self.series[0].metadata["estacion"]["cero_ign"] if self.series[0].metadata is not None else None
-            error_band = ("error_band_01","error_band_99") if serie_prono.adjust_results is not None else None
+            error_band = error_band if error_band is not None else serie_prono.plot_params["error_band"] if "error_band" in serie_prono.plot_params else ("error_band_01","error_band_99") if serie_prono.adjust_results is not None else None
+            # logging.debug("error_band: %s" % str(error_band))
             ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
             ydisplay = getParamOrDefaultTo("ydisplay",ydisplay,serie_prono.plot_params)
             text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,serie_prono.plot_params)
@@ -1060,4 +1094,43 @@ class NodeVariable:
             obsLine = getParamOrDefaultTo("obsLine",obsLine,serie_prono.plot_params)
             footnote = getParamOrDefaultTo("footnote",footnote,serie_prono.plot_params)
             xlim = getParamOrDefaultTo("xlim",xlim,serie_prono.plot_params)
-            plot_prono(self.data,serie_prono.data,output_file=output_file,title=title,markersize=markersize,prono_label=prono_label,obs_label=obs_label,forecast_date=serie_prono.metadata["forecast_date"],errorBand=error_band,errorBandLabel=errorBandLabel,obsLine=obsLine,prono_annotation=prono_annotation,obs_annotation=obs_annotation,forecast_date_annotation=forecast_date_annotation,station_name=station_name,thresholds=thresholds,datum=datum,footnote=footnote,figsize=figsize,ylim=ylim,ydisplay=ydisplay,text_xoffset=text_xoffset,xytext=xytext,tz=tz,datum_template_string=datum_template_string,title_template_string=title_template_string,x_label=x_label,y_label=y_label,xlim=xlim)
+            table_columns  = getParamOrDefaultTo("table_columns",table_columns,serie_prono.plot_params)
+            date_form = getParamOrDefaultTo("date_form",date_form,serie_prono.plot_params)
+            xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours", xaxis_minor_tick_hours, serie_prono.plot_params)
+            error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params,'k-')
+            plot_prono(
+                self.data,
+                serie_prono.data,
+                output_file=output_file,
+                title=title,
+                markersize=markersize,
+                prono_label=prono_label,
+                obs_label=obs_label,
+                forecast_date=serie_prono.metadata["forecast_date"],
+                errorBand=error_band,
+                errorBandLabel=errorBandLabel,
+                obsLine=obsLine,
+                prono_annotation=prono_annotation,
+                obs_annotation=obs_annotation,
+                forecast_date_annotation=forecast_date_annotation,
+                station_name=station_name,
+                thresholds=thresholds,
+                datum=datum,
+                footnote=footnote,
+                figsize=figsize,
+                ylim=ylim,
+                ydisplay=ydisplay,
+                text_xoffset=text_xoffset,
+                xytext=xytext,
+                tz=tz,
+                datum_template_string=datum_template_string,
+                title_template_string=title_template_string,
+                x_label=x_label,
+                y_label=y_label,
+                xlim=xlim,
+                prono_fmt=prono_fmt,
+                annotate=annotate,
+                table_columns=table_columns,
+                date_form=date_form,
+                xaxis_minor_tick_hours=xaxis_minor_tick_hours,
+                error_band_fmt=error_band_fmt)

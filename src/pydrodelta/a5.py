@@ -470,7 +470,10 @@ class Crud():
             use_proxy (bool, optional): Perform request through proxy. Defaults to False.
             cor_id (int, optional): simulation run identifier. Defaults to None.
             forecast_date (datetime, optional): execution timestamp. Defaults to None.
-            qualifier (str, optional): simulations qualifier (used to discriminate between simulations of the same series and timestamp, for example, from different ensemble members). Defaults to None.
+            qualifier (str, optional): simulations qualifier (used to discriminate between simulations of the same series and timestamp, for example, from different ensemble members). Defaults to None. If 'all', returns all qualifiers (not only the first match). In the latter case, 'pronosticos' property of the return value is a list of dicts (one for each qualifier) with:
+            - qualifier : str
+            - pronosticos : list of time-value pairs
+            
 
         Raises:
             Exception: Request failed if status code is not 200
@@ -504,7 +507,7 @@ class Crud():
                 "timeend": timeend if isinstance(timestart,str) else timeend.isoformat(),
                 "series_id": series_id
             }
-        if qualifier is not None:
+        if qualifier is not None and qualifier != 'all':
             params["qualifier"] = qualifier
         params["includeProno"] = True
         url = "%s/sim/calibrados/%i/corridas/last" % (self.url, cal_id)
@@ -538,6 +541,20 @@ class Crud():
                 "qualifier": None,
                 "pronosticos": []
             }
+        if qualifier is not None and qualifier == 'all':
+            pronosticos = []
+            for member in json_response["series"]:
+                pronosticos.append({
+                    "qualifier": member["qualifier"],
+                    "pronosticos": [ observacionTupleToDict(x) for x in member["pronosticos"] ]
+                })
+            return {
+                "forecast_date": json_response["forecast_date"],
+                "cal_id": json_response["cal_id"],
+                "cor_id": json_response["cor_id"],
+                "series_id": json_response["series"][0]["series_id"],
+                "pronosticos": pronosticos
+            }
         if "pronosticos" not in json_response["series"][0]:
             print("Warning: pronosticos from series %i from cal_id %i not found" % (series_id,cal_id))
             return {
@@ -558,7 +575,7 @@ class Crud():
                 "qualifier": json_response["series"][0]["qualifier"],
                 "pronosticos": []
             }
-        json_response["series"][0]["pronosticos"] = [ { "timestart": x[0], "valor": x[2]} if type(x) == list else { "timestart": x["timestart"], "valor": x["valor"]} for x in json_response["series"][0]["pronosticos"]] # "series_id": series_id, "timeend": x[1] "qualifier":x[3]
+        json_response["series"][0]["pronosticos"] = [ observacionTupleToDict(x) for x in json_response["series"][0]["pronosticos"]] # "series_id": series_id, "timeend": x[1] "qualifier":x[3]
         return {
             "forecast_date": json_response["forecast_date"],
             "cal_id": json_response["cal_id"],
@@ -604,6 +621,15 @@ def observacionesDataFrameToList(
     data["valor"] = data[column]
     data = data[["series_id","timestart","timeend","valor"]]
     return data.to_dict(orient="records")
+
+def observacionTupleToDict(x : tuple):
+    return { 
+        "timestart": x[0], 
+        "valor": x[2]
+    } if type(x) == list or type(x) == tuple else {
+        "timestart": x["timestart"], 
+        "valor": x["valor"]
+    }
 
 def observacionesListToDataFrame(
     data: list, 

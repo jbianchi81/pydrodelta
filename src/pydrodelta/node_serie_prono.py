@@ -4,6 +4,7 @@ from pydrodelta.a5 import Crud, observacionesListToDataFrame, createEmptyObsData
 from pydrodelta.node_serie_prono_metadata import NodeSeriePronoMetadata
 from pydrodelta.config import config
 from datetime import datetime
+from .descriptors.string_descriptor import StringDescriptor
 
 input_crud = Crud(**config["input_api"])
 # output_crud = Crud(**config["output_api"])
@@ -23,6 +24,9 @@ class NodeSerieProno(NodeSerie):
     ) -> None:
         self._metadata = NodeSeriePronoMetadata(**metadata) if metadata is not None else None
     
+    main_qualifier = StringDescriptor()
+    """If qualifier == 'all', select this qualifier as the main qualifier"""
+    
     def __init__(
         self,
         cal_id : int,
@@ -31,12 +35,14 @@ class NodeSerieProno(NodeSerie):
         plot_params : dict = None,
         upload : bool = True,
         cor_id : int = None,
+        main_qualifier : str = None,
         **kwargs):
         super().__init__(**kwargs)        
         self.cal_id : int = cal_id
         """Identifier of simulation procedure configuration at the source (input api)"""
         self.qualifier :str = qualifier
         """Forecast qualifier at the source. Used to identify multiple timeseries of the same variable at the same node simulated by the same procedure. For example, the members of an ensemble simulation."""
+        self.main_qualifier = main_qualifier
         self.adjust : bool = adjust
         """By means of a linear regression, adjust the forecasted timeseries to the observations (if available)"""
         self.cor_id : int = cor_id
@@ -86,7 +92,19 @@ class NodeSerieProno(NodeSerie):
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
             metadata = crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier, cor_id = self.cor_id)
             if len(metadata["pronosticos"]):
-                self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
+                if self.qualifier is not None and self.qualifier == 'all':
+                    main_qualifier_index = 0
+                    if self.main_qualifier is not None:
+                        for i, m in enumerate(metadata["pronosticos"]):
+                            if m["qualifier"] == self.main_qualifier:
+                                main_qualifier_index = i
+                    if not len(metadata["pronosticos"]) or "pronosticos" not in metadata["pronosticos"][main_qualifier_index] or not len(metadata["pronosticos"][main_qualifier_index]["pronosticos"]):
+                        raise Exception("No forecast values found for series_id %i, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
+                    self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")
+                    for member in metadata["pronosticos"]:
+                        self.data = self.data.join(observacionesListToDataFrame(member["pronosticos"]).rename(columns={"valor": member["qualifier"]}))
+                else:
+                    self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
             else:
                 logging.warning("No data found for series_id=%i, cal_id=%i" % (self.series_id, self.cal_id))
                 self.data = createEmptyObsDataFrame()

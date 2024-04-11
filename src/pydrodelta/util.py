@@ -235,24 +235,46 @@ def serieRegular(
             df_join[tag_column] = [x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[column]) else x[tag_column] for (i, x) in df_join.iterrows()]
         df_join[column] = df_join["interpolated"]
         del df_join["interpolated"]
+        for c in df_join.columns:
+            if c == column:
+                continue
+            if tag_column is not None and c == tag_column:
+                continue
+            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
         df_regular = df_regular.join(df_join, how = 'left')
     else:
         timedelta_threshold = time_interval / 2 # takes half time interval as maximum time distance for interpolation
-        df_join = df_join.reset_index()
-        df_join["diff_with_previous"] = df_join["timestart"].diff()
-        df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
-        df_join = df_join.set_index("timestart")
-        df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
-        df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
-        df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df_join.iterrows()]
-        df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df_join.iterrows()]
-        df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df_join.iterrows()]
-        if tag_column is not None:
-            df_join["new_tag"] = df_join.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
-            df_regular = df_regular.join(df_join[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
-        else:
-            df_regular = df_regular.join(df_join[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
+        df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
+        for c in df_join.columns:
+            if c == column:
+                continue
+            if tag_column is not None and c == tag_column:
+                continue
+            df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
     return df_regular
+
+def regularizeColumn(
+    df_regular : pandas.DataFrame,
+    df_join : pandas.DataFrame, 
+    timedelta_threshold : timedelta, 
+    column : str = "valor",
+    tag_column : str = None
+    ) -> pandas.DataFrame:
+    df_join = df_join.reset_index()
+    df_join["diff_with_previous"] = df_join["timestart"].diff()
+    df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
+    df_join = df_join.set_index("timestart")
+    df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
+    df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
+    df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df.iterrows()]
+    df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df.iterrows()]
+    df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
+    if tag_column is not None:
+        df_join["new_tag"] = df_join.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
+        df_regular = df_regular.join(df_join[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
+    else:
+        df_regular = df_regular.join(df_join[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
+    return df_regular    
 
 def f5(row,column="valor",tag_column="tag",min_obs_date=None,max_obs_date=None):
     if pandas.isna(row["interpolated"]):
@@ -469,7 +491,13 @@ def plot_prono(
     y_label:str='value',
     datum_template_string:str=None,
     title_template_string:str="forecast at %s",
-    xlim:tuple=None
+    xlim:tuple=None,
+    prono_fmt='b-',
+    annotate : bool = True,
+    table_columns : list = ['Fecha','Nivel'],
+    date_form : str = "%H hrs \n %d-%b",
+    xaxis_minor_tick_hours : list = [3,9,15,21],
+    error_band_fmt : Union[str,Tuple[str,str]] = 'k-'
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -498,7 +526,8 @@ def plot_prono(
     ax = fig.add_subplot(1, 1, 1)
     if title is not None:
         ax.title(title)
-    ax.plot(sim_df.index, sim_df['valor'], '-',color='b',label=prono_label,linewidth=3)
+    prono_fmt = prono_fmt if prono_fmt is not None else 'b-'
+    ax.plot(sim_df.index, sim_df['valor'], prono_fmt,label=prono_label,linewidth=3,markersize=markersize) # ,color='b'
     if not isinstance(obs_df, type(None)):
         ax.plot(obs_df.index, obs_df['valor'],'o',color='k',label=obs_label,linewidth=3)
         if obsLine:
@@ -508,19 +537,25 @@ def plot_prono(
         ax.plot(extraObs.index, extraObs['valor'],'o',color='grey',label=extraObsLabel,linewidth=3,alpha=0.5)
         ax.plot(extraObs.index, extraObs['valor'],'-',color='grey',linewidth=1,alpha=0.5)
     if errorBand is not None:
-        ax.plot(sim_df.index, sim_df[errorBand[0]],'-',color='k',linewidth=0.5,alpha=0.75,label='_nolegend_')
-        ax.plot(sim_df.index, sim_df[errorBand[1]],'-',color='k',linewidth=0.5,alpha=0.75,label='_nolegend_')
-        ax.fill_between(sim_df.index,sim_df[errorBand[0]], sim_df[errorBand[1]],alpha=0.1,label=errorBandLabel)
+        if type(error_band_fmt) == str and error_band_fmt == 'errorbar':
+            ax.errorbar(sim_df.index, sim_df['valor'], yerr=[sim_df["valor"] - sim_df[errorBand[0]], sim_df[errorBand[1]] - sim_df["valor"]], capsize=8)
+        else:
+            low_fmt = error_band_fmt[0] if type(error_band_fmt) in [tuple,list] else error_band_fmt
+            up_fmt = error_band_fmt[1] if type(error_band_fmt) in [tuple,list] else error_band_fmt
+            ax.plot(sim_df.index, sim_df[errorBand[0]],low_fmt,linewidth=0.5,alpha=0.75,label='_nolegend_',markersize=markersize)
+            ax.plot(sim_df.index, sim_df[errorBand[1]],up_fmt,linewidth=0.5,alpha=0.75,label='_nolegend_',markersize=markersize)
+            ax.fill_between(sim_df.index,sim_df[errorBand[0]], sim_df[errorBand[1]],alpha=0.1,label=errorBandLabel)
     # Lineas: 1 , 1.5 y 2 mts
     xmin=sim_df.index.min()
     xmax=sim_df.index.max()
     # Niveles alerta
-    if thresholds.get("aguas_bajas"):
-        plt.hlines(thresholds["aguas_bajas"], xmin, xmax, colors='y', linestyles='-.', label='Aguas Bajas',linewidth=1.5)
-    if thresholds.get("alerta"):
-        plt.hlines(thresholds["alerta"], xmin, xmax, colors='y', linestyles='-.', label='Alerta',linewidth=1.5)
-    if thresholds.get("evacuacion"):
-        plt.hlines(thresholds["evacuacion"], xmin, xmax, colors='r', linestyles='-.', label='Evacuación',linewidth=1.5)
+    if thresholds.get("nivel_aguas_bajas"):
+        logging.debug("Add threshold nivel_aguas_bajas: %.02f, xmin %s, xmax %s" % (thresholds["nivel_aguas_bajas"], xmin.isoformat(), xmax.isoformat()))
+        plt.hlines(thresholds["nivel_aguas_bajas"], xmin, xmax, colors='orange', linestyles='-.', label='Aguas Bajas',linewidth=1.5)
+    if thresholds.get("nivel_alerta"):
+        plt.hlines(thresholds["nivel_alerta"], xmin, xmax, colors='y', linestyles='-.', label='Alerta',linewidth=1.5)
+    if thresholds.get("nivel_evacuacion"):
+        plt.hlines(thresholds["nivel_evacuacion"], xmin, xmax, colors='r', linestyles='-.', label='Evacuación',linewidth=1.5)
     # fecha emision
     if forecast_date is not None:
         if forecast_date.tzinfo is not None and forecast_date.tzinfo.utcoffset(forecast_date) is not None:
@@ -538,16 +573,17 @@ def plot_prono(
         connectionstyle="angle,angleA=0,angleB=90,rad=10")
     offset = 10
     #xycoords='figure pixels',
-    xdisplay = ahora + timedelta(days=1.0)
-    ax.annotate(prono_annotation,
-        xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
-        bbox=bbox, fontsize=18)#arrowprops=arrowprops
-    xdisplay = ahora - timedelta(days=2)
-    ax.annotate(obs_annotation,
-        xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
-        bbox=bbox, fontsize=18)
-    ax.annotate(forecast_date_annotation,
-        xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+    if annotate:
+        xdisplay = ahora + timedelta(days=1.0)
+        ax.annotate(prono_annotation,
+            xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
+            bbox=bbox, fontsize=18)#arrowprops=arrowprops
+        xdisplay = ahora - timedelta(days=2)
+        ax.annotate(obs_annotation,
+            xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
+            bbox=bbox, fontsize=18)
+        ax.annotate(forecast_date_annotation,
+            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
     fig.subplots_adjust(bottom=0.2,right=0.8)
     if footnote is not None:
         plt.figtext(0,0,footnote,fontsize=12,ha="left")
@@ -590,21 +626,23 @@ def plot_prono(
     df_prono['Hora'] = df_prono['Hora'].replace('6', '06')
     df_prono['Dia'] = df_prono['Dia'].astype(str)
     df_prono['Fechap'] = df_prono['Dia']+' '+df_prono['Hora']+'hrs'
-    df_prono = df_prono[['Fechap','Y_predic',]]
+    df_prono['Mes'] = df_prono.index.month.map('{:02d}'.format)
+    df_prono["dd/mm hh"] = df_prono['Dia'] + "/" + df_prono['Mes'] + " " + df_prono['Hora']
+    df_prono = df_prono.rename(columns={'Fechap':'Fecha','Y_predic':"Nivel"}) # df_prono[['Fechap','Y_predic',]]
     #print(df_prono)
     cell_text = []
     for row in range(len(df_prono)):
-        cell_text.append(df_prono.iloc[row])
+        cell_text.append(df_prono[table_columns].iloc[row])
         #print(cell_text)
-    columns = ('Fecha','Nivel',)
+    # columns = table_columns # ('Fecha','Nivel',)
     table = plt.table(cellText=cell_text,
-                      colLabels=columns,
+                      colLabels=table_columns,
                       bbox = (1.08, 0, 0.2, 0.5))
     table.set_fontsize(12)
     #table.scale(2.5, 2.5)  # may help
-    date_form = DateFormatter("%H hrs \n %d-%b",tz=sim_df.index.tz)
+    date_form = DateFormatter(date_form,tz=sim_df.index.tz) # "%H hrs \n %d-%b"
     ax.xaxis.set_major_formatter(date_form)
-    ax.xaxis.set_minor_locator(mdates.HourLocator((3,9,15,21,)))
+    ax.xaxis.set_minor_locator(mdates.HourLocator(xaxis_minor_tick_hours)) # (3,9,15,21,)
     ## FRANJAS VERTICALES
     start_0hrs = sim_df.index.min().date()
     end_0hrs = (sim_df.index.max() + timedelta(hours=12)).date()
