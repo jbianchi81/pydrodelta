@@ -4,6 +4,8 @@ from pydrodelta.observed_node_variable import ObservedNodeVariable
 from pydrodelta.node_serie import NodeSerie
 from unittest import TestCase
 import os
+import yaml
+import time
 
 class Test_Topology(TestCase):
 
@@ -188,3 +190,12 @@ class Test_Topology(TestCase):
             var_id = 4,
             output = "%s/results/h_plot.pdf" % os.environ["PYDRODELTA_DIR"]
         )
+    
+    def test_plot_prono(self):
+        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**config)
+        topology.batchProcessInput(include_prono=False)
+        self.assertIsNotNone(topology.nodes[0].variables[39].series_prono[0].plot_params)
+        self.assert_("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
+        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
+        self.assert_(file_mtime  > time.time() - 10)

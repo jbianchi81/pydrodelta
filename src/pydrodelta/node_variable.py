@@ -970,7 +970,9 @@ class NodeVariable:
         date_form : str = None,
         xaxis_minor_tick_hours : list = None,
         error_band : Tuple[str,str] = None,
-        error_band_fmt : str = None
+        error_band_fmt : str = None,
+        forecast_table : bool = None,
+        footnote_height : float = None
         ) -> None:
         """For each serie in series_prono, plot .data time series together with observed data series[0].data
 
@@ -1070,6 +1072,12 @@ class NodeVariable:
 
         error_band_fmt : str = None
             style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively
+        
+        forecast_table : bool = True
+            Print forecast table
+
+        footnote_height : float = 0.2
+            Height of space for footnote in inches
         """
         if self.series_prono is None:
             logging.debug("Missing series_prono, skipping variable")
@@ -1079,9 +1087,9 @@ class NodeVariable:
             if output_file is None:
                 logging.debug("Missing output_dir or output_file, skipping serie")
                 continue
-            station_name = getParamOrDefaultTo("station_name",station_name,serie_prono.plot_params,self.series[0].metadata["estacion"]["nombre"] if self.series[0].metadata is not None else None)
-            thresholds = self.series[0].getThresholds() if self.series[0].metadata is not None else None
-            datum = self.series[0].metadata["estacion"]["cero_ign"] if self.series[0].metadata is not None else None
+            station_name = getParamOrDefaultTo("station_name",station_name,serie_prono.plot_params,self.series[0].metadata["estacion"]["nombre"] if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None)
+            thresholds = self.series[0].getThresholds() if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None
+            datum = self.series[0].metadata["estacion"]["cero_ign"] if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None
             error_band = error_band if error_band is not None else serie_prono.plot_params["error_band"] if "error_band" in serie_prono.plot_params else ("error_band_01","error_band_99") if serie_prono.adjust_results is not None else None
             # logging.debug("error_band: %s" % str(error_band))
             ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
@@ -1099,7 +1107,9 @@ class NodeVariable:
             table_columns  = getParamOrDefaultTo("table_columns",table_columns,serie_prono.plot_params)
             date_form = getParamOrDefaultTo("date_form",date_form,serie_prono.plot_params)
             xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours", xaxis_minor_tick_hours, serie_prono.plot_params)
-            error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params,'k-')
+            error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params)
+            forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,serie_prono.plot_params)
+            footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,serie_prono.plot_params)
             plot_prono(
                 self.data,
                 serie_prono.data,
@@ -1135,4 +1145,6 @@ class NodeVariable:
                 table_columns=table_columns,
                 date_form=date_form,
                 xaxis_minor_tick_hours=xaxis_minor_tick_hours,
-                error_band_fmt=error_band_fmt)
+                error_band_fmt=error_band_fmt,
+                forecast_table=forecast_table,
+                footnote_height=footnote_height)

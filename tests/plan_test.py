@@ -114,7 +114,7 @@ class Test_Plan(TestCase):
         config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload = False)
-        self.assertTrue(isinstance(plan.procedures[0].calibration.score, DataFrame))
+        self.assertTrue(isinstance(plan.procedures[0].calibration.scores, DataFrame))
 
     def test_calibration_save_result_raise_exception(self):
         config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)

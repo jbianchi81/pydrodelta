@@ -479,7 +479,7 @@ def plot_prono(
     obsLine:bool=False,
     station_name:str="Station",
     thresholds:dict={}, 
-    datum:float=0,
+    datum:float=None,
     footnote:str=None,
     tz:str="America/Argentina/Buenos_Aires",
     figsize:tuple=(14,12),
@@ -497,7 +497,9 @@ def plot_prono(
     table_columns : list = ['Fecha','Nivel'],
     date_form : str = "%H hrs \n %d-%b",
     xaxis_minor_tick_hours : list = [3,9,15,21],
-    error_band_fmt : Union[str,Tuple[str,str]] = 'k-'
+    error_band_fmt : Union[str,Tuple[str,str]] = 'k-',
+    forecast_table : bool = True,
+    footnote_height : float = 0.2
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -508,7 +510,7 @@ def plot_prono(
     extraObsLabel='observed 2' if extraObsLabel is None else extraObsLabel
     obs_annotation='past' if obs_annotation is None else obs_annotation
     station_name="Station" if station_name is None else station_name
-    datum = 0 if datum is None else datum
+    # datum = 0 if datum is None else datum
     figsize=(14,12) if figsize is None else figsize
     prono_annotation='forecast' if prono_annotation is None else prono_annotation
     forecast_date_annotation='forecast date' if forecast_date_annotation is None else forecast_date_annotation
@@ -584,10 +586,11 @@ def plot_prono(
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
             xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
-    fig.subplots_adjust(bottom=0.2,right=0.8)
     if footnote is not None:
+        fig.subplots_adjust(bottom=footnote_height) # 0.2
         plt.figtext(0,0,footnote,fontsize=12,ha="left")
     if datum is not None and datum_template_string is not None:
+        fig.subplots_adjust(bottom=footnote_height) # 0.2
         plt.figtext(0,0,datum_template_string % (station_name, str(round(datum+0.53,2)), str(round(datum,2))),fontsize=12,ha="left")
     if ylim:
         ax.set_ylim(ylim[0],ylim[1])
@@ -613,32 +616,34 @@ def plot_prono(
     plt.legend(prop={'size':18},loc=2,ncol=1 )
     plt.title(title if title is not None else title_template_string % station_name,fontsize=20)
     #### TABLA
-    h_resumen = [0,6,12,18]
-    df_prono = sim_df[sim_df.index > ahora ].copy()
-    df_prono['Hora'] = df_prono.index.hour
-    df_prono['Dia'] = df_prono.index.day
-    df_prono = df_prono[df_prono['Hora'].isin(h_resumen)].copy()
-    df_prono = df_prono[df_prono['valor'].notnull()].copy()
-    #print(df_prono)
-    df_prono['Y_predic'] = df_prono['valor'].round(2)
-    df_prono['Hora'] = df_prono['Hora'].astype(str)
-    df_prono['Hora'] = df_prono['Hora'].replace('0', '00')
-    df_prono['Hora'] = df_prono['Hora'].replace('6', '06')
-    df_prono['Dia'] = df_prono['Dia'].astype(str)
-    df_prono['Fechap'] = df_prono['Dia']+' '+df_prono['Hora']+'hrs'
-    df_prono['Mes'] = df_prono.index.month.map('{:02d}'.format)
-    df_prono["dd/mm hh"] = df_prono['Dia'] + "/" + df_prono['Mes'] + " " + df_prono['Hora']
-    df_prono = df_prono.rename(columns={'Fechap':'Fecha','Y_predic':"Nivel"}) # df_prono[['Fechap','Y_predic',]]
-    #print(df_prono)
-    cell_text = []
-    for row in range(len(df_prono)):
-        cell_text.append(df_prono[table_columns].iloc[row])
-        #print(cell_text)
-    # columns = table_columns # ('Fecha','Nivel',)
-    table = plt.table(cellText=cell_text,
-                      colLabels=table_columns,
-                      bbox = (1.08, 0, 0.2, 0.5))
-    table.set_fontsize(12)
+    if forecast_table:
+        fig.subplots_adjust(right=0.8)
+        h_resumen = [0,6,12,18]
+        df_prono = sim_df[sim_df.index > ahora ].copy()
+        df_prono['Hora'] = df_prono.index.hour
+        df_prono['Dia'] = df_prono.index.day
+        df_prono = df_prono[df_prono['Hora'].isin(h_resumen)].copy()
+        df_prono = df_prono[df_prono['valor'].notnull()].copy()
+        #print(df_prono)
+        df_prono['Y_predic'] = df_prono['valor'].round(2)
+        df_prono['Hora'] = df_prono['Hora'].astype(str)
+        df_prono['Hora'] = df_prono['Hora'].replace('0', '00')
+        df_prono['Hora'] = df_prono['Hora'].replace('6', '06')
+        df_prono['Dia'] = df_prono['Dia'].astype(str)
+        df_prono['Fechap'] = df_prono['Dia']+' '+df_prono['Hora']+'hrs'
+        df_prono['Mes'] = df_prono.index.month.map('{:02d}'.format)
+        df_prono["dd/mm hh"] = df_prono['Dia'] + "/" + df_prono['Mes'] + " " + df_prono['Hora']
+        df_prono = df_prono.rename(columns={'Fechap':'Fecha','Y_predic':"Nivel"}) # df_prono[['Fechap','Y_predic',]]
+        #print(df_prono)
+        cell_text = []
+        for row in range(len(df_prono)):
+            cell_text.append(df_prono[table_columns].iloc[row])
+            #print(cell_text)
+        # columns = table_columns # ('Fecha','Nivel',)
+        table = plt.table(cellText=cell_text,
+                        colLabels=table_columns,
+                        bbox = (1.08, 0, 0.2, 0.5))
+        table.set_fontsize(12)
     #table.scale(2.5, 2.5)  # may help
     date_form = DateFormatter(date_form,tz=sim_df.index.tz) # "%H hrs \n %d-%b"
     ax.xaxis.set_major_formatter(date_form)

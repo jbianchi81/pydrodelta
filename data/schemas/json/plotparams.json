@@ -149,6 +149,16 @@
         }
       ],
       "default": "k-"
+    },
+    "forecast_table": {
+      "type": "boolean",
+      "description": "Print forecast table",
+      "default": true
+    },
+    "footnote_height": {
+      "type": "number",
+      "description": "Height of space for footnote in inches",
+      "default": 0.2
     }
   }
 }

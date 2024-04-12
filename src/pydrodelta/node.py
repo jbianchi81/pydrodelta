@@ -594,7 +594,9 @@ class Node:
         date_form : str = "%H hrs \n %d-%b",
         xaxis_minor_tick_hours : list = [3,9,15,21],
         error_band : Tuple[str,str] = None,
-        error_band_fmt : Union[str,Tuple[str,str]] = 'k-' 
+        error_band_fmt : Union[str,Tuple[str,str]] = 'k-',
+        forecast_table : bool = None,
+        footnote_height : float = None
         ) -> None:
         """
         For each variable in .variables run .plotProno()
@@ -695,7 +697,12 @@ class Node:
 
         error_band_fmt : str = None
             style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively 
-          
+        
+        forecast_table : bool = True
+            Print forecast table      
+
+        footnote_height : float = 0.2
+            Height of space for footnote in inches    
         """
         for variable in self.variables.values():
             variable.plotProno(
@@ -728,7 +735,9 @@ class Node:
                 date_form=date_form,
                 xaxis_minor_tick_hours=xaxis_minor_tick_hours,
                 error_band=error_band,
-                error_band_fmt=error_band_fmt)
+                error_band_fmt=error_band_fmt,
+                forecast_table=forecast_table,
+                footnote_height=footnote_height)
     
     def loadData(
         self,

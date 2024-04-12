@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=../../data/schemas/json/topology.json
+---
+timestart: "2024-01-01T03:00:00.000Z"
+timeend: "2024-01-06T03:00:00.000Z"
+forecast_timeend: "2024-01-08T03:00:00.000Z"
+time_offset_start:
+  hours: 0
+plot_params:
+  figsize: [14,12]
+  forecast_date_annotation: fecha de emisión
+  errorBandLabel: Banda de error
+  prono_annotation: Pronóstico
+  obs_annotation: Días pasados
+  x_label: Fecha
+  y_label: Nivel [m] Referido al cero local
+  datum_template_string: "          El cero de la escala de %s corresponde a %s mMOP / %s mIGN \n"
+  title_template_string: "Previsión de niveles a corto plazo en %s"
+  obsLine: true
+  prono_fmt: b+
+  annotate: false
+  table_columns: 
+  - dd/mm hh
+  - Nivel
+  obs_label: Observado
+  prono_label: Pronosticado
+  # footnote: ""
+  xlim:
+  - "2024-01-01T03:00:00.000Z"
+  - "2024-01-08T03:00:00.000Z"
+  text_xoffset: [-2,4]
+  date_form: "%d/%m"
+  xaxis_minor_tick_hours:
+  - 3
+  # error_band_fmt: errorbar
+  # error_band:
+  # - inferior
+  # - superior
+  forecast_table: true
+  footnote_height: 0.1
+nodes:
+- id: 1
+  name: Node_1
+  time_interval:
+    days: 1
+  variables:
+  - id: 39
+    series:
+    - series_id: 1
+      lim_outliers:
+      - -1
+      - 9
+      lim_jump: 4
+      x_offset: 0
+      y_offset: 0
+      observations:
+      - ["2024-01-01T03:00:00.000Z", 1.2]
+      - ["2024-01-02T03:00:00.000Z", 2.2]
+      - ["2024-01-03T03:00:00.000Z", 3.1]
+      - ["2024-01-04T03:00:00.000Z", 3.2]
+      - ["2024-01-05T03:00:00.000Z", 2.5]
+    series_prono:
+    - series_id: 1540
+      cal_id: 289
+      # qualifier: all
+      # main_qualifier: medio
+      adjust: false
+      observations:
+      - ["2024-01-06T03:00:00.000Z", 2.2]
+      - ["2024-01-07T03:00:00.000Z", 2.1]
+      - ["2024-01-08T03:00:00.000Z", 2.0]
+      plot_params:
+        ylim: [0,9]
+        nombre_estacion: Estación
+        output_file: results/plot_prono.png
