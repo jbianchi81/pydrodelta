@@ -367,21 +367,23 @@ class DownhillSimplexCalibration(Calibration):
             max_stagnations=max_stagnations, 
             max_iter=max_iter)
         calibration_result = self._downhill_simplex.run()
+        parameters = [float(x) for x in calibration_result[0]]
+        score = float(calibration_result[1])
         logging.debug("Downhill simplex finished at iteration %i" % self._downhill_simplex.iters)
         save_result = save_result if save_result is not None else self.save_result
         if save_result:
             json.dump(
                 {
-                    "parameters": list(calibration_result[0]),
-                    "score": calibration_result[1]
+                    "parameters": list(parameters),
+                    "score": score
                 },
                 open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_result),"w"),
                 indent=4
             )
-        self.runReturnScore(parameters=calibration_result[0], objective_function=self.objective_function)
-        self.score = self._procedure.read_statistics(as_dataframe=True)
+        self.runReturnScore(parameters=parameters, objective_function=self.objective_function)
+        self.scores = self._procedure.read_statistics(as_dataframe=True)
         if inplace:
-            self._calibration_result = (list(calibration_result[0]),calibration_result[1])
+            self._calibration_result = (list(parameters),score)
         else:
-            return calibration_result
+            return (parameters, score)
         
