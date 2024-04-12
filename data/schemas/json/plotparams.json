@@ -123,7 +123,7 @@
       },
       "default": [3,9,15,21]
     },
-    "error_band": {
+    "errorBand": {
       "description": "Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, 'error_band_01' and 'error_band_99' resulting from the adjustment are used",
       "type": "array",
       "items": {

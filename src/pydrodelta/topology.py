@@ -832,35 +832,36 @@ class Topology():
             plt.show()
     def plotProno(
         self,
-        output_dir : str = None,
-        figsize : tuple = None,
-        title : str = None,
-        markersize : int = None,
-        obs_label : str = None,
-        tz : str = None,
-        prono_label : str = None,
-        footnote : str = None,
-        errorBandLabel : str = None,
-        obsLine : bool = None,
-        prono_annotation : str = None,
-        obs_annotation : str = None,
-        forecast_date_annotation : str = None,
-        ylim : tuple = None,
-        datum_template_string : str = None,
-        title_template_string : str = None,
-        x_label : str = None,
-        y_label : str = None,
-        xlim : tuple = None,
-        text_xoffset : tuple = None,
-        prono_fmt : str = None,
-        annotate : bool = None,
-        table_columns : list = None,
-        date_form : str = None,
-        xaxis_minor_tick_hours : list = None,
-        error_band : Tuple[str,str] = None,
-        error_band_fmt : Union[str,Tuple[str,str]] = None,
-        forecast_table : bool = None,
-        footnote_height : float = None
+        **kwargs
+        # output_dir : str = None,
+        # figsize : tuple = None,
+        # title : str = None,
+        # markersize : int = None,
+        # obs_label : str = None,
+        # tz : str = None,
+        # prono_label : str = None,
+        # footnote : str = None,
+        # errorBandLabel : str = None,
+        # obsLine : bool = None,
+        # prono_annotation : str = None,
+        # obs_annotation : str = None,
+        # forecast_date_annotation : str = None,
+        # ylim : tuple = None,
+        # datum_template_string : str = None,
+        # title_template_string : str = None,
+        # x_label : str = None,
+        # y_label : str = None,
+        # xlim : tuple = None,
+        # text_xoffset : tuple = None,
+        # prono_fmt : str = None,
+        # annotate : bool = None,
+        # table_columns : list = None,
+        # date_form : str = None,
+        # xaxis_minor_tick_hours : list = None,
+        # errorBand : Tuple[str,str] = None,
+        # error_band_fmt : Union[str,Tuple[str,str]] = None,
+        # forecast_table : bool = None,
+        # footnote_height : float = None
         ) -> None:
         """For each series_prono (where plot_params is defined) of each variable of each node, print time-value chart including observed data
         
@@ -946,7 +947,7 @@ class Topology():
         xaxis_minor_tick_hours : list = [3,9,15,21]
             Hours of location of minor ticks of x axis
 
-        error_band : tuple[str,str] = None
+        errorBand : tuple[str,str] = None
             Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
 
         error_band_fmt : str = None
@@ -958,68 +959,72 @@ class Topology():
         footnote_height : float = 0.2
             Height of space for footnote in inches    
         """
-        output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
-        footnote = getParamOrDefaultTo("footnote",footnote,self.plot_params)
-        figsize = getParamOrDefaultTo("figsize",figsize,self.plot_params)
-        markersize = getParamOrDefaultTo("markersize",markersize,self.plot_params)  
-        prono_annotation = getParamOrDefaultTo("prono_annotation",prono_annotation,self.plot_params)  
-        obsLine = getParamOrDefaultTo("obsLine",obsLine,self.plot_params)
-        obs_annotation = getParamOrDefaultTo("obs_annotation",obs_annotation,self.plot_params)
-        forecast_date_annotation = getParamOrDefaultTo("forecast_date_annotation",forecast_date_annotation,self.plot_params)
-        output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
-        ylim = getParamOrDefaultTo("ylim",ylim,self.plot_params)
-        errorBandLabel = getParamOrDefaultTo("errorBandLabel",errorBandLabel,self.plot_params)
-        obs_label = getParamOrDefaultTo("obs_label",obs_label,self.plot_params)
-        tz = getParamOrDefaultTo("tz",tz,self.plot_params)
-        prono_label = getParamOrDefaultTo("prono_label",prono_label,self.plot_params)
-        title = getParamOrDefaultTo("title",title,self.plot_params)
-        datum_template_string = getParamOrDefaultTo("datum_template_string",datum_template_string,self.plot_params)
-        title_template_string = getParamOrDefaultTo("title_template_string",title_template_string,self.plot_params)
-        x_label = getParamOrDefaultTo("x_label",x_label,self.plot_params)
-        y_label = getParamOrDefaultTo("y_label",y_label,self.plot_params)
-        xlim = getParamOrDefaultTo("xlim",xlim,self.plot_params)
-        text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,self.plot_params)
-        prono_fmt = getParamOrDefaultTo("prono_fmt",prono_fmt,self.plot_params)
-        annotate = getParamOrDefaultTo("annotate",annotate,self.plot_params, True)
-        table_columns = getParamOrDefaultTo("table_columns",table_columns,self.plot_params, ["Fecha", "Nivel"])
-        date_form = getParamOrDefaultTo("date_form",date_form,self.plot_params,"%H hrs \n %d-%b")
-        xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours",xaxis_minor_tick_hours,self.plot_params,[3,9,15,21])
-        error_band = getParamOrDefaultTo("error_band",error_band,self.plot_params)
-        error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,self.plot_params,"k-")
-        forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,self.plot_params,True)
-        footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,self.plot_params)
+        # locals_ = { k: v for k, v in locals().items() if v is not None}
+        # plot_prono_kwargs = {**self.plot_params, **kwargs} # **locals_}
+        # output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
+        # footnote = getParamOrDefaultTo("footnote",footnote,self.plot_params)
+        # figsize = getParamOrDefaultTo("figsize",figsize,self.plot_params)
+        # markersize = getParamOrDefaultTo("markersize",markersize,self.plot_params)  
+        # prono_annotation = getParamOrDefaultTo("prono_annotation",prono_annotation,self.plot_params)  
+        # obsLine = getParamOrDefaultTo("obsLine",obsLine,self.plot_params)
+        # obs_annotation = getParamOrDefaultTo("obs_annotation",obs_annotation,self.plot_params)
+        # forecast_date_annotation = getParamOrDefaultTo("forecast_date_annotation",forecast_date_annotation,self.plot_params)
+        # output_dir = getParamOrDefaultTo("output_dir",output_dir,self.plot_params)
+        # ylim = getParamOrDefaultTo("ylim",ylim,self.plot_params)
+        # errorBandLabel = getParamOrDefaultTo("errorBandLabel",errorBandLabel,self.plot_params)
+        # obs_label = getParamOrDefaultTo("obs_label",obs_label,self.plot_params)
+        # tz = getParamOrDefaultTo("tz",tz,self.plot_params)
+        # prono_label = getParamOrDefaultTo("prono_label",prono_label,self.plot_params)
+        # title = getParamOrDefaultTo("title",title,self.plot_params)
+        # datum_template_string = getParamOrDefaultTo("datum_template_string",datum_template_string,self.plot_params)
+        # title_template_string = getParamOrDefaultTo("title_template_string",title_template_string,self.plot_params)
+        # x_label = getParamOrDefaultTo("x_label",x_label,self.plot_params)
+        # y_label = getParamOrDefaultTo("y_label",y_label,self.plot_params)
+        # xlim = getParamOrDefaultTo("xlim",xlim,self.plot_params)
+        # text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,self.plot_params)
+        # prono_fmt = getParamOrDefaultTo("prono_fmt",prono_fmt,self.plot_params)
+        # annotate = getParamOrDefaultTo("annotate",annotate,self.plot_params, True)
+        # table_columns = getParamOrDefaultTo("table_columns",table_columns,self.plot_params, ["Fecha", "Nivel"])
+        # date_form = getParamOrDefaultTo("date_form",date_form,self.plot_params,"%H hrs \n %d-%b")
+        # xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours",xaxis_minor_tick_hours,self.plot_params,[3,9,15,21])
+        # errorBand = getParamOrDefaultTo("errorBand",errorBand,self.plot_params)
+        # error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,self.plot_params,"k-")
+        # forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,self.plot_params,True)
+        # footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,self.plot_params)
         
         for node in self.nodes:
             node.plotProno(
-                output_dir,
-                figsize=figsize,
-                title=title,
-                markersize=markersize,
-                obs_label=obs_label,
-                tz=tz,
-                prono_label=prono_label,
-                footnote=footnote,
-                errorBandLabel=errorBandLabel,
-                obsLine=obsLine,
-                prono_annotation=prono_annotation,
-                obs_annotation=obs_annotation,
-                forecast_date_annotation=forecast_date_annotation,
-                ylim=ylim,
-                datum_template_string=datum_template_string,
-                title_template_string=title_template_string,
-                x_label=x_label,
-                y_label=y_label,
-                xlim=xlim,
-                text_xoffset=text_xoffset,
-                prono_fmt=prono_fmt,
-                annotate=annotate,
-                table_columns=table_columns,
-                date_form=date_form,
-                xaxis_minor_tick_hours=xaxis_minor_tick_hours,
-                error_band=error_band,
-                error_band_fmt=error_band_fmt,
-                forecast_table=forecast_table,
-                footnote_height=footnote_height)
+                **kwargs
+                # output_dir,
+                # figsize=figsize,
+                # title=title,
+                # markersize=markersize,
+                # obs_label=obs_label,
+                # tz=tz,
+                # prono_label=prono_label,
+                # footnote=footnote,
+                # errorBandLabel=errorBandLabel,
+                # obsLine=obsLine,
+                # prono_annotation=prono_annotation,
+                # obs_annotation=obs_annotation,
+                # forecast_date_annotation=forecast_date_annotation,
+                # ylim=ylim,
+                # datum_template_string=datum_template_string,
+                # title_template_string=title_template_string,
+                # x_label=x_label,
+                # y_label=y_label,
+                # xlim=xlim,
+                # text_xoffset=text_xoffset,
+                # prono_fmt=prono_fmt,
+                # annotate=annotate,
+                # table_columns=table_columns,
+                # date_form=date_form,
+                # xaxis_minor_tick_hours=xaxis_minor_tick_hours,
+                # errorBand=errorBand,
+                # error_band_fmt=error_band_fmt,
+                # forecast_table=forecast_table,
+                # footnote_height=footnote_height
+            )
     def printReport(self) -> dict:
         """
         Print topology report

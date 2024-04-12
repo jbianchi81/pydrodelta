@@ -942,37 +942,38 @@ class NodeVariable:
     def plotProno(
         self,
         output_dir : str = None,
-        figsize : tuple = None,
-        title : str = None,
-        markersize : int = None,
-        obs_label : str = None,
-        tz : str = None,
-        prono_label : str = None,
-        footnote : str = None,
-        errorBandLabel : str = None,
-        obsLine : bool = None,
-        prono_annotation : str = None,
-        obs_annotation : str = None,
-        forecast_date_annotation : str = None,
-        ylim : tuple = None,
-        station_name : str = None,
-        ydisplay : float = None,
-        text_xoffset : float = None,
-        xytext : tuple = None,
-        datum_template_string : str = None,
-        title_template_string : str = None,
-        x_label : str = None,
-        y_label : str = None,
-        xlim : tuple = None,
-        prono_fmt : str = None,
-        annotate : bool = True,
-        table_columns : list = None,
-        date_form : str = None,
-        xaxis_minor_tick_hours : list = None,
-        error_band : Tuple[str,str] = None,
-        error_band_fmt : str = None,
-        forecast_table : bool = None,
-        footnote_height : float = None
+        **kwargs
+        # figsize : tuple = None,
+        # title : str = None,
+        # markersize : int = None,
+        # obs_label : str = None,
+        # tz : str = None,
+        # prono_label : str = None,
+        # footnote : str = None,
+        # errorBandLabel : str = None,
+        # obsLine : bool = None,
+        # prono_annotation : str = None,
+        # obs_annotation : str = None,
+        # forecast_date_annotation : str = None,
+        # ylim : tuple = None,
+        # station_name : str = None,
+        # ydisplay : float = None,
+        # text_xoffset : float = None,
+        # xytext : tuple = None,
+        # datum_template_string : str = None,
+        # title_template_string : str = None,
+        # x_label : str = None,
+        # y_label : str = None,
+        # xlim : tuple = None,
+        # prono_fmt : str = None,
+        # annotate : bool = True,
+        # table_columns : list = None,
+        # date_form : str = None,
+        # xaxis_minor_tick_hours : list = None,
+        # errorBand : Tuple[str,str] = None,
+        # error_band_fmt : str = None,
+        # forecast_table : bool = None,
+        # footnote_height : float = None
         ) -> None:
         """For each serie in series_prono, plot .data time series together with observed data series[0].data
 
@@ -1067,7 +1068,7 @@ class NodeVariable:
         xaxis_minor_tick_hours : list = [3,9,15,21]
             Hours of location of minor ticks of x axis
         
-        error_band : tuple[str,str] = None
+        errorBand : tuple[str,str] = None
             Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
 
         error_band_fmt : str = None
@@ -1079,6 +1080,7 @@ class NodeVariable:
         footnote_height : float = 0.2
             Height of space for footnote in inches
         """
+        # locals_ = {k: v for k, v in locals().items() if v is not None and k not in ["output_dir"]}
         if self.series_prono is None:
             logging.debug("Missing series_prono, skipping variable")
             return
@@ -1087,64 +1089,76 @@ class NodeVariable:
             if output_file is None:
                 logging.debug("Missing output_dir or output_file, skipping serie")
                 continue
-            station_name = getParamOrDefaultTo("station_name",station_name,serie_prono.plot_params,self.series[0].metadata["estacion"]["nombre"] if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None)
-            thresholds = self.series[0].getThresholds() if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None
-            datum = self.series[0].metadata["estacion"]["cero_ign"] if self.series[0].metadata is not None and "estacion" in self.series[0].metadata else None
-            error_band = error_band if error_band is not None else serie_prono.plot_params["error_band"] if "error_band" in serie_prono.plot_params else ("error_band_01","error_band_99") if serie_prono.adjust_results is not None else None
+            defaults = {
+                "output_file": output_file
+            }
+            if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
+                defaults["station_name"] = self.series[0].metadata["estacion"]["nombre"]
+            if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
+                defaults["thresholds"] = self.series[0].getThresholds()
+            if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
+                defaults["datum"] = self.series[0].metadata["estacion"]["cero_ign"]
+            if serie_prono.adjust_results is not None:
+                defaults["error_band"] = ("error_band_01","error_band_99")
+            if self._node is not None and self._node._topology is not None:
+                plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
+            else:
+                plot_prono_kwargs = {**defaults, **serie_prono.plot_params, **kwargs}
             # logging.debug("error_band: %s" % str(error_band))
-            ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
-            ydisplay = getParamOrDefaultTo("ydisplay",ydisplay,serie_prono.plot_params)
-            text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,serie_prono.plot_params)
-            xytext = getParamOrDefaultTo("xytext",xytext,serie_prono.plot_params)
-            title = getParamOrDefaultTo("title",title,serie_prono.plot_params)
-            obs_label = getParamOrDefaultTo("obs_label",obs_label,serie_prono.plot_params)
-            tz = getParamOrDefaultTo("tz",tz,serie_prono.plot_params)
-            prono_label = getParamOrDefaultTo("prono_label",prono_label,serie_prono.plot_params)
-            errorBandLabel = getParamOrDefaultTo("errorBandLabel",errorBandLabel,serie_prono.plot_params)
-            obsLine = getParamOrDefaultTo("obsLine",obsLine,serie_prono.plot_params)
-            footnote = getParamOrDefaultTo("footnote",footnote,serie_prono.plot_params)
-            xlim = getParamOrDefaultTo("xlim",xlim,serie_prono.plot_params)
-            table_columns  = getParamOrDefaultTo("table_columns",table_columns,serie_prono.plot_params)
-            date_form = getParamOrDefaultTo("date_form",date_form,serie_prono.plot_params)
-            xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours", xaxis_minor_tick_hours, serie_prono.plot_params)
-            error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params)
-            forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,serie_prono.plot_params)
-            footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,serie_prono.plot_params)
+            # ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
+            # ydisplay = getParamOrDefaultTo("ydisplay",ydisplay,serie_prono.plot_params)
+            # text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,serie_prono.plot_params)
+            # xytext = getParamOrDefaultTo("xytext",xytext,serie_prono.plot_params)
+            # title = getParamOrDefaultTo("title",title,serie_prono.plot_params)
+            # obs_label = getParamOrDefaultTo("obs_label",obs_label,serie_prono.plot_params)
+            # tz = getParamOrDefaultTo("tz",tz,serie_prono.plot_params)
+            # prono_label = getParamOrDefaultTo("prono_label",prono_label,serie_prono.plot_params)
+            # errorBandLabel = getParamOrDefaultTo("errorBandLabel",errorBandLabel,serie_prono.plot_params)
+            # obsLine = getParamOrDefaultTo("obsLine",obsLine,serie_prono.plot_params)
+            # footnote = getParamOrDefaultTo("footnote",footnote,serie_prono.plot_params)
+            # xlim = getParamOrDefaultTo("xlim",xlim,serie_prono.plot_params)
+            # table_columns  = getParamOrDefaultTo("table_columns",table_columns,serie_prono.plot_params)
+            # date_form = getParamOrDefaultTo("date_form",date_form,serie_prono.plot_params)
+            # xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours", xaxis_minor_tick_hours, serie_prono.plot_params)
+            # error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params)
+            # forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,serie_prono.plot_params)
+            # footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,serie_prono.plot_params)
             plot_prono(
                 self.data,
                 serie_prono.data,
-                output_file=output_file,
-                title=title,
-                markersize=markersize,
-                prono_label=prono_label,
-                obs_label=obs_label,
                 forecast_date=serie_prono.metadata["forecast_date"],
-                errorBand=error_band,
-                errorBandLabel=errorBandLabel,
-                obsLine=obsLine,
-                prono_annotation=prono_annotation,
-                obs_annotation=obs_annotation,
-                forecast_date_annotation=forecast_date_annotation,
-                station_name=station_name,
-                thresholds=thresholds,
-                datum=datum,
-                footnote=footnote,
-                figsize=figsize,
-                ylim=ylim,
-                ydisplay=ydisplay,
-                text_xoffset=text_xoffset,
-                xytext=xytext,
-                tz=tz,
-                datum_template_string=datum_template_string,
-                title_template_string=title_template_string,
-                x_label=x_label,
-                y_label=y_label,
-                xlim=xlim,
-                prono_fmt=prono_fmt,
-                annotate=annotate,
-                table_columns=table_columns,
-                date_form=date_form,
-                xaxis_minor_tick_hours=xaxis_minor_tick_hours,
-                error_band_fmt=error_band_fmt,
-                forecast_table=forecast_table,
-                footnote_height=footnote_height)
+                **plot_prono_kwargs
+                # title=title,
+                # markersize=markersize,
+                # prono_label=prono_label,
+                # obs_label=obs_label,
+                # errorBand=errorBand,
+                # errorBandLabel=errorBandLabel,
+                # obsLine=obsLine,
+                # prono_annotation=prono_annotation,
+                # obs_annotation=obs_annotation,
+                # forecast_date_annotation=forecast_date_annotation,
+                # station_name=station_name,
+                # thresholds=thresholds,
+                # datum=datum,
+                # footnote=footnote,
+                # figsize=figsize,
+                # ylim=ylim,
+                # ydisplay=ydisplay,
+                # text_xoffset=text_xoffset,
+                # xytext=xytext,
+                # tz=tz,
+                # datum_template_string=datum_template_string,
+                # title_template_string=title_template_string,
+                # x_label=x_label,
+                # y_label=y_label,
+                # xlim=xlim,
+                # prono_fmt=prono_fmt,
+                # annotate=annotate,
+                # table_columns=table_columns,
+                # date_form=date_form,
+                # xaxis_minor_tick_hours=xaxis_minor_tick_hours,
+                # error_band_fmt=error_band_fmt,
+                # forecast_table=forecast_table,
+                # footnote_height=footnote_height
+            )

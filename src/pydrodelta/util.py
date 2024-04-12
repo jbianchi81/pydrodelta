@@ -13,7 +13,7 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 import csv
 import os.path
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 def interval2timedelta(interval : Union[dict,float,timedelta]):
     """Parses duration dict or number of days into datetime.timedelta object

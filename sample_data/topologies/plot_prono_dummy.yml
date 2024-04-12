@@ -16,7 +16,7 @@ plot_params:
   datum_template_string: "          El cero de la escala de %s corresponde a %s mMOP / %s mIGN \n"
   title_template_string: "Previsión de niveles a corto plazo en %s"
   obsLine: true
-  prono_fmt: b+
+  prono_fmt: r+
   annotate: false
   table_columns: 
   - dd/mm hh
@@ -70,5 +70,5 @@ nodes:
       - ["2024-01-08T03:00:00.000Z", 2.0]
       plot_params:
         ylim: [0,9]
-        nombre_estacion: Estación
+        station_name: Estación
         output_file: results/plot_prono.png
