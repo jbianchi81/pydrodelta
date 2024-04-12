@@ -320,7 +320,7 @@ class ProcedureFunction:
                     range_min = None
                     range_max = None
                 point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max))
-            points.append(array(point))
+            points.append(list(point))
         return points
 
     def setParameters(

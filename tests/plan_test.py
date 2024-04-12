@@ -116,5 +116,15 @@ class Test_Plan(TestCase):
         plan.execute(upload = False)
         self.assertTrue(isinstance(plan.procedures[0].calibration.score, DataFrame))
 
+    def test_calibration_save_result_raise_exception(self):
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**config)
+        self.assertRaises(
+            Exception, 
+            plan.procedures[0].calibration.saveResult,
+            "results/dummy_sac_cal_result.json"
+        )
+        # plan.execute(upload = False)
+    
 
         
