@@ -23,6 +23,7 @@ from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.duration_descriptor import DurationDescriptor
+from .descriptors.duration_descriptor_default_none import DurationDescriptorDefaultNone
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
@@ -46,7 +47,7 @@ class Topology():
     """time of day where first timestep start"""
     time_offset_end = DurationDescriptor()
     """time of day where last timestep ends"""
-    interpolation_limit = DurationDescriptor()
+    interpolation_limit = DurationDescriptorDefaultNone()
     """maximum duration between observations for interpolation"""
     extrapolate = BoolDescriptor()
     """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
