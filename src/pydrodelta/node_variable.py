@@ -872,6 +872,8 @@ class NodeVariable:
             Extrapolate up to a limit of limit"""
         if self.data is not None:
             extrapolate = extrapolate if extrapolate is not None else self.extrapolate
+            # logging.debug("limit: %s" % str(limit))
+            # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
             interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))

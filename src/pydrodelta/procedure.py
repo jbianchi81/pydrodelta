@@ -171,11 +171,11 @@ class Procedure():
             'parameters': self.parameters, 
             'time_interval': self.time_interval, 
             'time_offset': self.time_offset, 
-            'input': [x.to_dict(orient="records") for x in self.input] if self.input is not None else None, 
-            'output': [x.to_dict(orient="records") for x in self.output] if self.output is not None else None, 
-            'output_obs': [x.to_dict(orient="records") for x in self.output_obs] if self.output_obs is not None else None, 
+            'input': [x.to_dict(orient="records") if isinstance(x, DataFrame) else x for x in self.input] if self.input is not None else None, 
+            'output': [x.to_dict(orient="records") if isinstance(x, DataFrame) else x  for x in self.output] if self.output is not None else None, 
+            'output_obs': [x.to_dict(orient="records")  if isinstance(x, DataFrame) else x for x in self.output_obs] if self.output_obs is not None else None, 
             'states': self.states.to_dict(orient="records") if isinstance(self.states,DataFrame) else self.states,
-            'procedure_function_results': self.procedure_function_results.toDict(), 
+            'procedure_function_results': self.procedure_function_results.toDict() if self.procedure_function_results is not None else None, 
             'save_results': self.save_results, 
             'overwrite': self.overwrite, 
             'overwrite_original': self.overwrite_original, 
@@ -412,7 +412,7 @@ class Procedure():
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
-            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics],
+            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics] if self.procedure_function_results.statistics is not None else None,
             "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results.statistics_val is not None else None
         }
     def read_results(self) -> dict:

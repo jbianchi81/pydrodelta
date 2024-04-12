@@ -49,6 +49,14 @@ class Calibration:
     scores = DataFrameDescriptor()
     """Calibration/Validation scores"""
 
+    @property
+    def result(self) -> dict:
+        return {
+            "parameters": self.calibration_result[0] if self.calibration_result is not None else None,
+            "scores": self.scores.to_dict(orient="records") if self.scores is not None else None
+        }
+
+
     def __init__(
             self,
             procedure,
@@ -192,14 +200,12 @@ class Calibration:
         raise NotImplementedError("run() method not implemented for the base class Calibration. It must be overriden by the derived class")
 
     def saveResult(self, file : str, format : str ="json") -> None:
-        result = {
-            "parameters": self.calibration_result[0],
-            "scores": self.scores.to_dict(orient="records") if self.scores is not None else None
-        }
+        if self.calibration_result is None:
+            raise Exception("calibration_result is not set")
         with open("%s/%s" % (os.environ["PYDRODELTA_DIR"],file) ,"w") as f:
             if format.lower() == "json":
-                json.dump(result, f)
+                json.dump(self.result, f)
             elif format.lower() == "yml" or format.lower() == "yaml":
-                yaml.dump(result, f)
+                yaml.dump(self.result, f)
             else:
                 raise ValueError("Invalid format: must be one of json, yaml")
