@@ -58,7 +58,7 @@
         "type": "number"
       }
     },
-    "nombre_estacion": {
+    "station_name": {
       "type": "string"
     },
     "output_file": {
