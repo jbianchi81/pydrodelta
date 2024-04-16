@@ -539,6 +539,10 @@ def plot_prono(
         ax.plot(extraObs.index, extraObs['valor'],'o',color='grey',label=extraObsLabel,linewidth=3,alpha=0.5)
         ax.plot(extraObs.index, extraObs['valor'],'-',color='grey',linewidth=1,alpha=0.5)
     if errorBand is not None:
+        if errorBand[0] not in sim_df.columns:
+            raise ValueError("Error: Qualifier %s, chosen for inferior error band, missing in columns" % errorBand[0])
+        if errorBand[1] not in sim_df.columns:
+            raise ValueError("Error: Qualifier %s, chosen for superior error band, missing in columns" % errorBand[1])
         if type(error_band_fmt) == str and error_band_fmt == 'errorbar':
             ax.errorbar(sim_df.index, sim_df['valor'], yerr=[sim_df["valor"] - sim_df[errorBand[0]], sim_df[errorBand[1]] - sim_df["valor"]], capsize=8)
         else:

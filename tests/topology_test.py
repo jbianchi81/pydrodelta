@@ -199,3 +199,9 @@ class Test_Topology(TestCase):
         self.assert_("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
         file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
         self.assert_(file_mtime  > time.time() - 10)
+
+    def test_plot_bad_qualifier(self):
+        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**config)
+        topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
+        self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
