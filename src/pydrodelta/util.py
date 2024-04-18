@@ -499,7 +499,8 @@ def plot_prono(
     xaxis_minor_tick_hours : list = [3,9,15,21],
     error_band_fmt : Union[str,Tuple[str,str]] = 'k-',
     forecast_table : bool = True,
-    footnote_height : float = 0.2
+    footnote_height : float = 0.2,
+    prono_annotation_color : str = "black"
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -583,7 +584,8 @@ def plot_prono(
         xdisplay = ahora + timedelta(days=1.0)
         ax.annotate(prono_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
-            bbox=bbox, fontsize=18)#arrowprops=arrowprops
+            bbox=bbox, fontsize=18,
+            color = prono_annotation_color)#arrowprops=arrowprops
         xdisplay = ahora - timedelta(days=2)
         ax.annotate(obs_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',

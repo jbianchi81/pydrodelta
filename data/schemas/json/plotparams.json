@@ -159,6 +159,11 @@
       "type": "number",
       "description": "Height of space for footnote in inches",
       "default": 0.2
+    },
+    "prono_annotation_color": {
+      "type": "string",
+      "description": "forecast annotation color",
+      "default": "black"
     }
   }
 }

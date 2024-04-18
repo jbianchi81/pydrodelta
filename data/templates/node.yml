@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=../../data/schemas/json/node.json
+---
+id: 1
+name: Station 1
+time_interval:
+  days: 1
+
+variables:
+- id: 1
+  series:
+  - series_id: 1
+    lim_outliers:
+    - -1
+    - 10
+    lim_jump: 4
+    x_offset: 0
+    y_offset: 0
+    comment: Station 1 - Observed Precipitation
+  series_prono:
+  - series_id: 2
+    comment: Station 1 - Forecasted Precipitation
+    cal_id: 1
+    qualifier: all
+    main_qualifier: main
+    adjust: false
+    plot_params:
+      ylim: [0,9]
+      station_name: Station 1
+      output_file: results/station_1_precip.png
