@@ -5,7 +5,8 @@
   "type": "object",
   "properties": {
     "series_id": {
-      "type": "number"
+      "type": "integer",
+      "description": "Series identifier"
     },
     "tipo": {
       "$ref": "seriestipo.json"
@@ -15,29 +16,46 @@
       "items": {
         "type": "number"
       },
-      "minItems": 2
+      "minItems": 2,
+      "examples": [
+        [
+          -10,
+          10
+        ]
+      ]
     },
     "lim_jump": {
-      "type": "number"
+      "type": "number",
+      "description": "Maximum absolute value for jump detection"
     },
     "x_offset": {
-      "$ref": "timeinterval.json"
+      "$ref": "timeinterval.json",
+      "description": "Time offset applied to the timestamps of the input data on import",
+      "default": 0
     },
     "y_offset": {
-      "type": "number"
+      "type": "number",
+      "description": "Offset applied to the values of the input data on import",
+      "default": 0
     },
     "comment": {
-      "type": "string"
+      "type": "string",
+      "description": "Comment about this series"
     },
     "moving_average": {
-      "$ref": "timeinterval.json"
+      "$ref": "timeinterval.json",
+      "description": "Compute a moving average using a time window of this size to the input data"
     },
     "csv_file": {
-      "type": "string"
+      "type": "string",
+      "description": "Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header",
+      "examples": [
+        "path/input_data.csv"
+      ]
     },
     "observations": {
       "type": "array",
-      "description": "list of observations. Each element is an ObservationDict or an ObservationArray",
+      "description": "list of observations. Each element must be an ObservationDict or an ObservationArray",
       "items": {
         "oneOf": [
           {
@@ -51,10 +69,14 @@
     },
     "save_post": {
       "type": "string",
-      "description": "Local path where to save output data sent to API (when uploading analysis results)"
+      "description": "Local path where to save output data sent to API (when uploading analysis results)",
+      "examples": [
+        "path/output_data.json"
+      ]
     },
     "name": {
-      "type": "string"
+      "type": "string",
+      "description": "Series name"
     }
   },
   "required": [

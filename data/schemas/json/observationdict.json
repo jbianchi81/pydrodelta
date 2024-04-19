@@ -3,10 +3,13 @@
   "schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ObservationDict",
   "type": "object",
-  "description": "An object with the properties 'timestart' (ISO datetime string) and 'valor' (float)",
+  "description": "An object with the properties 'timestart' (ISO datetime string) and 'valor' (float or null). It represents a timestamped numerical value of the observed/simulated variable.",
   "properties": {
     "timestart": {
-      "type": "string"
+      "type": "string",
+      "examples": [
+        "2024-01-01T00:00:00.000Z"
+      ]
     },
     "valor": {
       "oneOf": [
@@ -15,6 +18,10 @@
         },{
           "type": "null"
         }
+      ],
+      "examples": [
+        0,
+        null
       ]
     }
   },

@@ -7,5 +7,7 @@
     "puntual",
     "areal",
     "raster"
-  ]
+  ],
+  "default": "puntual",
+  "description": "Type of series according to the geometry of the feature of interest."
 }

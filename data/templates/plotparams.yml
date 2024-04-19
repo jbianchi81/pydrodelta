@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=../../data/schemas/json/plotparams.json
+---
+figsize:
+  - 14
+  - 12
+forecast_date_annotation: forecast date
+errorBandLabel: error band
+prono_annotation: forecast
+obs_annotation: past
+x_label: date
+y_label: value
+datum_template_string: Observed precipitation at %s
+title_template_string: forecast at %s
+obs_label: observed
+prono_label: forecasted
+footnote: This is the footnote text.
+xlim:
+  - '2024-01-01T03:00:00.000Z'
+  - '2024-01-15T03:00:00.000Z'
+ylim:
+  - 0
+  - 2.5
+station_name: Station
+output_file: path/filename.png
+ydisplay: 1
+text_xoffset:
+  - -8
+  - -8
+xytext:
+  - -300
+  - -200
+prono_fmt: b-
+annotate: true
+table_columns:
+  - Fecha
+  - Nivel
+date_form: |-
+  %H hrs 
+   %d-%b
+xaxis_minor_tick_hours:
+  - 3
+  - 9
+  - 15
+  - 21
+errorBand:
+  - error_band_01
+  - error_band_99
+error_band_fmt: k-
+forecast_table: true
+footnote_height: 0.2
+prono_annotation_color: black
+format: png

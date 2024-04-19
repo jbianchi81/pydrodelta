@@ -8,5 +8,11 @@
   "maxItems": 2,
   "items": {
     "type": "integer"
-  }
+  },
+  "examples": [
+    [
+      1,
+      2
+    ]
+  ]
 }

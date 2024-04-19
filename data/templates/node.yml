@@ -2,20 +2,38 @@
 ---
 id: 1
 name: Station 1
+geometry:
+  type: Point
+  coordinates:
+  - -58.516667
+  - -34.833333
 time_interval:
   days: 1
-
 variables:
 - id: 1
+  name: Precipitation
   series:
   - series_id: 1
+    tipo: puntual
     lim_outliers:
-    - -1
-    - 10
-    lim_jump: 4
+    - -0.000001
+    - 300
+    lim_jump: 300
     x_offset: 0
     y_offset: 0
     comment: Station 1 - Observed Precipitation
+    moving_average:
+      days: 4
+    csv_file: data/csv/station_1_precip_obs.csv
+    observations:
+    - - "2024-01-01T12:00:00.000Z"
+      - 0
+    - - "2024-01-02T12:00:00.000Z"
+      - 13.5
+    - - "2024-01-03T12:00:00.000Z"
+      - 1.7
+    save_post: results/station_1_precip_analysis_results.json
+    name: Station 1 - Observed precipitation
   series_prono:
   - series_id: 2
     comment: Station 1 - Forecasted Precipitation
@@ -24,6 +42,184 @@ variables:
     main_qualifier: main
     adjust: false
     plot_params:
-      ylim: [0,9]
-      station_name: Station 1
-      output_file: results/station_1_precip.png
+      figsize:
+        - 14
+        - 12
+      forecast_date_annotation: forecast date
+      errorBandLabel: error band
+      prono_annotation: forecast
+      obs_annotation: past
+      x_label: date
+      y_label: value
+      datum_template_string: Observed precipitation at %s
+      title_template_string: forecast at %s
+      obs_label: observed
+      prono_label: forecasted
+      footnote: This is the footnote text.
+      xlim:
+        - '2024-01-01T03:00:00.000Z'
+        - '2024-01-15T03:00:00.000Z'
+      ylim:
+        - 0
+        - 2.5
+      station_name: Station
+      output_file: path/filename.png
+      ydisplay: 1
+      text_xoffset:
+        - -8
+        - -8
+      xytext:
+        - -300
+        - -200
+      prono_fmt: b-
+      annotate: true
+      table_columns:
+        - Fecha
+        - Nivel
+      date_form: |-
+        %H hrs 
+        %d-%b
+      xaxis_minor_tick_hours:
+        - 3
+        - 9
+        - 15
+        - 21
+      errorBand:
+        - error_band_01
+        - error_band_99
+      error_band_fmt: k-
+      forecast_table: true
+      footnote_height: 0.2
+      prono_annotation_color: black
+      format: png
+    tipo: puntual
+    lim_outliers:
+    - -0.000001
+    - 300
+    lim_jump: 300
+    x_offset: 0
+    y_offset: 0
+    moving_average:
+      days: 4
+    csv_file: data/csv/station_1_precip_prono.csv
+    observations:
+    - - "2024-01-03T12:00:00.000Z"
+      - 1.05
+    - - "2024-01-04T12:00:00.000Z"
+      - 24.1
+    name: Station 1 - Forecasted precipitation
+  series_output:
+  - series_id: 3
+    tipo: puntual
+    x_offset: 0
+    y_offset: 0
+    comment: Station 1 - Analysis of Precipitation
+    name: Station 1 - Analysis of precipitation
+  series_sim:
+  - series_id: 4
+    tipo: puntual
+    x_offset: 0
+    y_offset: 0
+    comment: Station 1 - Simulated Precipitation
+    name: Station 1 - Observed precipitation
+    cal_id: 1
+    qualifier: main
+    adjust: false
+    plot_params:
+      figsize:
+        - 14
+        - 12
+      forecast_date_annotation: forecast date
+      errorBandLabel: error band
+      prono_annotation: forecast
+      obs_annotation: past
+      x_label: date
+      y_label: value
+      datum_template_string: Observed precipitation at %s
+      title_template_string: forecast at %s
+      obs_label: observed
+      prono_label: forecasted
+      footnote: This is the footnote text.
+      xlim:
+        - '2024-01-01T03:00:00.000Z'
+        - '2024-01-15T03:00:00.000Z'
+      ylim:
+        - 0
+        - 2.5
+      station_name: Station
+      output_file: path/filename.png
+      ydisplay: 1
+      text_xoffset:
+        - -8
+        - -8
+      xytext:
+        - -300
+        - -200
+      prono_fmt: b-
+      annotate: true
+      table_columns:
+        - Fecha
+        - Nivel
+      date_form: |-
+        %H hrs 
+        %d-%b
+      xaxis_minor_tick_hours:
+        - 3
+        - 9
+        - 15
+        - 21
+      errorBand:
+        - error_band_01
+        - error_band_99
+      error_band_fmt: k-
+      forecast_table: true
+      footnote_height: 0.2
+      prono_annotation_color: black
+      format: png
+    upload: false
+  derived: false
+  derived_from: 
+    node_id: 2
+    var_id: 1
+    x_offset: 
+      days: 1
+    y_offset: 0.5
+  interpolated_from: 
+    node_id_1: 2
+    node_id_2: 3
+    var_id_1: 1
+    var_id_2: 1
+    x_offset: 
+      days: 1
+    y_offset: 0.5
+    interpolation_coefficient: 0.5
+  adjust_from: 
+    truth: 1
+    sim: 3
+    method: lfit
+  linear_combination:
+    intercept: 0
+    coefficients:
+    - 1
+  time_interval: 
+   days: 1
+  interpolation_limit:
+   days: 1
+  extrapolate: true
+hec_node: 
+  River: river_name
+  Reach: reach_name
+  River_Stat: 0
+  Interval: PT1D
+  CondBorde: Stage Hydrograph
+node_type: station
+description: Station 1 descrption
+basin_pars: 
+  area: 100000000
+  rho: 0.5
+  ae: 1
+  wp: 0.03
+  area_id: 1
+api_config: 
+  url: http://localhost:8000
+  token: MY_TOKEN

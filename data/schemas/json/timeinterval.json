@@ -10,29 +10,36 @@
             "type": "object",
             "properties": {
                 "hours": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "minutes": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "seconds": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "days": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "weeks": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "months": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "years": {
-                    "type": "number"
+                    "type": "integer"
                 }
             },
             "additionalProperties": false
         }
+    ],
+    "description": "Represents a time duration. If a number, it is read as a decimal number of days. If object, one or more integer properties from hours, minutes, seconds, days, weeks, months or years must be used",
+    "examples": [
+        {
+            "hours": 12
+        },
+        0.5
     ]
 }
 
