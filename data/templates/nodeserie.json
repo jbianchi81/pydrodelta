@@ -1,0 +1,35 @@
+{
+  "$schema": "../../data/schemas/json/nodeserie.json",
+  "series_id": 91515159,
+  "tipo": "puntual",
+  "lim_outliers": [
+    -10,
+    10
+  ],
+  "lim_jump": 853.654,
+  "x_offset": {
+    "hours": 12
+  },
+  "y_offset": 0,
+  "comment": "series comment",
+  "moving_average": {
+    "hours": 12
+  },
+  "csv_file": "path/input_data.csv",
+  "observations": [
+    [
+      "2024-01-01T00:00:00.000Z",
+      0
+    ],
+    [
+      "2024-01-02T00:00:00.000Z",
+      0.5
+    ],
+    [
+      "2024-01-03T00:00:00.000Z",
+      null
+    ]
+  ],
+  "save_post": "path/output_data.json",
+  "name": "series name"
+}
