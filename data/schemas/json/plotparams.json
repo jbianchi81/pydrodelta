@@ -164,6 +164,11 @@
       "type": "string",
       "description": "forecast annotation color",
       "default": "black"
+    },
+    "format": {
+      "type": "string",
+      "description": "output image file format",
+      "default": "png"
     }
   }
 }

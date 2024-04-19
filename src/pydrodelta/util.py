@@ -500,7 +500,8 @@ def plot_prono(
     error_band_fmt : Union[str,Tuple[str,str]] = 'k-',
     forecast_table : bool = True,
     footnote_height : float = 0.2,
-    prono_annotation_color : str = "black"
+    prono_annotation_color : str = "black",
+    format : str = "png"
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -662,7 +663,7 @@ def plot_prono(
     while i < len(list0hrs):
         ax.axvspan(list0hrs[i-1] + timedelta(hours=3), list0hrs[i] + timedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
-    plt.savefig(output_file, format='png')
+    plt.savefig(output_file, format=format)
     plt.close()
 
 def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):
