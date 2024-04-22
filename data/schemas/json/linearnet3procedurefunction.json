@@ -1,0 +1,64 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "linearnet3procedurefunction.json",
+    "title": "LinearNet3ProcedureFunction",
+    "type": "object",
+    "description": "Nash linear net procedure function for 3 inputs and 1 output",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LinearNet3"
+            ]
+        },
+        "parameters": {
+            "type": "object",
+            "desciption": "Model parameters",
+            "properties": {
+                "k_1": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_1": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "k_2": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_2": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "k_3": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_3": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
+            },
+            "required": ["k_1","n_1","k_2","n_2","k_3","n_3"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                }
+            }
+        }
+    },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}
