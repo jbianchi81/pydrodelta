@@ -104,7 +104,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
                 approx="T" if self.approx else "F")
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,dist]
         else:
-            hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,self.n,self.k]
+            hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,self.k,self.n] #línea corregida, estaba invertido el orden de pars k y n LMG 2024/04
         self._engine = HOSH4P1L(
             pars = hosh_pars,
             Boundaries = np.array(input),
