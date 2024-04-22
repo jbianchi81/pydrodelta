@@ -126,6 +126,91 @@ class Test_NodeSerie(unittest.TestCase):
             ]
         )
 
+    def test_series_load_json(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            json_file = "sample_data/json/series_sample.json"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assert_(isinstance(node_serie.data.index,DatetimeIndex))
+
+    def test_series_load_yaml(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            json_file = "sample_data/yaml/series_sample.yaml"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assert_(isinstance(node_serie.data.index,DatetimeIndex))
+
+    def test_series_save_json(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            csv_file = "sample_data/csv/csv_file_sample.csv"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        output_file = "results/series_sample.json"
+        node_serie.saveData(output_file)
+        node_serie_2 = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            json_file = "results/series_sample.json"
+        )
+        node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assertEqual(len(node_serie.data), len(node_serie_2.data))
+
+    def test_series_save_yaml(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            csv_file = "sample_data/csv/csv_file_sample.csv"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        output_file = "results/series_sample.yaml"
+        node_serie.saveData(output_file, format="yaml")
+        node_serie_2 = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            json_file = "results/series_sample.yaml"
+        )
+        node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assertEqual(len(node_serie.data), len(node_serie_2.data))
+
+    def test_series_save_json_list(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            csv_file = "sample_data/csv/csv_file_sample.csv"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        output_file = "results/series_sample_list.json"
+        node_serie.saveData(output_file, schema = "list")
+        node_serie_2 = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            json_file = "results/series_sample_list.json"
+        )
+        node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assertEqual(len(node_serie.data), len(node_serie_2.data))
+
+    def test_series_save_csv(self):
+        node_serie = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            csv_file = "sample_data/csv/csv_file_sample.csv"
+        )
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        output_file = "results/series_sample.csv"
+        node_serie.saveData(output_file,format = "csv")
+        node_serie_2 = NodeSerie(
+            series_id = 1,
+            tipo = "puntual",
+            csv_file = "results/series_sample.csv"
+        )
+        node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        self.assertEqual(len(node_serie.data), len(node_serie_2.data))
 
 if __name__ == '__main__':
     unittest.main()

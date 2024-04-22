@@ -16,6 +16,8 @@ from .descriptors.duration_descriptor import DurationDescriptor
 from .descriptors.duration_descriptor_default_none import DurationDescriptorDefaultNone
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
+import json
+import yaml
 
 input_crud = Crud(**config["input_api"])
 # output_crud = Crud(**config["output_api"])
@@ -74,6 +76,9 @@ class NodeSerie():
     
     csv_file = StringDescriptor()
     """Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header"""
+
+    json_file = StringDescriptor()
+    """Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs"""
     
     @property
     def observations(self) -> List[TVP]:
@@ -95,6 +100,15 @@ class NodeSerie():
     name = StringDescriptor()
     """Series name"""
     
+    output_file = StringDescriptor()
+    """ Save analysis results into this file"""
+
+    output_format = StringDescriptor()
+    """File format for output_file. Defaults to json"""
+
+    output_schema = StringDescriptor()
+    """JSON schema for output_file. Defaults to dict"""
+
     def __init__(
         self,
         series_id : int,
@@ -109,7 +123,11 @@ class NodeSerie():
         save_post : str = None,
         comment : str = None,
         name : str = None,
-        node_variable = None
+        node_variable = None,
+        json_file : str = None,
+        output_file : str = None,
+        output_format : str = "json",
+        output_schema : str = "dict"
         ):
         """
         Parameters:
@@ -146,6 +164,19 @@ class NodeSerie():
             
         node_variable : NodeVariable = None
             NodeVariable of the Topology that contains this Series
+        
+        json_file : str = None
+            Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs
+        
+        output_file = StringDescriptor()
+            Save analysis results into this file
+
+        output_format = StringDescriptor()
+            File format for output_file. Defaults to json
+
+        output_schema = StringDescriptor()
+            JSON schema for output_file. Defaults to dict
+
         """
         self.series_id = series_id
         self.type = tipo
@@ -164,6 +195,10 @@ class NodeSerie():
         self.comment = comment
         self.name = name
         self._variable = node_variable
+        self.json_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],json_file) if json_file is not None else None
+        self.output_file = output_file
+        self.output_format = output_format
+        self.output_schema = output_schema
     
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
@@ -190,12 +225,14 @@ class NodeSerie():
         timeend : datetime,
         input_api_config : dict = None,
         no_metadata : bool = False,
+        tag : str = "obs"
         ) -> None:
         """Load data from source according to configuration. 
         
         Priority is in this order: 
         - if .observations is set, loads time-value pairs from there, 
         - else if .csv_file is set, loads data from said csv file, 
+        - else if .json_file is set, loads data from said json (or yaml) file
         - else loads from input api the series of id .series_id and of type .type
         
         Parameters:
@@ -216,19 +253,35 @@ class NodeSerie():
             - url : str
             - token : str
             - proxy_dict : dict
+        
+        tag : str = "obs"
+            Tag observations with this string
         """
         timestart = util.tryParseAndLocalizeDate(timestart)
         timeend = util.tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
-            data = observacionesListToDataFrame(self.observations,tag="obs")
+            data = observacionesListToDataFrame(self.observations,tag=tag)
             self.data = data[(data.index >= timestart) & (data.index <= timeend)]
             self.metadata = {"id": self.series_id, "tipo": self.type}
         elif(self.csv_file is not None):
             logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.csv_file))
             data = util.readDataFromCsvFile(self.csv_file,self.series_id,timestart,timeend)
-            self.data = observacionesListToDataFrame(data,tag="obs")
+            self.data = observacionesListToDataFrame(data,tag=tag)
             self.metadata = {"id": self.series_id, "tipo": self.type}
+        elif(self.json_file is not None):
+            logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.json_file))
+            series = yaml.load(open(self.json_file,"r",encoding="utf-8"),yaml.CLoader)
+            #,self.series_id,timestart,timeend)
+            if isinstance(series,list):
+                logging.debug("Parsed json is a list")
+                self.data = observacionesListToDataFrame(series,tag=tag)
+                self.metadata = {"id": self.series_id, "tipo": self.type}
+            elif "observaciones" in series:
+                self.data = observacionesListToDataFrame(series["observaciones"],tag=tag)
+                self.metadata = {"id": series["id"] if "id" in series else self.series_id, "tipo": series["tipo"] if "tipo" in series else self.type}
+            else:
+                raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
@@ -239,13 +292,57 @@ class NodeSerie():
                 tipo = self.type, 
                 no_metadata = no_metadata)
             if len(self.metadata["observaciones"]):
-                self.data = observacionesListToDataFrame(self.metadata["observaciones"],tag="obs")
+                self.data = observacionesListToDataFrame(self.metadata["observaciones"],tag=tag)
             else:
                 logging.warning("No data found for series_id=%i" % self.series_id)
                 self.data = createEmptyObsDataFrame(extra_columns={"tag":"str"})
             self.original_data = self.data.copy(deep=True)
             del self.metadata["observaciones"]
     
+    def saveData(
+        self,
+        output_file = None,
+        format : str = None,
+        schema : str = None
+        ) -> None:
+        """Print data into file 
+
+        Args:
+            output_file (_type_): path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+            format (str, optional): File format (json, yaml, csv). Defaults to "json".
+            schema (str, optional): schema of json object (dict, list). Defaults to "dict".
+        """
+        if output_file is None:
+            if self.output_file is None:
+                raise ValueError("Missing output_file or self.output_file")
+            else:
+                output_file = self.output_file
+        try:
+            f = open("%s/%s" % (os.environ["PYDRODELTA_DIR"], output_file), "w")
+        except OSError as e:
+            raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
+        format = format if format is not None else self.output_format if self.output_format is not None else "json"
+        schema = schema if schema is not None else self.output_schema if self.output_schema is not None else "dict"
+        if format == "json":
+            if schema == "dict":
+                json.dump(self.toDict(),f)
+            elif schema == "list":
+                json.dump(self.toList(),f)
+            else:
+                raise ValueError("Invalid schema. Options: dict, list")
+        elif format == "yaml":
+            if schema == "dict":
+                yaml.dump(self.toDict(),f)
+            elif schema == "list":
+                yaml.dump(self.toList(),f)
+            else:
+                raise ValueError("Invalid schema. Options: dict, list")
+        elif format == "csv":
+            f.write(self.toCSV())
+        else:
+            raise ValueError("Invalid format. Options: json, csv")
+        f.close()
+
     def getThresholds(self) -> dict:
         """Read level threshold information from .metadata"""
         if self.metadata is None:

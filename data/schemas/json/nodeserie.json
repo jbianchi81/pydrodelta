@@ -22,7 +22,8 @@
           -10,
           10
         ]
-      ]
+      ],
+      "description": "Minimum and maximum values for outliers removal"
     },
     "lim_jump": {
       "type": "number",
@@ -51,6 +52,13 @@
       "description": "Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header",
       "examples": [
         "path/input_data.csv"
+      ]
+    },
+    "json_file": {
+      "type": "string",
+      "description": "Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs",
+      "examples": [
+        "path/input_data.json"
       ]
     },
     "observations": {

@@ -277,6 +277,7 @@ class Topology():
             f = open(self.report_file,"w")
             json.dump(report,f,indent=2)
             f.close()
+        self.saveSeries()
     def loadData(
         self,
         include_prono : bool = True,
@@ -1209,3 +1210,8 @@ class Topology():
                 f.close()
         else:
             return json.dumps(json_graph.node_link_data(DG),indent=4)
+    
+    def saveSeries(self):
+        """For each series, series_prono, series_sim and series_output of each variable of each node, save data into file if .output_file is defined"""
+        for node in self.nodes:
+            node.saveSeries()

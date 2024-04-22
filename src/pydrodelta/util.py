@@ -711,10 +711,14 @@ def readDataFromCsvFile(csv_file: str,series_id: int,timestart=None,timeend=None
             continue
         if timeend is not None and parsed_timestart > timeend:
             continue
-        if str(series_id) not in o:
+        if str(series_id) in o:
+            parsed_valor = tryParseFloat(o[str(series_id)])
+            data.append({"series_id": series_id, "timestart": parsed_timestart, "valor": parsed_valor})      
+        elif "valor" in o:
+            parsed_valor = tryParseFloat(o["valor"])
+            data.append({"series_id": series_id, "timestart": parsed_timestart, "valor": parsed_valor})
+        else:
             raise Exception("column %s missing from csv file %s." % (series_id,csv_file))
-        parsed_valor = tryParseFloat(o[str(series_id)])
-        data.append({"series_id": series_id, "timestart": parsed_timestart, "valor": parsed_valor})
     return data
 
 def tryParseFloat(value,allow_none=True):

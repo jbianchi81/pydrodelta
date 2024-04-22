@@ -9,6 +9,9 @@ class NodeSeriePronoMetadata:
     series_id = IntDescriptor()
     """Series identifier"""
 
+    series_table = StringDescriptor()
+    """One of series, series_areal, series_rast"""
+
     cal_id = IntDescriptor()
     """Procedure configuration identifier"""
 
@@ -27,7 +30,8 @@ class NodeSeriePronoMetadata:
         cal_id : int = None,
         cor_id : int = None,
         forecast_date : str = None,
-        qualifier : str = None
+        qualifier : str = None,
+        series_table : str = "series"
         ):
         """
         series_id : int = None
@@ -49,16 +53,21 @@ class NodeSeriePronoMetadata:
         qualifier : str = None
 
             Forecast qualifier
+        
+        series_table :str = "series"
+           One of series, series_areal, series_rast
         """
         self.series_id = series_id
         self.cal_id = cal_id
         self.cor_id = cor_id
         self.forecast_date = forecast_date
         self.qualifier = qualifier
+        self.series_table = series_table
     def to_dict(self) -> dict:
         """Convert to dict"""
         return {
             "series_id": self.series_id,
+            "series_table": self.series_table,
             "cal_id": self.cal_id,
             "cor_id": self.cor_id,
             "forecast_date": self.forecast_date,

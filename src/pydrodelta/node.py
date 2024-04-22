@@ -865,3 +865,8 @@ class Node:
         """For each variable of .variables fun applyMovingAverage()"""
         for variable in self.variables.values():
             variable.applyMovingAverage()
+            
+    def saveSeries(self):
+        """For each series, series_prono, series_sim and series_output of each variable, save data into file if .output_file is defined"""
+        for var_id, variable in self.variables.items():
+            variable.saveSeries()

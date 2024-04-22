@@ -31,5 +31,6 @@
     ]
   ],
   "save_post": "path/output_data.json",
-  "name": "series name"
+  "name": "series name",
+  "json_file": "path/input_data.json"
 }

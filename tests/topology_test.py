@@ -205,3 +205,12 @@ class Test_Topology(TestCase):
         topology = Topology(**config)
         topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
         self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
+
+    def test_series_save_csv_batch(self):
+        config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**config)
+        topology.batchProcessInput(include_prono=False)
+        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series[0].output_file))
+        self.assert_(file_mtime  > time.time() - 10)
+        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
+        self.assert_(file_mtime  > time.time() - 10)

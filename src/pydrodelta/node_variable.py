@@ -1099,7 +1099,7 @@ class NodeVariable:
             if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
                 defaults["datum"] = self.series[0].metadata["estacion"]["cero_ign"]
             if serie_prono.adjust_results is not None:
-                defaults["error_band"] = ("error_band_01","error_band_99")
+                defaults["errorBand"] = ("error_band_01","error_band_99")
             if self._node is not None and self._node._topology is not None:
                 plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
             else:
@@ -1162,3 +1162,22 @@ class NodeVariable:
                 # forecast_table=forecast_table,
                 # footnote_height=footnote_height
             )
+
+    def saveSeries(self):
+        """For each series, series_prono, series_sim and series_output, save data into file if .output_file is defined"""
+        if self.series is not None:
+            for serie in self.series:
+                if serie.output_file is not None:
+                    serie.saveData()
+        if self.series_prono is not None:
+            for serie in self.series_prono:
+                if serie.output_file is not None:
+                    serie.saveData()
+        if self.series_sim is not None:
+            for serie in self.series_sim:
+                if serie.output_file is not None:
+                    serie.saveData()
+        if self.series_output is not None:
+            for serie in self.series_output:
+                if serie.output_file is not None:
+                    serie.saveData()

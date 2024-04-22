@@ -22,6 +22,13 @@ class NodeSerieProno(NodeSerie):
         self,
         metadata : dict
     ) -> None:
+        if metadata is not None:
+            if "id" in metadata:
+                metadata["series_id"] = metadata["id"]
+                del metadata["id"]
+            if "tipo" in metadata:
+                metadata["series_table"] = self.getSeriesTable()
+                del metadata["tipo"]
         self._metadata = NodeSeriePronoMetadata(**metadata) if metadata is not None else None
     
     main_qualifier = StringDescriptor()
@@ -63,7 +70,8 @@ class NodeSerieProno(NodeSerie):
         self,
         timestart : datetime,
         timeend : datetime,
-        input_api_config : dict = None
+        input_api_config : dict = None,
+        tag : str = "sim"
         ) -> None:
         """Load forecasted data from source (input api). Retrieves forecast from input api using series_id, cal_id, timestart, and timeend
         
@@ -81,12 +89,15 @@ class NodeSerieProno(NodeSerie):
             Properties:
             - url : str
             - token : str
-            - proxy_dict : dict"""
-        if self.observations is not None:
-            self.data = observacionesListToDataFrame(self.observations, tag = "sim")
-            self.metadata = {
-                "cal_id": self.cal_id
-            }
+            - proxy_dict : dict
+        
+        tag : str = "sim"
+            Tag forecast records with this string"""
+        if self.observations is not None or self.csv_file is not None or self.json_file is not None:
+            super().loadData(timestart, timeend, tag = "sim")
+            # self.data = observacionesListToDataFrame(self.observations, tag = "sim")
+            self.metadata["cal_id"] = self.cal_id
+            return
         else:
             logging.debug("Load prono data for series_id: %i, cal_id: %i, cor_id: %s" % (self.series_id, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
