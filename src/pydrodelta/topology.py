@@ -210,6 +210,17 @@ class Topology():
                     topology=self
                 )
             )
+    
+    def getNode(
+        self,
+        node_id : int) -> Node:
+        if self.nodes is None:
+            raise Exception("Nodes is not defined")
+        for i, n in enumerate(self.nodes):
+            if n.id == node_id:
+                return n
+        raise KeyError("Node with id %i not found" % node_id)
+    
     def batchProcessInput(
         self,
         include_prono : bool = False,
@@ -785,7 +796,7 @@ class Topology():
         output : str or None
             If not None, save the result into a pdf file
         """
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
         if output is not None:
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(output)
@@ -820,7 +831,7 @@ class Topology():
                             data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
                             label = "sim_%i" % serie_sim.series_id
                             data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
-                if hasattr(node.variables[var_id],"max_obs_date"):
+                if hasattr(node.variables[var_id],"max_obs_date") and node.variables[var_id].max_obs_date is not None:
                     plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
                 if output is not None:
                     pdf.savefig()

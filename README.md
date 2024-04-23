@@ -126,7 +126,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] map graph edges from procedure boundaries and outputs
 - [x] move basin parameters (from procedurefunction.extra_pars) to topology
 - [x] create procedure templates
-- [ ] create node templates
+- [x] create node templates
 - [x] move procedures to /procedures
 - [ ] reimplement hec ras adapter (win)
 - [ ] implement swmm adapter

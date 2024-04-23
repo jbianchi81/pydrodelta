@@ -843,8 +843,9 @@ class NodeVariable:
         """
         if self.series_prono is not None and len(self.series_prono) and len(self.series_prono[0].data):
             prono_data = self.series_prono[0].data[["valor","tag"]]
-            self.max_obs_date = self.data[~pandas.isna(self.data["valor"])].index.max()
-            if ignore_warmup: #self.forecast_timeend is not None and ignore_warmup:
+            self.setMaxObsDate()
+            logging.debug("max_obs_date: %s" % self.max_obs_date)
+            if ignore_warmup and self.max_obs_date is not None: #self.forecast_timeend is not None and ignore_warmup:
                 prono_data = prono_data[prono_data.index > self.max_obs_date]
             data = serieFillNulls(self.data,prono_data,extend=True,tag_column="tag")
             if inline:
@@ -856,6 +857,15 @@ class NodeVariable:
             if not inline:
                 return self.data
     
+    def getMaxObsDate(self) -> datetime:
+        max_obs_date = self.data[~pandas.isna(self.data["valor"])].index.max()
+        if pandas.isnull(max_obs_date):
+            return None
+        return max_obs_date
+    
+    def setMaxObsDate(self) -> None:
+        self.max_obs_date = self.getMaxObsDate()
+
     def interpolate(
         self,
         limit : timedelta = None,

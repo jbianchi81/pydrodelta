@@ -9,7 +9,9 @@ config = yaml.load(config_file,yaml.CLoader)
 config_file.close()
 import logging
 
-crud = Crud({"url": config["input_api"]["url"], "token": config["input_api"]["token"]})
+crud = Crud(
+    url = config["input_api"]["url"], 
+    token =config["input_api"]["token"])
 
 def sort_key(p):
     return p["orden"]

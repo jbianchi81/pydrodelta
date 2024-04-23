@@ -925,22 +925,24 @@ class LinearNet:
         self.Inflows=np.array(Boundaries,dtype='float')
         self.dt=dt
     def computeOutflow(self):
-        j=0
-        for channel_j in range(1,len(self.Inflows[0,:])+1):
-            linear=LinearChannel(pars=self.pars[j,:],Boundaries=self.Inflows[:,j],dt=self.dt,Proc=self.Proc)
+        for j in range(0,len(self.Inflows)):
+            linear = LinearChannel(
+                pars = self.pars[j],
+                Boundaries = self.Inflows[j],
+                dt = self.dt,
+                Proc = self.Proc)
             linear.computeOutFlow()
-            if j==0:
-                self.Outflow=linear.Outflow
-            if j>0:
-                nrows=max(len(self.Outflow),len(linear.Outflow))
-                f=np.zeros((nrows))
+            if j == 0:
+                self.Outflow = linear.Outflow
+            else:
+                nrows = max(len(self.Outflow), len(linear.Outflow))
+                f = np.zeros((nrows))
                 if len(self.Outflow) > len(linear.Outflow):
-                   f[0:len(linear.Outflow)]=linear.Outflow[0:len(linear.Outflow)]
-                   self.Outflow=self.Outflow+f 
+                   f[0:len(linear.Outflow)] = linear.Outflow[0:len(linear.Outflow)]
+                   self.Outflow=self.Outflow + f
                 else:
-                   f[0:len(self.Outflow)]=self.Outflow[0:len(self.Outflow)]
-                   self.Outflow=f+linear.Outflow 
-            j=j+1
+                   f[0:len(self.Outflow)] = self.Outflow[0:len(self.Outflow)]
+                   self.Outflow = f + linear.Outflow 
 
 #3. Modelos PQ/QQ
 
