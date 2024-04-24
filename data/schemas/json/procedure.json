@@ -96,6 +96,15 @@
           }
         ],
         "description": "Calibration parameters"
+      },
+      "adjust": {
+        "type": "boolean",
+        "description": "Adjust output series using observations. Adjustment is performed after statistics computation",
+        "default": false
+      },
+      "warmup_steps": {
+        "type": "integer",
+        "description": "For output adjustment, discard this number of initial rows"        
       }
     },
     "required": [

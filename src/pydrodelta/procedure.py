@@ -11,6 +11,8 @@ from .calibration.linear_regression_calibration import LinearRegressionCalibrati
 from typing import Optional, Union, List, Tuple
 from datetime import timedelta
 from pandas import DataFrame
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.bool_descriptor import BoolDescriptor
 
 class Procedure():
     """
@@ -76,6 +78,11 @@ class Procedure():
         else:
             self._calibration = None
 
+    adjust = BoolDescriptor()
+    """Adjust output series using observations. Adjustment is performed after statistics computation"""
+
+    warmup_steps = IntDescriptor()
+    """For output adjustment, discard this number of initial rows"""
 
     def __init__(
         self,
@@ -89,7 +96,9 @@ class Procedure():
         save_results : str = None,
         overwrite : bool = False,
         overwrite_original : bool = False,
-        calibration : dict = None
+        calibration : dict = None,
+        adjust : bool = False,
+        warmup_steps : int = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -149,6 +158,8 @@ class Procedure():
         # self.simplex : list = None
         self.calibration = calibration
         """Configuration for calibration"""
+        self.adjust = adjust
+        self.warmup_steps = warmup_steps
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -439,7 +450,9 @@ class Procedure():
         parameters : Union[list,tuple] = None, 
         initial_states : Union[list,tuple] = None, 
         load_input : bool = True, 
-        load_output_obs : bool = True
+        load_output_obs : bool = True,
+        adjust : bool = None,
+        warmup_steps : int = None
         ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
@@ -459,13 +472,19 @@ class Procedure():
             If True, load input using .loadInput. Else, reads from .input
         load_output_obs : bool
             If True, load observed output using .loadOutputObs. Else, reads from .output_obs
-        
+        adjust : bool = False
+            Adjust results with observations by means of linear regression. Adjustment is performed after statistics computation
+        warmup_steps : int = None
+            For adjustment, skip this number of initial steps
+            
         Returns
         -------
         None if inplace=True, else
         list of DataFrames
         """
         save_results = save_results if save_results is not None else self.save_results
+        adjust = adjust if adjust is not None else self.adjust
+        warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -510,6 +529,19 @@ class Procedure():
         else:
             if inplace:
                 self.output = output
+        # adjust
+        if adjust:
+            if self.output_obs is None:
+                raise Exception("Can't adjust: missing observed outputs at procedure %s" % str(self.id))
+            for i, o in enumerate(self.output):
+                if len(self.output_obs) < i + 1:
+                    raise Exception("Can't adjust: missing observed output at index %i of procedure %s" % (i, str(self.id)))
+                (adjusted, adjusted_tag, lm_stats) = util.adjustSeries(
+                    o,
+                    self.output_obs[i],
+                    warmup = self.warmup_steps)
+                logging.debug(lm_stats)
+                o["valor"] = adjusted
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)

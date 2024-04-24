@@ -378,16 +378,44 @@ def detectJumps(data : pandas.DataFrame,lim_jump,column="valor"):
     del data_[coldiff]
     return df_saltos
 
-def adjustSeries(sim_df,truth_df,method="lfit",plot=True,return_adjusted_series=True,tag_column=None,title=None)  -> pandas.Series:
+def adjustSeries(
+        sim_df : pandas.DataFrame,
+        truth_df : pandas.DataFrame,
+        method : str = "lfit",
+        plot : bool = True,
+        return_adjusted_series : bool = True,
+        tag_column : str = None,
+        title : str = None,
+        warmup : int = None
+        )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
+    """Adjust sim_df with truth_df by means of a linear regression
+
+    Args:
+        sim_df (pandas.DataFrame): data to adjust
+        truth_df (pandas.DataFrame): truth data to adjust sim_df with 
+        method (str, optional): Regression method. Defaults to "lfit".
+        plot (bool, optional): Plot data. Defaults to True.
+        return_adjusted_series (bool, optional): If True, return tuple of (adjusted values (pandas.Series), adjusted series tag (pandas.Series), fit result stats (dict)). Else return only fit result stats (dict) . Defaults to True.
+        tag_column (str, optional): Name of the tag column. Defaults to None.
+        title (str, optional): Title of the plot. Defaults to None.
+        warmup (int, optional): Number of initial rows to skip for the fit procedure. Defaults to None.
+
+    Raises:
+        ValueError: unknown method
+
+    Returns:
+        Union[dict,Tuple[pandas.Series, pandas.Series, dict]]: If return_adjusted_seris is True, it returns a tuple of (adjusted values (pandas.Series), adjusted series tag (pandas.Series), fit result stats (dict)). Else it returns only fit result stats (dict)
+    """
     if method == "lfit":
-        data = truth_df.join(sim_df,how="left",rsuffix="_sim")
+        truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
+        data = truth_warm.join(sim_df,how="left",rsuffix="_sim")
         lr, quant_Err, r2, coef, intercept =  ModelRL(data,"valor",["valor_sim"])
         # logging.info(quant_Err)
         # Prediccion
         aux_df = sim_df.copy().dropna()
         predict = lr.predict(aux_df[["valor"]].values)
         aux_df["adj"] = predict
-        aux_df = aux_df.rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_df.rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
+        aux_df = aux_df.rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm.rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
         if plot:
             plt.figure(figsize=(16,8))
             plt.plot(aux_df[["valor_obs","valor_sim","adj"]]) # (data)
@@ -404,7 +432,7 @@ def adjustSeries(sim_df,truth_df,method="lfit",plot=True,return_adjusted_series=
         else:
             return {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept}
     else:
-        raise Exception("unknown method " + method)
+        raise ValueError("unknown method " + method)
 
 def linearCombination(sim_df : pandas.DataFrame,params : dict,plot=True,tag_column=None) -> pandas.Series:
     '''
