@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "exponentialfitprocedurefunction.json",
+    "title": "ExponentialFitProcedureFunction",
+    "type": "object",
+    "description": "Procedure function that fits an exponential function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "ExponentialFit"
+            ]
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "warmup_steps": {
+                    "type": "integer",
+                    "description": "Skip this number of initial steps from the fit procedure",
+                    "default": 0
+                }
+            },
+            "description": "Additional parameters"
+        }
+    },
+    "required": [
+        "type"
+    ]
+}

@@ -59,6 +59,9 @@
           },
           {
             "$ref": "linearnet3procedurefunction.json"
+          },
+          {
+            "$ref": "exponentialfitprocedurefunction.json"
           }
         ]
       },

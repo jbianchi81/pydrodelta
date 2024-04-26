@@ -842,12 +842,14 @@ class NodeVariable:
         None or DataFrame : Union[pandas.DataFrame,None]
         """
         if self.series_prono is not None and len(self.series_prono) and len(self.series_prono[0].data):
-            prono_data = self.series_prono[0].data[["valor","tag"]]
-            self.setMaxObsDate()
-            logging.debug("max_obs_date: %s" % self.max_obs_date)
-            if ignore_warmup and self.max_obs_date is not None: #self.forecast_timeend is not None and ignore_warmup:
-                prono_data = prono_data[prono_data.index > self.max_obs_date]
-            data = serieFillNulls(self.data,prono_data,extend=True,tag_column="tag")
+            data = self.data.copy()
+            for i, serie_prono in enumerate(self.series_prono):
+                prono_data = serie_prono.data[["valor","tag"]]
+                self.setMaxObsDate()
+                logging.debug("max_obs_date: %s" % self.max_obs_date)
+                if ignore_warmup and self.max_obs_date is not None: #self.forecast_timeend is not None and ignore_warmup:
+                    prono_data = prono_data[prono_data.index > self.max_obs_date]
+                data = serieFillNulls(data,prono_data,extend=True,tag_column="tag")
             if inline:
                 self.data = data
             else:

@@ -17,7 +17,7 @@ class ResultStatistics:
         procedure = None,
         output = None
         ):
-        """Initiate collection of statistic analysis for the procedue
+        """Initiate collection of statistic analysis for the procedure
         
         Parameters:
         -----------

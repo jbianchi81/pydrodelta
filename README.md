@@ -136,8 +136,13 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] colored log
 - [ ] nodes list / procedures list to dataframe
 - [ ] implement linear regression as functionProcedure
+- [x] implement exponential fit functionProcedure
+- [ ] add error band to linear regression result series
 - [ ] cache variables
 - [x] test suite
+- [ ] add procedure exponential recession
+- [ ] add procedure repeat last value
+- [ ] add procedure adjust tail parameter (to fit using only the last n steps)
 
 ### References
 

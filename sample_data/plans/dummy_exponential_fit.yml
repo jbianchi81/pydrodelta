@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../../data/schemas/json/plan.json
+---
+name: dummy exponential fit
+id: 1
+forecast_date: "2024-04-21T03:00:00.000Z"
+time_interval:
+  days: 1
+topology:
+  timestart: "2024-01-27T03:00:00.000Z" # "2021-11-01T00:00:00.000Z"
+  timeend: "2024-04-25T03:00:00.000Z"
+  forecast_timeend: "2024-04-25T03:00:00.000Z"
+  time_offset:
+    hours: 0
+  nodes:
+  - id: 1
+    name: node 1
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      name: QMD
+      series:
+      - series_id: 1
+        tipo: puntual
+        csv_file: sample_data/csv/qh.csv
+    - id: 39
+      name: HMD
+      series:
+      - series_id: 2
+        tipo: puntual
+        csv_file: sample_data/csv/qh.csv
+      series_sim:
+      - tipo: puntual
+        series_id: 2
+    node_type: station
+procedures:
+- id: dummy exponential fit
+  function:
+    type: ExponentialFit
+    boundaries:
+    - name: input
+      node_variable: [1,40]
+    outputs:
+    - name: output
+      node_variable: [1,39]
+    parameters: {}
+    extra_pars:
+      warmup_steps: 0
