@@ -47,7 +47,34 @@
       "type": "integer"
     },
     "plot_params": {
-      "href": "plotparams.json"
+      "$ref": "plotparams.json"
+    },
+    "plot_variable": {
+      "type": "array",
+      "description": "Print graphs of selected variables for each node where said variables are defined, and save into pdf multipage files (one file per variable, one page per node)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "var_id": {
+            "type": "integer",
+            "description": "Variable identifier"
+          },
+          "output": {
+            "type": "string",
+            "description": "Output file path"
+          },
+          "timestart": {
+            "$ref": "dateorinterval.json"
+          },
+          "timeend": {
+            "$ref": "dateorinterval.json"
+          }
+        },
+        "required": [
+          "var_id",
+          "output"
+        ]
+      }
     },
     "interpolation_limit": {
       "description": "maximum duration between observations for interpolation",

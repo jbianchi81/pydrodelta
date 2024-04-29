@@ -28,6 +28,7 @@ from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.string_descriptor import StringDescriptor
+from .types.plot_variable_params_dict import PlotVariableParamsDict
 
 from pydrodelta.config import config
 
@@ -91,6 +92,32 @@ class Topology():
     no_metadata = BoolDescriptor()
     """Don't retrieve series metadata on load from api"""
 
+    @property
+    def plot_variable(self) -> List[PlotVariableParamsDict]:
+        return self._plot_variable
+    @plot_variable.setter
+    def plot_variable(self, params : List[PlotVariableParamsDict]) -> None:
+        if params is None:
+            self._plot_variable = None
+            return
+        self._plot_variable = []
+        for i, item in enumerate(params):
+            if "var_id" not in item:
+                raise ValueError("Missing var_id from PlotVariableParamsDict at index %i of plot_variable" %i)
+            if "output" not in item:
+                raise ValueError("Missing output from PlotVariableParamsDict at index %i of plot_variable" %i)
+            d = {
+                "var_id": int(item["var_id"]),
+                "output": item["output"]
+            }
+            if "timestart" in item:
+                d["timestart"] = tryParseAndLocalizeDate(item["timestart"])
+            if "timeend" in item:
+                d["timeend"] = tryParseAndLocalizeDate(item["timeend"])
+            self._plot_variable.append(d)
+        if not len(self._plot_variable):
+            self._plot_variable = None
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -107,6 +134,7 @@ class Topology():
         report_file : Union[str,None] = None,
         plan = None,
         no_metadata : bool = False,
+        plot_variable : List[PlotVariableParamsDict] = None
         ):
         """Initiate topology
         
@@ -153,6 +181,14 @@ class Topology():
         
         no_metadata : bool = False
             Don't retrieve series metadata on load from api
+
+        plot_variable : List[PlotVariableParamsDict] = None
+            Print graphs to pdf files of the selected variables at every node where said variables are defined 
+                PlotVariableParamsDict:
+                    var_id : int
+                    output : str
+                    timestart : Union[datetime,str,dict], optional
+                    timeend : Union[datetime,str,dict], optional
         """
         params = locals()
         del params["plan"]
@@ -178,6 +214,7 @@ class Topology():
         self.report_file = report_file
         self._graph = self.toGraph()
         self.no_metadata = no_metadata
+        self.plot_variable = plot_variable
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
@@ -799,7 +836,7 @@ class Topology():
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
         if output is not None:
             matplotlib.use('pdf')
-            pdf = matplotlib.backends.backend_pdf.PdfPages(output)
+            pdf = matplotlib.backends.backend_pdf.PdfPages("%s/%s" % (os.environ["PYDRODELTA_DIR"],output))
         else:
             matplotlib.use(os.environ["MPLBACKEND"])
         for node in self.nodes:
@@ -820,6 +857,10 @@ class Topology():
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
                 if len(original_data.dropna()["valor"]):
                     logging.debug("Add original data to plot at node %s" % str(node.name))
+                    if timestart is not None:
+                        original_data = original_data[original_data["timestart"] >= timestart]
+                    if timeend is not None:
+                        original_data = original_data[original_data["timestart"] <= timeend]
                     original_data.plot(ax=ax,kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
                 else:
                     logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
@@ -829,6 +870,10 @@ class Topology():
                         if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
                             logging.debug("Add sim data to plot at node %s, series_sim %i" % (str(node.name),i))
                             data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
+                            if timestart is not None:
+                                data_sim = data_sim[data_sim["timestart"] >= timestart]
+                            if timeend is not None:
+                                data_sim = data_sim[data_sim["timestart"] <= timeend]
                             label = "sim_%i" % serie_sim.series_id
                             data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
                 if hasattr(node.variables[var_id],"max_obs_date") and node.variables[var_id].max_obs_date is not None:

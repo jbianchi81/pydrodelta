@@ -22,6 +22,9 @@ class ExponentialFitProcedureFunction(ProcedureFunction):
     warmup_steps = IntDescriptor()
     """Skip this number of initial steps for fit procedure"""
 
+    tail_steps = IntDescriptor()
+    """Use only this number of final steps for fit procedure"""
+
     linear_model = DictDescriptor()
     """Results of the fit procedure"""
 
@@ -37,6 +40,10 @@ class ExponentialFitProcedureFunction(ProcedureFunction):
             self.warmup_steps = self.extra_pars["warmup_steps"]
         else:
             self.warmup_steps = None
+        if "tail_steps" in self.extra_pars:
+            self.tail_steps = self.extra_pars["tail_steps"]
+        else:
+            self.tail_steps = None
         self.linear_model = None
 
 
@@ -66,7 +73,8 @@ class ExponentialFitProcedureFunction(ProcedureFunction):
         (output_serie,output_tag_serie,stats) = adjustSeries(
             input_data,
             response_data,
-            warmup=self.warmup_steps
+            warmup=self.warmup_steps,
+            tail=self.tail_steps
         )
         output_data = input_data.copy()
         output_data["valor"] = output_serie

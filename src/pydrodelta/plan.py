@@ -239,6 +239,10 @@ class Plan():
         if self.output_stats_file is not None:
             with open(self.output_stats_file,"w",encoding='utf-8') as outfile:
                 json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
+        if self.topology.plot_variable is not None:
+            for i, item in enumerate(self.topology.plot_variable):
+                self.topology.plotVariable(**item)
+    
     def toCorrida(self) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         

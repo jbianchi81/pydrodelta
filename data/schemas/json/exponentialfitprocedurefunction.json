@@ -23,6 +23,11 @@
                     "type": "integer",
                     "description": "Skip this number of initial steps from the fit procedure",
                     "default": 0
+                },
+                "tail_steps": {
+                    "type": "integer",
+                    "description": "Skip this number of initial steps from the fit procedure",
+                    "default": 0
                 }
             },
             "description": "Additional parameters"

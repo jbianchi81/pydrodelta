@@ -108,6 +108,10 @@
       "warmup_steps": {
         "type": "integer",
         "description": "For output adjustment, discard this number of initial rows"        
+      },
+      "tail_steps": {
+        "type": "integer",
+        "description": "For output adjustment, use only this number of final rows"
       }
     },
     "required": [

@@ -84,6 +84,9 @@ class Procedure():
     warmup_steps = IntDescriptor()
     """For output adjustment, discard this number of initial rows"""
 
+    tail_steps = IntDescriptor()
+    """For output adjustment, use only this number of final rows"""
+
     def __init__(
         self,
         id : Union[int, str],
@@ -98,7 +101,8 @@ class Procedure():
         overwrite_original : bool = False,
         calibration : dict = None,
         adjust : bool = False,
-        warmup_steps : int = None
+        warmup_steps : int = None,
+        tail_steps : int = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -160,6 +164,7 @@ class Procedure():
         """Configuration for calibration"""
         self.adjust = adjust
         self.warmup_steps = warmup_steps
+        self.tail_steps = tail_steps
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -452,7 +457,8 @@ class Procedure():
         load_input : bool = True, 
         load_output_obs : bool = True,
         adjust : bool = None,
-        warmup_steps : int = None
+        warmup_steps : int = None,
+        tail_steps : int = None
         ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
@@ -476,6 +482,8 @@ class Procedure():
             Adjust results with observations by means of linear regression. Adjustment is performed after statistics computation
         warmup_steps : int = None
             For adjustment, skip this number of initial steps
+        tail_steps : int = None
+            For adjustment, user this number of final steps
             
         Returns
         -------
@@ -485,6 +493,7 @@ class Procedure():
         save_results = save_results if save_results is not None else self.save_results
         adjust = adjust if adjust is not None else self.adjust
         warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
+        tail_steps = tail_steps if tail_steps is not None else self.tail_steps
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -539,7 +548,8 @@ class Procedure():
                 (adjusted, adjusted_tag, lm_stats) = util.adjustSeries(
                     o,
                     self.output_obs[i],
-                    warmup = self.warmup_steps)
+                    warmup = self.warmup_steps,
+                    tail = self.tail_steps)
                 logging.debug(lm_stats)
                 o["valor"] = adjusted
         # saves results to file

@@ -286,7 +286,13 @@ def f5(row,column="valor",tag_column="tag",min_obs_date=None,max_obs_date=None):
     else:
         return row[tag_column]
 
-def interpolateData(data,column="valor",tag_column=None,interpolation_limit=1,extrapolate=False):
+def interpolateData(
+        data : pandas.DataFrame,
+        column : str = "valor",
+        tag_column : str = None,
+        interpolation_limit : int = 1,
+        extrapolate : bool = False
+        ) -> pandas.DataFrame:
     min_obs_date, max_obs_date = (data[~pandas.isna(data[column])].index.min(),data[~pandas.isna(data[column])].index.max())
     data["interpolated"] = data[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
     if tag_column is not None:
@@ -386,7 +392,8 @@ def adjustSeries(
         return_adjusted_series : bool = True,
         tag_column : str = None,
         title : str = None,
-        warmup : int = None
+        warmup : int = None,
+        tail : int = None
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -399,6 +406,7 @@ def adjustSeries(
         tag_column (str, optional): Name of the tag column. Defaults to None.
         title (str, optional): Title of the plot. Defaults to None.
         warmup (int, optional): Number of initial rows to skip for the fit procedure. Defaults to None.
+        tial (int, optional): Number of final steps to use for the fit procedure (discard the rest).
 
     Raises:
         ValueError: unknown method
@@ -408,6 +416,7 @@ def adjustSeries(
     """
     if method == "lfit":
         truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
+        truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
         data = truth_warm.join(sim_df,how="left",rsuffix="_sim")
         lr, quant_Err, r2, coef, intercept =  ModelRL(data,"valor",["valor_sim"])
         # logging.info(quant_Err)
