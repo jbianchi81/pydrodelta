@@ -891,7 +891,17 @@ class NodeVariable:
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:
                 return
-            self.data = interpolateData(self.data,column="valor",tag_column="tag",interpolation_limit=interpolation_limit,extrapolate=extrapolate)
+            kwargs = {
+                "column": "valor",
+                "tag_column": "tag"
+            }
+            if interpolation_limit is not None:
+                kwargs["interpolation_limit"] = interpolation_limit
+            if extrapolate is not None:
+                kwargs["extrapolate"] = extrapolate
+            self.data = interpolateData(
+                self.data,
+                **kwargs)
     
     def saveData(
         self,

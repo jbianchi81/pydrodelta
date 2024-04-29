@@ -8,8 +8,12 @@ from .types.derived_origin_dict import DerivedOriginDict
 from .types.interpolated_origin_dict import InterpolatedOriginDict
 from .types.tvp import TVP
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
+from .descriptors.string_descriptor import StringDescriptor
 from typing import Union, List
 from pandas import Series
+import os
+import json
+import yaml
 
 class DerivedNodeSerie:
     """
@@ -36,15 +40,29 @@ class DerivedNodeSerie:
         interpolated_from : InterpolatedOriginDict
         ) -> None: 
             self._interpolated_from = interpolated_from if isinstance(interpolated_from,InterpolatedOrigin) else InterpolatedOrigin(**interpolated_from,topology=self._topology) if interpolated_from is not None else None
-
+    
     data = DataFrameDescriptor()
     """DataFrame containing the timestamped values. Index is the time (with time zone), column 'valor' contains the values (floats) and column 'tag' contains the tag indicating the origin of the value (one of: observed, simulated, interpolated, moving_average, extrapolated, derived)"""
+
+    output_file = StringDescriptor()
+    """Save analysis results into this file"""
+
+    output_format = StringDescriptor()
+    """File format for output_file. Defaults to json"""
+
+    output_schema = StringDescriptor()
+    """JSON schema for output_file. Defaults to dict"""
+
+
     def __init__(
         self,
         topology,
         series_id : int = None,
         derived_from : Union[DerivedOrigin,DerivedOriginDict] = None,
-        interpolated_from : Union[InterpolatedOrigin,InterpolatedOriginDict] = None
+        interpolated_from : Union[InterpolatedOrigin,InterpolatedOriginDict] = None,
+        output_file : str = None,
+        output_format : str = "json",
+        output_schema : str = "dict"
         ):
         """
         Parameters:
@@ -69,6 +87,10 @@ class DerivedNodeSerie:
         self.derived_from = derived_from
         self.interpolated_from = interpolated_from
         self.data = None
+        self.output_file = output_file
+        self.output_format = output_format
+        self.output_schema = output_schema
+    
     def deriveTag(
         self,
         row : Series,
@@ -188,3 +210,47 @@ class DerivedNodeSerie:
         if include_series_id:
             data["series_id"] = self.series_id
         return data.to_dict(orient="records")
+
+    def saveData(
+        self,
+        output_file = None,
+        format : str = None,
+        schema : str = None
+        ) -> None:
+        """Print data into file 
+
+        Args:
+            output_file (_type_): path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+            format (str, optional): File format (json, yaml, csv). Defaults to "json".
+            schema (str, optional): schema of json object (dict, list). Defaults to "dict".
+        """
+        if output_file is None:
+            if self.output_file is None:
+                raise ValueError("Missing output_file or self.output_file")
+            else:
+                output_file = self.output_file
+        try:
+            f = open("%s/%s" % (os.environ["PYDRODELTA_DIR"], output_file), "w")
+        except OSError as e:
+            raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
+        format = format if format is not None else self.output_format if self.output_format is not None else "json"
+        schema = schema if schema is not None else self.output_schema if self.output_schema is not None else "dict"
+        if format == "json":
+            if schema == "dict":
+                json.dump(self.toDict(),f)
+            elif schema == "list":
+                json.dump(self.toList(),f)
+            else:
+                raise ValueError("Invalid schema. Options: dict, list")
+        elif format == "yaml":
+            if schema == "dict":
+                yaml.dump(self.toDict(),f)
+            elif schema == "list":
+                yaml.dump(self.toList(),f)
+            else:
+                raise ValueError("Invalid schema. Options: dict, list")
+        elif format == "csv":
+            f.write(self.toCSV())
+        else:
+            raise ValueError("Invalid format. Options: json, csv")
+        f.close()
