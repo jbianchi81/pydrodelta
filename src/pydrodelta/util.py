@@ -700,7 +700,13 @@ def plot_prono(
     while i < len(list0hrs):
         ax.axvspan(list0hrs[i-1] + timedelta(hours=3), list0hrs[i] + timedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
-    plt.savefig(output_file, format=format)
+    plt.savefig(
+        os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            output_file
+        ), 
+        format = format
+    )
     plt.close()
 
 def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):

@@ -14,12 +14,32 @@ from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
-logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
-logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
+import os
+
+logging.basicConfig(
+    filename = os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ),
+    level=logging.DEBUG, 
+    format="%(asctime)s:%(levelname)s:%(message)s"
+)
+logging.FileHandler(
+    os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ),
+    "w+"
+)
 
 from .a5_schemas import schemas
 
-serie_schema = open("%s/data/schemas/yaml/serie.yml" % os.environ["PYDRODELTA_DIR"])
+serie_schema = open(
+    os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        "data/schemas/yaml/serie.yml"
+    )
+)
 serie_schema = yaml.load(serie_schema,yaml.CLoader)
 
 def validate(

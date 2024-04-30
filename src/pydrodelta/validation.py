@@ -24,9 +24,18 @@ def getSchema(
     (dict of parsed schemas, resolver) : Tuple[dict,jsonschema.validators.RefResolver]
     """
     schemas = {}
-    plan_schema = open("%s/%s/%s.json" % (os.environ["PYDRODELTA_DIR"], rel_base_path, name.lower()))
+    plan_schema = open(
+        os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            rel_base_path,
+            "%s.json" % name.lower()
+        )
+    )
     schemas[name] = yaml.load(plan_schema,yaml.CLoader)
-    base_path = Path("%s/%s" % (os.environ["PYDRODELTA_DIR"], rel_base_path))
+    base_path = Path(
+        os.environ["PYDRODELTA_DIR"], 
+        rel_base_path
+    )
     resolver = jsonschema.validators.RefResolver(
         base_uri=f"{base_path.as_uri()}/",
         referrer=True,

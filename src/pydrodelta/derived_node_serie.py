@@ -230,7 +230,13 @@ class DerivedNodeSerie:
             else:
                 output_file = self.output_file
         try:
-            f = open("%s/%s" % (os.environ["PYDRODELTA_DIR"], output_file), "w")
+            f = open(
+                os.path.join(
+                    os.environ["PYDRODELTA_DIR"], 
+                    output_file
+                ), 
+                "w"
+            )
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
         format = format if format is not None else self.output_format if self.output_format is not None else "json"

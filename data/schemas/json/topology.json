@@ -91,6 +91,11 @@
       "description": "Don't retrieve series metadata on loading from api",
       "type": "boolean",
       "default": false
+    },
+    "include_prono": {
+      "description": "While executing .batchProcessInput, use series_prono to fill nulls of series",
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

@@ -377,8 +377,14 @@ class DownhillSimplexCalibration(Calibration):
                     "parameters": list(parameters),
                     "score": score
                 },
-                open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_result),"w"),
-                indent=4
+                open(
+                    os.path.join(
+                        os.environ["PYDRODELTA_DIR"], 
+                        save_result
+                    ),
+                    "w"
+                ),
+                indent = 4
             )
         self.runReturnScore(parameters=parameters, objective_function=self.objective_function)
         self.scores = self._procedure.read_statistics(as_dataframe=True)

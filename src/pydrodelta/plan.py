@@ -296,13 +296,19 @@ class Plan():
         """
         corrida = self.toCorrida()
         if self.save_post is not None:
-            save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_post)
+            save_path = os.path.join(
+                os.environ["PYDRODELTA_DIR"], 
+                self.save_post
+            )
             json.dump(corrida,open(save_path,"w"))
             logging.info("Saved simulation post data to %s" % save_path)
         api_client = Crud(**api_config) if api_config is not None else output_crud
         response = api_client.createCorrida(corrida)
         if self.save_response:
-            save_path = "%s/%s" % (os.environ["PYDRODELTA_DIR"], self.save_response)
+            save_path = os.path.join(
+                os.environ["PYDRODELTA_DIR"], 
+                self.save_response
+            )
             json.dump(corrida,open(save_path,"w"))
             logging.info("Saved simulation post response to %s" % save_path)
         return response

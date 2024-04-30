@@ -2,11 +2,21 @@ import yaml
 import os
 
 def loadConfig():
-    config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
+    config_file = open(
+        os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            "config/config.yml"
+        )
+    ) # "src/pydrodelta/config/config.json")
     config = yaml.load(config_file,yaml.CLoader)
     config_file.close()
 
-    defaults_file = open("%s/config/defaults.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
+    defaults_file = open(
+        os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            "config/defaults.yml"
+        )
+    ) # "src/pydrodelta/config/config.json")
     defaults = yaml.load(defaults_file,yaml.CLoader)
     defaults_file.close()
 

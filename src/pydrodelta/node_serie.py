@@ -189,13 +189,19 @@ class NodeSerie():
         self.metadata = None
         self.outliers_data = None
         self.jumps_data = None
-        self.csv_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],csv_file) if csv_file is not None else None
+        self.csv_file = os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            csv_file
+            ) if csv_file is not None else None
         self.observations = observations
         self.save_post = save_post
         self.comment = comment
         self.name = name
         self._variable = node_variable
-        self.json_file = "%s/%s" % (os.environ["PYDRODELTA_DIR"],json_file) if json_file is not None else None
+        self.json_file = os.path.join(
+            os.environ["PYDRODELTA_DIR"],
+            json_file
+            ) if json_file is not None else None
         self.output_file = output_file
         self.output_format = output_format
         self.output_schema = output_schema
@@ -318,7 +324,13 @@ class NodeSerie():
             else:
                 output_file = self.output_file
         try:
-            f = open("%s/%s" % (os.environ["PYDRODELTA_DIR"], output_file), "w")
+            f = open(
+                os.path.join(
+                    os.environ["PYDRODELTA_DIR"], 
+                    output_file
+                ),
+                "w"
+            )
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
         format = format if format is not None else self.output_format if self.output_format is not None else "json"

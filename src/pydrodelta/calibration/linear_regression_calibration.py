@@ -126,8 +126,14 @@ class LinearRegressionCalibration(Calibration):
                     "parameters": fitted_parameters,
                     "score": results.to_dict(orient="records")
                 },
-                open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_result),"w"),
-                indent=4
+                open(
+                    os.path.join(
+                        os.environ["PYDRODELTA_DIR"], 
+                        save_result
+                    ),
+                    "w"
+                ),
+                indent = 4
             )
         # self.runReturnScore(parameters=fitted_parameters, objective_function=self.objective_function)
         self.scores = results

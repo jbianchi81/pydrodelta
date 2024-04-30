@@ -202,7 +202,12 @@ class Calibration:
     def saveResult(self, file : str, format : str ="json") -> None:
         if self.calibration_result is None:
             raise Exception("calibration_result is not set")
-        with open("%s/%s" % (os.environ["PYDRODELTA_DIR"],file) ,"w") as f:
+        with open(
+            os.path.join(
+                os.environ["PYDRODELTA_DIR"],
+                file
+            ),
+            "w") as f:
             if format.lower() == "json":
                 json.dump(self.result, f)
             elif format.lower() == "yml" or format.lower() == "yaml":

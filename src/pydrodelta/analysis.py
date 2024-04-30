@@ -6,8 +6,21 @@ import click
 from .config import config
 from .util import ParseApiConfig
 
-logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
-logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
+logging.basicConfig(
+    filename = os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ), 
+    level = logging.DEBUG, 
+    format = "%(asctime)s:%(levelname)s:%(message)s"
+)
+logging.FileHandler(
+    os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ),
+    "w+"
+)
 
 from pydrodelta.topology import Topology
 

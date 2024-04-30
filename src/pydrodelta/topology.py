@@ -118,6 +118,9 @@ class Topology():
         if not len(self._plot_variable):
             self._plot_variable = None
 
+    include_prono = BoolDescriptor()
+    """While executing .batchProcessInput, use series_prono to fill nulls of series"""
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -134,7 +137,8 @@ class Topology():
         report_file : Union[str,None] = None,
         plan = None,
         no_metadata : bool = False,
-        plot_variable : List[PlotVariableParamsDict] = None
+        plot_variable : List[PlotVariableParamsDict] = None,
+        include_prono : bool = False
         ):
         """Initiate topology
         
@@ -189,6 +193,9 @@ class Topology():
                     output : str
                     timestart : Union[datetime,str,dict], optional
                     timeend : Union[datetime,str,dict], optional
+        
+        include_prono : bool = False
+            While executing .batchProcessInput, use series_prono to fill nulls of series 
         """
         params = locals()
         del params["plan"]
@@ -215,6 +222,7 @@ class Topology():
         self._graph = self.toGraph()
         self.no_metadata = no_metadata
         self.plot_variable = plot_variable
+        self.include_prono = include_prono
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
@@ -260,7 +268,7 @@ class Topology():
     
     def batchProcessInput(
         self,
-        include_prono : bool = False,
+        include_prono : bool = None,
         input_api_config : dict = None) -> None:
         """
         Run input processing sequence. This includes (in this order):
@@ -294,6 +302,7 @@ class Topology():
             - token : str
             - proxy_dict : dict
         """
+        include_prono = include_prono if include_prono is not None else self.include_prono
         logging.debug("loadData")
         self.loadData(input_api_config=input_api_config)
         logging.debug("removeOutliers")
@@ -322,7 +331,13 @@ class Topology():
         self.plotProno()
         if(self.report_file is not None):
             report = self.printReport()
-            f = open(self.report_file,"w")
+            f = open(
+                os.path.join(
+                    os.environ["PYDRODELTA_DIR"],
+                    self.report_file
+                ),
+                "w"
+            )
             json.dump(report,f,indent=2)
             f.close()
         self.saveSeries()
@@ -836,7 +851,12 @@ class Topology():
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
         if output is not None:
             matplotlib.use('pdf')
-            pdf = matplotlib.backends.backend_pdf.PdfPages("%s/%s" % (os.environ["PYDRODELTA_DIR"],output))
+            pdf = matplotlib.backends.backend_pdf.PdfPages(
+                os.path.join(
+                    os.environ["PYDRODELTA_DIR"],
+                    output
+                )
+            )
         else:
             matplotlib.use(os.environ["MPLBACKEND"])
         for node in self.nodes:

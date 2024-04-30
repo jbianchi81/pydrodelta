@@ -8,8 +8,21 @@ from .config import config
 from json import dump as json_dump 
 from .util import ParseApiConfig
 
-logging.basicConfig(filename="%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]), level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
-logging.FileHandler("%s/%s" % (os.environ["PYDRODELTA_DIR"],config["log"]["filename"]),"w+")
+logging.basicConfig(
+    filename = os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ),
+    level = logging.DEBUG, 
+    format = "%(asctime)s:%(levelname)s:%(message)s"
+)
+logging.FileHandler(
+    os.path.join(
+        os.environ["PYDRODELTA_DIR"],
+        config["log"]["filename"]
+    ),
+    "w+"
+)
 
 root_logger = logging.getLogger()
 # root_logger.setLevel(logging.DEBUG)
@@ -66,7 +79,7 @@ root_logger.addHandler(str_handler)
 @click.option("--export_corrida_csv", "-E", help="Save result of simulation to .csv file", type=str)
 @click.option("--pivot", "-p", is_flag=True, help="Pivot output table", default=False,show_default=True)
 @click.option("--upload", "-u", is_flag=True, help="Upload analysis output to database API", default=False, show_default=True)
-@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to analysis output series",type=bool, default=False, show_default=True)
+@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to analysis output series",type=bool, default=None, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--output-stats", "-s", help="output location for stats (json)", type=str, default=None)
 @click.option("--output-results", "-R", help="output location for results (json)", type=str, default=None)

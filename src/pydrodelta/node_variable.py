@@ -619,7 +619,16 @@ class NodeVariable:
             for serie in self.series_output:
                 obs_list = serie.toList(remove_nulls=True,max_obs_date=None if include_prono else self.max_obs_date if hasattr(self,"max_obs_date") else None) # include_series_id=True)
                 if serie.save_post is not None:
-                    json.dump(obs_list,open("%s/%s" % (os.environ["PYDRODELTA_DIR"], serie.save_post),"w"))
+                    json.dump(
+                        obs_list,
+                        open(
+                            os.path.join(
+                                os.environ["PYDRODELTA_DIR"], 
+                                serie.save_post
+                            ),
+                            "w"
+                        )
+                    )
                     logging.info("Wrote output of node %s, variable %i, serie %i to %s" % (self.node_id,self.id, serie.series_id, serie.save_post))
                 try:
                     created = api_client.createObservaciones(obs_list,series_id=serie.series_id)
@@ -1107,7 +1116,15 @@ class NodeVariable:
             logging.debug("Missing series_prono, skipping variable")
             return
         for serie_prono in self.series_prono:
-            output_file = getParamOrDefaultTo("output_file",None,serie_prono.plot_params,"%s/%s_%s.png" % (output_dir, self.name, serie_prono.cal_id) if output_dir is not None else None)
+            output_file = getParamOrDefaultTo(
+                "output_file",
+                None,
+                serie_prono.plot_params,
+                os.path.join(
+                    output_dir,
+                    "%s_%s.png" % (self.name, serie_prono.cal_id)
+                ) if output_dir is not None else None
+            )
             if output_file is None:
                 logging.debug("Missing output_dir or output_file, skipping serie")
                 continue
