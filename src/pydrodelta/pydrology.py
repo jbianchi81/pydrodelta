@@ -787,7 +787,12 @@ class MuskingumChannel:
     tau : float
     """Longitud de subpaso de cómputo"""
     type='Muskingum Channel'
-    def __init__(self,pars : List[float],Boundaries : List[float] =[0],InitialConditions : List[float] =[0],dt=1):
+    def __init__(
+        self,
+        pars : List[float],
+        Boundaries : List[float] = [0],
+        InitialConditions : List[float] =[0],
+        dt : float = 1):
         """
             pars : List[float]
                 lista con los valores del tiempo de tránsito (K) y del factor de forma (X) 

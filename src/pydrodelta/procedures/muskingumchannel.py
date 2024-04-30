@@ -45,6 +45,11 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
     def Proc(self) -> str:
         """Routing procedure"""
         return self.extra_pars["Proc"] if "Proc" in self.extra_pars else "Muskingum" # NOT USED
+
+    @property
+    def dt(self) -> str:
+        """Calculation step"""
+        return self.extra_pars["dt"] if "dt" in self.extra_pars else 1
         
     @property
     def engine(self) -> MuskingumChannel:
@@ -125,7 +130,7 @@ class MuskingumChannelProcedureFunction(ProcedureFunction):
             [self.K, self.X], 
             input["valor"].to_list(),
             self.initial_states,
-            self.Proc) 
+            self.dt) 
     
     def setParameters(
         self, 
