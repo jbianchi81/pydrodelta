@@ -3,6 +3,7 @@ from pandas import DataFrame
 import numpy as np
 import logging
 from typing import Optional, Union, List
+import os
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -97,7 +98,12 @@ class ProcedureFunctionResults:
             logging.warn("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
-            with open(output, 'w') as f:
+            with open(
+                os.path.join(
+                    os.environ["PYDRODELTA_DIR"],
+                    output
+                ),
+                'w') as f:
                 self.data.to_csv(f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
