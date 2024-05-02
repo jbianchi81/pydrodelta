@@ -19,3 +19,5 @@ class Test_ExponentialFit(TestCase):
         self.assertEqual(len(plan.procedures[0].function.linear_model["coef"]),1)
         self.assert_("intercept" in plan.procedures[0].function.linear_model)
         self.assertEqual(type(plan.procedures[0].function.linear_model["intercept"]),numpy.float64)
+        self.assert_("superior" in plan.procedures[0].output[0])
+        self.assert_("inferior" in plan.procedures[0].output[0])

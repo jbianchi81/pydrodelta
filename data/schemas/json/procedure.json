@@ -112,6 +112,11 @@
       "tail_steps": {
         "type": "integer",
         "description": "For output adjustment, use only this number of final rows"
+      },
+      "error_band": {
+        "type": "boolean",
+        "description": "If ajusting output, add error band series",
+        "default": true
       }
     },
     "required": [

@@ -141,8 +141,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] cache variables
 - [x] test suite
 - [ ] add procedure exponential recession
-- [ ] add procedure repeat last value
-- [ ] add procedure adjust tail parameter (to fit using only the last n steps)
+- [x] add procedure adjust tail parameter (to fit using only the last n steps)
 
 ### References
 

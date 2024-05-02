@@ -1,7 +1,7 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta
+from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor
 from pathlib import Path
 from datetime import timedelta, datetime
 from .node import Node
@@ -34,7 +34,7 @@ from pydrodelta.config import config
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
-
+    
 class Topology():
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
 
@@ -114,6 +114,8 @@ class Topology():
                 d["timestart"] = tryParseAndLocalizeDate(item["timestart"])
             if "timeend" in item:
                 d["timeend"] = tryParseAndLocalizeDate(item["timeend"])
+            if "extra_sim_columns" in item:
+                d["extra_sim_columns"] = bool(item["extra_sim_columns"])
             self._plot_variable.append(d)
         if not len(self._plot_variable):
             self._plot_variable = None
@@ -325,7 +327,7 @@ class Topology():
         logging.debug("derive")
         self.derive()
         logging.debug("interpolate")
-        self.interpolate(limit=self.interpolation_limit,extrapolate=self.extrapolate)
+        self.interpolate()
         self.setOriginalData()
         self.setOutputData()
         self.plotProno()
@@ -830,7 +832,8 @@ class Topology():
         var_id : int,
         timestart : datetime = None,
         timeend : datetime = None,
-        output : str = None
+        output : str = None,
+        extra_sim_columns : bool = True
         ) -> None:
         """Generates time-value plots for a selected variable, one per node where this variable is found. 
         
@@ -847,6 +850,9 @@ class Topology():
           
         output : str or None
             If not None, save the result into a pdf file
+        
+        extra_sim_columns : bool = True
+            Add additional simulation series to plot
         """
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
         if output is not None:
@@ -896,6 +902,23 @@ class Topology():
                                 data_sim = data_sim[data_sim["timestart"] <= timeend]
                             label = "sim_%i" % serie_sim.series_id
                             data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
+                            # plot extra sim columns
+                            if extra_sim_columns:
+                                for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
+                                    label = "sim_%i_%s" % (serie_sim.series_id, c)
+                                    logging.debug("Add series sim column %s, label %s" % (c,label))
+                                    data_sim.plot(
+                                        ax=ax,
+                                        kind='line', 
+                                        x='timestart', 
+                                        y=c, 
+                                        label=label,
+                                        title=node.name, 
+                                        figsize=(20,8),
+                                        grid=True, 
+                                        color=getRandColor(),
+                                        linestyle="--",
+                                        alpha=0.5)
                 if hasattr(node.variables[var_id],"max_obs_date") and node.variables[var_id].max_obs_date is not None:
                     plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
                 if output is not None:

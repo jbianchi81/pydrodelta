@@ -79,6 +79,8 @@ class ExponentialFitProcedureFunction(ProcedureFunction):
         output_data = input_data.copy()
         output_data["valor"] = output_serie
         self.linear_model = stats
+        output_data["inferior"] = output_serie - self.linear_model["quant_Err"][0.950]
+        output_data["superior"] = output_serie + self.linear_model["quant_Err"][0.950]
         return (
             [output_data],
             ProcedureFunctionResults(

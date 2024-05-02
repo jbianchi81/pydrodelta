@@ -14,6 +14,7 @@ from matplotlib.dates import DateFormatter
 import csv
 import os.path
 from typing import Union, Tuple, List
+import random
 
 def interval2timedelta(interval : Union[dict,float,timedelta]):
     """Parses duration dict or number of days into datetime.timedelta object
@@ -817,3 +818,11 @@ def groupByCalibrationPeriod(
         else:
             val = df
     return cal, val
+
+def coalesce(*args):
+    return next((item for item in args if item is not None), None)
+
+colormap = plt.colormaps["hsv"]
+def getRandColor():
+    return colormap(random.randrange(colormap.N))
+    

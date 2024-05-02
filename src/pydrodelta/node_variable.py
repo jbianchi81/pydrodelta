@@ -2,7 +2,7 @@ from .a5 import Crud, Serie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import interval2timedelta, adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono
+from .util import interval2timedelta, adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce
 import pandas
 import logging
 import json
@@ -141,7 +141,7 @@ class NodeVariable:
         adjust_from : AdjustFrom = None,
         linear_combination : LinearCombination = None,
         interpolation_limit : int = None,
-        extrapolate : bool = False,
+        extrapolate : bool = None,
         time_interval : Union[timedelta,dict,float] = None,
         name : str = None,
         timestart : datetime = None,
@@ -891,11 +891,21 @@ class NodeVariable:
         
         extrapolate : bool = None
             Extrapolate up to a limit of limit"""
+        limit = coalesce(
+            limit,
+            self.interpolation_limit,
+            self._node._topology.interpolation_limit if self._node is not None and self._node._topology is not None else None
+        )
         if self.data is not None:
-            extrapolate = extrapolate if extrapolate is not None else self.extrapolate
+            extrapolate = coalesce(
+                extrapolate, 
+                self.extrapolate,
+                self._node._topology.extrapolate if self._node is not None and self._node._topology is not None else None,
+                False
+            )
             # logging.debug("limit: %s" % str(limit))
             # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
-            interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else self.interpolation_limit 
+            interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else None
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:

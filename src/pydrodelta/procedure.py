@@ -13,6 +13,8 @@ from datetime import timedelta
 from pandas import DataFrame
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
+from .descriptors.bool_or_none_descriptor import BoolOrNoneDescriptor
+from .descriptors.dict_descriptor import DictDescriptor
 
 class Procedure():
     """
@@ -87,6 +89,12 @@ class Procedure():
     tail_steps = IntDescriptor()
     """For output adjustment, use only this number of final rows"""
 
+    linear_model = DictDescriptor()
+    """Linear model fit results"""
+
+    error_band = BoolOrNoneDescriptor()
+    """Add error band series to adjusted result"""
+
     def __init__(
         self,
         id : Union[int, str],
@@ -102,7 +110,8 @@ class Procedure():
         calibration : dict = None,
         adjust : bool = False,
         warmup_steps : int = None,
-        tail_steps : int = None
+        tail_steps : int = None,
+        error_band : bool = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -165,6 +174,8 @@ class Procedure():
         self.adjust = adjust
         self.warmup_steps = warmup_steps
         self.tail_steps = tail_steps
+        self.linear_model = None
+        self.error_band = error_band
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -458,7 +469,8 @@ class Procedure():
         load_output_obs : bool = True,
         adjust : bool = None,
         warmup_steps : int = None,
-        tail_steps : int = None
+        tail_steps : int = None,
+        error_band : bool = None
         ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
@@ -484,6 +496,8 @@ class Procedure():
             For adjustment, skip this number of initial steps
         tail_steps : int = None
             For adjustment, user this number of final steps
+        error_band : bool = True
+            When adjusting, generate error band series from adjusted serie minus/plus linear model quant_error 95 %
             
         Returns
         -------
@@ -494,6 +508,7 @@ class Procedure():
         adjust = adjust if adjust is not None else self.adjust
         warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
         tail_steps = tail_steps if tail_steps is not None else self.tail_steps
+        error_band = util.coalesce(error_band,self.error_band,True)
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -550,8 +565,11 @@ class Procedure():
                     self.output_obs[i],
                     warmup = self.warmup_steps,
                     tail = self.tail_steps)
-                logging.debug(lm_stats)
+                self.linear_model = lm_stats
                 o["valor"] = adjusted
+                if error_band:
+                    o["inferior"] = adjusted - self.linear_model["quant_Err"][0.950]
+                    o["superior"] = adjusted + self.linear_model["quant_Err"][0.950]
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)

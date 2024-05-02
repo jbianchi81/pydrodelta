@@ -68,6 +68,9 @@
           },
           "timeend": {
             "$ref": "dateorinterval.json"
+          },
+          "extra_sim_columns": {
+            "type": "boolean"
           }
         },
         "required": [
