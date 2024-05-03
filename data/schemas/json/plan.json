@@ -67,6 +67,10 @@
       "save_response": {
         "type": "string",
         "description": "Local path where to save simulation post response (json)"
+      },
+      "output_sim_csv": {
+        "type": "string",
+        "description": "Save simulation series as csv"
       }
     },
     "required": [

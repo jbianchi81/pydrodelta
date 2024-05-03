@@ -827,6 +827,28 @@ class Topology():
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
         # data = data.replace({np.NaN:None})
         return data
+    
+    def pivotSimData(
+        self
+        ) -> DataFrame:
+        """Pivot data of all series_sim of all variables of all nodes into columns of a single DataFrame
+        
+        Returns:
+        --------
+        DataFrame
+        """
+        data = None
+        for node in self.nodes:
+            node_data = node.pivotSimData()
+            if node_data is not None:
+                if data is None:
+                    data = node_data
+                else:
+                    data = pandas.concat([data,node_data],axis=1)
+        # data = data.replace({np.NaN:None})
+        return data
+    
+
     def plotVariable(
         self,
         var_id : int,

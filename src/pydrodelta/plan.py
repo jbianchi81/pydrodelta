@@ -95,6 +95,8 @@ class Plan():
     """file path where to save the post data sent to the output api"""
     save_response = StringDescriptor()
     """file path where to save the output api response"""
+    output_sim_csv = StringDescriptor()
+    """Print simulated series into csv"""
         
     def __init__(
             self,
@@ -109,7 +111,8 @@ class Plan():
             output_analysis: str = None,
             pivot: bool = False,
             save_post: str = None,
-            save_response: str = None
+            save_response: str = None,
+            output_sim_csv: str = None
             ):
         """
         A plan defines a modelling configuration, including the topology, the procedures, the forecast date, time interval and output options. It is the root element of a pydro configuration
@@ -153,6 +156,8 @@ class Plan():
         save_response : str or None
             file path where to save the output api response
         
+        output_sim_csv : str or None
+            Print simulated series into csv
         """
         getSchemaAndValidate(params=locals(), name="plan")
 
@@ -170,6 +175,7 @@ class Plan():
         self.pivot = pivot
         self.save_post = save_post
         self.save_response = save_response
+        self.output_sim_csv = output_sim_csv
     def execute(
         self,
         include_prono : bool = True,
@@ -242,6 +248,10 @@ class Plan():
         if self.topology.plot_variable is not None:
             for i, item in enumerate(self.topology.plot_variable):
                 self.topology.plotVariable(**item)
+        if self.output_sim_csv:
+            sim_data = self.topology.pivotSimData()
+            with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
+                sim_data.to_csv(outfile) 
     
     def toCorrida(self) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)

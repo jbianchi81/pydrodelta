@@ -1,0 +1,35 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "genericfitprocedurefunction.json",
+    "title": "GenericFitProcedureFunction",
+    "type": "object",
+    "description": "Abstract class to create regression procedure functions",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "warmup_steps": {
+                    "type": "integer",
+                    "description": "Skip this number of initial steps from the fit procedure",
+                    "default": 0
+                },
+                "tail_steps": {
+                    "type": "integer",
+                    "description": "Skip this number of initial steps from the fit procedure",
+                    "default": 0
+                },
+                "use_forecast_range": {
+                    "type": "boolean",
+                    "description": "Fit using only pairs where sim is within forecasted range of values",
+                    "default": false
+                }
+            },
+            "description": "Additional parameters"
+        }
+    }
+}

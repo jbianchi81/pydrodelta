@@ -456,7 +456,26 @@ class Node:
         for variable in self.variables.values():
             data = data.join(variable.pivotOutputData(include_tag=include_tag))
         return data
-    
+
+    def pivotSimData(
+        self
+        ) -> DataFrame:
+        """Join all variables' sim data into a single pivoted DataFrame
+        
+        Returns:
+        --------
+        joined, pivoted data : DataFrame
+        """
+        data = None
+        for variable in self.variables.values():
+            var_data = variable.pivotSimData()
+            if var_data is not None:
+                if data is None:
+                    data = var_data
+                else:
+                    data = data.join(var_data,how="outer") # ,rsuffix="_%i_%i" % (self.id, variable.id)
+        return data
+
     def seriesToDataFrame(
         self,
         pivot : bool = False,

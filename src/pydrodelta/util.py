@@ -394,7 +394,8 @@ def adjustSeries(
         tag_column : str = None,
         title : str = None,
         warmup : int = None,
-        tail : int = None
+        tail : int = None,
+        sim_range : Tuple[float,float] = None
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -407,7 +408,8 @@ def adjustSeries(
         tag_column (str, optional): Name of the tag column. Defaults to None.
         title (str, optional): Title of the plot. Defaults to None.
         warmup (int, optional): Number of initial rows to skip for the fit procedure. Defaults to None.
-        tial (int, optional): Number of final steps to use for the fit procedure (discard the rest).
+        tail (int, optional): Number of final steps to use for the fit procedure (discard the rest).
+        sim_range (Tuple[float,float],optional): Select data pairs where sim is within this range.
 
     Raises:
         ValueError: unknown method
@@ -419,7 +421,12 @@ def adjustSeries(
         truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
         truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
         data = truth_warm.join(sim_df,how="left",rsuffix="_sim")
-        lr, quant_Err, r2, coef, intercept =  ModelRL(data,"valor",["valor_sim"])
+        if sim_range is not None:
+            data = data.loc[(data["valor_sim"] >= sim_range[0]) & (data["valor_sim"] <= sim_range[1])]
+        try:
+            lr, quant_Err, r2, coef, intercept, train =  ModelRL(data,"valor",["valor_sim"])
+        except ValueError as e:
+            raise ValueError("Linear regression error: %s" % str(e))
         # logging.info(quant_Err)
         # Prediccion
         aux_df = sim_df.copy().dropna()
@@ -436,11 +443,11 @@ def adjustSeries(
         if return_adjusted_series:
             if tag_column is not None:
                 aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
-                return (aux_df["adj"], aux_df["tag_adj"],{"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept})
+                return (aux_df["adj"], aux_df["tag_adj"],{"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train})
             else:
-                return (aux_df["adj"], None, {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept})
+                return (aux_df["adj"], None, {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train})
         else:
-            return {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept}
+            return {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train}
     else:
         raise ValueError("unknown method " + method)
 
@@ -470,6 +477,9 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     ## Modelo
     train = train.dropna()
 
+    if not len(train):
+        raise ValueError("No data pairs found for fit procedure")
+
     var_obj = varObj
     covariav = covariables
 
@@ -496,7 +506,7 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     logging.debug('Coefficients B0: %.5f, coefficients: %.5f, Mean squared error: %.5f, r2_score: %.5f' % (lr.intercept_, lr.coef_, mse, coefDet))
     train['Error_pred'] =  train['Y_predictions']  - train[var_obj]
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
-    return lr,quant_Err,r2,coef,intercept
+    return lr,quant_Err,r2,coef,intercept,train
     
 def plot_prono(
     obs_df:pandas.DataFrame,

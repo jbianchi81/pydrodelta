@@ -46,3 +46,4 @@ procedures:
     parameters: {}
     extra_pars:
       warmup_steps: 0
+      use_forecast_range: true

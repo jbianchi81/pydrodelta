@@ -1,4 +1,4 @@
-from .a5 import Crud, Serie
+from .a5 import Crud, Serie, createEmptyObsDataFrame
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
@@ -686,6 +686,25 @@ class NodeVariable:
         for column in columns:
             del data[column]
         return data
+
+    def pivotSimData(
+        self
+        ) -> pandas.DataFrame:
+        """Joins all series in series_sim into a single pivoted DataFrame
+                   
+        Returns:
+        --------
+        pivoted data : DataFrame"""
+        if self.series_sim is None:
+            return None
+        data = None
+        for serie in self.series_sim:
+            if len(serie.data):
+                if data is None:
+                    data = serie.data[["valor"]].rename(columns={"valor": serie.series_id})
+                else:
+                    data = data.join(serie.data[["valor"]].rename(columns={"valor": serie.series_id}),how='outer',sort=True) # rsuffix="_%s" % serie.series_id
+        return data
     
     def seriesToDataFrame(
         self,
@@ -778,7 +797,8 @@ class NodeVariable:
         """
         if self.data is None:
             raise Exception("NodeVariable.data is not defined. Can´t concatenate")
-        data["tag"] = "sim"
+        if "tag" not in data.columns.to_list():
+            data["tag"] = "sim"
         if overwrite:
             concatenated_data = serieFillNulls(data,self.data,extend=extend,tag_column="tag")
         else:
