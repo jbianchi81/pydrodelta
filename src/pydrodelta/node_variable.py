@@ -1250,3 +1250,23 @@ class NodeVariable:
             for serie in self.series_output:
                 if serie.output_file is not None:
                     serie.saveData()
+
+    def summary(self) -> dict:
+        return {
+            "id": self.id,
+            "metadata": self.metadata,
+            "fill_value": self.fill_value,
+            "series_output": [serie.summary() for serie in self.series_output] if self.series_output is not None else None,
+            "series_sim": [serie.summary() for serie in self.series_sim] if self.series_sim is not None else None,
+            "series": [serie.summary() for serie in self.series] if self.series is not None else None,
+            "series_output": [serie.summary() for serie in self.series_output] if self.series_output is not None else None,
+            "time_support": isodate.duration_isoformat(self.time_support) if self.time_support is not None else None, 
+            "adjust_from": self.adjust_from,
+            "linear_combination": self.linear_combination,
+            "interpolation_limit": self.interpolation_limit,
+            "data_describe": self.data.describe().to_dict() if self.data is not None else None,
+            "original_data_describe": self.original_data.describe().to_dict() if self.original_data is not None else None,
+            "adjust_results": self.adjust_results,
+            "name": self.name,
+            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None
+        }

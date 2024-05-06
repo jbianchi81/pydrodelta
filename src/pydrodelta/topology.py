@@ -290,6 +290,7 @@ class Topology():
         - .setOutputData()
         - .plotProno()
         - .printReport() if ().report_file is not None)
+        - .plotVariable() if _plan is None
         
         Parameters:
         -----------
@@ -343,6 +344,9 @@ class Topology():
             json.dump(report,f,indent=2)
             f.close()
         self.saveSeries()
+        if self._plan is None and self.plot_variable is not None:
+            for i, item in enumerate(self.plot_variable):
+                self.plotVariable(**item)
     def loadData(
         self,
         include_prono : bool = True,
@@ -855,7 +859,8 @@ class Topology():
         timestart : datetime = None,
         timeend : datetime = None,
         output : str = None,
-        extra_sim_columns : bool = True
+        extra_sim_columns : bool = True,
+        nodes : List[int] = None
         ) -> None:
         """Generates time-value plots for a selected variable, one per node where this variable is found. 
         
@@ -877,6 +882,7 @@ class Topology():
             Add additional simulation series to plot
         """
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
+        nodes = nodes if nodes is not None else [n.id for n in self.nodes]
         if output is not None:
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(
@@ -887,7 +893,7 @@ class Topology():
             )
         else:
             matplotlib.use(os.environ["MPLBACKEND"])
-        for node in self.nodes:
+        for node in [n for n in self.nodes if n.id in nodes]:
             # if hasattr(node.series[0],"data"):
             if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
                 data = node.variables[var_id].data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
@@ -900,6 +906,7 @@ class Topology():
                 fig, ax = plt.subplots(figsize=(20,8))
                 grouped = data.groupby('tag')
                 for key, group in grouped:
+                    # color_ = color_map[key] if key in color_map else getRandColor()
                     group.plot(ax=ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
@@ -945,7 +952,7 @@ class Topology():
                     plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
                 if output is not None:
                     pdf.savefig()
-                plt.close()
+                # plt.close()
             else:
                 logging.debug("topology.plotVariable: Skipping node %s" % str(node.id))
         if output is not None:

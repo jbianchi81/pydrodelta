@@ -587,3 +587,28 @@ class NodeSerie():
     def getSeriesTable(self) -> str:
         """Retrieve series table name (of a5 schema) for this timeseries"""
         return "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"
+
+    def summary(self) -> dict:
+        """Return series summary"""
+        self.data
+
+        return {
+            "series_id": self.series_id, 
+            "series_table": self.getSeriesTable(),
+            "lim_outliers": self.lim_outliers,
+            "lim_jump": self.lim_jump,
+            "csv_file": self.csv_file,
+            "jumps_data": self.jumps_data.to_dict() if self.jumps_data is not None else None,
+            "metadata": self.metadata,
+            "json_file": self.json_file,
+            "moving_average": self.moving_average,
+            "outliers_data": self.outliers_data.to_dict() if self.outliers_data is not None else None,
+            "name": self.name,
+            "output_file": self.output_file,
+            "output_format": self.output_format,
+            "output_schema": self.output_schema,
+            "type": self.type,
+            "x_offset": str(self.x_offset) if isinstance(self.x_offset,timedelta) else self.x_offset,
+            "y_offset": self.y_offset,
+            "data_describe": self.data.describe().to_dict() if self.data is not None else None
+        }

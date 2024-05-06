@@ -889,3 +889,42 @@ class Node:
         """For each series, series_prono, series_sim and series_output of each variable, save data into file if .output_file is defined"""
         for var_id, variable in self.variables.items():
             variable.saveSeries()
+    
+    def summary(self):
+        md = {
+            "id": self.id,
+            "tipo": self.tipo,
+            "name": self.name,
+            "timestart": self.timestart.isoformat() if self.timestart is not None else None,
+            "timeend": self.timeend.isoformat() if self.timeend is not None else None,
+            "forecast_timeend": self.forecast_timeend.isoformat() if self.forecast_timeend is not None else None,
+            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None,
+            "time_offset": isodate.duration_isoformat(self.time_offset) if self.time_offset is not None else None,
+            "hec_node": dict(self.hec_node) if self.hec_node is not None else None,
+            "variables": [self.variables[key].summary() for key in self.variables], 
+            "node_type": self.node_type
+        }
+        if self._topology is not None and self._topology._plan is not None:
+            procedures = {
+                "upsteam": [],
+                "downstream": []
+            }
+            for i, procedure in enumerate(self._topology._plan.procedures):
+                for j, output in enumerate(procedure.function.outputs):
+                    if output.node_id == self.id:
+                        procedures["upstream"].append({
+                            "procedure_index": i,
+                            "procedure_id": procedure.id,
+                            "output_index": j,
+                            "var_id": output.var_id
+                        })
+                for j, boundary in enumerate(procedure.function.boundaries):
+                    if boundary.node_id == self.id:
+                        procedures["downstream"].append({
+                            "procedure_index": i,
+                            "procedure_id": procedure.id,
+                            "boundary_index": j,
+                            "var_id": boundary.var_id
+                        })
+            md["procedures"] = procedures
+        return md
