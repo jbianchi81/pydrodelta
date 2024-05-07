@@ -19,17 +19,12 @@ from .descriptors.duration_descriptor import DurationDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
+from .types.adjust_from_dict import AdjustFromDict
+from .types.linear_combination_dict import LinearCombinationDict
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
 
-class AdjustFrom(TypedDict):
-    truth: int
-    sim: int
-
-class LinearCombination(TypedDict):
-    coefficients: List[float]
-    intercept: float
 
 class NodeVariable:
     """
@@ -138,8 +133,8 @@ class NodeVariable:
         output_series_id : int = None,
         series_sim : List[Union[dict,NodeSerie]] = None,
         time_support : Union[datetime,dict,int,str] = None,
-        adjust_from : AdjustFrom = None,
-        linear_combination : LinearCombination = None,
+        adjust_from : AdjustFromDict = None,
+        linear_combination : LinearCombinationDict = None,
         interpolation_limit : int = None,
         extrapolate : bool = None,
         time_interval : Union[timedelta,dict,float] = None,
@@ -173,10 +168,10 @@ class NodeVariable:
         time_support : Union[datetime,dict,int,str] = None
             Time support of the observations . The time interval that the observation is representative of.
 
-        adjust_from : AdjustFrom = None
+        adjust_from : AdjustFromDict = None
             Adjust configuration. 'truth' and 'sim' are the indexes of the .series to be used for the linear regression adjustment.
 
-        linear_combination : LinearCombination = None
+        linear_combination : LinearCombinationDict = None
             Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)
 
         interpolation_limit : Union[timedelta,dict,float] = None
@@ -523,7 +518,7 @@ class NodeVariable:
         self,
         plot : bool = True,
         series_index : int = 0,
-        linear_combination : LinearCombination = None
+        linear_combination : LinearCombinationDict = None
         ) -> None:
         """Apply linear combination
         
@@ -535,7 +530,7 @@ class NodeVariable:
         series_index : int = 0
             Index of target series
 
-        linear_combination : LinearCombination = None
+        linear_combination : LinearCombinationDict = None
             Linear combination parameters: "intercept" and "coefficients". If None, reads from self.linear_combination
         """
 
@@ -1169,7 +1164,7 @@ class NodeVariable:
                 defaults["datum"] = self.series[0].metadata["estacion"]["cero_ign"]
             if serie_prono.adjust_results is not None:
                 defaults["errorBand"] = ("error_band_01","error_band_99")
-            if self._node is not None and self._node._topology is not None:
+            if self._node is not None and self._node._topology is not None and self._node._topology.plot_params is not None:
                 plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
             else:
                 plot_prono_kwargs = {**defaults, **serie_prono.plot_params, **kwargs}

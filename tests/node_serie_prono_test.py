@@ -1,6 +1,7 @@
 from pydrodelta.node_serie_prono import NodeSerieProno
 import unittest
-from pandas import DatetimeIndex
+from pandas import DatetimeIndex, DataFrame
+from datetime import timedelta
 
 class Test_NodeSerieProno(unittest.TestCase):
 
@@ -18,6 +19,26 @@ class Test_NodeSerieProno(unittest.TestCase):
                 "token": "MY_TOKEN"
             })   
         self.assertEqual(len(node_serie.data),4)
+
+    def test_previous_runs_timestart(self):
+        node_serie = NodeSerieProno(
+            cal_id = 445,
+            series_id = 29586,
+            tipo = "puntual",
+            previous_runs_timestart = {"days": -10},
+            qualifier = "main"
+        )
+        node_serie.loadData(
+            {"days": -10},
+            {"days": 5},
+            input_api_config = {
+                "url": "https://alerta.ina.gob.ar/a5",
+                "token": "MY_TOKEN"
+            })   
+        self.assertTrue(type(node_serie.data),DataFrame)
+        self.assertTrue(len(node_serie.data) > 0)
+        self.assertTrue(node_serie.data.dropna().index.min() < node_serie.previous_runs_timestart + timedelta(days=0))
+
 
     def test_series_load_json(self):
         node_serie = NodeSerieProno(

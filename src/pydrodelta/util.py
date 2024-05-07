@@ -695,10 +695,13 @@ def plot_prono(
             cell_text.append(df_prono[table_columns].iloc[row])
             #print(cell_text)
         # columns = table_columns # ('Fecha','Nivel',)
-        table = plt.table(cellText=cell_text,
-                        colLabels=table_columns,
-                        bbox = (1.08, 0, 0.2, 0.5))
-        table.set_fontsize(12)
+        if len(cell_text):
+            table = plt.table(cellText=cell_text,
+                            colLabels=table_columns,
+                            bbox = (1.08, 0, 0.2, 0.5))
+            table.set_fontsize(12)
+        else:
+            logging.warn("No rows found for forecast table")
     #table.scale(2.5, 2.5)  # may help
     date_form = DateFormatter(date_form,tz=sim_df.index.tz) # "%H hrs \n %d-%b"
     ax.xaxis.set_major_formatter(date_form)

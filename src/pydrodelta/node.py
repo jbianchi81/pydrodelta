@@ -15,6 +15,8 @@ from typing import Union, List, Dict, Tuple
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
+from .types.observed_node_variable_dict import ObservedNodeVariableDict
+from .types.derived_node_variable_dict import DerivedNodeVariableDict
 
 class Node:
     id = IntDescriptor()
@@ -90,7 +92,7 @@ class Node:
             time_offset : timedelta = None,
             topology = None,
             hec_node : dict = None,
-            variables : List[Union[DerivedNodeVariable,ObservedNodeVariable]] = list(),
+            variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
             node_type : str = "station",
             description : str = None,
             basin_pars : dict = None,

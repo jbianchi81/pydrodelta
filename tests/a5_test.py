@@ -207,3 +207,47 @@ class Test_a5Crud(unittest.TestCase):
         self.assert_("valor" in df.columns)
         self.assert_("tag" in df.columns)
         self.assertEqual(type(df.index), DatetimeIndex)
+
+    def test_read_corridas(self):
+        crud = Crud(
+            url = "https://alerta.ina.gob.ar/a5",
+            token = "my_token"
+        )
+        data = crud.readCorridas(
+            289
+        )
+        self.assertEqual(type(data),list)
+        for corrida in data:
+            self.assertEqual(corrida["cal_id"],289)
+            self.assert_("cor_id" in corrida)
+            self.assert_("series" in corrida)
+            self.assertEqual(type(corrida["series"]), list)
+            self.assert_(len(corrida["series"]) > 0)
+            for serie in corrida["series"]:
+                self.assert_("series_id" in serie)
+                self.assert_("pronosticos" in serie)
+                self.assertEqual(type(serie["pronosticos"]), list)
+            
+    def test_read_serie_prono_concat(self):
+        crud = Crud(
+            url = "https://alerta.ina.gob.ar/a5",
+            token = "my_token"
+        )
+        serie = crud.readSeriePronoConcat(
+            445,
+            29586,
+            qualifier = "main"
+        )
+        self.assertEqual(type(serie),dict)
+        self.assertEqual(serie["series_id"],29586)
+        self.assert_("pronosticos" in serie)
+        self.assertEqual(type(serie["pronosticos"]),list)
+        self.assert_(len(serie["pronosticos"]) > 0)
+        ts = [p["timestart"] for p in serie["pronosticos"]]
+        self.assertEqual(len(ts),len(set(ts)))
+        for pronostico in serie["pronosticos"]:
+            self.assertEqual(type(pronostico),dict)
+            self.assert_("timestart" in pronostico)
+            self.assert_("valor" in pronostico)
+            self.assert_("cor_id" in pronostico)
+            self.assertEqual(pronostico["qualifier"],"main")

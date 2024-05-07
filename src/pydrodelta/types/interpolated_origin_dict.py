@@ -23,7 +23,7 @@ class InterpolatedOriginDict(TypedDict):
     node_id_2 : int
     var_id_1 : int
     var_id_2 : int
-    x_offset : Union[dict,datetime,float] = None
-    y_offset : float = None
-    interpolation_coefficient : float = 0.5
+    x_offset : Union[dict,datetime,float]
+    y_offset : float
+    interpolation_coefficient : float
 

@@ -28,6 +28,10 @@
     },
     "plot_params": {
       "href": "plotparams.json"
+    },
+    "previous_runs_timestart": {
+      "href": "dateorinterval.json",
+      "description": "If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"
     }
   },
   "required": [

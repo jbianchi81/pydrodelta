@@ -14,6 +14,8 @@ from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
+from .types.series_prono_dict import SeriesPronoDict
+from .types.corrida_dict import CorridaDict
 import os
 
 logging.basicConfig(
@@ -604,6 +606,82 @@ class Crud():
             "qualifier": json_response["series"][0]["qualifier"] if "qualifier" in json_response["series"][0] else None,
             "pronosticos": json_response["series"][0]["pronosticos"]
         }
+
+    def readCorridas(
+        self,
+        cal_id : int,
+        series_id : int = None,
+        forecast_timestart : datetime = None,
+        forecast_timeend : datetime = None,
+        qualifier : str = None,
+        includeProno : bool = False,
+        group_by_qualifier : bool = False
+        ) -> List[CorridaDict]:
+        response = requests.get(
+            "%s/sim/calibrados/%i/corridas" % (self.url, cal_id),
+            params = {
+                'series_id': series_id,
+                'qualifier': qualifier,
+                'includeProno': includeProno,
+                'forecast_timestart': forecast_timestart.isoformat() if isinstance(forecast_timestart,datetime) else forecast_timestart,
+                'forecast_timeend': forecast_timeend.isoformat() if isinstance(forecast_timeend,datetime) else forecast_timeend,
+                "group_by_qualifier": group_by_qualifier
+            },
+            headers = {
+                'Authorization': 'Bearer ' + self.token
+            })
+        if response.status_code != 200:
+            raise Exception("request failed: %s" % response.text)
+        return response.json()
+
+    def readSeriePronoConcat(
+        self,
+        cal_id : int,
+        series_id : int,
+        qualifier : str = None,
+        forecast_timestart : datetime = None,
+        forecast_timeend : datetime = None
+        ) -> SeriesPronoDict:
+        """Retrieves history of forecast runs and concatenates into a single series (newer runs overwrite older runs). If qualifier is not set and multiple qualifiers exist, a mixed qualifier series is returned"""
+        corridas = self.readCorridas(
+            cal_id,
+            series_id = series_id,
+            forecast_timestart = forecast_timestart, 
+            forecast_timeend = forecast_timeend,
+            qualifier = qualifier,
+            includeProno = True,
+            group_by_qualifier = True)
+        # logging.debug('Cantidad total de corridas: ',len(corridas))
+        qualifiers = {}
+        for corrida in sorted(corridas, key = lambda c: c["forecast_date"]):
+            for serie in corrida["series"]:
+                qualifier = serie["qualifier"] if "qualifier" in serie else "no_qualifier"
+                if qualifier not in qualifiers:
+                    qualifiers[qualifier] = {}
+                for pronostico in serie["pronosticos"]:
+                    ts = pronostico["timestart"]
+                    prono = {
+                        **pronostico,
+                        "cor_id": corrida["id"] if "id" in corrida else corrida["cor_id"],
+                        "forecast_date": corrida["forecast_date"]
+                    }
+                    qualifiers[qualifier][ts] = prono
+        pronosticos = []
+        for qualifier, pronos in qualifiers.items():
+            for timestart, prono in pronos.items():
+                pronosticos.append({
+                    **prono,
+                    "qualifier": qualifier if qualifier != "no_qualifier" else None
+                })
+        return {
+            "cal_id": cal_id,
+            "series_id": series_id,
+            "qualifier": qualifier,
+            "forecast_timestart": forecast_timestart,
+            "forecast_timeend": forecast_timeend,
+            "pronosticos": pronosticos
+        }
+    
 
 ## AUX functions
 

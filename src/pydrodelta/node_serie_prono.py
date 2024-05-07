@@ -1,10 +1,12 @@
-from pydrodelta.node_serie import NodeSerie
+from .node_serie import NodeSerie
 import logging
-from pydrodelta.a5 import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
-from pydrodelta.node_serie_prono_metadata import NodeSeriePronoMetadata
-from pydrodelta.config import config
+from .a5 import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
+from .node_serie_prono_metadata import NodeSeriePronoMetadata
+from .config import config
 from datetime import datetime
 from .descriptors.string_descriptor import StringDescriptor
+from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .util import coalesce
 
 input_crud = Crud(**config["input_api"])
 # output_crud = Crud(**config["output_api"])
@@ -33,6 +35,9 @@ class NodeSerieProno(NodeSerie):
     
     main_qualifier = StringDescriptor()
     """If qualifier == 'all', select this qualifier as the main qualifier"""
+
+    previous_runs_timestart = DatetimeDescriptor()
+    """If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"""
     
     def __init__(
         self,
@@ -43,6 +48,7 @@ class NodeSerieProno(NodeSerie):
         upload : bool = True,
         cor_id : int = None,
         main_qualifier : str = None,
+        previous_runs_timestart : datetime = None,
         **kwargs):
         super().__init__(**kwargs)        
         self.cal_id : int = cal_id
@@ -66,12 +72,14 @@ class NodeSerieProno(NodeSerie):
         """Forecasted series metadata"""
         self.upload : bool = bool(upload)
         """If True, include this series when uploading the analysis results to the output api"""
+        self.previous_runs_timestart = previous_runs_timestart
     def loadData(
         self,
         timestart : datetime,
         timeend : datetime,
         input_api_config : dict = None,
-        tag : str = "sim"
+        tag : str = "sim",
+        previous_runs_timestart : datetime = None
         ) -> None:
         """Load forecasted data from source (input api). Retrieves forecast from input api using series_id, cal_id, timestart, and timeend
         
@@ -93,6 +101,7 @@ class NodeSerieProno(NodeSerie):
         
         tag : str = "sim"
             Tag forecast records with this string"""
+        previous_runs_timestart = coalesce(previous_runs_timestart,self.previous_runs_timestart)
         if self.observations is not None or self.csv_file is not None or self.json_file is not None:
             super().loadData(timestart, timeend, tag = "sim")
             # self.data = observacionesListToDataFrame(self.observations, tag = "sim")
@@ -101,7 +110,20 @@ class NodeSerieProno(NodeSerie):
         else:
             logging.debug("Load prono data for series_id: %i, cal_id: %i, cor_id: %s" % (self.series_id, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
-            metadata = crud.readSerieProno(self.series_id,self.cal_id,timestart,timeend,qualifier=self.qualifier, cor_id = self.cor_id)
+            if previous_runs_timestart is not None:
+                metadata = crud.readSeriePronoConcat(
+                    self.cal_id,
+                    self.series_id,
+                    forecast_timestart = previous_runs_timestart,
+                    qualifier = self.qualifier)
+            else:
+                metadata = crud.readSerieProno(
+                    self.series_id,
+                    self.cal_id,
+                    timestart = timestart,
+                    timeend = timeend,
+                    qualifier = self.qualifier, 
+                    cor_id = self.cor_id)
             if len(metadata["pronosticos"]):
                 if self.qualifier is not None and self.qualifier == 'all':
                     main_qualifier_index = 0
