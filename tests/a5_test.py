@@ -219,7 +219,7 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(data),list)
         for corrida in data:
             self.assertEqual(corrida["cal_id"],289)
-            self.assert_("cor_id" in corrida)
+            self.assert_("id" in corrida)
             self.assert_("series" in corrida)
             self.assertEqual(type(corrida["series"]), list)
             self.assert_(len(corrida["series"]) > 0)

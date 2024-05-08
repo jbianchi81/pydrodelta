@@ -533,7 +533,7 @@ class Procedure():
         # runs procedure function
         output, procedure_function_results = self.function.rerun(input = input, parameters = parameters, initial_states = initial_states)
         # sets procedure_function_results
-        self.procedure_function_results = procedure_function_results if type(procedure_function_results) == ProcedureFunctionResults else ProcedureFunctionResults(**procedure_function_results)
+        self.procedure_function_results = ProcedureFunctionResults(**procedure_function_results) if isinstance(procedure_function_results, dict) else procedure_function_results
         # sets states
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states

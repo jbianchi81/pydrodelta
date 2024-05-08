@@ -85,6 +85,25 @@
     "name": {
       "type": "string",
       "description": "Series name"
+    },
+    "required": {
+      "type": "boolean",
+      "description": "Raise error if no data found",
+      "default": false
+    },
+    "output_file": {
+      "type": "string",
+      "description": "save data into this file"
+    },
+    "output_format": {
+      "type": "string",
+      "description": "save data into output_file with this format",
+      "default": "json"
+    },
+    "output_schema": {
+      "type": "string",
+      "description": "save json data using this schema",
+      "default": "dict"
     }
   },
   "required": [

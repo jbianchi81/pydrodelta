@@ -1,6 +1,5 @@
 import logging
 import os
-import yaml 
 import sys
 import click
 from .config import config
@@ -32,7 +31,7 @@ from pydrodelta.topology import Topology
 @click.option("--graph_file", "-g", help="Print topology graph in .png file", type=str)
 @click.option("--pivot", "-p", is_flag=True, help="Pivot output table", default=False,show_default=True)
 @click.option("--upload", "-u", is_flag=True, help="Upload output to database API", default=False, show_default=True)
-@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=False, show_default=True)
+@click.option("--include_prono", "-P", is_flag=True, help="Concatenate series_prono to output series",type=bool, default=None, show_default=True)
 @click.option("--verbose", "-v", is_flag=True, help="log to stdout", default=False, show_default=True)
 @click.option("--upload_series_prono","-U", is_flag=True, help="upload [adusted] series_prono as pronosticos", type=bool, default=False, show_default=True)
 @click.option("--upload_series_output_as_prono","-o", is_flag=True, help="upload series_output as pronosticos", type=bool, default=False, show_default=True)
@@ -57,8 +56,7 @@ def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono
     input_api_config = ParseApiConfig(input_api)
     output_api_config = ParseApiConfig(output_api)
 
-    t_config = yaml.load(open(config_file),yaml.CLoader)
-    topology = Topology(**t_config)
+    topology = Topology.load(config_file)
     topology.batchProcessInput(
         include_prono = include_prono, 
         input_api_config = input_api_config)

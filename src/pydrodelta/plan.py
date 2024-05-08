@@ -18,12 +18,14 @@ from .validation import getSchemaAndValidate
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
+from .descriptors.list_descriptor import ListDescriptor
+from .base import Base
 
 from pydrodelta.config import config
 
 output_crud = Crud(**config["output_api"])
 
-class Plan():
+class Plan(Base):
     """
     Use this class to set up a modelling configuration, including the topology and the procedures.
 
@@ -97,6 +99,8 @@ class Plan():
     """file path where to save the output api response"""
     output_sim_csv = StringDescriptor()
     """Print simulated series into csv"""
+    qualifiers = ListDescriptor()
+    """Include this forecast members into the simulation output"""
         
     def __init__(
             self,
@@ -112,7 +116,8 @@ class Plan():
             pivot: bool = False,
             save_post: str = None,
             save_response: str = None,
-            output_sim_csv: str = None
+            output_sim_csv: str = None,
+            qualifiers : List[str] = None
             ):
         """
         A plan defines a modelling configuration, including the topology, the procedures, the forecast date, time interval and output options. It is the root element of a pydro configuration
@@ -158,6 +163,9 @@ class Plan():
         
         output_sim_csv : str or None
             Print simulated series into csv
+        
+        qualifiers : List[str] = None
+            Include this forecast members into the simulation output
         """
         getSchemaAndValidate(params=locals(), name="plan")
 
@@ -176,6 +184,7 @@ class Plan():
         self.save_post = save_post
         self.save_response = save_response
         self.output_sim_csv = output_sim_csv
+        self.qualifiers = qualifiers
     def execute(
         self,
         include_prono : bool = True,
@@ -273,7 +282,7 @@ class Plan():
                             series_sim.append({
                                 "series_id": serie.series_id,
                                 "series_table": serie.getSeriesTable(),
-                                "pronosticos": serie.toList(remove_nulls=True)
+                                "pronosticos": serie.toList(remove_nulls=True,qualifiers=self.qualifiers)
                             })
         return {
             "cal_id": self.id,
@@ -516,4 +525,3 @@ class Plan():
                 f.close()
         else:
             return json.dumps(json_graph.node_link_data(DG),indent=4)
-    

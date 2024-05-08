@@ -88,7 +88,8 @@
       "type": "boolean"
     },
     "report_file": {
-      "description": "Write analysis report into this file"
+      "description": "Write analysis report into this file",
+      "type": "string"
     },
     "no_metadata": {
       "description": "Don't retrieve series metadata on loading from api",
@@ -99,6 +100,24 @@
       "description": "While executing .batchProcessInput, use series_prono to fill nulls of series",
       "type": "boolean",
       "default": false
+    },
+    "output_csv": {
+      "description": "Save analysis results as csv into this path (relative to PYDRODELTA_DIR)",
+      "type": "string"
+    },
+    "output_json": {
+      "description": "Save analysis results as json into this path (relative to PYDRODELTA_DIR)",
+      "type": "string"
+    },
+    "pivot": {
+      "description": "If output_csv is set, pivot series into columns of the table",
+      "type": "boolean",
+      "default": true
+    },
+    "pretty": {
+      "description": "For output_json, prettify json",
+      "type": "boolean",
+      "default": true
     }
   },
   "required": [

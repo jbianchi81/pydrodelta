@@ -39,6 +39,9 @@ class NodeSerieProno(NodeSerie):
     previous_runs_timestart = DatetimeDescriptor()
     """If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"""
     
+    forecast_timestart = DatetimeDescriptor()
+    """Begin date of last forecast run. If last forecast date is older than this value, it raises an error"""
+
     def __init__(
         self,
         cal_id : int,
@@ -49,6 +52,7 @@ class NodeSerieProno(NodeSerie):
         cor_id : int = None,
         main_qualifier : str = None,
         previous_runs_timestart : datetime = None,
+        forecast_timestart : datetime = None,
         **kwargs):
         super().__init__(**kwargs)        
         self.cal_id : int = cal_id
@@ -73,13 +77,16 @@ class NodeSerieProno(NodeSerie):
         self.upload : bool = bool(upload)
         """If True, include this series when uploading the analysis results to the output api"""
         self.previous_runs_timestart = previous_runs_timestart
+        self.forecast_timestart = forecast_timestart
+
     def loadData(
         self,
         timestart : datetime,
         timeend : datetime,
         input_api_config : dict = None,
         tag : str = "sim",
-        previous_runs_timestart : datetime = None
+        previous_runs_timestart : datetime = None,
+        forecast_timestart : datetime = None 
         ) -> None:
         """Load forecasted data from source (input api). Retrieves forecast from input api using series_id, cal_id, timestart, and timeend
         
@@ -100,8 +107,15 @@ class NodeSerieProno(NodeSerie):
             - proxy_dict : dict
         
         tag : str = "sim"
-            Tag forecast records with this string"""
+            Tag forecast records with this string
+        
+        previous_runs_timestart = DatetimeDescriptor()
+            If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series
+        
+        forecast_timestart : datetime = None
+            Forecast date must be greater or equal to this value"""
         previous_runs_timestart = coalesce(previous_runs_timestart,self.previous_runs_timestart)
+        forecast_timestart = coalesce(forecast_timestart, self.forecast_timestart)
         if self.observations is not None or self.csv_file is not None or self.json_file is not None:
             super().loadData(timestart, timeend, tag = "sim")
             # self.data = observacionesListToDataFrame(self.observations, tag = "sim")
@@ -123,7 +137,8 @@ class NodeSerieProno(NodeSerie):
                     timestart = timestart,
                     timeend = timeend,
                     qualifier = self.qualifier, 
-                    cor_id = self.cor_id)
+                    cor_id = self.cor_id,
+                    forecast_timestart = forecast_timestart)
             if len(metadata["pronosticos"]):
                 if self.qualifier is not None and self.qualifier == 'all':
                     main_qualifier_index = 0
@@ -132,10 +147,12 @@ class NodeSerieProno(NodeSerie):
                             if m["qualifier"] == self.main_qualifier:
                                 main_qualifier_index = i
                     if not len(metadata["pronosticos"]) or "pronosticos" not in metadata["pronosticos"][main_qualifier_index] or not len(metadata["pronosticos"][main_qualifier_index]["pronosticos"]):
-                        raise Exception("No forecast values found for series_id %i, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
-                    self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")
-                    for member in metadata["pronosticos"]:
-                        self.data = self.data.join(observacionesListToDataFrame(member["pronosticos"]).rename(columns={"valor": member["qualifier"]}))
+                        logging.warn("No forecast values found for series_id %i, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
+                        self.data = createEmptyObsDataFrame()
+                    else:
+                        self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")
+                        for member in metadata["pronosticos"]:
+                            self.data = self.data.join(observacionesListToDataFrame(member["pronosticos"]).rename(columns={"valor": member["qualifier"]}))
                 else:
                     self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
             else:

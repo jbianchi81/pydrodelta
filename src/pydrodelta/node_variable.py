@@ -632,7 +632,7 @@ class NodeVariable:
                     logging.error(str(e))
             return obs_created
         else:
-            logging.info("Missing output series for node %i, variable %i, skipping upload" % (self.node_id, self.id))
+            logging.info("Missing output series for node %i, variable %i, skipping upload" % (self._node.id, self.id))
             return []
     
     def pivotData(
@@ -1166,8 +1166,10 @@ class NodeVariable:
                 defaults["errorBand"] = ("error_band_01","error_band_99")
             if self._node is not None and self._node._topology is not None and self._node._topology.plot_params is not None:
                 plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
-            else:
+            elif serie_prono.plot_params is not None:
                 plot_prono_kwargs = {**defaults, **serie_prono.plot_params, **kwargs}
+            else:
+                plot_prono_kwargs = {**defaults, **kwargs}
             # logging.debug("error_band: %s" % str(error_band))
             # ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
             # ydisplay = getParamOrDefaultTo("ydisplay",ydisplay,serie_prono.plot_params)

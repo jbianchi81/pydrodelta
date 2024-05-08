@@ -20,7 +20,7 @@
                 },
                 "tail_steps": {
                     "type": "integer",
-                    "description": "Skip this number of initial steps from the fit procedure",
+                    "description": "Use only this number of final steps for the fit procedure",
                     "default": 0
                 },
                 "use_forecast_range": {

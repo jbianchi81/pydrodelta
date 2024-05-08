@@ -102,6 +102,8 @@ class ObservedNodeVariable(NodeVariable):
                     timeend,
                     input_api_config,
                     no_metadata=no_metadata)
+                if serie.required:
+                    serie.assertNotEmpty()
         elif hasattr(self,"derived_from") and self.derived_from is not None:
             self.series = []
         else:
@@ -109,17 +111,16 @@ class ObservedNodeVariable(NodeVariable):
         if include_prono and self.series_prono is not None and len(self.series_prono):
             forecast_timeend = forecast_timeend if forecast_timeend is not None else self.forecast_timeend
             for serie in self.series_prono:
-                if forecast_timeend is not None:
-                    try:
+                try:
+                    if forecast_timeend is not None:
                         serie.loadData(timestart,forecast_timeend,input_api_config)
-                    except Exception as e:
-                        logging.error(e)
-                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (self.node_id,self.id,serie.series_id,serie.cal_id,str(e)))
-                else:
-                    try:
+                    else:
                         serie.loadData(timestart,timeend,input_api_config)
-                    except Exception as e:
-                        raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (str(self.node_id),self.id,serie.series_id,serie.cal_id,str(e)))
+                    if serie.required:
+                        serie.assertNotEmpty()
+                except Exception as e:
+                    logging.error(e)
+                    raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,str(e)))
         if self.data is None and self.series is not None and len(self.series):
             self.setDataWithNoValues()
             self.concatenate(self.series[0].data)

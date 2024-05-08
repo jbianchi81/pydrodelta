@@ -71,6 +71,13 @@
       "output_sim_csv": {
         "type": "string",
         "description": "Save simulation series as csv"
+      },
+      "qualifiers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Include this forecast members into the simulation output"
       }
     },
     "required": [

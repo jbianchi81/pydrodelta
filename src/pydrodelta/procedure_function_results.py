@@ -76,13 +76,13 @@ class ProcedureFunctionResults:
         result_statistics : Optional[list] = None
         ) -> None:
         """Set .statistics from result_statistics"""
-        self.statistics = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
+        self.statistics = [ ResultStatistics(**x) if type(x) == dict else x for x in result_statistics] if result_statistics is not None else None
     def setStatisticsVal(
         self,
         result_statistics : Optional[list] = None
         ) -> None:
         """Set .statistics_val from result_statistics"""
-        self.statistics_val = [ x if type(x) == ResultStatistics else ResultStatistics(**x) for x in result_statistics] if result_statistics is not None else None
+        self.statistics_val = [ ResultStatistics(**x) if type(x) == dict else x  for x in result_statistics] if result_statistics is not None else None
     def save(
         self,
         output : str

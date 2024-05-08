@@ -16,6 +16,7 @@ from .descriptors.duration_descriptor import DurationDescriptor
 from .descriptors.duration_descriptor_default_none import DurationDescriptorDefaultNone
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
+from .descriptors.bool_descriptor import BoolDescriptor
 import json
 import yaml
 
@@ -109,6 +110,9 @@ class NodeSerie():
     output_schema = StringDescriptor()
     """JSON schema for output_file. Defaults to dict"""
 
+    required = BoolDescriptor()
+    """Raise error if no data found"""
+
     def __init__(
         self,
         series_id : int,
@@ -127,7 +131,8 @@ class NodeSerie():
         json_file : str = None,
         output_file : str = None,
         output_format : str = "json",
-        output_schema : str = "dict"
+        output_schema : str = "dict",
+        required : bool = False
         ):
         """
         Parameters:
@@ -176,6 +181,9 @@ class NodeSerie():
 
         output_schema = StringDescriptor()
             JSON schema for output_file. Defaults to dict
+        
+        required : bool = False
+            Raise error if no data found
 
         """
         self.series_id = series_id
@@ -205,6 +213,7 @@ class NodeSerie():
         self.output_file = output_file
         self.output_format = output_format
         self.output_schema = output_schema
+        self.required = required
     
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
@@ -222,9 +231,22 @@ class NodeSerie():
             "data": self.data.reset_index().values.tolist() if self.data is not None else None,
             "metadata": self.metadata,
             "outliers_data": self.outliers_data,
-            "jumps_data": self.jumps_data
+            "jumps_data": self.jumps_data,
+            "required": self.required
         }
-    
+
+    def assertNotEmpty(self) -> None:
+        if self.data is None:
+            raise ValueError("data is not defined")
+        elif not isinstance(self.data,DataFrame):
+            raise ValueError("data is not an instance of DataFrame")
+        elif "valor" not in self.data.columns.to_list():
+            raise ValueError("valor column missing from data")
+        elif not len(self.data["valor"]):
+            raise ValueError("valor column of data is of null length")
+        elif not len(self.data["valor"].dropna()):
+            raise ValueError("valor column of data has no non-null values")
+
     def loadData(
         self,
         timestart : datetime,
@@ -511,7 +533,8 @@ class NodeSerie():
         include_series_id : bool = False,
         timeSupport : timedelta = None,
         remove_nulls : bool = False,
-        max_obs_date : datetime = None
+        max_obs_date : datetime = None,
+        qualifiers : List[str] = None
         ) -> List[TVP]:
         """Convert timeseries to list of time-value pair dicts
         
@@ -528,7 +551,10 @@ class NodeSerie():
 
         max_obs_date : datetime = None
             Remove data beyond this date
-        
+
+        qualifiers : List[str] = None
+            Generate additional time-value pairs using the values of this qualifier keys
+
         Returns:
         --------
         list of time-value pair dicts : List[TVP]"""
@@ -542,9 +568,25 @@ class NodeSerie():
         if include_series_id:
             data["series_id"] = self.series_id
         obs_list = data.to_dict(orient="records")
+        qualifier_obs = []
         for obs in obs_list:
             obs["valor"] = None if isna(obs["valor"]) else obs["valor"]
             obs["tag"] = None if "tag" not in obs else None if isna(obs["tag"]) else obs["tag"]
+            if qualifiers is not None:
+                for qualifier in qualifiers:
+                    if qualifier in obs:
+                        new_obs = {
+                            "timestart": obs["timestart"],
+                            "timeend": obs["timeend"],
+                            "valor": obs[qualifier],
+                            "qualifier": qualifier
+                        }
+                        if include_series_id:
+                            new_obs["series_id"] = self.series_id
+                        qualifier_obs.append(new_obs)
+                    else:
+                        logging.warn("Qualifier %s not found in data at timestart %s" % (qualifier, obs["timestart"]))
+        obs_list = [*obs_list, *qualifier_obs]
         if remove_nulls:
             obs_list = [x for x in obs_list if x["valor"] is not None] # remove nulls
         return obs_list

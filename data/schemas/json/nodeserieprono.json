@@ -32,6 +32,10 @@
     "previous_runs_timestart": {
       "href": "dateorinterval.json",
       "description": "If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"
+    },
+    "forecast_timestart": {
+      "href": "dateorinterval.json",
+      "description": "Begin date of last forecast run. If last forecast date is older than this value, it raises an error"
     }
   },
   "required": [

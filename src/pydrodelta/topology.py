@@ -31,13 +31,14 @@ from .descriptors.string_descriptor import StringDescriptor
 from .types.plot_variable_params_dict import PlotVariableParamsDict
 from .types.node_dict import NodeDict
 from .types.plot_params_dict import PlotParamsDict
+from .base import Base
 
 from pydrodelta.config import config
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
     
-class Topology():
+class Topology(Base):
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
 
     timestart = DatetimeDescriptor()
@@ -125,6 +126,18 @@ class Topology():
     include_prono = BoolDescriptor()
     """While executing .batchProcessInput, use series_prono to fill nulls of series"""
 
+    output_csv = StringDescriptor()
+    """Save analysis results as csv into this path (relative to PYDRODELTA_DIR)"""
+
+    output_json = StringDescriptor()
+    """Save analysis results as json into this path (relative to PYDRODELTA_DIR)""" 
+
+    pivot = BoolDescriptor()
+    """If output_csv is set, pivot series into columns of the table (default True)"""
+
+    pretty = BoolDescriptor()
+    """For output_json, prettify json"""
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -142,7 +155,11 @@ class Topology():
         plan = None,
         no_metadata : bool = False,
         plot_variable : List[PlotVariableParamsDict] = None,
-        include_prono : bool = False
+        include_prono : bool = False,
+        output_csv : str = None,
+        output_json : str = None,
+        pivot : bool = True,
+        pretty : bool = True
         ):
         """Initiate topology
         
@@ -200,6 +217,18 @@ class Topology():
         
         include_prono : bool = False
             While executing .batchProcessInput, use series_prono to fill nulls of series 
+        
+        output_csv : str = None
+            Save analysis results as csv into this path (relative to PYDRODELTA_DIR)
+
+        output_json : str = None
+            Save analysis results as json into this path (relative to PYDRODELTA_DIR)
+
+        pivot : bool = True
+            If output_csv is set, pivot series into columns of the table
+
+        pretty : bool = True
+            For output_json, prettify json
         """
         params = locals()
         del params["plan"]
@@ -227,6 +256,10 @@ class Topology():
         self.no_metadata = no_metadata
         self.plot_variable = plot_variable
         self.include_prono = include_prono
+        self.output_csv = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_csv) if output_csv is not None else None
+        self.output_json = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_json) if output_json is not None else None
+        self.pivot = pivot
+        self.pretty = pretty
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
@@ -345,6 +378,11 @@ class Topology():
             json.dump(report,f,indent=2)
             f.close()
         self.saveSeries()
+        if self.output_csv is not None:
+            self.saveData(self.output_csv,pivot=self.pivot,format="csv")
+        if self.output_json is not None:
+            self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
+
     def loadData(
         self,
         include_prono : bool = True,
@@ -802,8 +840,10 @@ class Topology():
                         data = data.rename(columns={"valor_%i" % (variable.series_output[0].series_id) : str(variable.series_output[0].series_id)})
                     elif use_node_id:
                         data = data.rename(columns={"valor_%s_%i" % (str(node.id),variable.id) : node.id})
-        for column in columns:
-            del data[column]
+        # for column in columns:
+        #     del data[column]
+        del data["valor"]
+        del data["tag"]
         data = data.replace({NaN:None})
         return data
     def pivotOutputData(

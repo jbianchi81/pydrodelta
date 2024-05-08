@@ -477,7 +477,8 @@ class Crud():
         use_proxy : bool = False,
         cor_id : int = None,
         forecast_date : datetime = None,
-        qualifier : str = None
+        qualifier : str = None,
+        forecast_timestart : datetime = None
         ) -> dict:
         """
         Reads prono serie from a5 API
@@ -518,11 +519,32 @@ class Crud():
             if len(corridas):
                 cor_id = corridas[0]["cor_id"]
             else:
-                print("Warning: series %i from cal_id %i at forecast_date %s not found" % (series_id,cal_id,forecast_date))
+                logging.warn("Series %i from cal_id %i at forecast_date %s not found" % (series_id,cal_id,forecast_date))
                 return {
-                "series_id": series_id,
-                "pronosticos": []
-            }
+                    "series_id": series_id,
+                    "pronosticos": []
+                }
+        elif forecast_timestart is not None:
+            corridas_response = requests.get("%s/sim/calibrados/%i/corridas" % (self.url, cal_id),
+                params = {
+                    "series_id": series_id,
+                    "forecast_timestart": forecast_timestart if isinstance(forecast_timestart,str) else forecast_timestart.isoformat(),
+                    "includeProno": False
+                },
+                headers = {'Authorization': 'Bearer ' + self.token},
+                proxies = self.proxy_dict if use_proxy else None
+            )
+            if corridas_response.status_code != 200:
+                raise Exception("request failed: %s" % corridas_response.text)
+            corridas = corridas_response.json()
+            if len(corridas):
+                cor_id = corridas[len(corridas)-1]["cor_id"] if "cor_id" in corridas[len(corridas)-1] else corridas[len(corridas)-1]["id"]
+            else:
+                logging.warn("forecast run with cal_id %i at forecast_date greater than %s not found" % (cal_id,forecast_timestart))
+                return {
+                    "series_id": series_id,
+                    "pronosticos": []
+                }
         if timestart is not None and timeend is not None:
             params = {
                 "timestart": timestart if isinstance(timestart,str) else timestart.isoformat(),
@@ -532,9 +554,10 @@ class Crud():
         if qualifier is not None and qualifier != 'all':
             params["qualifier"] = qualifier
         params["includeProno"] = True
-        url = "%s/sim/calibrados/%i/corridas/last" % (self.url, cal_id)
         if cor_id is not None:
             url = "%s/sim/calibrados/%i/corridas/%i" % (self.url, cal_id, cor_id)
+        else:
+            url = "%s/sim/calibrados/%i/corridas/last" % (self.url, cal_id)
         response = requests.get(url,
             params = params,
             headers = {'Authorization': 'Bearer ' + self.token},
@@ -544,7 +567,7 @@ class Crud():
             raise Exception("request failed: %s" % response.text)
         json_response = response.json()
         if "series" not in json_response:
-            print("Warning: series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warn("Series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -554,7 +577,7 @@ class Crud():
                 "pronosticos": []
             }
         if not len(json_response["series"]):
-            print("Warning: series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warn("Series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -578,7 +601,7 @@ class Crud():
                 "pronosticos": pronosticos
             }
         if "pronosticos" not in json_response["series"][0]:
-            print("Warning: pronosticos from series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warn("Pronosticos from series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -588,7 +611,7 @@ class Crud():
                 "pronosticos": []
             }
         if not len(json_response["series"][0]["pronosticos"]):
-            print("Warning: pronosticos from series %i from cal_id %i is empty" % (series_id,cal_id))
+            logging.warn("Pronosticos from series %i from cal_id %i is empty" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],

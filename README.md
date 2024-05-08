@@ -142,6 +142,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] test suite
 - [ ] add procedure exponential recession
 - [x] add procedure adjust tail parameter (to fit using only the last n steps)
+- [x] series_prono: add forecast_date greater than filter
 
 ### References
 
