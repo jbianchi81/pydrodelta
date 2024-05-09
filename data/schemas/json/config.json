@@ -87,6 +87,32 @@
                     "default": 14
                 }
             }
+        },
+        "minio": {
+            "type": "object",
+            "description": "minio persistent object storage configuration",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "minio api base path",
+                    "default": "localhost:9000"
+                },
+                "access_key":  {
+                    "type": "string",
+                    "description": "minio api access key",
+                    "default": "my_key"
+                },
+                "secret_key":  {
+                    "type": "string",
+                    "description": "minio api secret key",
+                    "default": "my_secret"
+                },
+                "secure":  {
+                    "type": "boolean",
+                    "description": "set to true if url is https",
+                    "default": false
+                }
+            }
         }
     },
     "required": ["log", "input_api", "output_api"]

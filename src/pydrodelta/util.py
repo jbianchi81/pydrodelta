@@ -838,4 +838,3 @@ def coalesce(*args):
 colormap = plt.colormaps["hsv"]
 def getRandColor():
     return colormap(random.randrange(colormap.N))
-    

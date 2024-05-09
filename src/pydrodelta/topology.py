@@ -159,7 +159,8 @@ class Topology(Base):
         output_csv : str = None,
         output_json : str = None,
         pivot : bool = True,
-        pretty : bool = True
+        pretty : bool = True,
+        **kwargs
         ):
         """Initiate topology
         
@@ -230,8 +231,28 @@ class Topology(Base):
         pretty : bool = True
             For output_json, prettify json
         """
-        params = locals()
-        del params["plan"]
+        super().__init__(**kwargs)
+        params = {
+            "timestart": timestart, 
+            "timeend":  timeend, 
+            "forecast_timeend": forecast_timeend,
+            "time_offset":  time_offset, 
+            "time_offset_start": time_offset_start, 
+            "time_offset_end": time_offset_end, 
+            "interpolation_limit": interpolation_limit,
+            "extrapolate": extrapolate,
+            "nodes": nodes,
+            "cal_id": cal_id,
+            "plot_params": plot_params,
+            "report_file" : report_file,
+            "no_metadata": no_metadata,
+            "plot_variable": plot_variable,
+            "include_prono": include_prono,
+            "output_csv": output_csv,
+            "output_json": output_json,
+            "pivot": pivot,
+            "pretty": pretty
+        }
         getSchemaAndValidate(params=params, name="topology")
         self.timestart = timestart
         self.timeend = timeend
@@ -1378,3 +1399,72 @@ class Topology(Base):
         """For each series, series_prono, series_sim and series_output of each variable of each node, save data into file if .output_file is defined"""
         for node in self.nodes:
             node.saveSeries()
+
+    def storeSeries(
+            self,
+            bucket_name : str, 
+            series : list, 
+            node_id : int, 
+            var_id : int, 
+            series_type : str = "series"):
+        self.minio_client.assertClient()
+        if series is None:
+            return
+        for serie in series:
+            if serie.data is None:
+                continue
+            series_id = serie.series_id
+            file_name = "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id, series_type, series_id)
+            self.minio_client.saveSeriesData(bucket_name, serie.data, file_name)
+
+
+    def storeSeriesData(self,bucket_name : str = None) -> None:
+        self.minio_client.assertClient()
+        if bucket_name is None:
+            bucket_name = self.minio_client.bucket_name
+        for node in self.nodes:
+            node_id = node.id
+            for var_id, variable in node.variables.items():
+                if variable.data is not None:
+                    self.minio_client.saveSeriesData(bucket_name, variable.data, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
+                self.storeSeries(bucket_name,variable.series,node_id,var_id, "series")
+                self.storeSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
+                self.storeSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
+                self.storeSeries(bucket_name,variable.series_output,node_id,var_id, "series_output")
+
+    def restoreSeries(
+            self,
+            bucket_name : str, 
+            series : list, 
+            node_id : int, 
+            var_id : int, 
+            series_type : str = "series"):
+        self.minio_client.assertClient()
+        if series is None:
+            return
+        for serie in series:
+            series_id = serie.series_id
+            try:
+                data = self.minio_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id,series_type,series_id))
+            except ValueError as e:
+                logging.warn("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
+                continue
+            serie.data = data
+
+    def restoreSeriesData(self,bucket_name : str = None) -> None:
+        self.minio_client.assertClient()
+        if bucket_name is None:
+            bucket_name = self.minio_client.bucket_name
+        for node in self.nodes:
+            node_id = node.id
+            for var_id, variable in node.variables.items():
+                try:
+                    data = self.minio_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
+                except ValueError as e:
+                    logging.warn("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
+                    continue
+                variable.data = data
+                self.restoreSeries(bucket_name,variable.series,node_id,var_id, "series")
+                self.restoreSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
+                self.restoreSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
+                self.restoreSeries(bucket_name,variable.series_output,node_id,var_id, "series_output")

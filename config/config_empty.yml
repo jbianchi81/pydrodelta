@@ -16,3 +16,8 @@ use_proxy: false
 graph:
   height: 8
   width: 10
+minio:
+  url: localhost:9000
+  access_key: my_key
+  secret_key: my_secret
+  secure: false
