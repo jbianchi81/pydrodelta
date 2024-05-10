@@ -3,22 +3,36 @@ from .config import config
 from .util import coalesce
 from .a5 import Crud
 from .descriptors.dict_descriptor import DictDescriptor
-from .persistence import MinioClient
+from .persistence import S3Client
+from .types.api_config_dict import ApiConfigDict
+from .types.s3_config_dict import s3ConfigDict
 
 class Base():
     """An abstract class"""
 
-    config = DictDescriptor()
+    input_api_config = DictDescriptor()
+
+    output_api_config = DictDescriptor()
+    
+    a5_config = DictDescriptor()
 
     input_crud : Crud
 
     output_crud : Crud
+        
+    s3_client : S3Client
 
-    def __init__(self,config_dict : dict=None):
-        self.config = coalesce(config_dict,config)
-        self.input_crud = Crud(**self.config["input_api"]) if "input_api" in self.config else None
-        self.output_crud = Crud(**self.config["output_api"]) if "output_api" in self.config else None
-        self.minio_client = MinioClient(self.config["minio"] if "minio" in self.config else None)
+    def __init__(self,
+        input_api_config : ApiConfigDict = None, 
+        output_api_config : ApiConfigDict = None, 
+        s3_config : s3ConfigDict = None
+        ):
+        self.input_api_config = coalesce(input_api_config,config["input_api"] if "input_api" in config else None)
+        self.output_api_config = coalesce(output_api_config,config["output_api"] if "output_api" in config else None)
+        self.s3_config = coalesce(s3_config,config["s3"] if "s3" in config else None)
+        self.input_crud = Crud(**self.input_api_config) if self.input_api_config is not None else None
+        self.output_crud = Crud(**self.output_api_config) if output_api_config is not None else None
+        self.s3_client = S3Client(self.s3_config)
 
     @classmethod
     def load(cls, file : str, **kwargs):

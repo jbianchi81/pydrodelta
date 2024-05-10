@@ -649,6 +649,9 @@ class Procedure():
                 # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
                 serie.applyOffset()
+                # serie.metadata = {
+                #     "procedure_id": self.id
+                # }
             index = index + 1
     
     def setIndexOfDataFrame(

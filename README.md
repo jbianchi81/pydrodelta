@@ -25,14 +25,24 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 
 ### installation
 
+    # clone repo
     git clone https://github.com/jbianchi81/pydrodelta.git pydrodelta
     cd pydrodelta
+    # create python environment
     python3 -m venv myenv
+    # activate python environment
     source myenv/bin/activate
+    # install required packages
     python3 -m pip install -r requirements.txt
+    # install pydrodelta
     python3 -m pip install .
-    export PYDRODELTA_DIR=$PWD
+    # set environment variable
+    export PYDRODELTA_DIR=$PWD # (in linux shell)
+    $env:PYDRODELTA_DIR = pwd # (in windows powershell)
+    set PYDRODELTA_DIR=%CD% # (in windows command prompt)
+    # create config file
     cp config/config_empty.yml config/config.yml
+    # set configuration parameters
     nano config/config.yml # <- insert api connection parameters
 
 ### test installation
@@ -70,13 +80,12 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     # sube observaciones a la api a5 (requiere credenciales)
     upserted = crud.createObservaciones(obs_df,series_id=serie["id"])
 
-#### python api analysis de series temporales
+#### python api timeseries analysis
 
     import pydrodelta.analysis
     import json
 
-    t_config = json.load(open("pydrodelta_config/288_bordes_curados.json"))
-    topology = pydrodelta.analysis.Topology(t_config])
+    topology = pydrodelta.analysis.Topology.load("sample_data/topologies/288_bordes_curados15d.json")
     topology.loadData()
     topology.regularize()
     topology.fillNulls()
@@ -84,6 +93,11 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     topology.saveData("bordes_288.csv",pivot=True)
     topology.saveData("bordes_288.json","json")
     topology.uploadData()
+
+    # store data in persistent storage (connection to s3 server must be set in config/config.yml)
+    topology.storeSeriesData(bucket_name="my_s3_bucket")
+    # restore stored data
+    topology.restoreSeriesData(bucket_name="my_s3_bucket")
 
 #### python api simulation
 
@@ -143,6 +157,12 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] add procedure exponential recession
 - [x] add procedure adjust tail parameter (to fit using only the last n steps)
 - [x] series_prono: add forecast_date greater than filter
+- [x] topology data persistence
+- [ ] procedures data persistence
+- [ ] topology.__repl__ print complete tree or add .tree method
+- [ ] node.getVariable()
+- [ ] variable.getSerie()
+- [ ] series_sim metadata (stats, forecast_date) 
 
 ### References
 

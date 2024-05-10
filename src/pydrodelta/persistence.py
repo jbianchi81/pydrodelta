@@ -7,7 +7,7 @@ from .util import coalesce
 
 default_config = g_config["minio"] if "minio" in g_config else None
 
-class MinioClient:
+class S3Client:
 
     def __init__(self,config : dict = None):
         config = coalesce(config, default_config)
@@ -15,10 +15,16 @@ class MinioClient:
             self.client = None
             self.bucket_name = None
         else:
+            if "url" not in config:
+                raise ValueError("Missing url in minio config")
+            if "access_key" not in config:
+                raise ValueError("Missing access_key in minio config")
+            if "secret_key" not in config:
+                raise ValueError("Missing secret_key in minio config")
             self.client = Minio(config["url"],
                 access_key=config["access_key"],
                 secret_key=config["secret_key"],
-                secure=config["secure"]
+                secure=config["secure"] if "secure" in config else True
             )
             self.bucket_name = config["bucket_name"] if "bucket_name" in config else "plan"
 
@@ -99,6 +105,7 @@ class MinioClient:
         )
         data = data.set_index("timestart")
         data.index = to_datetime(data.index)
+        data.index = data.index.tz_convert('America/Argentina/Buenos_Aires')
         return data
 
     def assertClient(self):

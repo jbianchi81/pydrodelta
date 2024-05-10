@@ -676,7 +676,9 @@ class Crud():
             group_by_qualifier = True)
         # logging.debug('Cantidad total de corridas: ',len(corridas))
         qualifiers = {}
+        last_forecast_date = corridas[len(corridas)-1]["forecast_date"]
         for corrida in sorted(corridas, key = lambda c: c["forecast_date"]):
+            last_forecast_date = corrida["forecast_date"]
             for serie in corrida["series"]:
                 qualifier = serie["qualifier"] if "qualifier" in serie else "no_qualifier"
                 if qualifier not in qualifiers:
@@ -702,7 +704,8 @@ class Crud():
             "qualifier": qualifier,
             "forecast_timestart": forecast_timestart,
             "forecast_timeend": forecast_timeend,
-            "pronosticos": pronosticos
+            "pronosticos": pronosticos,
+            "forecast_date": last_forecast_date
         }
     
 

@@ -8,7 +8,7 @@ from .node import Node
 import logging
 import json
 from numpy import nan, NaN
-from .a5 import Crud, createEmptyObsDataFrame
+from .a5 import createEmptyObsDataFrame
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo
@@ -34,9 +34,6 @@ from .types.plot_params_dict import PlotParamsDict
 from .base import Base
 
 from pydrodelta.config import config
-
-input_crud = Crud(**config["input_api"])
-output_crud = Crud(**config["output_api"])
     
 class Topology(Base):
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
@@ -813,7 +810,7 @@ class Topology(Base):
             for node in self.nodes:
                 serieslist = node.variablesPronoToList(flatten=False)
                 prono["series"].extend(serieslist)
-        api_client = Crud(**api_config) if api_config is not None else output_crud
+        api_client = Crud(**api_config) if api_config is not None else self.output_crud
         return api_client.createCorrida(prono)
 
     def pivotData(
@@ -1407,7 +1404,7 @@ class Topology(Base):
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
-        self.minio_client.assertClient()
+        self.s3_client.assertClient()
         if series is None:
             return
         for serie in series:
@@ -1415,18 +1412,18 @@ class Topology(Base):
                 continue
             series_id = serie.series_id
             file_name = "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id, series_type, series_id)
-            self.minio_client.saveSeriesData(bucket_name, serie.data, file_name)
+            self.s3_client.saveSeriesData(bucket_name, serie.data, file_name)
 
 
     def storeSeriesData(self,bucket_name : str = None) -> None:
-        self.minio_client.assertClient()
+        self.s3_client.assertClient()
         if bucket_name is None:
-            bucket_name = self.minio_client.bucket_name
+            bucket_name = self.s3_client.bucket_name
         for node in self.nodes:
             node_id = node.id
             for var_id, variable in node.variables.items():
                 if variable.data is not None:
-                    self.minio_client.saveSeriesData(bucket_name, variable.data, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
+                    self.s3_client.saveSeriesData(bucket_name, variable.data, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
                 self.storeSeries(bucket_name,variable.series,node_id,var_id, "series")
                 self.storeSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
                 self.storeSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
@@ -1439,27 +1436,27 @@ class Topology(Base):
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
-        self.minio_client.assertClient()
+        self.s3_client.assertClient()
         if series is None:
             return
         for serie in series:
             series_id = serie.series_id
             try:
-                data = self.minio_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id,series_type,series_id))
+                data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id,series_type,series_id))
             except ValueError as e:
                 logging.warn("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
                 continue
             serie.data = data
 
     def restoreSeriesData(self,bucket_name : str = None) -> None:
-        self.minio_client.assertClient()
+        self.s3_client.assertClient()
         if bucket_name is None:
-            bucket_name = self.minio_client.bucket_name
+            bucket_name = self.s3_client.bucket_name
         for node in self.nodes:
             node_id = node.id
             for var_id, variable in node.variables.items():
                 try:
-                    data = self.minio_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
+                    data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
                 except ValueError as e:
                     logging.warn("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
                     continue

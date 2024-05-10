@@ -998,6 +998,7 @@ class NodeVariable:
     def plotProno(
         self,
         output_dir : str = None,
+        use_series_sim : bool = None,
         **kwargs
         # figsize : tuple = None,
         # title : str = None,
@@ -1031,13 +1032,16 @@ class NodeVariable:
         # forecast_table : bool = None,
         # footnote_height : float = None
         ) -> None:
-        """For each serie in series_prono, plot .data time series together with observed data series[0].data
+        """For each serie in series_prono (or series_sim), plot .data time series together with observed data series[0].data
 
         Parameters:
         -----------
         output_dir : str = None
             Directory path where to save the plots
 
+        use_series_sim : bool = False
+            Use series_sim instead of series_prono. Series_sim is the output of the plan procedures while series_prono are loaded from external sources (and optionally adjusted)
+            
         figsize : tuple = None
             Figure size (width, height) in cm
         
@@ -1137,10 +1141,12 @@ class NodeVariable:
             Height of space for footnote in inches
         """
         # locals_ = {k: v for k, v in locals().items() if v is not None and k not in ["output_dir"]}
-        if self.series_prono is None:
+        use_series_sim = use_series_sim if use_series_sim is not None else False
+        series = self.series_sim if use_series_sim else self.series_prono
+        if series is None:
             logging.debug("Missing series_prono, skipping variable")
             return
-        for serie_prono in self.series_prono:
+        for serie_prono in series:
             output_file = getParamOrDefaultTo(
                 "output_file",
                 None,
@@ -1192,7 +1198,7 @@ class NodeVariable:
             plot_prono(
                 self.data,
                 serie_prono.data,
-                forecast_date=serie_prono.metadata["forecast_date"],
+                forecast_date=serie_prono.metadata["forecast_date"] if serie_prono.metadata is not None and "forecast_date" in serie_prono.metadata else None,
                 **plot_prono_kwargs
                 # title=title,
                 # markersize=markersize,

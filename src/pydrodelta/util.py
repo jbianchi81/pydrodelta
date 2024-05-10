@@ -650,6 +650,9 @@ def plot_prono(
     if ylim:
         ax.set_ylim(ylim[0],ylim[1])
     if xlim is not None:
+        xlim = list(xlim)
+        if len(xlim) < 2:
+            raise ValueError("xlim must be a 2-tuple")
         if xlim[0] is not None:
             xlim[0] = tryParseAndLocalizeDate(xlim[0])
         else:

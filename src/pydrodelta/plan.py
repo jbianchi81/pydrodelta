@@ -50,13 +50,13 @@ class Plan(Base):
     @topology.setter
     def topology(self,value : Union[dict,Topology,str,None]):
         if isinstance(value, dict):
-            self._topology = Topology(**value,plan=self)
+            self._topology = Topology(**value,plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config)
         elif isinstance(value, Topology):
             self._topology = value
         elif isinstance(value, str):
             topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],value)
             f = open(topology_file_path)
-            self._topology = Topology(**yaml.load(f,yaml.CLoader),plan=self)
+            self._topology = Topology(**yaml.load(f,yaml.CLoader),plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config)
             f.close()
         elif isinstance(value,None):
             self._topology = None
@@ -117,7 +117,8 @@ class Plan(Base):
             save_post: str = None,
             save_response: str = None,
             output_sim_csv: str = None,
-            qualifiers : List[str] = None
+            qualifiers : List[str] = None,
+            **kwargs
             ):
         """
         A plan defines a modelling configuration, including the topology, the procedures, the forecast date, time interval and output options. It is the root element of a pydro configuration
@@ -167,7 +168,24 @@ class Plan(Base):
         qualifiers : List[str] = None
             Include this forecast members into the simulation output
         """
-        getSchemaAndValidate(params=locals(), name="plan")
+        super().__init__(**kwargs)
+        params = {
+            "name" : name,
+            "id": id,
+            "topology": topology,
+            "procedures": procedures,
+            "forecast_date": forecast_date,
+            "time_interval": time_interval,
+            "output_stats": output_stats,
+            "output_results": output_results,
+            "output_analysis": output_analysis,
+            "pivot": pivot,
+            "save_post": save_post,
+            "save_response": save_response,
+            "output_sim_csv": output_sim_csv,
+            "qualifiers" : qualifiers
+        }
+        getSchemaAndValidate(params=params, name="plan")
 
         self.name = name
         self.id = id

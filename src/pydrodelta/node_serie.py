@@ -19,11 +19,9 @@ from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 import json
 import yaml
+from .base import Base
 
-input_crud = Crud(**config["input_api"])
-# output_crud = Crud(**config["output_api"])
-
-class NodeSerie():
+class NodeSerie(Base):
     """Represents a timestamped series of observed or simulated values for a variable in a node. """
     
     series_id = IntDescriptor()
@@ -132,7 +130,8 @@ class NodeSerie():
         output_file : str = None,
         output_format : str = "json",
         output_schema : str = "dict",
-        required : bool = False
+        required : bool = False,
+        **kwargs
         ):
         """
         Parameters:
@@ -186,6 +185,7 @@ class NodeSerie():
             Raise error if no data found
 
         """
+        super().__init__(**kwargs)
         self.series_id = series_id
         self.type = tipo
         self.lim_outliers : Tuple[float,float] = lim_outliers
@@ -312,7 +312,7 @@ class NodeSerie():
                 raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
-            crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
+            crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
             self.metadata = crud.readSerie(
                 self.series_id,
                 timestart,
@@ -380,9 +380,12 @@ class NodeSerie():
     def getThresholds(self) -> dict:
         """Read level threshold information from .metadata"""
         if self.metadata is None:
-            logging.warn("Metadata missing, unable to set thesholds")
+            logging.warn("Metadata missing at serie %i, unable to set thesholds" % self.series_id)
             return None
         thresholds = {}
+        if "estacion" not in self.metadata:
+            logging.warn("Estacion missing from metadata at serie %i, unable to set thesholds" % self.series_id)
+            return None
         if self.metadata["estacion"]["nivel_alerta"]:
             thresholds["nivel_alerta"] = self.metadata["estacion"]["nivel_alerta"]
         if self.metadata["estacion"]["nivel_evacuacion"]:
@@ -574,11 +577,11 @@ class NodeSerie():
             obs["tag"] = None if "tag" not in obs else None if isna(obs["tag"]) else obs["tag"]
             if qualifiers is not None:
                 for qualifier in qualifiers:
-                    if qualifier in obs:
+                    if qualifier in obs and not isna(obs[qualifier]):
                         new_obs = {
                             "timestart": obs["timestart"],
                             "timeend": obs["timeend"],
-                            "valor": obs[qualifier],
+                            "valor":  obs[qualifier],
                             "qualifier": qualifier
                         }
                         if include_series_id:
