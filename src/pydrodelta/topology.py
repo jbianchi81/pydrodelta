@@ -8,7 +8,7 @@ from .node import Node
 import logging
 import json
 from numpy import nan, NaN
-from .a5 import createEmptyObsDataFrame
+from .a5 import createEmptyObsDataFrame, Crud
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo

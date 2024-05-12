@@ -6,6 +6,7 @@ from unittest import TestCase
 import os
 import yaml
 import time
+from pydrodelta.types.typed_list import TypedList
 
 class Test_Topology(TestCase):
 
@@ -129,7 +130,7 @@ class Test_Topology(TestCase):
         self.assertIsInstance(topology.nodes[0].variables,dict)
         self.assertIn(1,topology.nodes[0].variables)
         self.assertIsInstance(topology.nodes[0].variables[1],ObservedNodeVariable)
-        self.assertIsInstance(topology.nodes[0].variables[1].series,list)
+        self.assertIsInstance(topology.nodes[0].variables[1].series,TypedList)
         self.assertEqual(len(topology.nodes[0].variables[1].series),1)
         self.assertIsInstance(topology.nodes[0].variables[1].series[0],NodeSerie)
         self.assertIn("estacion",topology.nodes[0].variables[1].series[0].metadata)

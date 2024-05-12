@@ -162,7 +162,18 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] topology.__repl__ print complete tree or add .tree method
 - [ ] node.getVariable()
 - [ ] variable.getSerie()
-- [ ] series_sim metadata (stats, forecast_date) 
+- [ ] series_sim metadata (stats, forecast_date)
+
+### Discussion / ideas 
+
+- Single master dataframe instead of .data in each element (or it could be a view?)
+  - Why
+    - easier to manage (i.e. import/export)
+  - possible issues
+    - how to identify columns (node_id+var_id+series_type+series_id)?
+    - how to harmonize different timesteps and ranges?
+
+- TypedList properties - set empty instead of None when no items provided?
 
 ### References
 

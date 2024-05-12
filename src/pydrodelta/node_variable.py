@@ -21,6 +21,7 @@ from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .types.adjust_from_dict import AdjustFromDict
 from .types.linear_combination_dict import LinearCombinationDict
+from .types.typed_list import TypedList
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
@@ -41,7 +42,7 @@ class NodeVariable:
     """Value used to fill missing values"""
     
     @property
-    def series_output(self) -> List[NodeSerie]:
+    def series_output(self) -> TypedList[NodeSerie]:
         """Output series of the analysis procedure"""
         return self._series_output
     
@@ -53,10 +54,10 @@ class NodeVariable:
         if series is None:
             self._series_output = None
             return
-        self._series_output = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
+        self._series_output = TypedList(NodeSerie, *series)  # [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     
     @property
-    def series_sim(self) -> List[NodeSerieProno]:
+    def series_sim(self) -> TypedList[NodeSerieProno]:
         """Output series of the simulation procedure"""
         return self._series_sim
     @series_sim.setter
@@ -67,13 +68,13 @@ class NodeVariable:
         if series is None:
             self._series_sim = None
             return
-        self._series_sim = []
+        self._series_sim = TypedList(NodeSerieProno)
         for serie in series:
             if isinstance(serie,NodeSerieProno):
                 self._series_sim.append(serie)
             else:
                 serie["cal_id"] = serie["cal_id"] if "cal_id" in serie else self._node._plan.id if self._node is not None and self._node._plan is not None else None
-                self._series_sim.append(NodeSerieProno(**serie))
+                self._series_sim.append(serie) # NodeSerieProno(**serie))
     
     time_support = DurationDescriptor()
     """Time support of the observations . The time interval that the observation is representative of."""

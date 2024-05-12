@@ -8,6 +8,7 @@ import numpy as np
 from typing import List, Union
 from datetime import datetime
 from pandas import DataFrame
+from .types.typed_list import TypedList
 
 class ObservedNodeVariable(NodeVariable):
     """This class represents a variable observed at a node"""
@@ -15,13 +16,13 @@ class ObservedNodeVariable(NodeVariable):
     @property
     def series(self) -> List[NodeSerie]:
         """Series of observed data of this variable at this node. They may represent different data sources such as different instruments at the same station or different stations at (or near) the same site"""
-        return self._series    
+        return self._series  
     @series.setter
     def series(
         self,
         series
         ) -> None:
-        self._series = [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
+        self._series = TypedList(NodeSerie, *series) if series is not None else None
     
     @property
     def series_prono(self) -> List[NodeSerieProno]:
@@ -32,7 +33,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = [x if isinstance(x,NodeSerieProno) else NodeSerieProno(**x) for x in series] if series is not None else None
+        self._series_prono = TypedList(NodeSerieProno, *series) if series is not None else None
     
     def __init__(
         self,
