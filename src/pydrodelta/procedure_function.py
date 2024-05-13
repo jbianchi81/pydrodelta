@@ -6,6 +6,9 @@ from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 from numpy import array
+from .types.typed_list import TypedList
+from .types.enhanced_typed_list import EnhancedTypedList
+from .function_boundary import FunctionBoundary
 # import logging
 
 class ProcedureFunction:
@@ -13,11 +16,11 @@ class ProcedureFunction:
     Abstract class to represent the transformation function of the procedure. It is instantiation, 'params' should be a dictionary which may contain an array of numerical or string 'parameters', an array of numerical or string 'initial_states', whereas 'procedure' must be the Procedure element which contains the function. The .run() method should accept an optional array of seriesData as 'input' and return an array of seriesData and a procedureFunctionResults object. When extending this class, any additional parameters may be added to 'params'.
     """
 
-    _boundaries = [] 
+    _boundaries = TypedList(FunctionBoundary)
     """ static list of function boundaries (of class function_boundary.FunctionBoundary)
     """
     
-    _outputs = [] 
+    _outputs = TypedList(FunctionBoundary) 
     """ static list of function outputs (of class function_boundary.FunctionBoundary)
     """
     
@@ -56,7 +59,7 @@ class ProcedureFunction:
     """list or dict of function initial state values"""
     
     @property
-    def boundaries(self) -> List[ProcedureBoundary]:
+    def boundaries(self) -> EnhancedTypedList[ProcedureBoundary]:
         """List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
         return self.__boundaries
     @boundaries.setter
@@ -71,40 +74,18 @@ class ProcedureFunction:
         boundaries : list
             List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
-        self.__boundaries = []
-        for b in self.__class__._boundaries:
-            if b.name in [boundary["name"] for boundary in boundaries]:
-                # if len(boundaries[b.name]) < 3:
-                #     boundaries[b.name].append(b.name)
-                # print("%s" % str(boundaries[b.name]))
-                boundary = [boundary for boundary in boundaries if boundary["name"] == b.name][0]
-                self.__boundaries.append(
-                    ProcedureBoundary(
-                        name = boundary["name"],
-                        node_id = boundary["node_variable"][0],
-                        var_id = boundary["node_variable"][1],
-                        plan = self._procedure._plan,
-                        optional = b.optional,
-                        warmup_only = b.warmup_only
-                    ))
-            else:
-                raise Exception("Missing NodeVariableIdTuple for boundary %s of procedure %s" % (str(b.name), str(self._procedure.id)))
-        if self.__class__._additional_boundaries:
-            for key in [boundary["name"] for boundary in boundaries]:
-                if key not in [b.name for b in self.__boundaries]:
-                    # if len(boundaries[key]) < 3:
-                    #     boundaries[key].append(key)
-                    boundary = [boundary for boundary in boundaries if boundary["name"] == key][0]
-                    self.__boundaries.append(
-                        ProcedureBoundary(
-                            name = boundary["name"],
-                            node_id = boundary["node_variable"][0],
-                            var_id = boundary["node_variable"][1],
-                            plan = self._procedure._plan
-                        ))
+        self.__boundaries = EnhancedTypedList(
+            ProcedureBoundary, 
+            *boundaries,
+            unique_id_property="name",
+            valid_items_list=[b.__dict__() for b in self.__class__._boundaries],
+            allow_additional_ids=self.__class__._additional_boundaries,
+            allow_missing=False,
+            plan = self._procedure._plan if self._procedure is not None else None
+        )
     
     @property
-    def outputs(self) -> List[ProcedureBoundary]:
+    def outputs(self) -> EnhancedTypedList[ProcedureBoundary]:
         """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
         return self.__outputs
     @outputs.setter
@@ -119,36 +100,15 @@ class ProcedureFunction:
         outputs : list of dict
             list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id, variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
-        self.__outputs = []
-        for b in self.__class__._outputs:
-            if b.name in [o["name"] for o in outputs]:
-                # if len(outputs[b.name]) < 3:
-                #     outputs[b.name].append(b.name)
-                output = [o for o in outputs if o["name"] == b.name][0]
-                self.__outputs.append(
-                    ProcedureBoundary(
-                        name = output["name"],
-                        node_id = output["node_variable"][0],
-                        var_id = output["node_variable"][1],
-                        plan = self._procedure._plan,
-                        optional = b.optional,
-                        compute_statistics=b.compute_statistics
-                    ))
-            else:
-                raise Exception("Missing nodeVariable for output %s of procedure %s" % (str(b.name), str(self._procedure.id)))
-        if self.__class__._additional_outputs:
-            for key in [o["name"] for o in outputs]:
-                if key not in [o.name for o in self.__outputs]:
-                    # if len(outputs[key]) < 3:
-                    #     outputs[key].append(key)
-                    output = [o for o in outputs if o["name"] == key][0]
-                    self.__outputs.append(
-                        ProcedureBoundary(
-                            name = output["name"],
-                            node_id = output["node_variables"][0],
-                            var_id = output["node_variables"][1],
-                            plan = self._procedure._plan
-                        ))
+        self.__outputs = EnhancedTypedList(
+            ProcedureBoundary, 
+            *outputs,
+            unique_id_property="name",
+            valid_items_list=[b.__dict__() for b in self.__class__._outputs],
+            allow_additional_ids=self.__class__._additional_outputs,
+            allow_missing=False,
+            plan = self._procedure._plan if self._procedure is not None else None
+        )
     
     input = ListDescriptor()
     """Input of the procedure function"""
@@ -174,7 +134,7 @@ class ProcedureFunction:
 
     def __init__(
         self,
-        procedure,
+        procedure = None,
         parameters : Union[list, dict] = [],
         initial_states : Union[list, dict] = [],
         boundaries : list = [],

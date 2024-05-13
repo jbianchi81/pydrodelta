@@ -11,8 +11,11 @@
     * [time\_interval](#pydrodelta.node.Node.time_interval)
     * [time\_offset](#pydrodelta.node.Node.time_offset)
     * [hec\_node](#pydrodelta.node.Node.hec_node)
+    * [description](#pydrodelta.node.Node.description)
     * [variables](#pydrodelta.node.Node.variables)
     * [node\_type](#pydrodelta.node.Node.node_type)
+    * [basin\_pars](#pydrodelta.node.Node.basin_pars)
+    * [api\_config](#pydrodelta.node.Node.api_config)
     * [\_\_init\_\_](#pydrodelta.node.Node.__init__)
     * [setOriginalData](#pydrodelta.node.Node.setOriginalData)
     * [toDict](#pydrodelta.node.Node.toDict)
@@ -29,6 +32,7 @@
     * [uploadData](#pydrodelta.node.Node.uploadData)
     * [pivotData](#pydrodelta.node.Node.pivotData)
     * [pivotOutputData](#pydrodelta.node.Node.pivotOutputData)
+    * [pivotSimData](#pydrodelta.node.Node.pivotSimData)
     * [seriesToDataFrame](#pydrodelta.node.Node.seriesToDataFrame)
     * [saveSeries](#pydrodelta.node.Node.saveSeries)
     * [concatenateProno](#pydrodelta.node.Node.concatenateProno)
@@ -43,6 +47,7 @@
     * [fillNulls](#pydrodelta.node.Node.fillNulls)
     * [derive](#pydrodelta.node.Node.derive)
     * [applyMovingAverage](#pydrodelta.node.Node.applyMovingAverage)
+    * [saveSeries](#pydrodelta.node.Node.saveSeries)
 
 <a id="pydrodelta.node"></a>
 
@@ -110,6 +115,12 @@ Start time of the observations/forecasts relative to zero local time
 
 Mapping of this node to HECRAS geometry
 
+<a id="pydrodelta.node.Node.description"></a>
+
+#### description
+
+Node description
+
 <a id="pydrodelta.node.Node.variables"></a>
 
 #### variables
@@ -127,6 +138,31 @@ Variables represent the hydrologic observed/simulated properties at the node (su
 
 The type of node: either 'station' or 'basin'
 
+<a id="pydrodelta.node.Node.basin_pars"></a>
+
+#### basin\_pars
+
+Basin parameters. For nodes of type='basin'
+
+Properties:
+-----------
+- area : float - Basin area in square meters
+- ae : float - Basin effective drainage area ([0-1] fraction)
+- rho : float - Basin mean soil porosity ([0-1] fraction)
+- wp : float - Basin mean wilting point  ([0-1] fraction)
+- area_id : int - Basin identifier at a5 input API
+
+<a id="pydrodelta.node.Node.api_config"></a>
+
+#### api\_config
+
+"Input api configuration
+
+Properties:
+-----------
+- url : str - api base url
+- token : str - api authorization token
+
 <a id="pydrodelta.node.Node.__init__"></a>
 
 #### \_\_init\_\_
@@ -143,9 +179,14 @@ def __init__(id: int,
              time_offset: timedelta = None,
              topology=None,
              hec_node: dict = None,
-             variables: List[Union[DerivedNodeVariable,
+             variables: List[Union[DerivedNodeVariableDict,
+                                   ObservedNodeVariableDict,
+                                   DerivedNodeVariable,
                                    ObservedNodeVariable]] = list(),
-             node_type: str = "station")
+             node_type: str = "station",
+             description: str = None,
+             basin_pars: dict = None,
+             api_config: dict = None)
 ```
 
 Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
@@ -191,6 +232,15 @@ Nodes represent stations and basins. These nodes are identified with a node_id a
   
   node_type : str = "station"
   The type of node: either 'station' or 'basin'
+  
+  basin_pars : dict = None
+  Basin parameters. For nodes of type = 'basin'
+  
+  api_config : dict = None
+  Override global input api configuration
+  
+  - url : str
+  - token : str
 
 <a id="pydrodelta.node.Node.setOriginalData"></a>
 
@@ -408,7 +458,7 @@ For each variable in .variables run setOutputData()
 #### uploadData
 
 ```python
-def uploadData(include_prono: bool = False) -> list
+def uploadData(include_prono: bool = False, api_config: dict = None) -> list
 ```
 
 For each variable in .variables run .uploadData()
@@ -424,6 +474,14 @@ For each variable in .variables run .uploadData()
 
   --------
   created observations : list
+  
+  api_config : dict = None
+  Api connection parameters. Overrides global config.output_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
 
 <a id="pydrodelta.node.Node.pivotData"></a>
 
@@ -463,6 +521,21 @@ Join all variables' output data into a single pivoted DataFrame
   include_tag : bool = True
   Include tag columns
   
+
+**Returns**:
+
+  --------
+  joined, pivoted data : DataFrame
+
+<a id="pydrodelta.node.Node.pivotSimData"></a>
+
+#### pivotSimData
+
+```python
+def pivotSimData() -> DataFrame
+```
+
+Join all variables' sim data into a single pivoted DataFrame
 
 **Returns**:
 
@@ -578,29 +651,7 @@ For each variable of .variables run .plot()
 #### plotProno
 
 ```python
-def plotProno(output_dir: str = None,
-              figsize: tuple = None,
-              title: str = None,
-              markersize: int = None,
-              obs_label: str = None,
-              tz: str = None,
-              prono_label: str = None,
-              footnote: str = None,
-              errorBandLabel: str = None,
-              obsLine: bool = None,
-              prono_annotation: str = None,
-              obs_annotation: str = None,
-              forecast_date_annotation: str = None,
-              ylim: tuple = None,
-              station_name: str = None,
-              ydisplay: float = None,
-              text_xoffset: float = None,
-              xytext: tuple = None,
-              datum_template_string: str = None,
-              title_template_string: str = None,
-              x_label: str = None,
-              y_label: str = None,
-              xlim: tuple = None) -> None
+def plotProno(**kwargs) -> None
 ```
 
 For each variable in .variables run .plotProno()
@@ -676,6 +727,39 @@ For each variable in .variables run .plotProno()
   
   xlim : tuple = None
   Range of x axis (min, max)
+  
+  prono_fmt : str = '-'
+  Style for forecast series
+  
+  annotate : bool = True
+  Add observed data/forecast data/forecast date annotations
+  
+  table_columns : list = ["Fecha", "Nivel"]
+  Which forecast dataframe columns to show. Options:
+  -   Fecha
+  -   Nivel
+  -   Hora
+  -   Fechap
+  -   Dia
+  
+  date_form : str = "%H hrs
+  %d-%b"
+  Date formatting string for x axis tick labels
+  
+  xaxis_minor_tick_hours : list = [3,9,15,21]
+  Hours of location of minor ticks of x axis
+  
+  errorBand : tuple[str,str] = None
+  Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
+  
+  error_band_fmt : str = None
+  style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively
+  
+  forecast_table : bool = True
+  Print forecast table
+  
+  footnote_height : float = 0.2
+  Height of space for footnote in inches
 
 <a id="pydrodelta.node.Node.loadData"></a>
 
@@ -685,7 +769,9 @@ For each variable in .variables run .plotProno()
 def loadData(timestart: Union[datetime, str, dict],
              timeend: Union[datetime, str, dict],
              include_prono: bool = True,
-             forecast_timeend: Union[datetime, str, dict] = None) -> None
+             forecast_timeend: Union[datetime, str, dict] = None,
+             input_api_config: dict = None,
+             no_metadata: bool = False) -> None
 ```
 
 For each variable in variables, if variable is an ObservedNodeVariable run .loadData()
@@ -704,6 +790,17 @@ For each variable in variables, if variable is an ObservedNodeVariable run .load
   
   forecast_timeend : Union[datetime,str,dict] = None
   End date of forecast retrieval. If None, uses timeend
+  
+  input_api_config : dict
+  Api connection parameters. Overrides global config.input_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
+  
+  no_metadata : bool = False
+  Don't retrieve series metadata on load from api
 
 <a id="pydrodelta.node.Node.removeOutliers"></a>
 
@@ -799,4 +896,14 @@ def applyMovingAverage() -> None
 ```
 
 For each variable of .variables fun applyMovingAverage()
+
+<a id="pydrodelta.node.Node.saveSeries"></a>
+
+#### saveSeries
+
+```python
+def saveSeries()
+```
+
+For each series, series_prono, series_sim and series_output of each variable, save data into file if .output_file is defined
 

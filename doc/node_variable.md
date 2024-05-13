@@ -18,6 +18,10 @@
     * [name](#pydrodelta.node_variable.NodeVariable.name)
     * [time\_interval](#pydrodelta.node_variable.NodeVariable.time_interval)
     * [derived](#pydrodelta.node_variable.NodeVariable.derived)
+    * [timestart](#pydrodelta.node_variable.NodeVariable.timestart)
+    * [timeend](#pydrodelta.node_variable.NodeVariable.timeend)
+    * [time\_offset](#pydrodelta.node_variable.NodeVariable.time_offset)
+    * [forecast\_timeend](#pydrodelta.node_variable.NodeVariable.forecast_timeend)
     * [\_\_init\_\_](#pydrodelta.node_variable.NodeVariable.__init__)
     * [setOriginalData](#pydrodelta.node_variable.NodeVariable.setOriginalData)
     * [toDict](#pydrodelta.node_variable.NodeVariable.toDict)
@@ -40,6 +44,7 @@
     * [uploadData](#pydrodelta.node_variable.NodeVariable.uploadData)
     * [pivotData](#pydrodelta.node_variable.NodeVariable.pivotData)
     * [pivotOutputData](#pydrodelta.node_variable.NodeVariable.pivotOutputData)
+    * [pivotSimData](#pydrodelta.node_variable.NodeVariable.pivotSimData)
     * [seriesToDataFrame](#pydrodelta.node_variable.NodeVariable.seriesToDataFrame)
     * [saveSeries](#pydrodelta.node_variable.NodeVariable.saveSeries)
     * [concatenate](#pydrodelta.node_variable.NodeVariable.concatenate)
@@ -49,6 +54,7 @@
     * [saveData](#pydrodelta.node_variable.NodeVariable.saveData)
     * [plot](#pydrodelta.node_variable.NodeVariable.plot)
     * [plotProno](#pydrodelta.node_variable.NodeVariable.plotProno)
+    * [saveSeries](#pydrodelta.node_variable.NodeVariable.saveSeries)
 
 <a id="pydrodelta.node_variable"></a>
 
@@ -88,7 +94,7 @@ Value used to fill missing values
 
 ```python
 @property
-def series_output() -> List[NodeSerie]
+def series_output() -> TypedList[NodeSerie]
 ```
 
 Output series of the analysis procedure
@@ -99,7 +105,7 @@ Output series of the analysis procedure
 
 ```python
 @property
-def series_sim() -> List[NodeSerieProno]
+def series_sim() -> TypedList[NodeSerieProno]
 ```
 
 Output series of the simulation procedure
@@ -170,24 +176,52 @@ Intended time spacing of the variable
 
 Indicates wether the variable is derived
 
+<a id="pydrodelta.node_variable.NodeVariable.timestart"></a>
+
+#### timestart
+
+Begin date (overrides _node.timestart)
+
+<a id="pydrodelta.node_variable.NodeVariable.timeend"></a>
+
+#### timeend
+
+End date (overrides _node.timeend)
+
+<a id="pydrodelta.node_variable.NodeVariable.time_offset"></a>
+
+#### time\_offset
+
+Time start offset relative to 00:00 (overrides _node.time_offset)
+
+<a id="pydrodelta.node_variable.NodeVariable.forecast_timeend"></a>
+
+#### forecast\_timeend
+
+Forecast end date
+
 <a id="pydrodelta.node_variable.NodeVariable.__init__"></a>
 
 #### \_\_init\_\_
 
 ```python
 def __init__(id: int,
-             node,
+             node=None,
              fill_value: float = None,
              series_output: List[Union[dict, NodeSerie]] = None,
              output_series_id: int = None,
              series_sim: List[Union[dict, NodeSerie]] = None,
              time_support: Union[datetime, dict, int, str] = None,
-             adjust_from: AdjustFrom = None,
-             linear_combination: LinearCombination = None,
+             adjust_from: AdjustFromDict = None,
+             linear_combination: LinearCombinationDict = None,
              interpolation_limit: int = None,
-             extrapolate: bool = False,
+             extrapolate: bool = None,
              time_interval: Union[timedelta, dict, float] = None,
-             name: str = None)
+             name: str = None,
+             timestart: datetime = None,
+             timeend: datetime = None,
+             time_offset: timedelta = None,
+             forecast_timeend: datetime = None)
 ```
 
 **Arguments**:
@@ -214,10 +248,10 @@ def __init__(id: int,
   time_support : Union[datetime,dict,int,str] = None
   Time support of the observations . The time interval that the observation is representative of.
   
-  adjust_from : AdjustFrom = None
+  adjust_from : AdjustFromDict = None
   Adjust configuration. 'truth' and 'sim' are the indexes of the .series to be used for the linear regression adjustment.
   
-  linear_combination : LinearCombination = None
+  linear_combination : LinearCombinationDict = None
   Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)
   
   interpolation_limit : Union[timedelta,dict,float] = None
@@ -232,6 +266,22 @@ def __init__(id: int,
   name :  str = None
   
   Arbitrary name of the variable
+  
+  timestart : datetime = None
+  
+  Begin date (overrides _node.timestart)
+  
+  timeend : datetime = None
+  
+  End date (overrides _node.timeend)
+  
+  time_offset : timedelta = None
+  
+  Time start offset relative to 00:00 (overrides _node.time_offset)
+  
+  forecast_timeend : datetime = None
+  
+  Forecast end date
 
 <a id="pydrodelta.node_variable.NodeVariable.setOriginalData"></a>
 
@@ -497,7 +547,7 @@ By means of a linear regression, adjust data of one of .series ('sim') from data
 def apply_linear_combination(
         plot: bool = True,
         series_index: int = 0,
-        linear_combination: LinearCombination = None) -> None
+        linear_combination: LinearCombinationDict = None) -> None
 ```
 
 Apply linear combination
@@ -511,7 +561,7 @@ Apply linear combination
   series_index : int = 0
   Index of target series
   
-  linear_combination : LinearCombination = None
+  linear_combination : LinearCombinationDict = None
   Linear combination parameters: "intercept" and "coefficients". If None, reads from self.linear_combination
 
 <a id="pydrodelta.node_variable.NodeVariable.applyMovingAverage"></a>
@@ -555,7 +605,7 @@ Copies .data into each series_output .data, and applies offset where .x_offset a
 #### uploadData
 
 ```python
-def uploadData(include_prono: bool = False) -> list
+def uploadData(include_prono: bool = False, api_config: dict = None) -> list
 ```
 
 Uploads series_output (analysis results) to output API. For each serie in series_output, it converts .data into a list of records, uploads the records using .series_id as the series identifier, then concatenates all responses into a single list which it returns
@@ -565,6 +615,14 @@ Uploads series_output (analysis results) to output API. For each serie in series
   -----------
   include_prono : bool = False
   Includes the forecast period of data
+  
+  api_config : dict = None
+  Api connection parameters. Overrides global config.output_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
   
 
 **Returns**:
@@ -610,6 +668,21 @@ Joins all series in series_output into a single pivoted DataFrame
   include_tag : bool = True
   Add columns for tags
   
+
+**Returns**:
+
+  --------
+  pivoted data : DataFrame
+
+<a id="pydrodelta.node_variable.NodeVariable.pivotSimData"></a>
+
+#### pivotSimData
+
+```python
+def pivotSimData() -> pandas.DataFrame
+```
+
+Joins all series in series_sim into a single pivoted DataFrame
 
 **Returns**:
 
@@ -810,37 +883,20 @@ Plot .data together with .series
 
 ```python
 def plotProno(output_dir: str = None,
-              figsize: tuple = None,
-              title: str = None,
-              markersize: int = None,
-              obs_label: str = None,
-              tz: str = None,
-              prono_label: str = None,
-              footnote: str = None,
-              errorBandLabel: str = None,
-              obsLine: bool = None,
-              prono_annotation: str = None,
-              obs_annotation: str = None,
-              forecast_date_annotation: str = None,
-              ylim: tuple = None,
-              station_name: str = None,
-              ydisplay: float = None,
-              text_xoffset: float = None,
-              xytext: tuple = None,
-              datum_template_string: str = None,
-              title_template_string: str = None,
-              x_label: str = None,
-              y_label: str = None,
-              xlim: tuple = None) -> None
+              use_series_sim: bool = None,
+              **kwargs) -> None
 ```
 
-For each serie in series_prono, plot .data time series together with observed data series[0].data
+For each serie in series_prono (or series_sim), plot .data time series together with observed data series[0].data
 
 **Arguments**:
 
   -----------
   output_dir : str = None
   Directory path where to save the plots
+  
+  use_series_sim : bool = False
+  Use series_sim instead of series_prono. Series_sim is the output of the plan procedures while series_prono are loaded from external sources (and optionally adjusted)
   
   figsize : tuple = None
   Figure size (width, height) in cm
@@ -907,4 +963,47 @@ For each serie in series_prono, plot .data time series together with observed da
   
   xlim : tuple = None
   Range of x axis (min, max)
+  
+  prono_fmt : str = 'b-'
+  Style of forecast series
+  
+  annotate : bool = True
+  Add observed data/forecast data/forecast date annotations
+  
+  table_columns : list = ["Fecha", "Nivel"]
+  Which forecast dataframe columns to show. Options:
+  -   Fecha
+  -   Nivel
+  -   Hora
+  -   dd/mm hh
+  -   Dia
+  
+  date_form : str = "%H hrs
+  %d-%b"
+  Date formatting string for x axis tick labels
+  
+  xaxis_minor_tick_hours : list = [3,9,15,21]
+  Hours of location of minor ticks of x axis
+  
+  errorBand : tuple[str,str] = None
+  Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
+  
+  error_band_fmt : str = None
+  style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively
+  
+  forecast_table : bool = True
+  Print forecast table
+  
+  footnote_height : float = 0.2
+  Height of space for footnote in inches
+
+<a id="pydrodelta.node_variable.NodeVariable.saveSeries"></a>
+
+#### saveSeries
+
+```python
+def saveSeries()
+```
+
+For each series, series_prono, series_sim and series_output, save data into file if .output_file is defined
 

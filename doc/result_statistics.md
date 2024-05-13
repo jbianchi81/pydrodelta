@@ -5,6 +5,7 @@
     * [\_\_init\_\_](#pydrodelta.result_statistics.ResultStatistics.__init__)
     * [compute](#pydrodelta.result_statistics.ResultStatistics.compute)
     * [toDict](#pydrodelta.result_statistics.ResultStatistics.toDict)
+    * [toShortDict](#pydrodelta.result_statistics.ResultStatistics.toShortDict)
 
 <a id="pydrodelta.result_statistics"></a>
 
@@ -18,7 +19,7 @@
 class ResultStatistics()
 ```
 
-Collection of statistic analysis results for the procedure
+Collection of statistic analysis results for one output of the procedure
 
 <a id="pydrodelta.result_statistics.ResultStatistics.__init__"></a>
 
@@ -30,10 +31,12 @@ def __init__(obs: list = list(),
              metadata: dict = None,
              calibration_period: list = None,
              group: str = "cal",
-             compute: bool = False)
+             compute: bool = False,
+             procedure=None,
+             output=None)
 ```
 
-Initiate collection of statistic analysis for the procedue
+Initiate collection of statistic analysis for the procedure
 
 **Arguments**:
 
@@ -81,5 +84,19 @@ Convert result statistics into dict
 **Returns**:
 
   --------
+  dict
+
+<a id="pydrodelta.result_statistics.ResultStatistics.toShortDict"></a>
+
+#### toShortDict
+
+```python
+def toShortDict() -> dict
+```
+
+Return Statistics summary
+
+**Returns**:
+
   dict
 

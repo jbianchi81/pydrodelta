@@ -39,17 +39,32 @@ If true, null values in this boundary will not raise an error
 
 #### node\_id
 
-node identitifier. Must be present int plan.topology.nodes
+```python
+@property
+def node_id() -> int
+```
+
+node identitifier. Must be present in plan.topology.nodes
 
 <a id="pydrodelta.procedure_boundary.ProcedureBoundary.var_id"></a>
 
 #### var\_id
+
+```python
+@property
+def var_id() -> int
+```
 
 variable identifier. Must be present in node.variables
 
 <a id="pydrodelta.procedure_boundary.ProcedureBoundary.name"></a>
 
 #### name
+
+```python
+@property
+def name() -> str
+```
 
 name of the boundary. Must be one of the procedureFunction's boundaries or outputs
 
@@ -92,13 +107,14 @@ Compute result statistics for this boundary
 #### \_\_init\_\_
 
 ```python
-def __init__(node_id: int,
-             var_id: int,
-             name: str,
+def __init__(node_id: int = None,
+             var_id: int = None,
+             name: str = None,
              plan=None,
              optional: bool = False,
              warmup_only: bool = False,
-             compute_statistics: bool = True)
+             compute_statistics: bool = True,
+             node_variable: Tuple[int, int] = None)
 ```
 
 Initiate class ProcedureBoundary

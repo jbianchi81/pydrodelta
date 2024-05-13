@@ -79,7 +79,9 @@ def __init__(series: List[Union[dict, NodeSerie]] = None,
 def loadData(timestart: datetime,
              timeend: datetime,
              include_prono: bool = True,
-             forecast_timeend: datetime = None) -> None
+             forecast_timeend: datetime = None,
+             input_api_config: dict = None,
+             no_metadata: bool = False) -> None
 ```
 
 Load data of each serie in .series from source
@@ -98,6 +100,17 @@ Load data of each serie in .series from source
   
   forecast_timeend : datetime = None
   End date of forecasted data
+  
+  input_api_config : dict
+  Api connection parameters. Overrides global config.input_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
+  
+  no_metadata : bool = False
+  Don't retrieve series metadata on load from api
 
 <a id="pydrodelta.observed_node_variable.ObservedNodeVariable.setDataWithNoValues"></a>
 
@@ -157,7 +170,7 @@ For each serie in .series, apply offset where .x_offset and/or .y_offset is set
 def regularize(interpolate: bool = False) -> None
 ```
 
-For each serie in .series, apply timestep regularization using parameters stored in ._node (timestart, timeend, time_interval, time_offset)
+For each serie in .series, apply timestep regularization using stored parameters (timestart, timeend, time_interval, time_offset, forecast_timeend)
 
 **Arguments**:
 

@@ -14,13 +14,19 @@
     * [outliers\_data](#pydrodelta.node_serie.NodeSerie.outliers_data)
     * [jumps\_data](#pydrodelta.node_serie.NodeSerie.jumps_data)
     * [csv\_file](#pydrodelta.node_serie.NodeSerie.csv_file)
+    * [json\_file](#pydrodelta.node_serie.NodeSerie.json_file)
     * [observations](#pydrodelta.node_serie.NodeSerie.observations)
     * [save\_post](#pydrodelta.node_serie.NodeSerie.save_post)
     * [comment](#pydrodelta.node_serie.NodeSerie.comment)
     * [name](#pydrodelta.node_serie.NodeSerie.name)
+    * [output\_file](#pydrodelta.node_serie.NodeSerie.output_file)
+    * [output\_format](#pydrodelta.node_serie.NodeSerie.output_format)
+    * [output\_schema](#pydrodelta.node_serie.NodeSerie.output_schema)
+    * [required](#pydrodelta.node_serie.NodeSerie.required)
     * [\_\_init\_\_](#pydrodelta.node_serie.NodeSerie.__init__)
     * [toDict](#pydrodelta.node_serie.NodeSerie.toDict)
     * [loadData](#pydrodelta.node_serie.NodeSerie.loadData)
+    * [saveData](#pydrodelta.node_serie.NodeSerie.saveData)
     * [getThresholds](#pydrodelta.node_serie.NodeSerie.getThresholds)
     * [removeOutliers](#pydrodelta.node_serie.NodeSerie.removeOutliers)
     * [detectJumps](#pydrodelta.node_serie.NodeSerie.detectJumps)
@@ -42,7 +48,7 @@
 ## NodeSerie Objects
 
 ```python
-class NodeSerie()
+class NodeSerie(Base)
 ```
 
 Represents a timestamped series of observed or simulated values for a variable in a node.
@@ -124,6 +130,12 @@ Data rows containing detected jumps
 
 Read data from this csv file. The csv file must have one column for the timestamps called 'timestart' and one column per series of data with the series_id in the header
 
+<a id="pydrodelta.node_serie.NodeSerie.json_file"></a>
+
+#### json\_file
+
+Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs
+
 <a id="pydrodelta.node_serie.NodeSerie.observations"></a>
 
 #### observations
@@ -153,6 +165,30 @@ Comment about this series
 
 Series name
 
+<a id="pydrodelta.node_serie.NodeSerie.output_file"></a>
+
+#### output\_file
+
+Save analysis results into this file
+
+<a id="pydrodelta.node_serie.NodeSerie.output_format"></a>
+
+#### output\_format
+
+File format for output_file. Defaults to json
+
+<a id="pydrodelta.node_serie.NodeSerie.output_schema"></a>
+
+#### output\_schema
+
+JSON schema for output_file. Defaults to dict
+
+<a id="pydrodelta.node_serie.NodeSerie.required"></a>
+
+#### required
+
+Raise error if no data found
+
 <a id="pydrodelta.node_serie.NodeSerie.__init__"></a>
 
 #### \_\_init\_\_
@@ -170,7 +206,14 @@ def __init__(series_id: int,
                                                        float]]] = None,
              save_post: str = None,
              comment: str = None,
-             name: str = None)
+             name: str = None,
+             node_variable=None,
+             json_file: str = None,
+             output_file: str = None,
+             output_format: str = "json",
+             output_schema: str = "dict",
+             required: bool = False,
+             **kwargs)
 ```
 
 **Arguments**:
@@ -205,6 +248,24 @@ def __init__(series_id: int,
   
   save_post : str = None
   Save upload payload into this file
+  
+  node_variable : NodeVariable = None
+  NodeVariable of the Topology that contains this Series
+  
+  json_file : str = None
+  Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs
+  
+  output_file = StringDescriptor()
+  Save analysis results into this file
+  
+  output_format = StringDescriptor()
+  File format for output_file. Defaults to json
+  
+  output_schema = StringDescriptor()
+  JSON schema for output_file. Defaults to dict
+  
+  required : bool = False
+  Raise error if no data found
 
 <a id="pydrodelta.node_serie.NodeSerie.toDict"></a>
 
@@ -221,7 +282,11 @@ Convert series to dict
 #### loadData
 
 ```python
-def loadData(timestart: datetime, timeend: datetime) -> None
+def loadData(timestart: datetime,
+             timeend: datetime,
+             input_api_config: dict = None,
+             no_metadata: bool = False,
+             tag: str = "obs") -> None
 ```
 
 Load data from source according to configuration.
@@ -229,6 +294,7 @@ Load data from source according to configuration.
 Priority is in this order:
 - if .observations is set, loads time-value pairs from there,
 - else if .csv_file is set, loads data from said csv file,
+- else if .json_file is set, loads data from said json (or yaml) file
 - else loads from input api the series of id .series_id and of type .type
 
 **Arguments**:
@@ -239,6 +305,36 @@ Priority is in this order:
   
   timeend : datetime
   End time of the timeseries
+  
+  input_api_config : dict
+  Api connection parameters. Overrides self._variable._node._crud and global config.input_api
+  
+  no_metadata : bool = True
+  Don't retrieve metadata
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
+  
+  tag : str = "obs"
+  Tag observations with this string
+
+<a id="pydrodelta.node_serie.NodeSerie.saveData"></a>
+
+#### saveData
+
+```python
+def saveData(output_file=None, format: str = None, schema: str = None) -> None
+```
+
+Print data into file
+
+**Arguments**:
+
+- `output_file` __type__ - path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+- `format` _str, optional_ - File format (json, yaml, csv). Defaults to "json".
+- `schema` _str, optional_ - schema of json object (dict, list). Defaults to "dict".
 
 <a id="pydrodelta.node_serie.NodeSerie.getThresholds"></a>
 
@@ -386,7 +482,8 @@ Convert timeseries into csv string
 def toList(include_series_id: bool = False,
            timeSupport: timedelta = None,
            remove_nulls: bool = False,
-           max_obs_date: datetime = None) -> List[TVP]
+           max_obs_date: datetime = None,
+           qualifiers: List[str] = None) -> List[TVP]
 ```
 
 Convert timeseries to list of time-value pair dicts
@@ -405,6 +502,9 @@ Convert timeseries to list of time-value pair dicts
   
   max_obs_date : datetime = None
   Remove data beyond this date
+  
+  qualifiers : List[str] = None
+  Generate additional time-value pairs using the values of this qualifier keys
   
 
 **Returns**:

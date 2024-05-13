@@ -740,9 +740,11 @@ from pydrodelta.procedures.difference import DifferenceProcedureFunction
 from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
 from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
 from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
+from pydrodelta.procedures.abstract import AbstractProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
+    "AbstractProcedureFunction": AbstractProcedureFunction,
     "HecRas": HecRasProcedureFunction,
     "HecRasProcedureFunction": HecRasProcedureFunction,
     "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,

@@ -5,6 +5,7 @@
     * [K](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.K)
     * [X](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.X)
     * [Proc](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.Proc)
+    * [dt](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.dt)
     * [engine](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.engine)
     * [\_\_init\_\_](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.__init__)
     * [run](#pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.run)
@@ -58,6 +59,17 @@ def Proc() -> str
 ```
 
 Routing procedure
+
+<a id="pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.dt"></a>
+
+#### dt
+
+```python
+@property
+def dt() -> str
+```
+
+Calculation step
 
 <a id="pydrodelta.procedures.muskingumchannel.MuskingumChannelProcedureFunction.engine"></a>
 

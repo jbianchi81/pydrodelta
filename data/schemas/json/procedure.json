@@ -22,6 +22,9 @@
       "function": {
         "anyOf": [
           {
+            "$ref": "abstractprocedurefunction.json"
+          },
+          {
             "$ref": "hecrasprocedurefunction.json"
           },
           {

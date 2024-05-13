@@ -2,9 +2,15 @@
 
 * [pydrodelta.procedure](#pydrodelta.procedure)
   * [Procedure](#pydrodelta.procedure.Procedure)
+    * [adjust](#pydrodelta.procedure.Procedure.adjust)
+    * [warmup\_steps](#pydrodelta.procedure.Procedure.warmup_steps)
+    * [tail\_steps](#pydrodelta.procedure.Procedure.tail_steps)
+    * [linear\_model](#pydrodelta.procedure.Procedure.linear_model)
+    * [error\_band](#pydrodelta.procedure.Procedure.error_band)
     * [getCalibrationPeriod](#pydrodelta.procedure.Procedure.getCalibrationPeriod)
     * [getResultIndex](#pydrodelta.procedure.Procedure.getResultIndex)
     * [toDict](#pydrodelta.procedure.Procedure.toDict)
+    * [loadInputDefault](#pydrodelta.procedure.Procedure.loadInputDefault)
     * [loadInput](#pydrodelta.procedure.Procedure.loadInput)
     * [loadOutputObs](#pydrodelta.procedure.Procedure.loadOutputObs)
     * [computeStatistics](#pydrodelta.procedure.Procedure.computeStatistics)
@@ -66,7 +72,37 @@ A Procedure defines a hydrological, hydrodinamic or static procedure which takes
   When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data
   
   calibration : dict
-  Configuration for Downhill Simplex calibration procedure (see Calibration)
+  Configuration for calibration procedure (see Calibration)
+
+<a id="pydrodelta.procedure.Procedure.adjust"></a>
+
+#### adjust
+
+Adjust output series using observations. Adjustment is performed after statistics computation
+
+<a id="pydrodelta.procedure.Procedure.warmup_steps"></a>
+
+#### warmup\_steps
+
+For output adjustment, discard this number of initial rows
+
+<a id="pydrodelta.procedure.Procedure.tail_steps"></a>
+
+#### tail\_steps
+
+For output adjustment, use only this number of final rows
+
+<a id="pydrodelta.procedure.Procedure.linear_model"></a>
+
+#### linear\_model
+
+Linear model fit results
+
+<a id="pydrodelta.procedure.Procedure.error_band"></a>
+
+#### error\_band
+
+Add error band series to adjusted result
 
 <a id="pydrodelta.procedure.Procedure.getCalibrationPeriod"></a>
 
@@ -86,7 +122,7 @@ Read the calibration period from the calibration configuration
 def getResultIndex() -> int
 ```
 
-Read the calibration period from the calibration configuration
+Read the calibration index from the calibration configuration
 
 <a id="pydrodelta.procedure.Procedure.toDict"></a>
 
@@ -98,13 +134,25 @@ def toDict() -> dict
 
 Convert this instance into a dict
 
+<a id="pydrodelta.procedure.Procedure.loadInputDefault"></a>
+
+#### loadInputDefault
+
+```python
+def loadInputDefault() -> None
+```
+
+Loads input with default behaviour according to the procedure function
+
 <a id="pydrodelta.procedure.Procedure.loadInput"></a>
 
 #### loadInput
 
 ```python
 def loadInput(inplace: bool = True,
-              pivot: bool = False) -> Union[List[DataFrame], DataFrame]
+              pivot: bool = False,
+              use_boundary_name: bool = False,
+              tag_column: bool = True) -> Union[List[DataFrame], DataFrame]
 ```
 
 Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
@@ -113,11 +161,17 @@ Loads the boundary variables defined in self.function.boundaries. Takes .data fr
 
   ----------
   
-  inplace : bool
+  inplace : bool = True
   If True, saves result into self.data and returns None
   
-- `pivot` - bool
+- `pivot` - bool = False
   If true, joins all variables into a single DataFrame
+  
+  use_boundary_name : bool = False
+  When pivot=True, use boundary name as column name for "valor". If tag_column is True, boundary name will be suffixed to "tag_". If False, a concatenation of node_id and variable_id is used as suffix to the input column names
+  
+  tag_column : bool = True
+  When pivot=True, create a tag column for each boundary
 
 <a id="pydrodelta.procedure.Procedure.loadOutputObs"></a>
 
@@ -174,19 +228,28 @@ Compute statistics over procedure results.
 #### read\_statistics
 
 ```python
-def read_statistics() -> dict
+def read_statistics(short: bool = False, as_dataframe=False) -> dict
 ```
 
-Get result statistics as a dict
+Get result statistics as a dict or DataFrame
 
-Returns
--------
-statistics : dict of the form:
-    {
-        "procedure_id": int,
-        "function_type": str,
-        "results": List[dict]
-    }
+**Arguments**:
+
+  short : bool = False
+  Get statistics summary
+  as_dataframe : bool = False
+  return DataFrame instead of dict
+  
+  Returns
+  -------
+  statistics : dict of the form:
+  {
+- `"procedure_id"` - int,
+- `"function_type"` - str,
+- `"results"` - List[dict]
+  }
+  where results is a list of dict, one per procedure output
+  Or DataFrame with columns: n, rmse, r, nse, n_val, rmse_val, r_val, nse_val
 
 <a id="pydrodelta.procedure.Procedure.read_results"></a>
 
@@ -217,7 +280,11 @@ def run(inplace: bool = True,
         parameters: Union[list, tuple] = None,
         initial_states: Union[list, tuple] = None,
         load_input: bool = True,
-        load_output_obs: bool = True) -> Union[List[DataFrame], None]
+        load_output_obs: bool = True,
+        adjust: bool = None,
+        warmup_steps: int = None,
+        tail_steps: int = None,
+        error_band: bool = None) -> Union[List[DataFrame], None]
 ```
 
 Run self.function.run()
@@ -238,6 +305,14 @@ Run self.function.run()
   If True, load input using .loadInput. Else, reads from .input
   load_output_obs : bool
   If True, load observed output using .loadOutputObs. Else, reads from .output_obs
+  adjust : bool = False
+  Adjust results with observations by means of linear regression. Adjustment is performed after statistics computation
+  warmup_steps : int = None
+  For adjustment, skip this number of initial steps
+  tail_steps : int = None
+  For adjustment, user this number of final steps
+  error_band : bool = True
+  When adjusting, generate error band series from adjusted serie minus/plus linear model quant_error 95 %
   
   Returns
   -------

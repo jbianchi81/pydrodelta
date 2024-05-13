@@ -195,7 +195,7 @@ Update states with observed discharge
 
 ```python
 def __init__(parameters: Union[list, tuple, dict],
-             initial_states: Union[list, tuple, dict] = None,
+             initial_states: Union[list, tuple, dict] = [],
              update=False,
              **kwargs)
 ```

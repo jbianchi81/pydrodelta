@@ -32,6 +32,7 @@ from .types.plot_variable_params_dict import PlotVariableParamsDict
 from .types.node_dict import NodeDict
 from .types.plot_params_dict import PlotParamsDict
 from .base import Base
+from .types.typed_list import TypedList
 
 from pydrodelta.config import config
     
@@ -53,31 +54,32 @@ class Topology(Base):
     extrapolate = BoolDescriptor()
     """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
     @property
-    def nodes(self) -> List[Node]:
+    def nodes(self) -> TypedList[Node]:
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
         return self._nodes
     @nodes.setter
     def nodes(self,nodes : List[Union[dict, Node]]):
-        self._nodes : List[Node] = []
+        self._nodes : TypedList[Node] = TypedList(Node, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start)
         for i, node in enumerate(nodes):
             if "id" not in node:
-                raise Exception("Missing node.id at index %i of topology.nodes" % i)
+                raise ValueError("Missing node.id at index %i of topology.nodes" % i)
             if node["id"] in [n.id for n in self._nodes]:
-                raise Exception("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
-            if isinstance(node, Node):
-                self._nodes.append(node)
-            else:
-                self._nodes.append(
-                    Node(
-                        **node,
-                        timestart=self.timestart,
-                        timeend=self.timeend,
-                        forecast_timeend=self.forecast_timeend,
-                        plan=self._plan,
-                        time_offset=self.time_offset_start,
-                        topology=self
-                    )
-                )
+                raise ValueError("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
+            self._nodes.append(node)
+            # if isinstance(node, Node):
+            #     self._nodes.append(node)
+            # else:
+            #     self._nodes.append(
+            #         Node(
+            #             **node,
+            #             timestart=self.timestart,
+            #             timeend=self.timeend,
+            #             forecast_timeend=self.forecast_timeend,
+            #             plan=self._plan,
+            #             time_offset=self.time_offset_start,
+            #             topology=self
+            #         )
+            #     )
     cal_id = IntDescriptor()
     """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
     plot_params = DictDescriptor()
@@ -278,39 +280,11 @@ class Topology(Base):
         self.output_json = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_json) if output_json is not None else None
         self.pivot = pivot
         self.pretty = pretty
+    
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
-    def addNode(
-            self,
-            node : Union[dict,Node],
-            plan=None
-        ) -> None:
-        """Append node into .nodes
         
-        Parameters:
-        -----------
-        node : dict or Node
-            Node to append
-        
-        plan : Plan or None
-            Plan that contains the topology
-        """
-        if isinstance(node,Node):
-            self._nodes.append(node)
-        else:
-            self._nodes.append(
-                Node(
-                    **node,
-                    timestart=self.timestart,
-                    timeend=self.timeend,
-                    forecast_timeend=self.forecast_timeend,
-                    plan=plan if plan is not None else self._plan,
-                    time_offset=self.time_offset_start,
-                    topology=self
-                )
-            )
-    
     def getNode(
         self,
         node_id : int) -> Node:

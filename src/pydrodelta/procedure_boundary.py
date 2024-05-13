@@ -5,6 +5,7 @@ from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .node import Node
 from .node_variable import NodeVariable
+from typing import Tuple
 
 class ProcedureBoundary():
     """
@@ -14,14 +15,24 @@ class ProcedureBoundary():
     optional = BoolDescriptor()
     """If true, null values in this boundary will not raise an error"""
 
-    node_id = IntDescriptor()
-    """node identitifier. Must be present int plan.topology.nodes"""
+    _node_variable : Tuple[int,int]
 
-    var_id = IntDescriptor()
-    """variable identifier. Must be present in node.variables"""
+    @property
+    def node_id(self) -> int: # = IntDescriptor()
+        """node identitifier. Must be present in plan.topology.nodes"""
+        return self._node_variable[0]
 
-    name = StringDescriptor()
-    """name of the boundary. Must be one of the procedureFunction's boundaries or outputs"""
+    @property
+    def var_id(self) -> int: #  = IntDescriptor()
+        """variable identifier. Must be present in node.variables"""
+        return self._node_variable[1]
+
+    _name : str
+
+    @property
+    def name(self) -> str: # = StringDescriptor()
+        """name of the boundary. Must be one of the procedureFunction's boundaries or outputs"""
+        return self._name
 
     @property
     def node(self) -> Node:
@@ -40,13 +51,14 @@ class ProcedureBoundary():
     """Compute result statistics for this boundary"""
     def __init__(
             self,
-            node_id : int,
-            var_id : int,
-            name : str,
+            node_id : int = None,
+            var_id : int = None,
+            name : str = None,
             plan = None,
             optional : bool = False,
             warmup_only : bool = False,
             compute_statistics : bool = True,
+            node_variable : Tuple[int,int] = None
         ):
         """Initiate class ProcedureBoundary
         
@@ -73,10 +85,17 @@ class ProcedureBoundary():
         compute_statistics : bool (default True)
             Compute result statistics for this boundary
         """
+        if node_id is None and node_variable is None:
+            raise TypeError("Either node_id or node_variable must be set")
+        if var_id is None and node_variable is None:
+            raise TypeError("Either var_id or node_variable must be set")
+        if name is None:
+            raise TypeError("name must be str, not None")
         self.optional = optional
-        self.node_id = node_id
-        self.var_id = var_id
-        self.name = name
+        node_id = node_id if node_id is not None else node_variable[0]
+        var_id = var_id if var_id is not None else node_variable[1]
+        self._node_variable = (node_id, var_id)
+        self._name = name
         self._plan = plan
         if self._plan is not None:
             self.setNodeVariable(self._plan)

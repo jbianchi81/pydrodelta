@@ -31,6 +31,7 @@
     * [volume](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.volume)
     * [sm\_obs](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.sm_obs)
     * [sm\_sim](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.sm_sim)
+    * [mock\_run](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.mock_run)
     * [\_\_init\_\_](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.__init__)
     * [run](#pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.run)
 
@@ -357,6 +358,17 @@ Soil moisture observations
 
 Simulated soil moisture
 
+<a id="pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.mock_run"></a>
+
+#### mock\_run
+
+```python
+@property
+def mock_run() -> bool
+```
+
+Perform mock run
+
 <a id="pydrodelta.procedures.sacramento_simplified.SacramentoSimplifiedProcedureFunction.__init__"></a>
 
 #### \_\_init\_\_
@@ -425,7 +437,7 @@ initial_states : list
 
 ```python
 def run(
-    input: Optional[List[SeriesData]] = None
+    input: Optional[DataFrame] = None
 ) -> Tuple[List[SeriesData], ProcedureFunctionResults]
 ```
 

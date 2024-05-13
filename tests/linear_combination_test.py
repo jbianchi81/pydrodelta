@@ -1,4 +1,5 @@
 from pydrodelta.plan import Plan
+from pydrodelta.procedure import Procedure
 from unittest import TestCase
 import yaml
 import os
@@ -93,4 +94,13 @@ class Test_LinearCombination(TestCase):
         self.assertEqual(saved_result["parameters"]["forecast_steps"], plan.procedures[0].function.parameters["forecast_steps"])
         self.assertEqual(saved_result["parameters"]["lookback_steps"], plan.procedures[0].function.parameters["lookback_steps"])
         self.assertEqual(len(saved_result["parameters"]["coefficients"]), len(plan.procedures[0].function.parameters["coefficients"]))
-        
+    
+    def test_assert_missing_parameters(self):
+        self.assertRaises(
+            TypeError,
+            Procedure,
+            1,
+            {
+                "type": "LinearCombination"
+            }
+        )

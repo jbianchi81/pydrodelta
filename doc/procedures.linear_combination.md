@@ -15,6 +15,8 @@
     * [coefficients](#pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.coefficients)
     * [\_\_init\_\_](#pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.__init__)
     * [run](#pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.run)
+    * [linearRegression](#pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.linearRegression)
+    * [getTrainingData](#pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.getTrainingData)
 
 <a id="pydrodelta.procedures.linear_combination"></a>
 
@@ -199,4 +201,55 @@ Run the function procedure
 **Raises**:
 
   Exception : If data is missing in a boundary at a required timestep
+
+<a id="pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.linearRegression"></a>
+
+#### linearRegression
+
+```python
+def linearRegression(
+        input: List[DataFrame] = None,
+        calibration_period: Tuple[datetime, datetime] = None) -> List[dict]
+```
+
+Fit linear regression coefficients
+
+**Arguments**:
+
+  input : List[DataFrame] = None
+  input data. If None, loads from boundaries
+  calibration_period : Tuple[datetime, datetime] = None
+  Begin and end dates of training set. Data outside this period is used for validation. If not set, no validation is performed
+
+<a id="pydrodelta.procedures.linear_combination.LinearCombinationProcedureFunction.getTrainingData"></a>
+
+#### getTrainingData
+
+```python
+def getTrainingData(
+    horiz: Union[int, timedelta] = 0,
+    input: List[DataFrame] = None,
+    dropna: bool = False,
+    calibration_period: Tuple[datetime, datetime] = None
+) -> Tuple[DataFrame, DataFrame]
+```
+
+Get training set for linear regression. input[0] is the target. One feature of the training set is generated for each input + lag (1 to self.lookback_steps) combination
+
+**Arguments**:
+
+  horiz : Union[int,timedelta] = 0
+  Displace training set by int steps or timedelta
+  input : List[DataFrame] = None
+  First element is the target, the rest is the training set
+  remove_nan : bool = False
+  If True, remove rows with NaN
+  calibration_period : Tuple[datetime,datetime] = None
+  
+
+**Returns**:
+
+  2-Tuple of DataFrames.
+  First element: Training set of len(input) * self.lookback_steps columns
+  Second element: Validation set of len(input) * self.lookback_steps columns. None if calibration_period is not set or no validation data is found
 

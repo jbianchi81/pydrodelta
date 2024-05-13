@@ -1,6 +1,9 @@
 from pydrodelta.observed_node_variable import ObservedNodeVariable
 from unittest import TestCase
 from datetime import timedelta
+from pydrodelta.types.typed_list import TypedList
+from pydrodelta.node_serie import NodeSerie
+from pydrodelta.node_serie_prono import NodeSerieProno
 
 class Test_ObservedNodeVariable(TestCase):
 
@@ -102,3 +105,136 @@ class Test_ObservedNodeVariable(TestCase):
         self.assertTrue(len(node_variable.series_prono[0].data)>0)
         self.assertTrue(node_variable.series_prono[0].data.dropna().index.min() < node_variable.series_prono[0].previous_runs_timestart + timedelta(days=0))
 
+    def test_append_serie(self):
+        variable = ObservedNodeVariable(
+            id = 20
+        )
+        self.assertIsNone(variable.series)
+        variable.series = [
+            1,
+            {
+                "series_id": 2
+            },
+            NodeSerie(3)
+        ]
+        
+        self.assertEquals(len(variable.series),3)
+        self.assertEquals(type(variable.series),TypedList)
+        variable.series.append([4])
+        self.assertEquals(len(variable.series),4)
+        variable.series.extend([5,6])
+        self.assertEquals(len(variable.series),6)
+        for i, s in enumerate(variable.series):
+            self.assertEquals(type(s), NodeSerie)
+            self.assertEquals(s.series_id, i + 1)
+    
+
+    def test_get_serie(self):
+        variable = ObservedNodeVariable(
+            id = 20
+        )
+        variable.series = [
+            1,
+            2,
+            3
+        ]
+        serie = variable.getSerie(1)
+        self.assertEquals(type(serie), NodeSerie)
+        self.assertEquals(serie.series_id,1)
+
+    def test_assert_get_serie(self):
+        variable = ObservedNodeVariable(
+            id = 20
+        )
+        self.assertIsNone(variable.series)
+        variable.series = [
+            1,
+            2,
+            3
+        ]
+        self.assertRaises(KeyError, variable.getSerie, 4)
+
+    def test_get_serie_prono(self):
+        variable = ObservedNodeVariable(
+            id = 20,
+            series = [1, 2, 3],
+            series_prono = [
+                {
+                    "series_id": 4,
+                    "cal_id": 1234
+                }
+            ]
+        )
+        serie = variable.getSerie(4,"series_prono")
+        self.assertEquals(type(serie), NodeSerieProno)
+        self.assertEquals(serie.series_id,4)
+
+    def test_get_serie_prono_assert_no_cal_id(self):
+        variable = ObservedNodeVariable(id = 20, series_prono = [])
+        self.assertRaises(TypeError,variable.series_prono.append,{"series_id": 4})
+
+    def test_get_serie_sim(self):
+        variable = ObservedNodeVariable(
+            id = 20,
+            series_sim = [
+                {
+                    "series_id": 4
+                }
+            ]
+        )
+        serie = variable.getSerie(4,"series_sim")
+        self.assertEquals(type(serie), NodeSerieProno)
+        self.assertEquals(serie.series_id,4)
+
+    def test_get_serie_output(self):
+        variable = ObservedNodeVariable(
+            id = 20,
+            series_output = [
+                {
+                    "series_id": 4
+                }
+            ]
+        )
+        serie = variable.getSerie(4,"series_output")
+        self.assertEquals(type(serie), NodeSerie)
+        self.assertEquals(serie.series_id,4)
+
+    def test_pop_serie(self):
+        variable = ObservedNodeVariable(
+            id = 20
+        )
+        variable.series = [
+            1,
+            2,
+            3
+        ]
+        self.assertEquals(len(variable.series),3)
+        serie = variable.series.pop()
+        self.assertEquals(len(variable.series),2)
+        self.assertEquals(type(serie), NodeSerie)
+
+    def test_serie_variable_property(self):
+        variable = ObservedNodeVariable(
+            id = 20,
+            series = [1]
+        )
+        self.assertIsNotNone(variable.getSerie(1)._variable)
+        self.assertEquals(type(variable.getSerie(1)._variable), ObservedNodeVariable)
+        self.assertEquals(variable.getSerie(1)._variable, variable)
+        variable.series.append(2)
+        self.assertEquals(variable.getSerie(2)._variable, variable)
+        variable.series.append({"series_id":3})
+        self.assertEquals(variable.getSerie(3)._variable, variable)
+        variable.series.append((4))
+        self.assertEquals(variable.getSerie(4)._variable, variable)
+
+    def test_duplicate_serie_id(self):
+        variable = ObservedNodeVariable(
+            id = 20,
+            series = [1]
+        )
+        self.assertRaises(
+            ValueError,
+            variable.series.append,
+            1
+        )

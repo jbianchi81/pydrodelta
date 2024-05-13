@@ -3,6 +3,7 @@
 * [pydrodelta.procedure\_function](#pydrodelta.procedure_function)
   * [ProcedureFunction](#pydrodelta.procedure_function.ProcedureFunction)
     * [parameters](#pydrodelta.procedure_function.ProcedureFunction.parameters)
+    * [parameter\_list](#pydrodelta.procedure_function.ProcedureFunction.parameter_list)
     * [initial\_states](#pydrodelta.procedure_function.ProcedureFunction.initial_states)
     * [boundaries](#pydrodelta.procedure_function.ProcedureFunction.boundaries)
     * [boundaries](#pydrodelta.procedure_function.ProcedureFunction.boundaries)
@@ -10,6 +11,8 @@
     * [outputs](#pydrodelta.procedure_function.ProcedureFunction.outputs)
     * [input](#pydrodelta.procedure_function.ProcedureFunction.input)
     * [extra\_pars](#pydrodelta.procedure_function.ProcedureFunction.extra_pars)
+    * [limits](#pydrodelta.procedure_function.ProcedureFunction.limits)
+    * [pivot\_input](#pydrodelta.procedure_function.ProcedureFunction.pivot_input)
     * [\_\_init\_\_](#pydrodelta.procedure_function.ProcedureFunction.__init__)
     * [toDict](#pydrodelta.procedure_function.ProcedureFunction.toDict)
     * [rerun](#pydrodelta.procedure_function.ProcedureFunction.rerun)
@@ -38,6 +41,17 @@ Abstract class to represent the transformation function of the procedure. It is 
 
 function parameter values. Ordered list or dict
 
+<a id="pydrodelta.procedure_function.ProcedureFunction.parameter_list"></a>
+
+#### parameter\_list
+
+```python
+@property
+def parameter_list() -> list
+```
+
+Get parameters list
+
 <a id="pydrodelta.procedure_function.ProcedureFunction.initial_states"></a>
 
 #### initial\_states
@@ -50,7 +64,7 @@ list or dict of function initial state values
 
 ```python
 @property
-def boundaries() -> List[ProcedureBoundary]
+def boundaries() -> EnhancedTypedList[ProcedureBoundary]
 ```
 
 List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
@@ -78,7 +92,7 @@ Setter of boundaries
 
 ```python
 @property
-def outputs() -> List[ProcedureBoundary]
+def outputs() -> EnhancedTypedList[ProcedureBoundary]
 ```
 
 list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
@@ -112,12 +126,34 @@ Input of the procedure function
 
 Additional (non-calibratable) parameters
 
+<a id="pydrodelta.procedure_function.ProcedureFunction.limits"></a>
+
+#### limits
+
+```python
+@property
+def limits() -> List[Tuple[float, float]]
+```
+
+Parameter limits
+
+<a id="pydrodelta.procedure_function.ProcedureFunction.pivot_input"></a>
+
+#### pivot\_input
+
+```python
+@property
+def pivot_input() -> bool
+```
+
+Read-only property. Specifies if the run method of the procedure function requires a pivoted input
+
 <a id="pydrodelta.procedure_function.ProcedureFunction.__init__"></a>
 
 #### \_\_init\_\_
 
 ```python
-def __init__(procedure,
+def __init__(procedure=None,
              parameters: Union[list, dict] = [],
              initial_states: Union[list, dict] = [],
              boundaries: list = [],

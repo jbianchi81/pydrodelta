@@ -3,6 +3,9 @@ from unittest import TestCase
 import yaml
 import os
 from pandas import DataFrame
+from pydrodelta.types.typed_list import TypedList
+from pydrodelta.procedure import Procedure
+from pydrodelta.procedures.abstract import AbstractProcedureFunction
 
 class Test_Plan(TestCase):
 
@@ -126,5 +129,68 @@ class Test_Plan(TestCase):
         )
         # plan.execute(upload = False)
     
+    def test_append_procedure(self):
+        plan = Plan(
+            "plan 0",
+            123,
+            {
+                "timestart": "2000-01-01T12:00:00.000Z",
+                "timeend": "2000-01-06T12:00:00.000Z",
+                "time_offset": { "hours": 9},
+                "nodes": []
+            }
+        )
+        self.assertIsInstance(
+            plan.procedures,
+            TypedList
+        )
+        procedure = Procedure(
+            1,
+            {
+                "type": "ProcedureFunction"
+            }
+        )
+        plan.procedures.append(procedure)
+
+    def test_duplicate_procedure(self):
+        plan = Plan(
+            "plan 0",
+            123,
+            {
+                "timestart": "2000-01-01T12:00:00.000Z",
+                "timeend": "2000-01-06T12:00:00.000Z",
+                "time_offset": { "hours": 9},
+                "nodes": []
+            },
+            procedures = [
+                {
+                    "id": 1,
+                    "function": {
+                        "type": "AbstractProcedureFunction",
+                        "parameters": [],
+                        "boundaries": [],
+                        "outputs": []                        
+                    }
+                }
+            ]
+        )
+        self.assertIsInstance(
+            plan.procedures,
+            TypedList
+        )
+        procedure = Procedure(
+            1,
+            {
+                "type": "AbstractProcedureFunction",
+                "parameters": [],
+                "boundaries": [],
+                "outputs": []                        
+            }
+        )
+        self.assertRaises(
+            ValueError,
+            plan.procedures.append,
+            procedure
+        )
 
         

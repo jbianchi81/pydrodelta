@@ -5,12 +5,16 @@
     * [derived\_from](#pydrodelta.derived_node_serie.DerivedNodeSerie.derived_from)
     * [interpolated\_from](#pydrodelta.derived_node_serie.DerivedNodeSerie.interpolated_from)
     * [data](#pydrodelta.derived_node_serie.DerivedNodeSerie.data)
+    * [output\_file](#pydrodelta.derived_node_serie.DerivedNodeSerie.output_file)
+    * [output\_format](#pydrodelta.derived_node_serie.DerivedNodeSerie.output_format)
+    * [output\_schema](#pydrodelta.derived_node_serie.DerivedNodeSerie.output_schema)
     * [\_\_init\_\_](#pydrodelta.derived_node_serie.DerivedNodeSerie.__init__)
     * [deriveTag](#pydrodelta.derived_node_serie.DerivedNodeSerie.deriveTag)
     * [deriveOffsetIndex](#pydrodelta.derived_node_serie.DerivedNodeSerie.deriveOffsetIndex)
     * [derive](#pydrodelta.derived_node_serie.DerivedNodeSerie.derive)
     * [toCSV](#pydrodelta.derived_node_serie.DerivedNodeSerie.toCSV)
     * [toList](#pydrodelta.derived_node_serie.DerivedNodeSerie.toList)
+    * [saveData](#pydrodelta.derived_node_serie.DerivedNodeSerie.saveData)
 
 <a id="pydrodelta.derived_node_serie"></a>
 
@@ -54,6 +58,24 @@ Interpolation configuration
 
 DataFrame containing the timestamped values. Index is the time (with time zone), column 'valor' contains the values (floats) and column 'tag' contains the tag indicating the origin of the value (one of: observed, simulated, interpolated, moving_average, extrapolated, derived)
 
+<a id="pydrodelta.derived_node_serie.DerivedNodeSerie.output_file"></a>
+
+#### output\_file
+
+Save analysis results into this file
+
+<a id="pydrodelta.derived_node_serie.DerivedNodeSerie.output_format"></a>
+
+#### output\_format
+
+File format for output_file. Defaults to json
+
+<a id="pydrodelta.derived_node_serie.DerivedNodeSerie.output_schema"></a>
+
+#### output\_schema
+
+JSON schema for output_file. Defaults to dict
+
 <a id="pydrodelta.derived_node_serie.DerivedNodeSerie.__init__"></a>
 
 #### \_\_init\_\_
@@ -63,7 +85,10 @@ def __init__(topology,
              series_id: int = None,
              derived_from: Union[DerivedOrigin, DerivedOriginDict] = None,
              interpolated_from: Union[InterpolatedOrigin,
-                                      InterpolatedOriginDict] = None)
+                                      InterpolatedOriginDict] = None,
+             output_file: str = None,
+             output_format: str = "json",
+             output_schema: str = "dict")
 ```
 
 **Arguments**:
@@ -170,4 +195,20 @@ Convert series to list of time-value pair dicts
 
   --------
   List of time-value pair dicts : List[TVP]
+
+<a id="pydrodelta.derived_node_serie.DerivedNodeSerie.saveData"></a>
+
+#### saveData
+
+```python
+def saveData(output_file=None, format: str = None, schema: str = None) -> None
+```
+
+Print data into file
+
+**Arguments**:
+
+- `output_file` __type__ - path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+- `format` _str, optional_ - File format (json, yaml, csv). Defaults to "json".
+- `schema` _str, optional_ - schema of json object (dict, list). Defaults to "dict".
 

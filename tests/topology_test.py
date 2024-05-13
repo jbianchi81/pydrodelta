@@ -124,7 +124,7 @@ class Test_Topology(TestCase):
                 "token": "MY_TOKEN"
             })
         self.assert_(topology.no_metadata)
-        self.assertIsInstance(topology.nodes,list)
+        self.assertIsInstance(topology.nodes,TypedList)
         self.assertEqual(len(topology.nodes),1)
         self.assertIsInstance(topology.nodes[0],Node)
         self.assertIsInstance(topology.nodes[0].variables,dict)
@@ -215,3 +215,121 @@ class Test_Topology(TestCase):
         self.assert_(file_mtime  > time.time() - 10)
         file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
         self.assert_(file_mtime  > time.time() - 10)
+    
+    def test_node_inherited_properties(self):
+        topology = Topology(
+            timestart = "2024-03-03T12:00:00.000Z",
+            timeend = "2024-03-07T12:00:00.000Z",
+            forecast_timeend = "2024-03-11T12:00:00.000Z",
+            time_offset =  {"hours": 3},
+            nodes = [
+                {
+                    "id": 345,
+                    "name": "node",
+                    "time_interval": {"days": 1}
+                }
+            ]
+        )
+        self.assertEquals(len(topology.nodes),1)
+        node = topology.getNode(345)
+        self.assertEquals(node._topology,topology)
+        self.assertEquals(node.timestart,topology.timestart)
+        self.assertEquals(node.timeend,topology.timeend)
+        self.assertEquals(node.forecast_timeend,topology.forecast_timeend)
+        self.assertEquals(node.time_offset,topology.time_offset_start)
+
+    def test_append_node(self):
+        topology = Topology(
+            timestart = "2024-03-03T12:00:00.000Z",
+            timeend = "2024-03-07T12:00:00.000Z",
+            forecast_timeend = "2024-03-11T12:00:00.000Z",
+            time_offset =  {"hours": 3}
+        )
+        topology.nodes.append({
+            "id": 345,
+            "name": "node",
+            "time_interval": {"days": 1}
+        })
+        self.assertEquals(len(topology.nodes),1)
+        node = topology.getNode(345)
+        self.assertEquals(node._topology,topology)
+        self.assertEquals(node.timestart,topology.timestart)
+        self.assertEquals(node.timeend,topology.timeend)
+        self.assertEquals(node.forecast_timeend,topology.forecast_timeend)
+        self.assertEquals(node.time_offset,topology.time_offset_start)
+        topology.nodes.append({
+            "id": 346,
+            "name": "node",
+            "time_interval": {"days": 1}
+        })
+        self.assertEquals(len(topology.nodes),2)
+
+    def test_duplicate_node_id(self):          
+        self.assertRaises(
+            ValueError,
+            Topology,
+            timestart = "2024-03-03T12:00:00.000Z",
+            timeend = "2024-03-07T12:00:00.000Z",
+            forecast_timeend = "2024-03-11T12:00:00.000Z",
+            time_offset =  {"hours": 3},
+            nodes = [
+                {
+                    "id": 345,
+                    "name": "node 0",
+                    "time_interval": {"days": 1}
+                },
+                {
+                    "id": 345,
+                    "name": "node 1",
+                    "time_interval": {"days": 1}
+                }
+            ]
+        )
+
+    def test_append_duplicate_node_id(self):          
+        topology = Topology(
+            timestart = "2024-03-03T12:00:00.000Z",
+            timeend = "2024-03-07T12:00:00.000Z",
+            forecast_timeend = "2024-03-11T12:00:00.000Z",
+            time_offset =  {"hours": 3},
+            nodes = [
+                {
+                    "id": 345,
+                    "name": "node 0",
+                    "time_interval": {"days": 1}
+                }
+            ]
+        )
+        self.assertRaises(
+            ValueError,
+            topology.nodes.append,
+            {
+                "id": 345,
+                "name": "node 1",
+                "time_interval": {"days": 1}
+            }
+        )
+
+    def test_extend_duplicate_node_id(self):          
+        topology = Topology(
+            timestart = "2024-03-03T12:00:00.000Z",
+            timeend = "2024-03-07T12:00:00.000Z",
+            forecast_timeend = "2024-03-11T12:00:00.000Z",
+            time_offset =  {"hours": 3}
+        )
+        self.assertRaises(
+            ValueError,
+            topology.nodes.extend,
+            [{
+                "id": 345,
+                "name": "node 0",
+                "time_interval": {"days": 1}
+            },
+            {
+                "id": 345,
+                "name": "node 1",
+                "time_interval": {"days": 1}
+            }]
+        )
+
+

@@ -35,7 +35,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     # install required packages
     python3 -m pip install -r requirements.txt
     # install pydrodelta
-    python3 -m pip install .
+    python3 -m pip install -e .
     # set environment variable
     export PYDRODELTA_DIR=$PWD # (in linux shell)
     $env:PYDRODELTA_DIR = pwd # (in windows powershell)
@@ -161,7 +161,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] procedures data persistence
 - [ ] topology.__repl__ print complete tree or add .tree method
 - [ ] node.getVariable()
-- [ ] variable.getSerie()
+- [x] variable.getSerie()
 - [ ] series_sim metadata (stats, forecast_date)
 
 ### Discussion / ideas 

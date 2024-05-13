@@ -3,10 +3,13 @@
 * [pydrodelta.node\_serie\_prono\_metadata](#pydrodelta.node_serie_prono_metadata)
   * [NodeSeriePronoMetadata](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata)
     * [series\_id](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.series_id)
+    * [series\_table](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.series_table)
     * [cal\_id](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.cal_id)
     * [cor\_id](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.cor_id)
     * [forecast\_date](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.forecast_date)
     * [qualifier](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.qualifier)
+    * [forecast\_timestart](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.forecast_timestart)
+    * [forecast\_timeend](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.forecast_timeend)
     * [\_\_init\_\_](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.__init__)
     * [to\_dict](#pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.to_dict)
 
@@ -29,6 +32,12 @@ Forecasted series metadata
 #### series\_id
 
 Series identifier
+
+<a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.series_table"></a>
+
+#### series\_table
+
+One of series, series_areal, series_rast
 
 <a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.cal_id"></a>
 
@@ -54,6 +63,18 @@ Procedure execution date
 
 Forecast qualifier
 
+<a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.forecast_timestart"></a>
+
+#### forecast\_timestart
+
+When concatenating history of runs, lower bound of forecast_date
+
+<a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.forecast_timeend"></a>
+
+#### forecast\_timeend
+
+When concatenating history of runs, upper bound of forecast_date
+
 <a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.__init__"></a>
 
 #### \_\_init\_\_
@@ -63,7 +84,10 @@ def __init__(series_id: int = None,
              cal_id: int = None,
              cor_id: int = None,
              forecast_date: str = None,
-             qualifier: str = None)
+             qualifier: str = None,
+             series_table: str = "series",
+             forecast_timestart: datetime = None,
+             forecast_timeend: datetime = None)
 ```
 
 series_id : int = None
@@ -85,6 +109,15 @@ forecast_date : str = None
 qualifier : str = None
 
     Forecast qualifier
+
+series_table :str = "series"
+   One of series, series_areal, series_rast
+
+forecast_timestart : datetime = None
+    When concatenating history of runs, lower bound of forecast_date 
+
+forecast_timeend : datetime = None
+    When concatenating history of runs, upper bound of forecast_date
 
 <a id="pydrodelta.node_serie_prono_metadata.NodeSeriePronoMetadata.to_dict"></a>
 

@@ -14,8 +14,13 @@
     * [plot\_params](#pydrodelta.topology.Topology.plot_params)
     * [report\_file](#pydrodelta.topology.Topology.report_file)
     * [graph](#pydrodelta.topology.Topology.graph)
+    * [no\_metadata](#pydrodelta.topology.Topology.no_metadata)
+    * [include\_prono](#pydrodelta.topology.Topology.include_prono)
+    * [output\_csv](#pydrodelta.topology.Topology.output_csv)
+    * [output\_json](#pydrodelta.topology.Topology.output_json)
+    * [pivot](#pydrodelta.topology.Topology.pivot)
+    * [pretty](#pydrodelta.topology.Topology.pretty)
     * [\_\_init\_\_](#pydrodelta.topology.Topology.__init__)
-    * [addNode](#pydrodelta.topology.Topology.addNode)
     * [batchProcessInput](#pydrodelta.topology.Topology.batchProcessInput)
     * [loadData](#pydrodelta.topology.Topology.loadData)
     * [setOriginalData](#pydrodelta.topology.Topology.setOriginalData)
@@ -41,12 +46,14 @@
     * [uploadDataAsProno](#pydrodelta.topology.Topology.uploadDataAsProno)
     * [pivotData](#pydrodelta.topology.Topology.pivotData)
     * [pivotOutputData](#pydrodelta.topology.Topology.pivotOutputData)
+    * [pivotSimData](#pydrodelta.topology.Topology.pivotSimData)
     * [plotVariable](#pydrodelta.topology.Topology.plotVariable)
     * [plotProno](#pydrodelta.topology.Topology.plotProno)
     * [printReport](#pydrodelta.topology.Topology.printReport)
     * [printGraph](#pydrodelta.topology.Topology.printGraph)
     * [toGraph](#pydrodelta.topology.Topology.toGraph)
     * [exportGraph](#pydrodelta.topology.Topology.exportGraph)
+    * [saveSeries](#pydrodelta.topology.Topology.saveSeries)
 
 <a id="pydrodelta.topology"></a>
 
@@ -57,7 +64,7 @@
 ## Topology Objects
 
 ```python
-class Topology()
+class Topology(Base)
 ```
 
 The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
@@ -110,7 +117,7 @@ Extrapolate observations outside the observation time domain, up to a maximum du
 
 ```python
 @property
-def nodes() -> List[Node]
+def nodes() -> TypedList[Node]
 ```
 
 Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
@@ -144,6 +151,42 @@ def graph() -> nx.DiGraph
 
 Directional graph representing this topology
 
+<a id="pydrodelta.topology.Topology.no_metadata"></a>
+
+#### no\_metadata
+
+Don't retrieve series metadata on load from api
+
+<a id="pydrodelta.topology.Topology.include_prono"></a>
+
+#### include\_prono
+
+While executing .batchProcessInput, use series_prono to fill nulls of series
+
+<a id="pydrodelta.topology.Topology.output_csv"></a>
+
+#### output\_csv
+
+Save analysis results as csv into this path (relative to PYDRODELTA_DIR)
+
+<a id="pydrodelta.topology.Topology.output_json"></a>
+
+#### output\_json
+
+Save analysis results as json into this path (relative to PYDRODELTA_DIR)
+
+<a id="pydrodelta.topology.Topology.pivot"></a>
+
+#### pivot
+
+If output_csv is set, pivot series into columns of the table (default True)
+
+<a id="pydrodelta.topology.Topology.pretty"></a>
+
+#### pretty
+
+For output_json, prettify json
+
 <a id="pydrodelta.topology.Topology.__init__"></a>
 
 #### \_\_init\_\_
@@ -157,11 +200,19 @@ def __init__(timestart: Union[str, dict],
              time_offset_end: Union[str, dict, None] = None,
              interpolation_limit: Union[dict, int] = None,
              extrapolate: bool = False,
-             nodes: list = list(),
+             nodes: List[Union[Node, NodeDict]] = list(),
              cal_id: Union[int, None] = None,
-             plot_params: Union[dict, None] = None,
+             plot_params: Union[PlotParamsDict, None] = None,
              report_file: Union[str, None] = None,
-             plan=None)
+             plan=None,
+             no_metadata: bool = False,
+             plot_variable: List[PlotVariableParamsDict] = None,
+             include_prono: bool = False,
+             output_csv: str = None,
+             output_json: str = None,
+             pivot: bool = True,
+             pretty: bool = True,
+             **kwargs)
 ```
 
 Initiate topology
@@ -193,7 +244,7 @@ Initiate topology
   extrapolate : boolean (default: False)
   Extrapolate observations outside the observation time domain, up to a maximum duration equal to interpolation_limit
   
-  nodes : List[Node]
+  nodes : List[Union[Node,NodeDict]]
   Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
   
   cal_id : int or None
@@ -207,32 +258,40 @@ Initiate topology
   
   plan : Plan
   Plan containing this topology
-
-<a id="pydrodelta.topology.Topology.addNode"></a>
-
-#### addNode
-
-```python
-def addNode(node: Union[dict, Node], plan=None) -> None
-```
-
-Append node into .nodes
-
-**Arguments**:
-
-  -----------
-  node : dict or Node
-  Node to append
   
-  plan : Plan or None
-  Plan that contains the topology
+  no_metadata : bool = False
+  Don't retrieve series metadata on load from api
+  
+  plot_variable : List[PlotVariableParamsDict] = None
+  Print graphs to pdf files of the selected variables at every node where said variables are defined
+  PlotVariableParamsDict:
+  var_id : int
+  output : str
+  timestart : Union[datetime,str,dict], optional
+  timeend : Union[datetime,str,dict], optional
+  
+  include_prono : bool = False
+  While executing .batchProcessInput, use series_prono to fill nulls of series
+  
+  output_csv : str = None
+  Save analysis results as csv into this path (relative to PYDRODELTA_DIR)
+  
+  output_json : str = None
+  Save analysis results as json into this path (relative to PYDRODELTA_DIR)
+  
+  pivot : bool = True
+  If output_csv is set, pivot series into columns of the table
+  
+  pretty : bool = True
+  For output_json, prettify json
 
 <a id="pydrodelta.topology.Topology.batchProcessInput"></a>
 
 #### batchProcessInput
 
 ```python
-def batchProcessInput(include_prono=False) -> None
+def batchProcessInput(include_prono: bool = None,
+                      input_api_config: dict = None) -> None
 ```
 
 Run input processing sequence. This includes (in this order):
@@ -258,13 +317,23 @@ Run input processing sequence. This includes (in this order):
   -----------
   include_prono : bool default False
   For each variable, fill missing observations with values from series_prono
+  
+  input_api_config : dict
+  Api connection parameters (used to load data). Overrides global config.input_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
 
 <a id="pydrodelta.topology.Topology.loadData"></a>
 
 #### loadData
 
 ```python
-def loadData(include_prono=True) -> None
+def loadData(include_prono: bool = True,
+             input_api_config: dict = None,
+             no_metadata: bool = None) -> None
 ```
 
 For each series of each variable of each node, load data from the source.
@@ -275,6 +344,17 @@ For each series of each variable of each node, load data from the source.
   
   include_prono : bool default True
   Load forecasted data
+  
+  input_api_config : dict
+  Api connection parameters. Overrides global config.input_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
+  
+  no_metadata : bool = None
+  Don't retrieve series metadata on load from api. If not given, reads from self.no_metadata
 
 <a id="pydrodelta.topology.Topology.setOriginalData"></a>
 
@@ -593,7 +673,7 @@ Save data of all series_output of all variables of all nodes to a file in the de
 #### uploadData
 
 ```python
-def uploadData(include_prono: bool) -> list
+def uploadData(include_prono: bool, api_config: dict = None) -> list
 ```
 
 Uploads analysis data (series_output) of all variables of all nodes as a5 observaciones (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/observacion.yml)
@@ -603,6 +683,14 @@ Uploads analysis data (series_output) of all variables of all nodes as a5 observ
   -----------
   include_prono : bool
   Include the forecast horizon
+  
+  api_config : dict = None
+  Api connection parameters. Overrides global config.output_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
   
 
 **Returns**:
@@ -615,7 +703,8 @@ Uploads analysis data (series_output) of all variables of all nodes as a5 observ
 
 ```python
 def uploadDataAsProno(include_obs: bool = True,
-                      include_prono: bool = False) -> dict
+                      include_prono: bool = False,
+                      api_config: dict = None) -> dict
 ```
 
 Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
@@ -627,6 +716,13 @@ Uploads analysis data (series_output) of all variables of all nodes to output ap
   Include period before the forecast date
   include_prono : bool
   Include period after the forecast date
+  api_config : dict = None
+  Api connection parameters. Overrides global config.output_api
+  
+  Properties:
+  - url : str
+  - token : str
+  - proxy_dict : dict
   
 
 **Returns**:
@@ -690,6 +786,21 @@ Pivot data of all output_series of all variables of all nodes into columns of a 
   --------
   DataFrame
 
+<a id="pydrodelta.topology.Topology.pivotSimData"></a>
+
+#### pivotSimData
+
+```python
+def pivotSimData() -> DataFrame
+```
+
+Pivot data of all series_sim of all variables of all nodes into columns of a single DataFrame
+
+**Returns**:
+
+  --------
+  DataFrame
+
 <a id="pydrodelta.topology.Topology.plotVariable"></a>
 
 #### plotVariable
@@ -698,7 +809,8 @@ Pivot data of all output_series of all variables of all nodes into columns of a 
 def plotVariable(var_id: int,
                  timestart: datetime = None,
                  timeend: datetime = None,
-                 output: str = None) -> None
+                 output: str = None,
+                 extra_sim_columns: bool = True) -> None
 ```
 
 Generates time-value plots for a selected variable, one per node where this variable is found.
@@ -717,32 +829,16 @@ Generates time-value plots for a selected variable, one per node where this vari
   
   output : str or None
   If not None, save the result into a pdf file
+  
+  extra_sim_columns : bool = True
+  Add additional simulation series to plot
 
 <a id="pydrodelta.topology.Topology.plotProno"></a>
 
 #### plotProno
 
 ```python
-def plotProno(output_dir: str = None,
-              figsize: tuple = None,
-              title: str = None,
-              markersize: int = None,
-              obs_label: str = None,
-              tz: str = None,
-              prono_label: str = None,
-              footnote: str = None,
-              errorBandLabel: str = None,
-              obsLine: bool = None,
-              prono_annotation: str = None,
-              obs_annotation: str = None,
-              forecast_date_annotation: str = None,
-              ylim: tuple = None,
-              datum_template_string: str = None,
-              title_template_string: str = None,
-              x_label: str = None,
-              y_label: str = None,
-              xlim: tuple = None,
-              text_xoffset: tuple = None) -> None
+def plotProno(**kwargs) -> None
 ```
 
 For each series_prono (where plot_params is defined) of each variable of each node, print time-value chart including observed data
@@ -809,6 +905,39 @@ For each series_prono (where plot_params is defined) of each variable of each no
   
   text_xoffset : tuple
   Offset of text position
+  
+  prono_fmt : str
+  Style for forecast series
+  
+  annotate : bool
+  Add observed data/forecast data/forecast date annotations
+  
+  table_columns : list = ["Fecha", "Nivel"]
+  Which forecast dataframe columns to show. Options:
+  -   Fecha
+  -   Nivel
+  -   Hora
+  -   Fechap
+  -   Dia
+  
+  date_form : str = "%H hrs
+  %d-%b"
+  Date formatting string for x axis tick labels
+  
+  xaxis_minor_tick_hours : list = [3,9,15,21]
+  Hours of location of minor ticks of x axis
+  
+  errorBand : tuple[str,str] = None
+  Columns to use as error band (lower bound, upper bound). If not set and series_prono.adjust_results is True, "error_band_01" and "error_band_99" resulting from the adjustment are used
+  
+  error_band_fmt : str = None
+  style for error band. Set to 'errorbar' for error bars, else fmt parameter for plot function. Optionally, a 2-tuple may be used to set different styles for lower and upper bounds, respectively
+  
+  forecast_table : bool = True
+  Print forecast table
+  
+  footnote_height : float = 0.2
+  Height of space for footnote in inches
 
 <a id="pydrodelta.topology.Topology.printReport"></a>
 
@@ -905,4 +1034,14 @@ Creates directioned graph from the plan and converts it to JSON.
   ---------
   toGraph
   printGraph
+
+<a id="pydrodelta.topology.Topology.saveSeries"></a>
+
+#### saveSeries
+
+```python
+def saveSeries()
+```
+
+For each series, series_prono, series_sim and series_output of each variable of each node, save data into file if .output_file is defined
 

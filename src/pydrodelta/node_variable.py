@@ -54,7 +54,7 @@ class NodeVariable:
         if series is None:
             self._series_output = None
             return
-        self._series_output = TypedList(NodeSerie, *series)  # [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
+        self._series_output = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self)  # [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     
     @property
     def series_sim(self) -> TypedList[NodeSerieProno]:
@@ -68,7 +68,7 @@ class NodeVariable:
         if series is None:
             self._series_sim = None
             return
-        self._series_sim = TypedList(NodeSerieProno)
+        self._series_sim = TypedList(NodeSerieProno, unique_id_property = "series_id", node_variable = self)
         for serie in series:
             if isinstance(serie,NodeSerieProno):
                 self._series_sim.append(serie)
@@ -1254,3 +1254,28 @@ class NodeVariable:
             for serie in self.series_output:
                 if serie.output_file is not None:
                     serie.saveData()
+    
+    def getSerie(self,series_id : int, series_type : str = "series") -> NodeSerie:
+        series_list = None
+        if series_type == "series":
+            if self.series is None:
+                raise Exception("series is not defined")
+            series_list = self.series
+        elif series_type == "series_prono":
+            if self.series_prono is None:
+                raise Exception("series_prono is not defined")
+            series_list = self.series_prono
+        elif series_type == "series_sim":
+            if self.series_sim is None:
+                raise Exception("series_sim is not defined")
+            series_list = self.series_sim
+        elif series_type == "series_output":
+            if self.series_output is None:
+                raise Exception("series_output is not defined")
+            series_list = self.series_output
+        else:
+            raise ValueError("series_type must be one of series, series_prono, series_sim, series_output")
+        for i, s in enumerate(series_list):
+            if s.series_id == series_id:
+                return s
+        raise KeyError("Series with series_id %i not found in %s" % (series_id, series_type))

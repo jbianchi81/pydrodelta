@@ -22,7 +22,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series = TypedList(NodeSerie, *series) if series is not None else None
+        self._series = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self) if series is not None else None
     
     @property
     def series_prono(self) -> List[NodeSerieProno]:
@@ -33,7 +33,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = TypedList(NodeSerieProno, *series) if series is not None else None
+        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "series_id", node_variable = self) if series is not None else None
     
     def __init__(
         self,
