@@ -118,6 +118,25 @@
       "description": "For output_json, prettify json",
       "type": "boolean",
       "default": true
+    },
+    "upload_prono": {
+      "description": "upload series_prono",
+      "type": "boolean",
+      "default": false
+    },
+    "qualifiers": {
+      "description": "Add these qualifiers to the series_prono upload. Use together with upload_prono",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        [],
+        ["inferior", "superior"]
+      ]
+    },
+    "save_response": {
+      "description": "Save forecast creation response into this file. Use together with upload_prono"
     }
   },
   "required": [

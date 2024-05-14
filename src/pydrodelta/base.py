@@ -31,7 +31,7 @@ class Base():
         self.output_api_config = coalesce(output_api_config,config["output_api"] if "output_api" in config else None)
         self.s3_config = coalesce(s3_config,config["s3"] if "s3" in config else None)
         self.input_crud = Crud(**self.input_api_config) if self.input_api_config is not None else None
-        self.output_crud = Crud(**self.output_api_config) if output_api_config is not None else None
+        self.output_crud = Crud(**self.output_api_config) if self.output_api_config is not None else None
         self.s3_client = S3Client(self.s3_config)
 
     @classmethod

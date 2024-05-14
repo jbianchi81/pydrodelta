@@ -6,6 +6,8 @@ from .config import config
 from datetime import datetime
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
+from .descriptors.int_descriptor import IntDescriptor
+from .descriptors.list_descriptor import ListDescriptor
 from .util import coalesce
 
 input_crud = Crud(**config["input_api"])
@@ -42,6 +44,16 @@ class NodeSerieProno(NodeSerie):
     forecast_timestart = DatetimeDescriptor()
     """Begin date of last forecast run. If last forecast date is older than this value, it raises an error"""
 
+    @property
+    def adjust_results_string(self) -> str:
+        return "r2: %.04f, y = %.05f + %.05f x" % (self.adjust_results["r2"], self.adjust_results["intercept"], self.adjust_results["coef"][0]) if self.adjust_results is not None else None
+    
+    warmup = IntDescriptor()
+
+    tial = IntDescriptor()
+
+    sim_range = ListDescriptor()
+
     def __init__(
         self,
         cal_id : int,
@@ -53,6 +65,9 @@ class NodeSerieProno(NodeSerie):
         main_qualifier : str = None,
         previous_runs_timestart : datetime = None,
         forecast_timestart : datetime = None,
+        warmup : int = None,
+        tail : int = None,
+        sim_range : int = None,
         **kwargs):
         super().__init__(**kwargs)        
         self.cal_id : int = cal_id
@@ -78,6 +93,9 @@ class NodeSerieProno(NodeSerie):
         """If True, include this series when uploading the analysis results to the output api"""
         self.previous_runs_timestart = previous_runs_timestart
         self.forecast_timestart = forecast_timestart
+        self.warmup = warmup
+        self.tail = tail
+        self.sim_range = sim_range
 
     def loadData(
         self,
@@ -164,3 +182,4 @@ class NodeSerieProno(NodeSerie):
     
     def setData(self,data):
         self.data = data
+

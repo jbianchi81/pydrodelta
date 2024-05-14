@@ -281,7 +281,12 @@ class Plan(Base):
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
             with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
-                sim_data.to_csv(outfile) 
+                sim_data.to_csv(outfile)
+        self.saveSimData()
+    
+    def saveSimData(self):
+        for node in self.topology.nodes:
+            node.saveSeriesSeparately(["series_sim", "series_output"])
     
     def toCorrida(self) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)

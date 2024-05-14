@@ -525,6 +525,12 @@ class NodeSerie(Base):
         -----------
         include_series_id : bool = False
             Add a column with series_id"""
+        if self.data is None:
+            logging.warn("Series %i data is None, returning only header")
+            if include_series_id:
+                return "timestart,valor,%i" % self.series_id
+            else:
+                return "timestart,valor"
         if include_series_id:
             data = self.data
             data["series_id"] = self.series_id
@@ -537,7 +543,8 @@ class NodeSerie(Base):
         timeSupport : timedelta = None,
         remove_nulls : bool = False,
         max_obs_date : datetime = None,
-        qualifiers : List[str] = None
+        qualifiers : List[str] = None,
+        value_key : str = "valor"
         ) -> List[TVP]:
         """Convert timeseries to list of time-value pair dicts
         
@@ -558,6 +565,9 @@ class NodeSerie(Base):
         qualifiers : List[str] = None
             Generate additional time-value pairs using the values of this qualifier keys
 
+        value_key : str = "valor"
+            Use the values of this key as the value for the observations 
+
         Returns:
         --------
         list of time-value pair dicts : List[TVP]"""
@@ -573,7 +583,7 @@ class NodeSerie(Base):
         obs_list = data.to_dict(orient="records")
         qualifier_obs = []
         for obs in obs_list:
-            obs["valor"] = None if isna(obs["valor"]) else obs["valor"]
+            obs[value_key] = None if isna(obs[value_key]) else obs[value_key]
             obs["tag"] = None if "tag" not in obs else None if isna(obs["tag"]) else obs["tag"]
             if qualifiers is not None:
                 for qualifier in qualifiers:
@@ -589,6 +599,9 @@ class NodeSerie(Base):
                         qualifier_obs.append(new_obs)
                     else:
                         logging.warn("Qualifier %s not found in data at timestart %s" % (qualifier, obs["timestart"]))
+            obs["valor"] = obs[value_key]
+            if qualifiers is not None:
+                obs["qualifier"] = "main"
         obs_list = [*obs_list, *qualifier_obs]
         if remove_nulls:
             obs_list = [x for x in obs_list if x["valor"] is not None] # remove nulls
@@ -599,7 +612,9 @@ class NodeSerie(Base):
         timeSupport : timedelta = None,
         as_prono : bool = False,
         remove_nulls : bool = False,
-        max_obs_date : datetime = None
+        max_obs_date : datetime = None,
+        qualifiers : List[str] = None,
+        value_key : str = "valor"
         ) -> Union[SeriesDict, SeriesPronoDict]:
         """Convert timeseries to series dict
         
@@ -615,14 +630,19 @@ class NodeSerie(Base):
         
         max_obs_date : datetime = None
             Remove data beyond this date
-        
+
+        qualifiers : List[str] = None
+            Generate additional time-value pairs using the values of this qualifier keys
+
+        value_key : str = None
+            Use the values of this key as the value for the observations
         Returns:
         --------
         Dict containing
         - series_id: int
         - tipo: str
         - observaciones (or pronosticos, if as_prono=True): list of dict"""
-        obs_list = self.toList(include_series_id=False,timeSupport=timeSupport,remove_nulls=remove_nulls,max_obs_date=max_obs_date)
+        obs_list = self.toList(include_series_id=False,timeSupport=timeSupport,remove_nulls=remove_nulls,max_obs_date=max_obs_date, qualifiers = qualifiers, value_key = value_key)
         series_table = self.getSeriesTable()
         if as_prono:
             return {"series_id": self.series_id, "series_table": series_table, "pronosticos": obs_list}

@@ -149,7 +149,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [x] split time domain (cal/val) in statistics
 - [ ] colored log
 - [ ] nodes list / procedures list to dataframe
-- [ ] implement linear regression as functionProcedure
+- [x] implement linear regression as functionProcedure
 - [x] implement exponential fit functionProcedure
 - [ ] add error band to linear regression result series
 - [ ] cache variables
@@ -162,7 +162,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
 - [ ] topology.__repl__ print complete tree or add .tree method
 - [ ] node.getVariable()
 - [x] variable.getSerie()
-- [ ] series_sim metadata (stats, forecast_date)
+- [ ] series_prono - series_sim metadata (stats, forecast_date) NodeSerieProno.loadData()
 
 ### Discussion / ideas 
 
@@ -174,6 +174,8 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     - how to harmonize different timesteps and ranges?
 
 - TypedList properties - set empty instead of None when no items provided?
+
+- Configuration persistence database?
 
 ### References
 

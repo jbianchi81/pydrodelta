@@ -450,7 +450,8 @@ class NodeVariable:
     
     def pronoToList(
         self,
-        flatten : bool = True
+        flatten : bool = True,
+        qualifiers : List[str] = None
         ) -> Union[List[dict],List[Serie]]:
         """
         Convert series_prono to list of records (dict)
@@ -460,6 +461,9 @@ class NodeVariable:
         flatten : bool = True
             If True, merges observations into single list. Else, returns list of series objects: [{series_id:int, observaciones:[{obs1},{obs2},...]},...]
         
+        qualifiers : List[str] = None
+            Add these qualifiers as additional observations
+
         Returns:
         List of records (dict) or list of Series : Union[List[dict],List[Serie]]
         """
@@ -468,10 +472,10 @@ class NodeVariable:
         list = []
         for serie in self.series_prono:
             if flatten:
-                prono_list = serie.toList(include_series_id=True,timeSupport=self.time_support,remove_nulls=True)
+                prono_list = serie.toList(include_series_id=True,timeSupport=self.time_support,remove_nulls=True, qualifiers=qualifiers)
                 list.extend(prono_list)
             else:
-                series_dict = serie.toDict(timeSupport=self.time_support, as_prono=True, remove_nulls=True)
+                series_dict = serie.toDict(timeSupport=self.time_support, as_prono=True, remove_nulls=True, qualifiers=qualifiers)
                 list.append(series_dict)
         return list
     
@@ -548,14 +552,24 @@ class NodeVariable:
     
     def adjustProno(
         self,
-        error_band : bool = True
+        error_band : bool = True,
+        warmup : int = None,
+        tail : int = None,
+        sim_range : Tuple[float,float] = None
         ) -> None:
         """For each serie in series_prono where adjust is True, perform adjustment against observed data (series[0].data). series_prono[x].data are updated with the results of the adjustment
         
         Parameters:
         -----------
         error_band : bool = True
-            Add error band to results"""
+            Add error band to results
+            
+        warmup : int = None
+
+        tail : int = None
+
+        sim_range : Tuple[float,float] = None
+        """
         if not self.series_prono or not len(self.series_prono) or self.series is None or len(self.series) == 0 or self.series[0].data is None:
             return
         truth_data = self.series[0].data
@@ -563,7 +577,17 @@ class NodeVariable:
             sim_data = serie_prono.data[serie_prono.data["tag"]=="prono"]
             # serie_prono.original_data = sim_data.copy(deep=True)
             try:
-                adj_serie, tags , model = adjustSeries(sim_data,truth_data,method="lfit",plot=True,tag_column="tag",title="%s @ %s" % (serie_prono.name, self.name))
+                adj_serie, tags , model = adjustSeries(
+                    sim_data,
+                    truth_data,
+                    method="lfit",
+                    plot=True,
+                    tag_column="tag",
+                    title="%s @ %s" % (serie_prono.name, self.name),
+                    warmup = coalesce(warmup, serie_prono.warmup),
+                    tail = coalesce(tail, serie_prono.tail),
+                    sim_range = coalesce(sim_range, serie_prono.sim_range)
+                )
             except ValueError:
                 logging.debug("No observations found to estimate coefficients. Skipping adjust")
                 return
@@ -1171,6 +1195,7 @@ class NodeVariable:
                 defaults["datum"] = self.series[0].metadata["estacion"]["cero_ign"]
             if serie_prono.adjust_results is not None:
                 defaults["errorBand"] = ("error_band_01","error_band_99")
+                defaults["adjust_results_string"] = serie_prono.adjust_results_string
             if self._node is not None and self._node._topology is not None and self._node._topology.plot_params is not None:
                 plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
             elif serie_prono.plot_params is not None:
@@ -1236,24 +1261,17 @@ class NodeVariable:
                 # footnote_height=footnote_height
             )
 
-    def saveSeries(self):
-        """For each series, series_prono, series_sim and series_output, save data into file if .output_file is defined"""
-        if self.series is not None:
-            for serie in self.series:
-                if serie.output_file is not None:
-                    serie.saveData()
-        if self.series_prono is not None:
-            for serie in self.series_prono:
-                if serie.output_file is not None:
-                    serie.saveData()
-        if self.series_sim is not None:
-            for serie in self.series_sim:
-                if serie.output_file is not None:
-                    serie.saveData()
-        if self.series_output is not None:
-            for serie in self.series_output:
-                if serie.output_file is not None:
-                    serie.saveData()
+    def saveSeriesSeparately(self,types : list=["series","series_prono"]):
+        """For each series type (series, series_prono, series_sim and series_output), save data into file if .output_file is defined"""
+        valid_series_type = ["series", "series_prono", "series_sim", "series_output"]
+        for series_type in types:
+            if series_type not in valid_series_type:
+                raise ValueError("Invalid series type: %s" % series_type)
+            series = getattr(self,series_type)
+            if series is not None:
+                for serie in series:
+                    if serie.output_file is not None:
+                        serie.saveData()
     
     def getSerie(self,series_id : int, series_type : str = "series") -> NodeSerie:
         series_list = None

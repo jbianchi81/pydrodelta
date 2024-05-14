@@ -311,7 +311,8 @@ class Node:
     
     def variablesPronoToList(
             self,
-            flatten : bool = True
+            flatten : bool = True,
+            qualifiers : List[str] = None
         ) -> list:
         """
         For each variable in .variables, returns series_prono as a list
@@ -321,13 +322,16 @@ class Node:
         flatten : bool = True
             If True, returns list of dict each containing one forecast time-value pair (pronosticos). Else returns list of dict each containing series_id:int and pronosticos:list 
         
+        qualifiers : List[str] = None
+            Add these qualifiers as additional observations  
+
         Returns:
         --------
         list
         """
         list = []
         for variable in self.variables.values():
-            pronolist = variable.pronoToList(flatten=flatten)
+            pronolist = variable.pronoToList(flatten=flatten, qualifiers=qualifiers)
             if pronolist is not None:
                 list.extend(pronolist)
         return list
@@ -887,7 +891,7 @@ class Node:
         for variable in self.variables.values():
             variable.applyMovingAverage()
             
-    def saveSeries(self):
+    def saveSeriesSeparately(self, types = ["series", "series_prono"]):
         """For each series, series_prono, series_sim and series_output of each variable, save data into file if .output_file is defined"""
         for var_id, variable in self.variables.items():
-            variable.saveSeries()
+            variable.saveSeriesSeparately(types)

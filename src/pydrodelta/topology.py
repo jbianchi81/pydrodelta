@@ -1,7 +1,7 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor
+from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce
 from pathlib import Path
 from datetime import timedelta, datetime
 from .node import Node
@@ -28,6 +28,7 @@ from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.string_descriptor import StringDescriptor
+from .descriptors.list_descriptor import ListDescriptor
 from .types.plot_variable_params_dict import PlotVariableParamsDict
 from .types.node_dict import NodeDict
 from .types.plot_params_dict import PlotParamsDict
@@ -137,6 +138,15 @@ class Topology(Base):
     pretty = BoolDescriptor()
     """For output_json, prettify json"""
 
+    upload_prono = BoolDescriptor()
+    """Upload series_prono"""
+
+    qualifiers = ListDescriptor()
+    """create additional observations using these keys from series_prono data"""
+
+    save_response = StringDescriptor()
+    """Save prono creation response into this file"""
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -159,6 +169,9 @@ class Topology(Base):
         output_json : str = None,
         pivot : bool = True,
         pretty : bool = True,
+        upload_prono : bool = False,
+        qualifiers : List[str] = None,
+        save_response : str = None,
         **kwargs
         ):
         """Initiate topology
@@ -229,6 +242,15 @@ class Topology(Base):
 
         pretty : bool = True
             For output_json, prettify json
+
+        upload_prono : bool = False
+            Upload series_prono
+        
+        qualifiers : List[str] = None
+            Add these qualifiers to the uploaded series_prono
+
+        save_response : str = None
+            Save prono creation response into this file
         """
         super().__init__(**kwargs)
         params = {
@@ -250,7 +272,10 @@ class Topology(Base):
             "output_csv": output_csv,
             "output_json": output_json,
             "pivot": pivot,
-            "pretty": pretty
+            "pretty": pretty,
+            "upload_prono": upload_prono,
+            "qualifiers": qualifiers,
+            "save_response": save_response
         }
         getSchemaAndValidate(params=params, name="topology")
         self.timestart = timestart
@@ -280,6 +305,9 @@ class Topology(Base):
         self.output_json = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_json) if output_json is not None else None
         self.pivot = pivot
         self.pretty = pretty
+        self.upload_prono = upload_prono
+        self.qualifiers = qualifiers
+        self.save_response = save_response
     
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
@@ -374,6 +402,8 @@ class Topology(Base):
             self.saveData(self.output_csv,pivot=self.pivot,format="csv")
         if self.output_json is not None:
             self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
+        if self.upload_prono:
+            self.uploadDataAsProno(False, True)
 
     def loadData(
         self,
@@ -739,6 +769,7 @@ class Topology(Base):
         include_obs : bool = True,
         include_prono : bool = False,
         api_config : dict = None,
+        save_response : str = None
         ) -> dict:
         """
         Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
@@ -761,6 +792,7 @@ class Topology(Base):
         --------
         dict : server response. Either a successfully created forecast (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml) or an error message
         """
+        save_response = coalesce(save_response, self.save_response)
         if self.cal_id is None:
             if self._plan is not None:
                  cal_id = self._plan.id
@@ -782,10 +814,13 @@ class Topology(Base):
                 prono["series"].extend(serieslist)
         if include_prono:
             for node in self.nodes:
-                serieslist = node.variablesPronoToList(flatten=False)
+                serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
                 prono["series"].extend(serieslist)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
-        return api_client.createCorrida(prono)
+        response = api_client.createCorrida(prono)
+        if save_response:
+            json.dump(response, open(save_response, "w"), indent=4)
+        return response
 
     def pivotData(
         self,
@@ -1369,7 +1404,7 @@ class Topology(Base):
     def saveSeries(self):
         """For each series, series_prono, series_sim and series_output of each variable of each node, save data into file if .output_file is defined"""
         for node in self.nodes:
-            node.saveSeries()
+            node.saveSeriesSeparately()
 
     def storeSeries(
             self,

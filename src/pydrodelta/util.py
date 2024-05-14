@@ -549,7 +549,8 @@ def plot_prono(
     forecast_table : bool = True,
     footnote_height : float = 0.2,
     prono_annotation_color : str = "black",
-    format : str = "png"
+    format : str = "png",
+    adjust_results_string : str = None
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -641,6 +642,8 @@ def plot_prono(
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
             xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+    if adjust_results_string is not None:
+        plt.gcf().text(0.6, 0.85, adjust_results_string, fontsize=10)
     if footnote is not None:
         fig.subplots_adjust(bottom=footnote_height) # 0.2
         plt.figtext(0,0,footnote,fontsize=12,ha="left")

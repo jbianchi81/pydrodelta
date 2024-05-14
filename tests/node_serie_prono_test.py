@@ -38,6 +38,7 @@ class Test_NodeSerieProno(unittest.TestCase):
         self.assertTrue(type(node_serie.data),DataFrame)
         self.assertTrue(len(node_serie.data) > 0)
         self.assertTrue(node_serie.data.dropna().index.min() < node_serie.previous_runs_timestart + timedelta(days=0))
+        self.assertTrue(node_serie.metadata["forecast_date"] >= node_serie.previous_runs_timestart)
 
 
     def test_series_load_json(self):
