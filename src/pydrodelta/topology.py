@@ -819,7 +819,7 @@ class Topology(Base):
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
         response = api_client.createCorrida(prono)
         if save_response:
-            json.dump(response, open(save_response, "w"), indent=4)
+            json.dump(response, open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_response), "w"), indent=4)
         return response
 
     def pivotData(
