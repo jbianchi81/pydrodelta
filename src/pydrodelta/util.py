@@ -395,7 +395,8 @@ def adjustSeries(
         title : str = None,
         warmup : int = None,
         tail : int = None,
-        sim_range : Tuple[float,float] = None
+        sim_range : Tuple[float,float] = None,
+        covariables : List[str] = ["valor"]
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -410,6 +411,7 @@ def adjustSeries(
         warmup (int, optional): Number of initial rows to skip for the fit procedure. Defaults to None.
         tail (int, optional): Number of final steps to use for the fit procedure (discard the rest).
         sim_range (Tuple[float,float],optional): Select data pairs where sim is within this range.
+        covariables (List[float],optional): Column names to extract from sim_df to be used as explanatory variables
 
     Raises:
         ValueError: unknown method
@@ -420,17 +422,18 @@ def adjustSeries(
     if method == "lfit":
         truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
         truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
-        data = truth_warm.join(sim_df,how="left",rsuffix="_sim")
+        data = truth_warm.join(sim_df[covariables],how="left",rsuffix="_sim")
+        covariables_sim = ["%s_sim" % x if x == "valor" else x for x in covariables]
         if sim_range is not None:
-            data = data.loc[(data["valor_sim"] >= sim_range[0]) & (data["valor_sim"] <= sim_range[1])]
+            data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])]
         try:
-            lr, quant_Err, r2, coef, intercept, train =  ModelRL(data,"valor",["valor_sim"])
+            lr, quant_Err, r2, coef, intercept, train =  ModelRL(data,"valor",covariables_sim)
         except ValueError as e:
             raise ValueError("Linear regression error: %s" % str(e))
         # logging.info(quant_Err)
         # Prediccion
         aux_df = sim_df.copy().dropna()
-        predict = lr.predict(aux_df[["valor"]].values)
+        predict = lr.predict(aux_df[covariables].values)
         aux_df["adj"] = predict
         aux_df = aux_df.rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm.rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
         if plot:
@@ -503,7 +506,7 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     mse = mean_squared_error(Y_test, Y_predictions)
     # The coefficient of determination: 1 is perfect prediction
     coefDet = r2_score(Y_test, Y_predictions)
-    logging.debug('Coefficients B0: %.5f, coefficients: %.5f, Mean squared error: %.5f, r2_score: %.5f' % (lr.intercept_, lr.coef_, mse, coefDet))
+    logging.debug('Coefficients B0: %.5f, coefficients: %s, Mean squared error: %.5f, r2_score: %.5f' % (lr.intercept_, ", ".join(["%.5f" % c for c in lr.coef_]), mse, coefDet))
     train['Error_pred'] =  train['Y_predictions']  - train[var_obj]
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
     return lr,quant_Err,r2,coef,intercept,train

@@ -17,6 +17,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
     ]
     """input: independent (explanatory) variable"""
 
+    _additional_boundaries = True
+
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]
@@ -90,6 +92,12 @@ class LinearFitProcedureFunction(ProcedureFunction):
         output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
         input_data = input[0].copy()
         self._sim_range = self.getSimRange(input_data, 0.1) if self.use_forecast_range else None
+        covariables = ["valor"]
+        if len(input) > 1:
+            for i in range(1,len(input)):
+                b_name = "valor_%i" % i
+                input_data = input_data.join(input[i][["valor"]].rename(columns={"valor":b_name}))
+                covariables.append(b_name)
         if self.type == "exponential":
             if self.sim_range is not None:
                 sim_range = (
@@ -108,7 +116,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
                 response_data,
                 warmup=self.warmup_steps,
                 tail=self.tail_steps,
-                sim_range=sim_range
+                sim_range=sim_range,
+                covariables=covariables
             )
         except ValueError as e:
             raise ValueError("Adjust series error at procedure %s: %s" % (self._procedure.id if self._procedure is not None else "unknown", str(e)))
