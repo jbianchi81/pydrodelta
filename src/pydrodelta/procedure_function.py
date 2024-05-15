@@ -59,7 +59,7 @@ class ProcedureFunction:
     """list or dict of function initial state values"""
     
     @property
-    def boundaries(self) -> EnhancedTypedList[ProcedureBoundary]:
+    def boundaries(self) -> List[ProcedureBoundary]:
         """List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
         return self.__boundaries
     @boundaries.setter
@@ -85,7 +85,7 @@ class ProcedureFunction:
         )
     
     @property
-    def outputs(self) -> EnhancedTypedList[ProcedureBoundary]:
+    def outputs(self) -> List[ProcedureBoundary]:
         """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
         return self.__outputs
     @outputs.setter

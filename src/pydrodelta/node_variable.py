@@ -42,7 +42,7 @@ class NodeVariable:
     """Value used to fill missing values"""
     
     @property
-    def series_output(self) -> TypedList[NodeSerie]:
+    def series_output(self) -> List[NodeSerie]:
         """Output series of the analysis procedure"""
         return self._series_output
     
@@ -57,7 +57,7 @@ class NodeVariable:
         self._series_output = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self)  # [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     
     @property
-    def series_sim(self) -> TypedList[NodeSerieProno]:
+    def series_sim(self) -> List[NodeSerieProno]:
         """Output series of the simulation procedure"""
         return self._series_sim
     @series_sim.setter
