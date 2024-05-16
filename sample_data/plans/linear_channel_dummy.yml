@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../data/schemas/json/plan.json
+# yaml-language-server: $schema=../../schemas/json/plan.json
 name: linear_channel_dummy
 id: 505
 forecast_date: "2024-01-03T03:00:00.000Z"

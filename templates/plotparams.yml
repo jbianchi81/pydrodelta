@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../data/schemas/json/plotparams.json
+# yaml-language-server: $schema=../../schemas/json/plotparams.json
 ---
 figsize:
   - 14

@@ -9,7 +9,7 @@ from pathlib import Path
 import jsonschema
 import yaml
 
-schemas, resolver = getSchema("HecRasProcedureFunction","data/schemas/json")
+schemas, resolver = getSchema("HecRasProcedureFunction","schemas/json")
 schema = schemas["HecRasProcedureFunction"]
 
 # from pyras.controllers import RAS41, kill_ras

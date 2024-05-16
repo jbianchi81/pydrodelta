@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../data/schemas/json/node.json
+# yaml-language-server: $schema=../schemas/json/node.json
 ---
 id: 1
 name: Station 1

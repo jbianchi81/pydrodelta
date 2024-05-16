@@ -1,8 +1,10 @@
-# yaml-language-server: $schema=../../../data/schemas/json/procedure.json
+# yaml-language-server: $schema=../../schemas/json/procedure.json
 id: str
 function:
-  type: Expression
-  expression: "0 + 1 * value"
+  type: Polynomial
+  intercept: 0
+  coefficients:
+  - 1
   boundaries:
   - name: input
     node_variable:

@@ -6,7 +6,7 @@ from typing import Tuple
 
 def getSchema(
         name : str,
-        rel_base_path : str = "data/schemas/json"
+        rel_base_path : str = "schemas/json"
     ) -> Tuple[dict,jsonschema.validators.RefResolver]:
     """
     Reads schema from json or yaml, returns dict of schemas and jsonschema resolver
@@ -16,7 +16,7 @@ def getSchema(
     name : str
         Schema name
     
-    rel_base_path : str = "data/schemas/json"
+    rel_base_path : str = "schemas/json"
         Relative base path of the schemas files
 
     Returns:
@@ -87,7 +87,7 @@ def validate(
 def getSchemaAndValidate(
         params : dict,
         name : str,
-        rel_base_path : str = "data/schemas/json"
+        rel_base_path : str = "schemas/json"
     ):
     """
     Validate dict against json schema
@@ -102,7 +102,7 @@ def getSchemaAndValidate(
 
         Name of the schema. Used to find the jsonschema file in rel_base_path
     
-    rel_base_path : str = "data/schemas/json"
+    rel_base_path : str = "schemas/json"
     
         Path where to find jsonschema files
     

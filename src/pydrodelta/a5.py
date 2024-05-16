@@ -39,7 +39,7 @@ from .a5_schemas import schemas
 serie_schema = open(
     os.path.join(
         os.environ["PYDRODELTA_DIR"],
-        "data/schemas/yaml/serie.yml"
+        "schemas/yaml/serie.yml"
     )
 )
 serie_schema = yaml.load(serie_schema,yaml.CLoader)

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../data/schemas/json/topology.json
+# yaml-language-server: $schema=../../schemas/json/topology.json
 ---
 timestart: "2024-01-01T03:00:00.000Z"
 timeend: "2024-01-06T03:00:00.000Z"

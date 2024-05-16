@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../data/schemas/json/plan.json
+# yaml-language-server: $schema=../../schemas/json/plan.json
 ---
   name: grp_dummy_from_csv
   id: 666

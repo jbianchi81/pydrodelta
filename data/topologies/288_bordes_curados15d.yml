@@ -140,10 +140,14 @@ nodes:
     series_prono:
     - series_id: 3408
       cal_id: 289
+      qualifier: medio
     series_output:
     - series_id: 31525
       comment: Paraná h de escala 1d
     - series_id: 31607
+      y_offset: 8.378
+      comment: Santa Fe h geo 1d
+    - series_id: 35205
       y_offset: 9.432
       comment: Paraná h geo 1d
   time_interval:

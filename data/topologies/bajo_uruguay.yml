@@ -21,6 +21,13 @@ nodes:
   variables:
   - id: 87
     series:
+    - series_id: 34826
+      lim_outliers:
+      - 0
+      - 40000
+      lim_jump: 15000
+      x_offset: 0
+      y_offset: 0
     - series_id: 927
       lim_outliers:
       - 0

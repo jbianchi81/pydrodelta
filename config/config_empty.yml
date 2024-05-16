@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../data/schemas/json/config.json
+# yaml-language-server: $schema=../schemas/json/config.json
 ---
 log:
   filename: log/analysis.log

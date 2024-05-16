@@ -29,4 +29,4 @@ where = ["src"]
 include = ["pydrodelta*"]
 
 # [tool.setuptools.package-data]
-# pydrodelta = ["config/config_empty.json", "data/schemas/*.json", "data/topologies/*.json","data/notebooks/*.ipynb"]
+# pydrodelta = ["config/config_empty.json", "schemas/*.json", "data/topologies/*.json","data/notebooks/*.ipynb"]

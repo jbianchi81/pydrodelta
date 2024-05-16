@@ -17,12 +17,7 @@ src/pydrodelta.egg-info
 pydrodelta.egg-info
 log/analysis.log
 config/config.yml
-data/plans
-data/notebooks
-data/topologies
-data/plots
-data/reports
-data/csv
+data
 setup_.py
 dist
 data_a5

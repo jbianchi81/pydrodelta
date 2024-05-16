@@ -1,5 +1,5 @@
 {
-  "$schema": "../../data/schemas/json/nodeserie.json",
+  "$schema": "../../schemas/json/nodeserie.json",
   "series_id": 91515159,
   "tipo": "puntual",
   "lim_outliers": [

@@ -3,7 +3,7 @@
 módulo generación de análisis de series temporales
 
 - se definen las clases NodeSerie, Node y Topology
-- se define un esquema json (jsonschema) para validar la configuración de la topología (data/schemas/topology.json)
+- se define un esquema json (jsonschema) para validar la configuración de la topología (schemas/topology.json)
 - se instancia un objeto de la clase Topology usando el archivo json de configuración y:
 - lee series de entrada de a5 topology.loadData()
 - regulariza las series topology.regularize()
@@ -14,7 +14,7 @@ módulo generación de análisis de series temporales
 módulo simulación
 
 - se definen las clases Plan, Procedure y clases para cada procedimiento específico
-- se define un esquema json (jsonschema) para validar la configuración del plan (data/schemas/plan.json) 
+- se define un esquema json (jsonschema) para validar la configuración del plan (schemas/plan.json) 
 - se instancia un objeto de la clase Plan usando el archivo de configuración, y:
 - ejecuta el análisis de la topología del plan (generación de condiciones de borde, plan.topology.batchProcessInput())
 - ejecuta secuencialmente los procedimientos (procedure.run() por cada procedure en plan.procedures)

@@ -5,7 +5,7 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..model_parameter import ModelParameter
 import numpy as np
 
-# schemas, resolver = getSchema("UHLinearChannelProcedureFunction","data/schemas/json")
+# schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
 
 class LinearNet3ProcedureFunction(ProcedureFunction):
