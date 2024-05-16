@@ -18,28 +18,28 @@
         series:
         - series_id: 1
           comment: sample pma series 1
-          csv_file: sample_data/csv/pq_dummy_border.csv
+          csv_file: sample_data/csv/pq_dummy_border_nulls.csv
         series_sim:
         - series_id: 6
       - id: 15
         series:
         - series_id: 2
           comment: Sample etp series 2
-          csv_file: sample_data/csv/pq_dummy_border.csv
+          csv_file: sample_data/csv/pq_dummy_border_nulls.csv
         series_sim:
         - series_id: 7
       - id: 4
         series:
         - series_id: 3
           comment: Sample q_obs series 3
-          csv_file: sample_data/csv/pq_dummy_border.csv
+          csv_file: sample_data/csv/pq_dummy_border_nulls.csv
         series_sim:
         - series_id: 8
       - id: 20
         series:
         - series_id: 4
           comment: Sample smc_obs series 4
-          csv_file: sample_data/csv/pq_dummy_border.csv
+          csv_file: sample_data/csv/pq_dummy_border_nulls.csv
         series_sim:
         - series_id: 9
       basin_pars:
@@ -64,20 +64,19 @@
         rho: 0.5
       extra_pars:
         area: 43634867978
+        fill_nulls: true
       boundaries:
-      - name: pma
-        node_variable: 
-        - 1
-        - 1
-      - name: etp
-        node_variable: [1, 15]
-      - name: q_obs
-        node_variable: [1, 4]
       - name: smc_obs
         node_variable: [1, 20]
-      outputs:
-      - name: q_sim
+      - name: q_obs
         node_variable: [1, 4]
+      - name: etp
+        node_variable: [1, 15]
+      - name: pma
+        node_variable: [1, 1]
+      outputs:
       - name: smc_sim
         node_variable: [1, 20]
+      - name: q_sim
+        node_variable: [1, 4]
     save_results: results/grp_dummy.csv

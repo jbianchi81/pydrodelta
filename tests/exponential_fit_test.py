@@ -48,9 +48,9 @@ class Test_ExponentialFit(TestCase):
         self.assertIsInstance(procedure.function.boundaries.getById("input"),ProcedureBoundary)
         self.assertRaises(
             ValueError,
-            procedure.function.boundaries.append,
+            procedure.function.outputs.append,
             {
-                "name": "eenpoot",
+                "name": "outpoot",
                 "node_variable": [1,40]
             }
         )

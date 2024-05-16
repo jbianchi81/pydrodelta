@@ -56,16 +56,16 @@ class PQProcedureFunction(ProcedureFunction):
         getSchemaAndValidate(dict(kwargs, extra_pars = extra_pars),"PQProcedureFunction")
         if self.fill_nulls:
             logging.debug("PQProcedure - fillnulls: setting pma boundary to optional")
-            self.boundaries[0].optional = True
+            self.boundaries.getById("pma").optional = True
         self.setBasinMetadata()
 
     def setBasinMetadata(self) -> None:
-        # if self.boundaries[0].node.node_type == "basin":
+        # if self.boundaries.getById("pma").node.node_type == "basin":
         for key in self._required_extra_pars:
             if key not in self.extra_pars or self.extra_pars[key] is None:
-                if self.boundaries[0].node.basin_pars is None:
-                    raise Exception("Missing key '%s' in self.extra_pars with no self.boundaries[0].node.basin_pars from which to read defaults" % key)
-                if key not in self.boundaries[0].node.basin_pars or self.boundaries[0].node.basin_pars[key] is None:
-                    raise Exception("key '%s' missing from either self.extra_pars or self.boundaries[0].node.basin_pars" % key)
-                logging.debug("Basin parameter '%s' missing from procedure function input. Filling up with self.boundaries[0].node.basin_pars" % key)
-                self.extra_pars[key] = self.boundaries[0].node.basin_pars[key]
+                if self.boundaries.getById("pma").node.basin_pars is None:
+                    raise Exception("Missing key '%s' in self.extra_pars with no self.boundariesgetById('pma').node.basin_pars from which to read defaults" % key)
+                if key not in self.boundaries.getById("pma").node.basin_pars or self.boundaries.getById("pma").node.basin_pars[key] is None:
+                    raise Exception("key '%s' missing from either self.extra_pars or self.boundaries.getById('pma').node.basin_pars" % key)
+                logging.debug("Basin parameter '%s' missing from procedure function input. Filling up with self.boundaries.getById('pma').node.basin_pars" % key)
+                self.extra_pars[key] = self.boundaries.getById("pma").node.basin_pars[key]
