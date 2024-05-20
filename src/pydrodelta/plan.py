@@ -270,17 +270,17 @@ class Plan(Base):
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_results_file is not None:
-            with open(self.output_results_file,"w",encoding='utf-8') as outfile:
+            with open("%s/%s" % (os.environ["PYDRODELTA_DATA"], self.output_results_file),"w",encoding='utf-8') as outfile:
                 json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
-            with open(self.output_stats_file,"w",encoding='utf-8') as outfile:
+            with open("%s/%s" % (os.environ["PYDRODELTA_DATA"], self.output_stats_file),"w",encoding='utf-8') as outfile:
                 json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
         if self.topology.plot_variable is not None:
             for i, item in enumerate(self.topology.plot_variable):
                 self.topology.plotVariable(**item)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
-            with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
+            with open("%s/%s" % (os.environ["PYDRODELTA_DATA"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
                 sim_data.to_csv(outfile)
         self.saveSimData()
     
