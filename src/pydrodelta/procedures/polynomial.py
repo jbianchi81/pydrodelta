@@ -25,6 +25,11 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
     def intercept(self) -> float:
         """intercept : float - default 0"""
         return self.parameters["intercept"] if "intercept" in self.parameters else 0
+    
+    @property
+    def allow_na(self) -> bool:
+        """allow for null values in input. Defaults to False"""
+        return self.extra_pars["allow_na"] if "allow_na" in self.extra_pars else False
 
     def __init__(
         self,
@@ -45,6 +50,8 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
         """
         super().__init__(parameters = parameters, **kwargs)
         getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")
+        if self.allow_na:
+            self.boundaries[0].optional = True
     
     def transformation_function(
         self,

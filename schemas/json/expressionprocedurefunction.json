@@ -19,6 +19,17 @@
         "expression": {
             "type": "string",
             "description": "python expression. Each occurence of 'value' will be replaced with the given input value"
+        },
+        "extra_pars": {
+            "type": "object",
+            "description": "additional parameters",
+            "properties": {
+                "allow_na": {
+                    "type": "boolean",
+                    "description": "Allow for null values in input",
+                    "default": false
+                }
+            }
         }
     },
     "required": [

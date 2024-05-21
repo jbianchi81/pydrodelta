@@ -34,6 +34,17 @@
                 }        
             },
             "required": ["coefficients"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "description": "additional parameters",
+            "properties": {
+                "allow_na": {
+                    "type": "boolean",
+                    "description": "allow for null values in input",
+                    "default": false
+                }
+            }
         }
     },
     "required": [

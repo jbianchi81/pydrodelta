@@ -12,6 +12,12 @@ class ExpressionProcedureFunction(ProcedureFunction):
         FunctionBoundary({"name": "output"})
     ]
     """Only one output allowed"""
+
+    @property
+    def allow_na(self) -> bool:
+        """allow for null values in input. Defaults to False"""
+        return self.extra_pars["allow_na"] if "allow_na" in self.extra_pars else False
+
     def __init__(
         self,
         expression : str,
@@ -30,6 +36,9 @@ class ExpressionProcedureFunction(ProcedureFunction):
                 expression = expression),
             "ExpressionProcedureFunction")
         self.expression = expression
+        if self.allow_na:
+            self.boundaries[0].optional = True
+
     def transformation_function(
         self,
         value : float

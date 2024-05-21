@@ -642,7 +642,7 @@ class Procedure():
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
             output_data = self.setIndexOfDataFrame(self.output[index],time_interval = o.node.time_interval)
-            o._variable.concatenate(output_data,overwrite=overwrite,extend=False)
+            o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
                 o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
             for serie in o._variable.series_sim:
