@@ -19,6 +19,7 @@ from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.list_descriptor import ListDescriptor
+from .descriptors.filepath_descriptor import FilepathDescriptor
 from .base import Base
 from .types.typed_list import TypedList
 
@@ -90,17 +91,17 @@ class Plan(Base):
         self._time_interval = util.interval2timedelta(value) if value is not None else None
         if self.time_interval is not None and self.forecast_date is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
-    output_stats_file = StringDescriptor()
+    output_stats_file = FilepathDescriptor()
     """file path where to save result statistics"""
-    output_analysis = StringDescriptor()
+    output_analysis = FilepathDescriptor()
     """file path where to save analysis results"""
     pivot = BoolDescriptor()
     """option to pivot the results table (set one column per variable). Default False"""
-    save_post = StringDescriptor()
+    save_post = FilepathDescriptor()
     """file path where to save the post data sent to the output api"""
-    save_response = StringDescriptor()
+    save_response = FilepathDescriptor()
     """file path where to save the output api response"""
-    output_sim_csv = StringDescriptor()
+    output_sim_csv = FilepathDescriptor()
     """Print simulated series into csv"""
     qualifiers = ListDescriptor()
     """Include this forecast members into the simulation output"""
