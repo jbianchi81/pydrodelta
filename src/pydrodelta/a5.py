@@ -478,7 +478,8 @@ class Crud():
         cor_id : int = None,
         forecast_date : datetime = None,
         qualifier : str = None,
-        forecast_timestart : datetime = None
+        forecast_timestart : datetime = None,
+        tipo : str = None
         ) -> dict:
         """
         Reads prono serie from a5 API
@@ -496,6 +497,7 @@ class Crud():
             qualifier (str, optional): simulations qualifier (used to discriminate between simulations of the same series and timestamp, for example, from different ensemble members). Defaults to None. If 'all', returns all qualifiers (not only the first match). In the latter case, 'pronosticos' property of the return value is a list of dicts (one for each qualifier) with:
             - qualifier : str
             - pronosticos : list of time-value pairs
+            tipo (str, optional): series geometry type: puntual (default), areal, rast
             
 
         Raises:
@@ -528,6 +530,7 @@ class Crud():
             corridas_response = requests.get("%s/sim/calibrados/%i/corridas" % (self.url, cal_id),
                 params = {
                     "series_id": series_id,
+                    "tipo": tipo,
                     "forecast_timestart": forecast_timestart if isinstance(forecast_timestart,str) else forecast_timestart.isoformat(),
                     "includeProno": False
                 },
@@ -543,13 +546,15 @@ class Crud():
                 logging.warn("forecast run with cal_id %i at forecast_date greater than %s not found" % (cal_id,forecast_timestart))
                 return {
                     "series_id": series_id,
+                    "tipo": tipo,
                     "pronosticos": []
                 }
         if timestart is not None and timeend is not None:
             params = {
                 "timestart": timestart if isinstance(timestart,str) else timestart.isoformat(),
                 "timeend": timeend if isinstance(timestart,str) else timeend.isoformat(),
-                "series_id": series_id
+                "series_id": series_id,
+                "tipo": tipo
             }
         if qualifier is not None and qualifier != 'all':
             params["qualifier"] = qualifier
@@ -573,6 +578,7 @@ class Crud():
                 "cal_id": json_response["cal_id"],
                 "cor_id": json_response["cor_id"],
                 "series_id": series_id,
+                "tipo": tipo,
                 "qualifier": None,
                 "pronosticos": []
             }
@@ -583,6 +589,7 @@ class Crud():
                 "cal_id": json_response["cal_id"],
                 "cor_id": json_response["cor_id"],
                 "series_id": series_id,
+                "tipo": tipo,
                 "qualifier": None,
                 "pronosticos": []
             }
@@ -598,6 +605,7 @@ class Crud():
                 "cal_id": json_response["cal_id"],
                 "cor_id": json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
+                "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "pronosticos": pronosticos
             }
         if "pronosticos" not in json_response["series"][0]:
@@ -607,6 +615,7 @@ class Crud():
                 "cal_id": json_response["cal_id"],
                 "cor_id": json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
+                "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "qualifier": json_response["series"][0]["qualifier"],
                 "pronosticos": []
             }
@@ -617,6 +626,7 @@ class Crud():
                 "cal_id": json_response["cal_id"],
                 "cor_id": json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
+                "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "qualifier": json_response["series"][0]["qualifier"],
                 "pronosticos": []
             }
@@ -638,12 +648,14 @@ class Crud():
         forecast_timeend : datetime = None,
         qualifier : str = None,
         includeProno : bool = False,
-        group_by_qualifier : bool = False
+        group_by_qualifier : bool = False,
+        tipo : str = None
         ) -> List[CorridaDict]:
         response = requests.get(
             "%s/sim/calibrados/%i/corridas" % (self.url, cal_id),
             params = {
                 'series_id': series_id,
+                'tipo': tipo,
                 'qualifier': qualifier,
                 'includeProno': includeProno,
                 'forecast_timestart': forecast_timestart.isoformat() if isinstance(forecast_timestart,datetime) else forecast_timestart,
@@ -663,7 +675,8 @@ class Crud():
         series_id : int,
         qualifier : str = None,
         forecast_timestart : datetime = None,
-        forecast_timeend : datetime = None
+        forecast_timeend : datetime = None,
+        tipo : str = None
         ) -> SeriesPronoDict:
         """Retrieves history of forecast runs and concatenates into a single series (newer runs overwrite older runs). If qualifier is not set and multiple qualifiers exist, a mixed qualifier series is returned"""
         corridas = self.readCorridas(
@@ -673,7 +686,8 @@ class Crud():
             forecast_timeend = forecast_timeend,
             qualifier = qualifier,
             includeProno = True,
-            group_by_qualifier = True)
+            group_by_qualifier = True,
+            tipo = tipo)
         # logging.debug('Cantidad total de corridas: ',len(corridas))
         qualifiers = {}
         last_forecast_date = corridas[len(corridas)-1]["forecast_date"]
@@ -701,6 +715,7 @@ class Crud():
         return {
             "cal_id": cal_id,
             "series_id": series_id,
+            "tipo": tipo,
             "qualifier": qualifier,
             "forecast_timestart": forecast_timestart,
             "forecast_timeend": forecast_timeend,
@@ -805,6 +820,18 @@ def createEmptyObsDataFrame(
             cnames.append(cname)
     data.index = data["timestart"]
     return data[cnames]
+
+def getSeriesTipo(series_table : str = None) -> str:
+    if series_table is None:
+        return "puntual"
+    if series_table == "series":
+        return "puntual"
+    if series_table == "series_areal":
+        return "areal"
+    if series_table == "series_rast":
+        return "rast"
+    else:
+        return "puntual"
 
 ## EJEMPLO
 '''
