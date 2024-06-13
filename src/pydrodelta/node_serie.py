@@ -78,7 +78,7 @@ class NodeSerie(Base):
 
     json_file = StringDescriptor()
     """Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs"""
-    
+
     @property
     def observations(self) -> List[TVP]:
         """Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)"""
@@ -111,6 +111,9 @@ class NodeSerie(Base):
     required = BoolDescriptor()
     """Raise error if no data found"""
 
+    agg_func = StringDescriptor()
+    """"Aggregate observations using this aggregate function. If set, interpolation is not performed"""
+
     def __init__(
         self,
         series_id : int,
@@ -131,6 +134,7 @@ class NodeSerie(Base):
         output_format : str = "json",
         output_schema : str = "dict",
         required : bool = False,
+        agg_func : str = None,
         **kwargs
         ):
         """
@@ -184,6 +188,9 @@ class NodeSerie(Base):
         required : bool = False
             Raise error if no data found
 
+        agg_func : str = None
+            Aggregate observations using this aggregate function. If set, interpolation is not performed
+
         """
         super().__init__(**kwargs)
         self.series_id = series_id
@@ -214,6 +221,7 @@ class NodeSerie(Base):
         self.output_format = output_format
         self.output_schema = output_schema
         self.required = required
+        self.agg_func = agg_func
     
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
@@ -451,7 +459,8 @@ class NodeSerie(Base):
         time_offset : timedelta,
         interpolation_limit : timedelta,
         inline : bool = True,
-        interpolate : bool = False
+        interpolate : bool = False,
+        agg_func : str = None
         ) -> Union[None,DataFrame]:
         """Regularize the time step of the timeseries
         
@@ -476,8 +485,12 @@ class NodeSerie(Base):
             If True, saves output regular timeseries to .data. Else, returns output regular timeseries
         
         interpolate : bool = False
-            If True, interpolate missing values"""
-        data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate)
+            If True, interpolate missing values
+            
+        agg_func : str = None
+            Aggregate observations of data using agg_func function. If set, interpolation is not performed"""
+        agg_func = agg_func if agg_func is not None else self.agg_func
+        data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func)
         if inline:
             self.data = data
         else:

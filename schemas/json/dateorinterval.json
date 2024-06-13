@@ -9,5 +9,6 @@
         {
             "$ref": "timeinterval.json"
         }
-    ]
+    ],
+    "description": "Date representation using a fixed date (using a ISO 6801 string) or a time interval object"
 }

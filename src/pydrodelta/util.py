@@ -15,6 +15,10 @@ import csv
 import os.path
 from typing import Union, Tuple, List
 import random
+DataFrame = pandas.DataFrame
+DatetimeIndex = pandas.DatetimeIndex
+Series = pandas.Series
+import numpy as np
 
 def interval2timedelta(interval : Union[dict,float,timedelta]):
     """Parses duration dict or number of days into datetime.timedelta object
@@ -206,21 +210,50 @@ def f4(row,column="valor",tag_column="tag"):
 def serieRegular(
     data : pandas.DataFrame, 
     time_interval : timedelta, 
-    timestart = None, 
-    timeend = None, 
-    time_offset = None, 
-    column = "valor", 
-    interpolate = True, 
-    interpolation_limit = 1,
-    tag_column = None, 
-    extrapolate = False
+    timestart : datetime  = None, 
+    timeend : datetime = None, 
+    time_offset : timedelta = None, 
+    column : str = "valor", 
+    interpolate : bool = True, 
+    interpolation_limit : int = 1,
+    tag_column : str = None, 
+    extrapolate : bool = False,
+    agg_func : str = None
     ) -> pandas.DataFrame:
     """
     genera serie regular y rellena nulos interpolando
-    if interpolate=False, interpolates only to the closest timestep of the regular timeseries. If observation is equidistant to preceding and following timesteps it interpolates to both.
+    if interpolate=False, interpolates only to the closest timestep of the regular timeseries. If observation is equidistant to preceding and following timesteps it interpolates to both. If agg_func is not None,   aggregates column column of data using the selected aggregation function grouping by time step (in this case, interpolation is not performed)
+
+    Args:
+        data(DataFrame): input data to be regularized
+        time_interval(timedelta): desired time step of the regularized output
+        timestart(datetime, optional): begin date of regularized output. If not set, begin date of data is used
+        timeend(datetime, optional): end date of regularized output. If not set, end date of data is used
+        time_offset(timedelta, optional): time offset of regularized output. If not set, begin time of data is used
+        column(str, optional): column name of data to extract. Defaults to "valor"
+        interpolate(bool, optional): Interpolate missing rows. Defaults to True. If agg_func is set, interpolation is not performed
+        interpolation_limit(int, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
+        tag_column(str, optional): name of the tag column. If not set, output will not have a tag column
+        extrapolate(bool, optional): enable extrapolation up to interpolation_limit steps. Defaults to False
+        agg_func(str, optional): aggregation function. See aggregateByTimestep()
+
+    Returns:
+      DataFrame - time step regularized data (either interpolated or aggregated) 
     """
-    df_regular = pandas.DataFrame(index = createDatetimeSequence(data.index, time_interval, timestart, timeend, time_offset))
+    df_regular = DataFrame(index = createDatetimeSequence(data.index, time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
+    if agg_func:
+        agg_serie = aggregateByTimestep(
+            data,
+            df_regular.index,
+            time_interval,
+            column = column,
+            agg_func = agg_func
+        )
+        df_regular[column] = agg_serie
+        if tag_column:
+            df_regular[tag_column] = agg_func
+        return df_regular
     if not len(data):
         df_regular[column] = None
         if tag_column is not None:
@@ -847,3 +880,68 @@ def coalesce(*args):
 colormap = plt.colormaps["hsv"]
 def getRandColor():
     return colormap(random.randrange(colormap.N))
+
+def first(l : list) -> any:
+    return l[0] if len(l) else np.NaN
+
+def last(l : list) -> any:
+    return l[len(l)-1] if len(l) else np.NaN
+
+def mad(l : list) -> float:
+    mean = np.mean(l)
+    return np.mean([abs(x - mean) for x in l])
+
+def filter_func(ind, base : datetime, dt: timedelta):
+    return ind >= base and ind < base + dt
+
+def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : timedelta) -> DataFrame:
+    return data.loc[map(filter_func, data.index, [base for x in data.index], [dt for x in data.index])]
+
+def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
+    valid_agg_func = {
+        "sum": np.sum,
+        "first": first,
+        "last": last,
+        "mean": np.mean,
+        "median": np.median,
+        "min": min,
+        "max": max,
+        "std": np.std,
+        "var": np.var,
+        "prod": np.prod,
+        "mad": mad
+    }
+    if agg_func not in valid_agg_func.keys():
+        raise ValueError("Invalid agg_func")
+    rows = getRowsWithinTimestep(data, base, dt)
+    if pass_nan and not len(rows["valor"]):
+        return np.NaN  
+    return valid_agg_func[agg_func](rows[column])
+
+def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
+    """For each timestamp in index, return aggregate function agg_func column column of matching rows of data. data.index must be a DatetimeIndex. For a given index item i, matching rows are those where row index is greater than or equal to i and lower than i + dt
+
+    Args:
+        data (DataFrame): the unaggregated data
+        index (DatetimeIndex): index of output Series
+        dt (timedelta): time support of output Series
+        column (str, optional): Column name of data to aggregate. Defaults to "valor".
+        pass_nan (bool, optional): If no rows are matched return NaN. Defaults to True. If False, depending on agg_func, it may return 0
+        agg_func (str, optional): Aggregation function. Defaults to "sum".
+        Valid values:
+          - sum (default)
+          - first
+          - last
+          - mean
+          - median
+          - min
+          - max
+          - std
+          - var
+          - prod
+          - mad
+
+    Returns:
+        Series: the aggregated series. Series of type float with index of type DatetimeIndex
+    """
+    return Series([aggregateValuesWithinTimestep(data, i, dt, column, pass_nan, agg_func) for i in index], index)

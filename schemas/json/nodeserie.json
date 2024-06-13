@@ -104,6 +104,23 @@
       "type": "string",
       "description": "save json data using this schema",
       "default": "dict"
+    },
+    "agg_func": {
+      "type": "string",
+      "enum": [
+        "sum",
+        "first",
+        "last",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "std",
+        "var",
+        "prod",
+        "mad"
+      ],
+      "description": "When regularizing, aggregate observations using agg_func function. If set, interpolation is not performed"
     }
   },
   "required": [

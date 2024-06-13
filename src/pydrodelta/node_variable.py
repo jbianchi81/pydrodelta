@@ -719,7 +719,7 @@ class NodeVariable:
             return None
         data = None
         for serie in self.series_sim:
-            if len(serie.data):
+            if serie.data is not None and len(serie.data):
                 if data is None:
                     data = serie.data[["valor"]].rename(columns={"valor": serie.series_id})
                 else:

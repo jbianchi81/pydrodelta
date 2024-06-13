@@ -945,7 +945,7 @@ class Topology(Base):
         extra_sim_columns : bool = True
             Add additional simulation series to plot
         """
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow"}
         if output is not None:
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(
