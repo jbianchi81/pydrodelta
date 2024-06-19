@@ -510,7 +510,8 @@ class Crud():
         if forecast_date is not None:
             corridas_response = requests.get("%s/sim/calibrados/%i/corridas" % (self.url, cal_id),
                 params = {
-                    "forecast_date": forecast_date if isinstance(forecast_date,str) else forecast_date.isoformat()
+                    "forecast_date": forecast_date if isinstance(forecast_date,str) else forecast_date.isoformat(),
+                    "group_by_qualifier": True
                 },
                 headers = {'Authorization': 'Bearer ' + self.token},
                 proxies = self.proxy_dict if use_proxy else None
@@ -532,7 +533,8 @@ class Crud():
                     "series_id": series_id,
                     "tipo": tipo,
                     "forecast_timestart": forecast_timestart if isinstance(forecast_timestart,str) else forecast_timestart.isoformat(),
-                    "includeProno": False
+                    "includeProno": False,
+                    "group_by_qualifier": True
                 },
                 headers = {'Authorization': 'Bearer ' + self.token},
                 proxies = self.proxy_dict if use_proxy else None
@@ -554,7 +556,8 @@ class Crud():
                 "timestart": timestart if isinstance(timestart,str) else timestart.isoformat(),
                 "timeend": timeend if isinstance(timestart,str) else timeend.isoformat(),
                 "series_id": series_id,
-                "tipo": tipo
+                "tipo": tipo,
+                "group_by_qualifier": True
             }
         if qualifier is not None and qualifier != 'all':
             params["qualifier"] = qualifier
@@ -576,7 +579,7 @@ class Crud():
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
-                "cor_id": json_response["cor_id"],
+                "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
                 "series_id": series_id,
                 "tipo": tipo,
                 "qualifier": None,
@@ -587,7 +590,7 @@ class Crud():
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
-                "cor_id": json_response["cor_id"],
+                "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
                 "series_id": series_id,
                 "tipo": tipo,
                 "qualifier": None,
@@ -603,7 +606,7 @@ class Crud():
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
-                "cor_id": json_response["cor_id"],
+                "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
                 "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "pronosticos": pronosticos
@@ -613,7 +616,7 @@ class Crud():
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
-                "cor_id": json_response["cor_id"],
+                "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
                 "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "qualifier": json_response["series"][0]["qualifier"],
@@ -624,7 +627,7 @@ class Crud():
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
-                "cor_id": json_response["cor_id"],
+                "cor_id": json_response["id"] if "id" in json_response else json_response["cor_id"],
                 "series_id": json_response["series"][0]["series_id"],
                 "tipo": getSeriesTipo(json_response["series"][0]["series_table"]),
                 "qualifier": json_response["series"][0]["qualifier"],
