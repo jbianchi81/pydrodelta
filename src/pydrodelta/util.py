@@ -631,6 +631,11 @@ def plot_prono(
         if errorBand[1] not in sim_df.columns:
             raise ValueError("Error: Qualifier %s, chosen for superior error band, missing in columns" % errorBand[1])
         if type(error_band_fmt) == str and error_band_fmt == 'errorbar':
+            # control error band 
+            if((sim_df["valor"] - sim_df[errorBand[0]]).min() < 0):
+                raise ValueError("Bad inferior error band, can't be greater than main")
+            if((sim_df[errorBand[1]] - sim_df["valor"]).min() < 0):
+                raise ValueError("Bad superior error band, can't be lower than main")
             ax.errorbar(sim_df.index, sim_df['valor'], yerr=[sim_df["valor"] - sim_df[errorBand[0]], sim_df[errorBand[1]] - sim_df["valor"]], capsize=8)
         else:
             low_fmt = error_band_fmt[0] if type(error_band_fmt) in [tuple,list] else error_band_fmt
