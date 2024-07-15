@@ -196,6 +196,45 @@ class Crud():
         self.url = url
         self.token = token
         self.proxy_dict = proxy_dict
+
+    def readEstaciones(
+        self,
+        fuentes_id : int = None,
+        nombre : str = None,
+        unid  : int = None,
+        id  : int = None,
+        id_externo : str = None,
+        distrito : str = None,
+        pais : str = None,
+        has_obs : bool = None, 
+        real  : bool = None,
+        habilitar : bool = None,
+        tipo : str = None,
+        has_prono : bool = None, 
+        rio  : str = None,
+        tipo_2  : str = None,
+        geom  : Union[str,dict] = None,
+        propietario  : str = None,
+        automatica : bool = None, 
+        ubicacion  : str = None,
+        localidad  : str = None,
+        tabla  : str = None,
+        get_drainage_basin : bool = None,
+        use_proxy : bool = False
+    ):
+        if geom is not None and type(geom) == dict:
+            geom = json.dumps(geom)
+        params = locals()
+        del params["use_proxy"]
+        response = requests.get("%s/obs/puntual/estaciones" % (self.url),
+            params = params,
+            headers = {'Authorization': 'Bearer ' + self.token},
+            proxies = self.proxy_dict if use_proxy else None
+        )
+        if response.status_code != 200:
+            raise Exception("request failed: %s" % response.text)
+        json_response = response.json()
+        return json_response
     
     def readSeries(
         self,
