@@ -147,6 +147,10 @@ class Topology(Base):
     save_response = StringDescriptor()
     """Save prono creation response into this file"""
 
+    save_post_data = StringDescriptor()
+    """Save prono creation request data into this file"""
+
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -172,6 +176,7 @@ class Topology(Base):
         upload_prono : bool = False,
         qualifiers : List[str] = None,
         save_response : str = None,
+        save_post_data : str = None,
         **kwargs
         ):
         """Initiate topology
@@ -251,6 +256,9 @@ class Topology(Base):
 
         save_response : str = None
             Save prono creation response into this file
+
+        save_post_data : str = None
+            Save prono creation request data into this file
         """
         super().__init__(**kwargs)
         params = {
@@ -275,7 +283,8 @@ class Topology(Base):
             "pretty": pretty,
             "upload_prono": upload_prono,
             "qualifiers": qualifiers,
-            "save_response": save_response
+            "save_response": save_response,
+            "save_post_data": save_post_data
         }
         getSchemaAndValidate(params=params, name="topology")
         self.timestart = timestart
@@ -308,6 +317,7 @@ class Topology(Base):
         self.upload_prono = upload_prono
         self.qualifiers = qualifiers
         self.save_response = save_response
+        self.save_post_data = save_post_data
     
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
@@ -769,7 +779,8 @@ class Topology(Base):
         include_obs : bool = True,
         include_prono : bool = False,
         api_config : dict = None,
-        save_response : str = None
+        save_response : str = None,
+        save_post_data : str = None
         ) -> dict:
         """
         Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
@@ -793,6 +804,7 @@ class Topology(Base):
         dict : server response. Either a successfully created forecast (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml) or an error message
         """
         save_response = coalesce(save_response, self.save_response)
+        save_post_data = coalesce(save_post_data, self.save_post_data)
         if self.cal_id is None:
             if self._plan is not None:
                  cal_id = self._plan.id
@@ -816,6 +828,8 @@ class Topology(Base):
             for node in self.nodes:
                 serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
                 prono["series"].extend(serieslist)
+        if save_post_data:
+            json.dump(prono, open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_post_data), "w"), indent=4)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
         response = api_client.createCorrida(prono)
         if save_response:

@@ -137,6 +137,9 @@
     },
     "save_response": {
       "description": "Save forecast creation response into this file. Use together with upload_prono"
+    },
+    "save_post_data": {
+      "description": "Save forecast creation request data into this file. Use together with upload_prono"
     }
   },
   "required": [
