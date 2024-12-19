@@ -2,6 +2,7 @@ from pydrodelta.topology import Topology
 from pydrodelta.node import Node
 from pydrodelta.observed_node_variable import ObservedNodeVariable
 from pydrodelta.node_serie import NodeSerie
+import pydrodelta.config as config 
 from unittest import TestCase
 import os
 import yaml
@@ -189,31 +190,31 @@ class Test_Topology(TestCase):
         topology.nodes[0].variables[4].plot()
         topology.plotVariable(
             var_id = 4,
-            output = "%s/results/h_plot.pdf" % os.environ["PYDRODELTA_DIR"]
+            output = "%s/results/h_plot.pdf" % config["PYDRODELTA_DIR"]
         )
     
     def test_plot_prono(self):
-        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         topology = Topology(**config)
         topology.batchProcessInput(include_prono=False)
         self.assertIsNotNone(topology.nodes[0].variables[39].series_prono[0].plot_params)
         self.assert_("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
-        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
+        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
         self.assert_(file_mtime  > time.time() - 10)
 
     def test_plot_bad_qualifier(self):
-        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         topology = Topology(**config)
         topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
         self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
 
     def test_series_save_csv_batch(self):
-        config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         topology = Topology(**config)
         topology.batchProcessInput(include_prono=False)
-        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series[0].output_file))
+        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series[0].output_file))
         self.assert_(file_mtime  > time.time() - 10)
-        file_mtime = os.path.getmtime("%s/%s" % (os.environ["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
+        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
         self.assert_(file_mtime  > time.time() - 10)
     
     def test_node_inherited_properties(self):

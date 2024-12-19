@@ -1,4 +1,5 @@
 from pydrodelta.result_statistics import ResultStatistics
+import pydrodelta.config as config
 from pandas import DataFrame
 import numpy as np
 import logging
@@ -100,7 +101,7 @@ class ProcedureFunctionResults:
         try:
             with open(
                 os.path.join(
-                    os.environ["PYDRODELTA_DIR"],
+                    config["PYDRODELTA_DIR"],
                     output
                 ),
                 'w') as f:

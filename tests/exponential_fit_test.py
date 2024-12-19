@@ -10,7 +10,7 @@ from pydrodelta.procedure_boundary import ProcedureBoundary
 class Test_ExponentialFit(TestCase):
 
     def test_run(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_exponential_fit.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/dummy_exponential_fit.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload=False)
         self.assertEqual(len(plan.procedures[0].output),1)

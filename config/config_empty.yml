@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=../schemas/json/config.json
 ---
+PYDRODELTA_DIR: /home/user/pydrodelta
 log:
-  filename: log/analysis.log
+  filename: pydrodelta.log
 input_api:
   url: ""
   token: ""

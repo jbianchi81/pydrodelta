@@ -332,7 +332,7 @@ Print data into file
 
 **Arguments**:
 
-- `output_file` __type__ - path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+- `output_file` __type__ - path of output file relative to config["PYDRODELTA_DIR"]. Defaults to self.output_file
 - `format` _str, optional_ - File format (json, yaml, csv). Defaults to "json".
 - `schema` _str, optional_ - schema of json object (dict, list). Defaults to "dict".
 

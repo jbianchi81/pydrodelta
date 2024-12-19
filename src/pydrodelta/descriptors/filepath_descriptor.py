@@ -1,4 +1,5 @@
 import os
+from ..config import config
 
 class FilepathDescriptor:
     def __set_name__(self, owner, name):
@@ -10,6 +11,6 @@ class FilepathDescriptor:
 
     def __set__(self, instance, value):
         try:
-            instance.__dict__[self._name] = os.path.join(os.environ["PYDRODELTA_DIR"],value) if value is not None else None
+            instance.__dict__[self._name] = os.path.join(config["PYDRODELTA_DIR"],value) if value is not None else None
         except ValueError:
             raise ValueError(f'Could not resolve "{self._name}"') from None

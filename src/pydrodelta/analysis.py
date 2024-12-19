@@ -7,7 +7,7 @@ from .util import ParseApiConfig
 
 logging.basicConfig(
     filename = os.path.join(
-        os.environ["PYDRODELTA_DIR"],
+        "/var/log",
         config["log"]["filename"]
     ), 
     level = logging.DEBUG, 
@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 logging.FileHandler(
     os.path.join(
-        os.environ["PYDRODELTA_DIR"],
+        "/var/log",
         config["log"]["filename"]
     ),
     "w+"

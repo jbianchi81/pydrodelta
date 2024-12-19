@@ -1,3 +1,4 @@
+from .config import config
 import dateutil.parser
 import dateutil.relativedelta
 import pytz
@@ -218,11 +219,14 @@ def serieRegular(
     interpolation_limit : int = 1,
     tag_column : str = None, 
     extrapolate : bool = False,
-    agg_func : str = None
+    agg_func : str = None,
+    extrapolate_function : "str" = "linear",
+    extrapolate_train_length : int = 5
     ) -> pandas.DataFrame:
     """
     genera serie regular y rellena nulos interpolando
     if interpolate=False, interpolates only to the closest timestep of the regular timeseries. If observation is equidistant to preceding and following timesteps it interpolates to both. If agg_func is not None,   aggregates column column of data using the selected aggregation function grouping by time step (in this case, interpolation is not performed)
+    If extrapolate is set to True, extrapolates using extrapolate_function ("linear", "last") up to extrapolation_limit steps
 
     Args:
         data(DataFrame): input data to be regularized
@@ -236,6 +240,8 @@ def serieRegular(
         tag_column(str, optional): name of the tag column. If not set, output will not have a tag column
         extrapolate(bool, optional): enable extrapolation up to interpolation_limit steps. Defaults to False
         agg_func(str, optional): aggregation function. See aggregateByTimestep()
+        extrapolate_function: extrapolation function: "linear" (default): fit linear regression, "last": repeat last value 
+        extrapolate_train_length: use this number of  last values to fit the reggresion line used for extrapolation 
 
     Returns:
       DataFrame - time step regularized data (either interpolated or aggregated) 
@@ -263,7 +269,13 @@ def serieRegular(
     if interpolate:
         # Interpola
         min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
-        df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
+        # extrapolate before so that only noninterpolated points are used in regression
+        if extrapolate and extrapolate_function == "linear":
+            extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
+        df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+        if extrapolate and extrapolate_function == "linear":
+            # fill interpolated nans with extrapolated
+            df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
         if tag_column is not None:
             # print("columns: " + df_join.columns)
             df_join[tag_column] = [x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[column]) else x[tag_column] for (i, x) in df_join.iterrows()]
@@ -274,7 +286,7 @@ def serieRegular(
                 continue
             if tag_column is not None and c == tag_column:
                 continue
-            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
+            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         df_regular = df_regular.join(df_join, how = 'left')
     else:
         timedelta_threshold = time_interval / 2 # takes half time interval as maximum time distance for interpolation
@@ -294,6 +306,8 @@ def regularizeColumn(
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
+    if column == "tag":
+        logging.warning("interpolating tag")
     df_join = df_join.reset_index()
     df_join["diff_with_previous"] = df_join["timestart"].diff()
     df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
@@ -506,7 +520,7 @@ def linearCombination(sim_df : pandas.DataFrame,params : dict,plot=True,tag_colu
         return (sim_df["predict"], sim_df[tag_column])
     else:
         return sim_df["predict"]
-
+    
 def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     train = data.copy()
 
@@ -543,7 +557,28 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     train['Error_pred'] =  train['Y_predictions']  - train[var_obj]
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
     return lr,quant_Err,r2,coef,intercept,train
-    
+
+def lfunc_of_datetime(x : datetime, coef : float, intercept : float) -> float:
+    return x.timestamp() // 10**9 * coef + intercept 
+
+def extrapolate_linear(data : pandas.DataFrame, column : str="valor", extrapolation_limit: int = 1, train_length : int = 5) -> pandas.DataFrame:
+    # get train set 
+    train = data[pandas.notnull(data[column])].tail(train_length)
+    if len(train) < train_length:
+        raise ValueError("Not enough observations for linear regression. Required: %d" % train_length)
+    # set datetime index as covariable
+    train['epoch'] = train.index.astype(int) // 10**9
+    model, quant_Err, r2, coef, intercept, train_ = ModelRL(train,varObj=column,covariables=["epoch"])
+    # get index of last row with value
+    last_index = train.tail(1).index[0]
+    # get indexes of nans
+    indexes_of_nans = data[data.index > last_index].index # .astype(float).values # & pandas.isnull(data[column])
+    # limit extrapolation
+    indexes_of_nans = indexes_of_nans[0:extrapolation_limit]
+    # extrapolate nans using fitted coefficients # 
+    data.loc[indexes_of_nans, column] = [x.timestamp() * coef[0] + intercept for x in indexes_of_nans]
+    return data
+
 def plot_prono(
     obs_df:pandas.DataFrame,
     sim_df:pandas.DataFrame,
@@ -763,7 +798,7 @@ def plot_prono(
         i=i+2
     plt.savefig(
         os.path.join(
-            os.environ["PYDRODELTA_DIR"],
+            config["PYDRODELTA_DIR"],
             output_file
         ), 
         format = format

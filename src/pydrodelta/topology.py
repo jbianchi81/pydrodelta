@@ -310,8 +310,8 @@ class Topology(Base):
         self.no_metadata = no_metadata
         self.plot_variable = plot_variable
         self.include_prono = include_prono
-        self.output_csv = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_csv) if output_csv is not None else None
-        self.output_json = "%s/%s" % (os.environ["PYDRODELTA_DIR"],output_json) if output_json is not None else None
+        self.output_csv = "%s/%s" % (config["PYDRODELTA_DIR"],output_csv) if output_csv is not None else None
+        self.output_json = "%s/%s" % (config["PYDRODELTA_DIR"],output_json) if output_json is not None else None
         self.pivot = pivot
         self.pretty = pretty
         self.upload_prono = upload_prono
@@ -400,7 +400,7 @@ class Topology(Base):
             report = self.printReport()
             f = open(
                 os.path.join(
-                    os.environ["PYDRODELTA_DIR"],
+                    config["PYDRODELTA_DIR"],
                     self.report_file
                 ),
                 "w"
@@ -829,11 +829,11 @@ class Topology(Base):
                 serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
                 prono["series"].extend(serieslist)
         if save_post_data:
-            json.dump(prono, open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_post_data), "w"), indent=4)
+            json.dump(prono, open("%s/%s" % (config["PYDRODELTA_DIR"], save_post_data), "w"), indent=4)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
         response = api_client.createCorrida(prono)
         if save_response:
-            json.dump(response, open("%s/%s" % (os.environ["PYDRODELTA_DIR"], save_response), "w"), indent=4)
+            json.dump(response, open("%s/%s" % (config["PYDRODELTA_DIR"], save_response), "w"), indent=4)
         return response
 
     def pivotData(
@@ -964,7 +964,7 @@ class Topology(Base):
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(
                 os.path.join(
-                    os.environ["PYDRODELTA_DIR"],
+                    config["PYDRODELTA_DIR"],
                     output
                 )
             )

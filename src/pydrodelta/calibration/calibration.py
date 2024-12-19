@@ -8,6 +8,7 @@ from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.dataframe_descriptor import DataFrameDescriptor
+from ..config import config
 import os
 import yaml
 
@@ -204,7 +205,7 @@ class Calibration:
             raise Exception("calibration_result is not set")
         with open(
             os.path.join(
-                os.environ["PYDRODELTA_DIR"],
+                config["PYDRODELTA_DIR"],
                 file
             ),
             "w") as f:

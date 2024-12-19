@@ -1,12 +1,11 @@
 from pydrodelta.plan import Plan
 from unittest import TestCase
 import yaml
-import os
 
 class Test_SacramentoSimplified(TestCase):
 
     def test_calibration_save_result(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload=False)
         
@@ -37,7 +36,7 @@ class Test_SacramentoSimplified(TestCase):
             else:
                 self.assertTrue(isinstance(plan.procedures[0].calibration.result["scores"][0][key], float))
 
-        saved_result = yaml.load(open("%s/results/dummy_sac_cal_result.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        saved_result = yaml.load(open("%s/results/dummy_sac_cal_result.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         self.assertTrue("parameters" in saved_result)
         self.assertTrue(isinstance(saved_result["parameters"],list))
         self.assertEqual(

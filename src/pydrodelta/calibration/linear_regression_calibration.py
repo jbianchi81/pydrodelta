@@ -2,6 +2,7 @@ import logging
 from typing import Optional, List, Union, Tuple
 from .calibration import Calibration
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
+from ..config import config
 import json
 from pandas import DataFrame
 import os
@@ -128,7 +129,7 @@ class LinearRegressionCalibration(Calibration):
                 },
                 open(
                     os.path.join(
-                        os.environ["PYDRODELTA_DIR"], 
+                        config["PYDRODELTA_DIR"], 
                         save_result
                     ),
                     "w"

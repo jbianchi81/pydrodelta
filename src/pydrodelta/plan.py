@@ -56,7 +56,7 @@ class Plan(Base):
         elif isinstance(value, Topology):
             self._topology = value
         elif isinstance(value, str):
-            topology_file_path = os.path.join(os.environ["PYDRODELTA_DIR"],value)
+            topology_file_path = os.path.join(config["PYDRODELTA_DIR"],value)
             f = open(topology_file_path)
             self._topology = Topology(**yaml.load(f,yaml.CLoader),plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config)
             f.close()
@@ -271,17 +271,17 @@ class Plan(Base):
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_results_file is not None:
-            with open(os.path.join(os.environ["PYDRODELTA_DIR"], self.output_results_file),"w",encoding='utf-8') as outfile:
+            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_results_file),"w",encoding='utf-8') as outfile:
                 json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
-            with open(os.path.join(os.environ["PYDRODELTA_DIR"], self.output_stats_file),"w",encoding='utf-8') as outfile:
+            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_stats_file),"w",encoding='utf-8') as outfile:
                 json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
         if self.topology.plot_variable is not None:
             for i, item in enumerate(self.topology.plot_variable):
                 self.topology.plotVariable(**item)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
-            with open(os.path.join(os.environ["PYDRODELTA_DIR"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
+            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
                 sim_data.to_csv(outfile)
         self.saveSimData()
     
@@ -343,7 +343,7 @@ class Plan(Base):
         corrida = self.toCorrida()
         if self.save_post is not None:
             save_path = os.path.join(
-                os.environ["PYDRODELTA_DIR"], 
+                config["PYDRODELTA_DIR"], 
                 self.save_post
             )
             json.dump(corrida,open(save_path,"w"))
@@ -352,7 +352,7 @@ class Plan(Base):
         response = api_client.createCorrida(corrida)
         if self.save_response:
             save_path = os.path.join(
-                os.environ["PYDRODELTA_DIR"], 
+                config["PYDRODELTA_DIR"], 
                 self.save_response
             )
             json.dump(corrida,open(save_path,"w"))

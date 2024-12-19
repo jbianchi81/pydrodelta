@@ -667,7 +667,8 @@ class Procedure():
             timeend = self._plan.topology.forecast_timeend if self._plan.topology.forecast_timeend is not None else self._plan.topology.timeend,
             time_offset = self._plan.topology.time_offset_start,
             interpolation_limit=0,
-            interpolate=False)
+            interpolate=False,
+            tag_column = "tag" if "tag" in data else None)
         return data
     def testPlot(
         self,

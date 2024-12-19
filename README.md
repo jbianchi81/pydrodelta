@@ -36,20 +36,17 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     python3 -m pip install -r requirements.txt
     # install pydrodelta
     python3 -m pip install -e .
-    # set environment variable
-    export PYDRODELTA_DIR=$PWD # (in linux shell)
-    $env:PYDRODELTA_DIR = pwd # (in windows powershell)
-    set PYDRODELTA_DIR=%CD% # (in windows command prompt)
     # create config file
-    cp config/config_empty.yml config/config.yml
+    cp config/config_empty.yml ~/.pydrodelta.yml
+    cp config/defaults.yml ~/.pydrodelta_defaults.yml
     # set configuration parameters
-    nano config/config.yml # <- insert api connection parameters
+    nano ~/.pydrodleta.yml # <- insert api connection parameters
 
 ### test installation
 
     myenv/bin/python3
     >>> from pydrodelta.a5 import Crud
-    >>> crud = Crud({"url":"https://alerta.ina.gob.ar/test","token":"my_token"})
+    >>> crud = Crud("https://alerta.ina.gob.ar/test","my_token")
     >>> series = crud.readSeries()
 
 ### tested with
@@ -105,7 +102,7 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     import json
 
     plan_config = json.load(open("../data/plans/gualeguay_rt_dummy.json"))
-    plan = pydrodelta.simulation.Plan(plan_config)
+    plan = pydrodelta.simulation.Plan(**plan_config)
     plan.execute()
 
 #### CLI

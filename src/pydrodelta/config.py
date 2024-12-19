@@ -4,8 +4,8 @@ import os
 def loadConfig():
     config_file = open(
         os.path.join(
-            os.environ["PYDRODELTA_DIR"],
-            "config/config.yml"
+            os.environ["HOME"],
+            ".pydrodelta.yml"
         )
     ) # "src/pydrodelta/config/config.json")
     config = yaml.load(config_file,yaml.CLoader)
@@ -13,8 +13,8 @@ def loadConfig():
 
     defaults_file = open(
         os.path.join(
-            os.environ["PYDRODELTA_DIR"],
-            "config/defaults.yml"
+            os.environ["HOME"],
+            ".pydrodelta_defaults.yml"
         )
     ) # "src/pydrodelta/config/config.json")
     defaults = yaml.load(defaults_file,yaml.CLoader)

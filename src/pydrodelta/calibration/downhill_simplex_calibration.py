@@ -8,6 +8,7 @@ from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.float_descriptor import FloatDescriptor
 from .calibration import Calibration
+from ..config import config
 
 class DownhillSimplexCalibration(Calibration):
     """Calibration procedure using Nelder Mead Downhill Simplex"""
@@ -379,7 +380,7 @@ class DownhillSimplexCalibration(Calibration):
                 },
                 open(
                     os.path.join(
-                        os.environ["PYDRODELTA_DIR"], 
+                        config["PYDRODELTA_DIR"], 
                         save_result
                     ),
                     "w"

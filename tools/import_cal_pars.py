@@ -4,7 +4,7 @@ import click
 from pydrodelta.a5 import Crud
 import os
 import sys
-config_file = open("%s/config/config.yml" % os.environ["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
+config_file = open("~/.pydrodelta.yml"["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
 config = yaml.load(config_file,yaml.CLoader)
 config_file.close()
 import logging

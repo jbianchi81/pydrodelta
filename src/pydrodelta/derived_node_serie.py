@@ -9,6 +9,7 @@ from .types.interpolated_origin_dict import InterpolatedOriginDict
 from .types.tvp import TVP
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
+from .config import config 
 from typing import Union, List
 from pandas import Series
 import os
@@ -220,7 +221,7 @@ class DerivedNodeSerie:
         """Print data into file 
 
         Args:
-            output_file (_type_): path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+            output_file (_type_): path of output file relative to config["PYDRODELTA_DIR"]. Defaults to self.output_file
             format (str, optional): File format (json, yaml, csv). Defaults to "json".
             schema (str, optional): schema of json object (dict, list). Defaults to "dict".
         """
@@ -232,7 +233,7 @@ class DerivedNodeSerie:
         try:
             f = open(
                 os.path.join(
-                    os.environ["PYDRODELTA_DIR"], 
+                    config["PYDRODELTA_DIR"], 
                     output_file
                 ), 
                 "w"

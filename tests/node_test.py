@@ -5,7 +5,7 @@ class Test_Node(TestCase):
 
     def test_node_load_api_len(self):
         timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-22T03:00:00.000Z"
+        timeend = "2022-02-20T03:00:00.000Z"
         time_interval = { "hours": 1}
         node = Node(
             id = 1,
@@ -15,10 +15,14 @@ class Test_Node(TestCase):
             time_interval = time_interval,
             variables = [
                 {
-                    "id": 2,
+                    "id": 39,
                     "series": [
                         {
                             "series_id": 38,
+                            "tipo": "puntual"
+                        },
+                        {
+                            "series_id": 100003,
                             "tipo": "puntual"
                         }
                     ],
@@ -40,8 +44,9 @@ class Test_Node(TestCase):
                 "url": "https://alerta.ina.gob.ar/test",
                 "token": "MY_TOKEN"
             })   
-        self.assertEqual(len(node.variables[2].series[0].data),3)
-        self.assertEqual(len(node.variables[2].series_prono[0].data),91)
+        self.assertEqual(len(node.variables[39].series[0].data),3)
+        self.assertEqual(len(node.variables[39].series[1].data),3)
+        self.assertEqual(len(node.variables[39].series_prono[0].data),43)
 
     def test_area_retrieve_metadata(self):
         timestart = "2022-02-18T03:00:00.000Z"
@@ -74,6 +79,6 @@ class Test_Node(TestCase):
             }
         )
         self.assertIsNotNone(node.basin_pars)
-        self.assert_("area" in node.basin_pars)        
+        self.assertTrue("area" in node.basin_pars)        
         self.assertIsNotNone(node.basin_pars["area"])
-        self.assertEqual(node.basin_pars["area"],140273473.449287)
+        self.assertAlmostEqual(node.basin_pars["area"],140273473.449287,1)

@@ -2,10 +2,10 @@ import click
 
 __version__ = '0.1.dev0'
 
-import os
-if "PYDRODELTA_DIR" not in os.environ:
-    pydrodelta_dir = os.path.abspath(os.path.join(__file__,"../../.."))
-    os.environ["PYDRODELTA_DIR"] = pydrodelta_dir
+# import os
+# if "PYDRODELTA_DIR" not in os.environ:
+#     pydrodelta_dir = os.path.abspath(os.path.join(__file__,"../../.."))
+#     os.environ["PYDRODELTA_DIR"] = pydrodelta_dir
 
 from pydrodelta.analysis import run_analysis
 from pydrodelta.simulation import run_plan

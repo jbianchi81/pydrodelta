@@ -3,6 +3,7 @@ import jsonschema
 from pathlib import Path
 import yaml
 from typing import Tuple
+from .config import config
 
 def getSchema(
         name : str,
@@ -26,14 +27,14 @@ def getSchema(
     schemas = {}
     plan_schema = open(
         os.path.join(
-            os.environ["PYDRODELTA_DIR"],
+            config["PYDRODELTA_DIR"],
             rel_base_path,
             "%s.json" % name.lower()
         )
     )
     schemas[name] = yaml.load(plan_schema,yaml.CLoader)
     base_path = Path(
-        os.environ["PYDRODELTA_DIR"], 
+        config["PYDRODELTA_DIR"], 
         rel_base_path
     )
     resolver = jsonschema.validators.RefResolver(

@@ -205,7 +205,7 @@ class NodeSerie(Base):
         self.outliers_data = None
         self.jumps_data = None
         self.csv_file = os.path.join(
-            os.environ["PYDRODELTA_DIR"],
+            config["PYDRODELTA_DIR"],
             csv_file
             ) if csv_file is not None else None
         self.observations = observations
@@ -214,7 +214,7 @@ class NodeSerie(Base):
         self.name = name
         self._variable = node_variable
         self.json_file = os.path.join(
-            os.environ["PYDRODELTA_DIR"],
+            config["PYDRODELTA_DIR"],
             json_file
             ) if json_file is not None else None
         self.output_file = output_file
@@ -319,6 +319,8 @@ class NodeSerie(Base):
             else:
                 raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
+            if self._variable.time_support is not None:
+                timeend = timeend + self._variable.time_support
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
             self.metadata = crud.readSerie(
@@ -344,7 +346,7 @@ class NodeSerie(Base):
         """Print data into file 
 
         Args:
-            output_file (_type_): path of output file relative to os.environ["PYDRODELTA_DIR"]. Defaults to self.output_file
+            output_file (_type_): path of output file relative to config["PYDRODELTA_DIR"]. Defaults to self.output_file
             format (str, optional): File format (json, yaml, csv). Defaults to "json".
             schema (str, optional): schema of json object (dict, list). Defaults to "dict".
         """
@@ -356,7 +358,7 @@ class NodeSerie(Base):
         try:
             f = open(
                 os.path.join(
-                    os.environ["PYDRODELTA_DIR"], 
+                    config["PYDRODELTA_DIR"], 
                     output_file
                 ),
                 "w"
@@ -408,6 +410,7 @@ class NodeSerie(Base):
             return False
         self.outliers_data = util.removeOutliers(self.data,self.lim_outliers)
         if len(self.outliers_data):
+            logging.warning("Se encontraron %d outliers en la serie %d, variable %d, nodo %s" % (len(self.outliers_data), self.series_id, self._variable.id, str(self._variable._node.id)))
             return True
         else:
             return False

@@ -16,6 +16,7 @@ from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.duration_descriptor import DurationDescriptor
+from .descriptors.duration_descriptor_default_none import DurationDescriptorDefaultNone
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
@@ -76,7 +77,7 @@ class NodeVariable:
                 serie["cal_id"] = serie["cal_id"] if "cal_id" in serie else self._node._plan.id if self._node is not None and self._node._plan is not None else None
                 self._series_sim.append(serie) # NodeSerieProno(**serie))
     
-    time_support = DurationDescriptor()
+    time_support = DurationDescriptorDefaultNone()
     """Time support of the observations . The time interval that the observation is representative of."""
     
     adjust_from = DictDescriptor()
@@ -643,7 +644,7 @@ class NodeVariable:
                         obs_list,
                         open(
                             os.path.join(
-                                os.environ["PYDRODELTA_DIR"], 
+                                config["PYDRODELTA_DIR"], 
                                 serie.save_post
                             ),
                             "w"

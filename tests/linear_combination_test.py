@@ -8,13 +8,13 @@ import math
 class Test_LinearCombination(TestCase):
 
     def test_run(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload=False)
         self.assertEqual(len(plan.procedures[0].output[0]),3)
 
     def test_calibrate(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.topology.batchProcessInput()
         fitted_parameters, results, stats_all = plan.procedures[0].function.linearRegression()
@@ -34,7 +34,7 @@ class Test_LinearCombination(TestCase):
                     self.assertFalse(math.isnan(value))
 
     def test_calibrate_results(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.topology.batchProcessInput()
         fitted_parameters, results, stats_all = plan.procedures[0].function.linearRegression()
@@ -53,7 +53,7 @@ class Test_LinearCombination(TestCase):
 
 
     def test_calibration_period(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.topology.batchProcessInput()
         plan.procedures[0].calibration.run()
@@ -74,7 +74,7 @@ class Test_LinearCombination(TestCase):
                 self.assert_(plan.procedures[0].calibration.scores["nse_val"][i] < plan.procedures[0].calibration.scores["nse_val"][i-1])
 
     def test_calibration_exec(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload=False)
         fitted_parameters = plan.procedures[0].calibration.calibration_result[0]
@@ -85,11 +85,11 @@ class Test_LinearCombination(TestCase):
         self.assertEqual(len(plan.topology.nodes[1].variables[40].series_sim[0].data), 3)
         
     def test_calibration_save_result(self):
-        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        config = yaml.load(open("%s/sample_data/plans/lc_dummy_cal.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         plan = Plan(**config)
         plan.execute(upload=False)
         plan.procedures[0].calibration.saveResult("results/lc_dummy_result.yml", format="yaml")
-        saved_result = yaml.load(open("%s/results/lc_dummy_result.yml" % os.environ["PYDRODELTA_DIR"]),yaml.CLoader)
+        saved_result = yaml.load(open("%s/results/lc_dummy_result.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         self.assertTrue("parameters" in saved_result)
         self.assertEqual(saved_result["parameters"]["forecast_steps"], plan.procedures[0].function.parameters["forecast_steps"])
         self.assertEqual(saved_result["parameters"]["lookback_steps"], plan.procedures[0].function.parameters["lookback_steps"])

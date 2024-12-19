@@ -20,7 +20,7 @@ import os
 
 logging.basicConfig(
     filename = os.path.join(
-        os.environ["PYDRODELTA_DIR"],
+        config["PYDRODELTA_DIR"],
         config["log"]["filename"]
     ),
     level=logging.DEBUG, 
@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logging.FileHandler(
     os.path.join(
-        os.environ["PYDRODELTA_DIR"],
+        "/var/log",
         config["log"]["filename"]
     ),
     "w+"
@@ -38,7 +38,7 @@ from .a5_schemas import schemas
 
 serie_schema = open(
     os.path.join(
-        os.environ["PYDRODELTA_DIR"],
+        config["PYDRODELTA_DIR"],
         "schemas/yaml/serie.yml"
     )
 )
