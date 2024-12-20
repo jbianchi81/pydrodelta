@@ -125,7 +125,7 @@ class DerivedNodeSerie:
         if self.derived_from is not None:
             logging.debug("Deriving %i from %s" % (self.series_id, self.derived_from.origin.name))
             if not len(self.derived_from.origin.data):
-                logging.warn("No data found to derive from origin. Skipping derived node")
+                logging.warning("No data found to derive from origin. Skipping derived node")
                 self.data = createEmptyObsDataFrame()
                 return
             self.data = self.derived_from.origin.data[["valor","tag"]] # self.derived_from.origin.series[0].data[["valor",]]
@@ -141,7 +141,7 @@ class DerivedNodeSerie:
         elif self.interpolated_from is not None:
             logging.debug("Interpolating %i from %s and %s" % (self.series_id, self.interpolated_from.origin_1.name, self.interpolated_from.origin_2.name))
             if not len(self.interpolated_from.origin_1.data) or not len(self.interpolated_from.origin_2.data):
-                logging.warn("No data found to derive from origin. Skipping derived node")
+                logging.warning("No data found to derive from origin. Skipping derived node")
                 self.data = createEmptyObsDataFrame()
                 return
             self.data = self.interpolated_from.origin_1.data[["valor","tag"]] # self.interpolated_from.origin_1.series[0].data[["valor",]]

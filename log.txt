@@ -1,0 +1,2 @@
+2024-11-04 15:52:23,116:DEBUG:Starting new HTTP connection (1): localhost:3005
+2024-11-04 15:52:23,375:DEBUG:http://localhost:3005 "POST /obs/puntual/series HTTP/1.1" 200 884

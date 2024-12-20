@@ -304,7 +304,7 @@ class Plan(Base):
                     for serie in variable.series_sim:
                         if serie.upload:
                             if serie.data is None:
-                                logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
+                                logging.warning("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
                                 continue
                             series_sim.append({
                                 "series_id": serie.series_id,
@@ -402,7 +402,7 @@ class Plan(Base):
                 if variable.series_sim is not None:
                     for serie in variable.series_sim:
                         if serie.data is None:
-                            logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
+                            logging.warning("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
                             continue
                         if pivot:
                             suffix = "_%i" % serie.series_id

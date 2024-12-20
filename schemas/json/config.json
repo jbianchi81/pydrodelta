@@ -3,6 +3,10 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
+        "PYDRODELTA_DIR": {
+            "type": "string",
+            "description": "location of pydrodelta working dir"
+        },
         "log": {
             "type": "object",
             "description": "logging configuration",
@@ -115,5 +119,5 @@
             }
         }
     },
-    "required": ["log", "input_api", "output_api"]
+    "required": ["PYDRODELTA_DIR","log", "input_api", "output_api"]
 }

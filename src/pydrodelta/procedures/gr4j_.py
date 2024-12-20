@@ -93,7 +93,7 @@ class GR4JProcedureFunction(GRPProcedureFunction):
             # logging.debug("j: %i" % (j))
             # logging.debug("k: %i" % (k))
             # if len(self.UH2) < j + 1:
-            #     logging.warn("UH2 is shorter than expected (int(2 * X3) + 1)")
+            #     logging.warning("UH2 is shorter than expected (int(2 * X3) + 1)")
             # else:
             Quh = Quh + 0.1 * self.UH2[j]*self.Pr[k-j]
             j = j + 1

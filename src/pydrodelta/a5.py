@@ -561,7 +561,7 @@ class Crud():
             if len(corridas):
                 cor_id = corridas[0]["cor_id"]
             else:
-                logging.warn("Series %i from cal_id %i at forecast_date %s not found" % (series_id,cal_id,forecast_date))
+                logging.warning("Series %i from cal_id %i at forecast_date %s not found" % (series_id,cal_id,forecast_date))
                 return {
                     "series_id": series_id,
                     "pronosticos": []
@@ -584,7 +584,7 @@ class Crud():
             if len(corridas):
                 cor_id = corridas[len(corridas)-1]["cor_id"] if "cor_id" in corridas[len(corridas)-1] else corridas[len(corridas)-1]["id"]
             else:
-                logging.warn("forecast run with cal_id %i at forecast_date greater than %s not found" % (cal_id,forecast_timestart))
+                logging.warning("forecast run with cal_id %i at forecast_date greater than %s not found" % (cal_id,forecast_timestart))
                 return {
                     "series_id": series_id,
                     "tipo": tipo,
@@ -614,7 +614,7 @@ class Crud():
             raise Exception("request failed: %s" % response.text)
         json_response = response.json()
         if "series" not in json_response:
-            logging.warn("Series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warning("Series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -625,7 +625,7 @@ class Crud():
                 "pronosticos": []
             }
         if not len(json_response["series"]):
-            logging.warn("Series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warning("Series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -651,7 +651,7 @@ class Crud():
                 "pronosticos": pronosticos
             }
         if "pronosticos" not in json_response["series"][0]:
-            logging.warn("Pronosticos from series %i from cal_id %i not found" % (series_id,cal_id))
+            logging.warning("Pronosticos from series %i from cal_id %i not found" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],
@@ -662,7 +662,7 @@ class Crud():
                 "pronosticos": []
             }
         if not len(json_response["series"][0]["pronosticos"]):
-            logging.warn("Pronosticos from series %i from cal_id %i is empty" % (series_id,cal_id))
+            logging.warning("Pronosticos from series %i from cal_id %i is empty" % (series_id,cal_id))
             return {
                 "forecast_date": json_response["forecast_date"],
                 "cal_id": json_response["cal_id"],

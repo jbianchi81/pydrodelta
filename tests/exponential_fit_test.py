@@ -7,22 +7,24 @@ import numpy
 from pydrodelta.procedure import Procedure
 from pydrodelta.types.enhanced_typed_list import EnhancedTypedList
 from pydrodelta.procedure_boundary import ProcedureBoundary
+from pydrodelta.config import config
+
 class Test_ExponentialFit(TestCase):
 
     def test_run(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_exponential_fit.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_exponential_fit.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(upload=False)
         self.assertEqual(len(plan.procedures[0].output),1)
         self.assertEqual(len(plan.procedures[0].output[0]),89)
-        self.assert_("r2" in plan.procedures[0].function.linear_model)
-        self.assert_(plan.procedures[0].function.linear_model["r2"] > 0.99)
-        self.assert_("coef" in plan.procedures[0].function.linear_model)
+        self.assertTrue("r2" in plan.procedures[0].function.linear_model)
+        self.assertTrue(plan.procedures[0].function.linear_model["r2"] > 0.99)
+        self.assertTrue("coef" in plan.procedures[0].function.linear_model)
         self.assertEqual(len(plan.procedures[0].function.linear_model["coef"]),1)
-        self.assert_("intercept" in plan.procedures[0].function.linear_model)
+        self.assertTrue("intercept" in plan.procedures[0].function.linear_model)
         self.assertEqual(type(plan.procedures[0].function.linear_model["intercept"]),numpy.float64)
-        self.assert_("superior" in plan.procedures[0].output[0])
-        self.assert_("inferior" in plan.procedures[0].output[0])
+        self.assertTrue("superior" in plan.procedures[0].output[0])
+        self.assertTrue("inferior" in plan.procedures[0].output[0])
 
     def test_boundaries(self):
         procedure = Procedure(
@@ -44,7 +46,7 @@ class Test_ExponentialFit(TestCase):
             }
         )
         self.assertIsInstance(procedure.function.boundaries, EnhancedTypedList)
-        self.assertEquals(len(procedure.function.boundaries),1)
+        self.assertEqual(len(procedure.function.boundaries),1)
         self.assertIsInstance(procedure.function.boundaries.getById("input"),ProcedureBoundary)
         self.assertRaises(
             ValueError,
@@ -100,7 +102,7 @@ class Test_ExponentialFit(TestCase):
             }
         )
         boundaries = procedure.function.boundaries
-        self.assertEquals(len(boundaries),1)
+        self.assertEqual(len(boundaries),1)
         boundaries.replace(
             0,
             {
@@ -108,8 +110,8 @@ class Test_ExponentialFit(TestCase):
                 "node_variable": [2,41]
             }
         )
-        self.assertEquals(boundaries[0].node_id,2)
-        self.assertEquals(boundaries[0].var_id,41)
+        self.assertEqual(boundaries[0].node_id,2)
+        self.assertEqual(boundaries[0].var_id,41)
     
     def test_missing_boundaries(self):
         self.assertRaises(

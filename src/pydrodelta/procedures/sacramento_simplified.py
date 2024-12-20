@@ -523,17 +523,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
             if np.isnan(pma):
                 if self.fill_nulls:
-                    logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0
                 else:
-                    logging.warn("Missing pma value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing pma value for date: %s. Unable to continue" % i)
                     break
             if etp is None:
                 if self.fill_nulls:
-                    logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing etp value for date: %s. Filling up with 0" % i)
                     etp = 0
                 else:
-                    logging.warn("Missing etp value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing etp value for date: %s. Unable to continue" % i)
                     break
             q3 = self.area * self.alfa * x[2] / 1000 / self.dt_sec * self.ae
             q4 = self.area * self.alfa * x[3] / 1000 / self.dt_sec * self.ae

@@ -91,10 +91,10 @@ class ResultStatistics:
         
         Saves the results inplace (returns None)"""
         if not len(self.sim):
-            logging.warn("No values found for statistics computation, skipping")
+            logging.warning("No values found for statistics computation, skipping")
             return
         if len(self.obs) != len(self.sim):
-            logging.warn("Length of obs and sim lists must be equal. No computation performed")
+            logging.warning("Length of obs and sim lists must be equal. No computation performed")
             return
         df = DataFrame({"obs":self.obs,"sim":self.sim})
         df = df.dropna()
@@ -103,7 +103,7 @@ class ResultStatistics:
         self.errors = [v for v in df["errors"]]
         self.n = len(df["errors"])
         if len(self.errors) == 0:
-            logging.warn("No obs/sim pairs found for error calculation")
+            logging.warning("No obs/sim pairs found for error calculation")
             return
         self.mse = sum([ e**2 for e in self.errors]) / len(self.errors)
         self.rmse = self.mse ** 0.5

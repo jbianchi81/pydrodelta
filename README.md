@@ -41,6 +41,9 @@ La aplicación lee un archivo de entrada .json que define con qué armar las ser
     cp config/defaults.yml ~/.pydrodelta_defaults.yml
     # set configuration parameters
     nano ~/.pydrodleta.yml # <- insert api connection parameters
+    # start log file
+    sudo touch /var/log/pydrodelta.log
+    sudo chown $USER:$USER /var/log/pydrodelta.log
 
 ### test installation
 

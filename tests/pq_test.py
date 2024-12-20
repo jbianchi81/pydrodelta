@@ -11,6 +11,6 @@ class Test_PQ(TestCase):
         plan.execute(upload=False)
         self.assertTrue(isnull(plan.procedures[0].input.loc["2023-05-02 00:00:00-03:00","pma"]))
         border_conditions = plan.procedures[0].procedure_function_results.toDict()["border_conditions"]
-        self.assertEquals(border_conditions[len(border_conditions)-1]["pma"], 0.0)
+        self.assertEqual(border_conditions[len(border_conditions)-1]["pma"], 0.0)
 
         

@@ -243,17 +243,17 @@ class GRPProcedureFunction(PQProcedureFunction):
             smc = (self.rho-self.wp)*Sk/self.X0+self.wp
             if isnan(pma):
                 if self.fill_nulls:
-                    logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0
                 else:
-                    logging.warn("Missing pma value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing pma value for date: %s. Unable to continue" % i)
                     break
             if isnan(etp):
                 if self.fill_nulls:
-                    logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing etp value for date: %s. Filling up with 0" % i)
                     etp = 0
                 else:
-                    logging.warn("Missing etp value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing etp value for date: %s. Unable to continue" % i)
                     break
             Sk_, Rk_, q, runoff, inflow, leakages = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
             # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])

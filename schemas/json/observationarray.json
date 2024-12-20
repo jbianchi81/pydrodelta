@@ -1,6 +1,6 @@
 {
   "$id": "observationarray.json",
-  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ObservationArray",
   "type": "array",
   "description": "A length-2 list where the first element is the timestamp of the observation (ISO datetime string) and the second is the value (float or null). It represents a timestamped numerical value of the observed/simulated variable.",

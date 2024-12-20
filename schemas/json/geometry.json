@@ -1,6 +1,6 @@
 {
     "$id": "geometry.json",
-    "schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Geometry",
     "type": "object",
     "properties": {

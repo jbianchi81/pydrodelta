@@ -319,7 +319,7 @@ class NodeSerie(Base):
             else:
                 raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
-            if self._variable.time_support is not None:
+            if self._variable is not None and self._variable.time_support is not None:
                 timeend = timeend + self._variable.time_support
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
@@ -390,11 +390,11 @@ class NodeSerie(Base):
     def getThresholds(self) -> dict:
         """Read level threshold information from .metadata"""
         if self.metadata is None:
-            logging.warn("Metadata missing at serie %i, unable to set thesholds" % self.series_id)
+            logging.warning("Metadata missing at serie %i, unable to set thesholds" % self.series_id)
             return None
         thresholds = {}
         if "estacion" not in self.metadata:
-            logging.warn("Estacion missing from metadata at serie %i, unable to set thesholds" % self.series_id)
+            logging.warning("Estacion missing from metadata at serie %i, unable to set thesholds" % self.series_id)
             return None
         if self.metadata["estacion"]["nivel_alerta"]:
             thresholds["nivel_alerta"] = self.metadata["estacion"]["nivel_alerta"]
@@ -440,10 +440,10 @@ class NodeSerie(Base):
     def applyOffset(self) -> None:
         """Applies .x_offset (time axis) and .y_offset (values axis) to the data"""
         if self.data is None:
-            logging.warn("applyOffset: self.data is None")
+            logging.warning("applyOffset: self.data is None")
             return
         if not len(self.data):
-            logging.warn("applyOffset: self.data is empty")
+            logging.warning("applyOffset: self.data is empty")
             return
         if isinstance(self.x_offset,timedelta):
             self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
@@ -542,7 +542,7 @@ class NodeSerie(Base):
         include_series_id : bool = False
             Add a column with series_id"""
         if self.data is None:
-            logging.warn("Series %i data is None, returning only header")
+            logging.warning("Series %i data is None, returning only header")
             if include_series_id:
                 return "timestart,valor,%i" % self.series_id
             else:
@@ -614,7 +614,7 @@ class NodeSerie(Base):
                             new_obs["series_id"] = self.series_id
                         qualifier_obs.append(new_obs)
                     else:
-                        logging.warn("Qualifier %s not found in data at timestart %s" % (qualifier, obs["timestart"]))
+                        logging.warning("Qualifier %s not found in data at timestart %s" % (qualifier, obs["timestart"]))
             obs["valor"] = obs[value_key]
             if qualifiers is not None:
                 obs["qualifier"] = "main"

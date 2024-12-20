@@ -118,15 +118,15 @@ class Test_ObservedNodeVariable(TestCase):
             NodeSerie(3)
         ]
         
-        self.assertEquals(len(variable.series),3)
-        self.assertEquals(type(variable.series),TypedList)
+        self.assertEqual(len(variable.series),3)
+        self.assertEqual(type(variable.series),TypedList)
         variable.series.append([4])
-        self.assertEquals(len(variable.series),4)
+        self.assertEqual(len(variable.series),4)
         variable.series.extend([5,6])
-        self.assertEquals(len(variable.series),6)
+        self.assertEqual(len(variable.series),6)
         for i, s in enumerate(variable.series):
-            self.assertEquals(type(s), NodeSerie)
-            self.assertEquals(s.series_id, i + 1)
+            self.assertEqual(type(s), NodeSerie)
+            self.assertEqual(s.series_id, i + 1)
     
 
     def test_get_serie(self):
@@ -139,8 +139,8 @@ class Test_ObservedNodeVariable(TestCase):
             3
         ]
         serie = variable.getSerie(1)
-        self.assertEquals(type(serie), NodeSerie)
-        self.assertEquals(serie.series_id,1)
+        self.assertEqual(type(serie), NodeSerie)
+        self.assertEqual(serie.series_id,1)
 
     def test_assert_get_serie(self):
         variable = ObservedNodeVariable(
@@ -166,8 +166,8 @@ class Test_ObservedNodeVariable(TestCase):
             ]
         )
         serie = variable.getSerie(4,"series_prono")
-        self.assertEquals(type(serie), NodeSerieProno)
-        self.assertEquals(serie.series_id,4)
+        self.assertEqual(type(serie), NodeSerieProno)
+        self.assertEqual(serie.series_id,4)
 
     def test_get_serie_prono_assert_no_cal_id(self):
         variable = ObservedNodeVariable(id = 20, series_prono = [])
@@ -183,8 +183,8 @@ class Test_ObservedNodeVariable(TestCase):
             ]
         )
         serie = variable.getSerie(4,"series_sim")
-        self.assertEquals(type(serie), NodeSerieProno)
-        self.assertEquals(serie.series_id,4)
+        self.assertEqual(type(serie), NodeSerieProno)
+        self.assertEqual(serie.series_id,4)
 
     def test_get_serie_output(self):
         variable = ObservedNodeVariable(
@@ -196,8 +196,8 @@ class Test_ObservedNodeVariable(TestCase):
             ]
         )
         serie = variable.getSerie(4,"series_output")
-        self.assertEquals(type(serie), NodeSerie)
-        self.assertEquals(serie.series_id,4)
+        self.assertEqual(type(serie), NodeSerie)
+        self.assertEqual(serie.series_id,4)
 
     def test_pop_serie(self):
         variable = ObservedNodeVariable(
@@ -208,10 +208,10 @@ class Test_ObservedNodeVariable(TestCase):
             2,
             3
         ]
-        self.assertEquals(len(variable.series),3)
+        self.assertEqual(len(variable.series),3)
         serie = variable.series.pop()
-        self.assertEquals(len(variable.series),2)
-        self.assertEquals(type(serie), NodeSerie)
+        self.assertEqual(len(variable.series),2)
+        self.assertEqual(type(serie), NodeSerie)
 
     def test_serie_variable_property(self):
         variable = ObservedNodeVariable(
@@ -219,14 +219,14 @@ class Test_ObservedNodeVariable(TestCase):
             series = [1]
         )
         self.assertIsNotNone(variable.getSerie(1)._variable)
-        self.assertEquals(type(variable.getSerie(1)._variable), ObservedNodeVariable)
-        self.assertEquals(variable.getSerie(1)._variable, variable)
+        self.assertEqual(type(variable.getSerie(1)._variable), ObservedNodeVariable)
+        self.assertEqual(variable.getSerie(1)._variable, variable)
         variable.series.append(2)
-        self.assertEquals(variable.getSerie(2)._variable, variable)
+        self.assertEqual(variable.getSerie(2)._variable, variable)
         variable.series.append({"series_id":3})
-        self.assertEquals(variable.getSerie(3)._variable, variable)
+        self.assertEqual(variable.getSerie(3)._variable, variable)
         variable.series.append((4))
-        self.assertEquals(variable.getSerie(4)._variable, variable)
+        self.assertEqual(variable.getSerie(4)._variable, variable)
 
     def test_duplicate_serie_id(self):
         variable = ObservedNodeVariable(

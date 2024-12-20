@@ -312,7 +312,7 @@ class Procedure():
                     colname = "valor_%i" % (i + 1) 
                     data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
-                    logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
+                    logging.warning("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
             # logging.debug("loadOutputObs: columns: %s" % (data.columns))
             if "valor" in data.columns:
                 data.drop(columns="valor",inplace=True)
@@ -383,7 +383,7 @@ class Procedure():
                         group = "val"
                     ))
                 else:
-                    logging.warn("No data found for validation")
+                    logging.warning("No data found for validation")
             else:
                 result.append(ResultStatistics(
                     obs = inner_join["obs"].values, 
@@ -636,7 +636,7 @@ class Procedure():
         index = 0
         for o in self.function.outputs:
             if o._variable.series_sim is None:
-                logging.warn("series_sim not defined for output %s" % o.name)
+                logging.warning("series_sim not defined for output %s" % o.name)
                 continue
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))

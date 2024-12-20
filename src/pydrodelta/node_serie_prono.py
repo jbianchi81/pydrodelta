@@ -167,7 +167,7 @@ class NodeSerieProno(NodeSerie):
                             if m["qualifier"] == self.main_qualifier:
                                 main_qualifier_index = i
                     if not len(metadata["pronosticos"]) or "pronosticos" not in metadata["pronosticos"][main_qualifier_index] or not len(metadata["pronosticos"][main_qualifier_index]["pronosticos"]):
-                        logging.warn("No forecast values found for series_id %i, tipo %s, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.type, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
+                        logging.warning("No forecast values found for series_id %i, tipo %s, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.type, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
                         self.data = createEmptyObsDataFrame()
                     else:
                         self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")

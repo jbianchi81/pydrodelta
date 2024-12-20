@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from .node import Node
 import logging
 import json
-from numpy import nan, NaN
+from numpy import nan #, NaN
 from .a5 import createEmptyObsDataFrame, Crud
 import pandas
 import matplotlib.pyplot as plt
@@ -885,7 +885,7 @@ class Topology(Base):
         #     del data[column]
         del data["valor"]
         del data["tag"]
-        data = data.replace({NaN:None})
+        data = data.replace({nan:None})
         return data
     def pivotOutputData(
         self,
@@ -1467,7 +1467,7 @@ class Topology(Base):
             try:
                 data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id,series_type,series_id))
             except ValueError as e:
-                logging.warn("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
+                logging.warning("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
                 continue
             serie.data = data
 
@@ -1481,7 +1481,7 @@ class Topology(Base):
                 try:
                     data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
                 except ValueError as e:
-                    logging.warn("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
+                    logging.warning("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
                     continue
                 variable.data = data
                 self.restoreSeries(bucket_name,variable.series,node_id,var_id, "series")

@@ -1,5 +1,5 @@
 from pydrodelta.result_statistics import ResultStatistics
-import pydrodelta.config as config
+from pydrodelta.config import config
 from pandas import DataFrame
 import numpy as np
 import logging
@@ -96,7 +96,7 @@ class ProcedureFunctionResults:
                 
             Path of csv file to write"""   
         if self.data is None:
-            logging.warn("Procedure function produced no result to save. File %s not saved" % output)
+            logging.warning("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
             with open(

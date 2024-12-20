@@ -45,5 +45,7 @@ class Base():
         Returns:
             Plan: an object of this class according to the provided configuration
         """
-        t_config = yaml.load(open(file),yaml.CLoader)
+        read_stream = open(file)
+        t_config = yaml.load(read_stream,yaml.CLoader)
+        read_stream.close()
         return cls(**t_config,**kwargs)

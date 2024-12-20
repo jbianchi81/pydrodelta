@@ -47,15 +47,15 @@ class Test_pydrology_procedure_interface(TestCase):
             array([[1.0,2.0,3.0,4.0],[5.0,6.0,7.0,8.0]])
         )
         self.assertIsInstance(procedure.pars,list)
-        self.assertEquals(len(procedure.pars), 4)
+        self.assertEqual(len(procedure.pars), 4)
         self.assertIsInstance(procedure.boundaries,list)
-        self.assertEquals(len(procedure.boundaries), 2)
+        self.assertEqual(len(procedure.boundaries), 2)
         for i in procedure.boundaries:
-            self.assertEquals(len(i), 4)
+            self.assertEqual(len(i), 4)
         self.assertIsInstance(procedure.initial_conditions,list)
-        self.assertEquals(len(procedure.initial_conditions), 2)
+        self.assertEqual(len(procedure.initial_conditions), 2)
         for i in procedure.initial_conditions:
-            self.assertEquals(len(i), 4)
+            self.assertEqual(len(i), 4)
 
     def test_parse_tuple(self):
         procedure = PydrologyProcedureInterface(
@@ -63,12 +63,12 @@ class Test_pydrology_procedure_interface(TestCase):
             ((1.0,2.0), (3.0, 4.0))
         )
         self.assertIsInstance(procedure.pars,list)
-        self.assertEquals(len(procedure.pars), 4)
+        self.assertEqual(len(procedure.pars), 4)
         self.assertIsInstance(procedure.boundaries,list)
-        self.assertEquals(len(procedure.boundaries), 2)
+        self.assertEqual(len(procedure.boundaries), 2)
         for i in procedure.boundaries:
             self.assertIsInstance(i, tuple)
-            self.assertEquals(len(i), 2)
+            self.assertEqual(len(i), 2)
 
     def test_inherit(self):
         class MyActualProcedure(PydrologyProcedureInterface):
@@ -108,12 +108,12 @@ class Test_pydrology_procedure_interface(TestCase):
         )
 
         self.assertIsInstance(procedure.pars,list)
-        self.assertEquals(len(procedure.pars), 2)
+        self.assertEqual(len(procedure.pars), 2)
         self.assertIsInstance(procedure.boundaries,list)
-        self.assertEquals(len(procedure.boundaries), 2)
+        self.assertEqual(len(procedure.boundaries), 2)
         self.assertIsInstance(procedure.initial_conditions,list)
-        self.assertEquals(len(procedure.initial_conditions), 2)
-        self.assertEquals(procedure.other_property, 43.67)
+        self.assertEqual(len(procedure.initial_conditions), 2)
+        self.assertEqual(procedure.other_property, 43.67)
 
         # pars must be of length 2 
         self.assertRaises(

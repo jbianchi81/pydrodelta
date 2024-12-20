@@ -1,6 +1,6 @@
 {
   "$id": "observationdict.json",
-  "schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ObservationDict",
   "type": "object",
   "description": "An object with the properties 'timestart' (ISO datetime string) and 'valor' (float or null). It represents a timestamped numerical value of the observed/simulated variable.",

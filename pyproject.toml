@@ -15,7 +15,11 @@ dependencies = [
     "jsonschema",
     "pyyaml",
     "isodate",
-    "networkx"
+    "networkx",
+    "click",
+    "scikit-learn",
+    "minio",
+    "colour"
 ]
 
 [project.scripts]
