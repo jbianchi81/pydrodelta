@@ -83,9 +83,9 @@ class Test_a5Crud(unittest.TestCase):
             token = "my_token"
         )
         data = crud.readSeries(include_geom=False, no_metadata=True, var_id=2, proc_id=1)
-        self.assert_("rows" in data)
+        self.assertTrue("rows" in data)
         self.assertEqual(type(data["rows"]), list)
-        self.assert_(len(data) > 0)
+        self.assertTrue(len(data) > 0)
         for row in data["rows"]:
             self.assertEqual(row["var_id"],2)
             self.assertEqual(row["proc_id"],1)
@@ -104,13 +104,13 @@ class Test_a5Crud(unittest.TestCase):
             timeend = timeend,
             tipo = "puntual"
         )
-        self.assert_("observaciones" in data)
+        self.assertTrue("observaciones" in data)
         self.assertEqual(type(data["observaciones"]), list)
-        self.assert_(len(data["observaciones"]) > 0)
+        self.assertTrue(len(data["observaciones"]) > 0)
         for row in data["observaciones"]:
             self.assertEqual(row["series_id"],series_id)
-            self.assert_(tryParseAndLocalizeDate(row["timestart"]) >= timestart)
-            self.assert_(tryParseAndLocalizeDate(row["timestart"]) <= timeend)
+            self.assertTrue(tryParseAndLocalizeDate(row["timestart"]) >= timestart)
+            self.assertTrue(tryParseAndLocalizeDate(row["timestart"]) <= timeend)
             self.assertEqual(type(row["valor"]),float)
     
     def test_read_calibrado(self):
@@ -121,7 +121,7 @@ class Test_a5Crud(unittest.TestCase):
         cal_id = 288
         data = crud.readCalibrado(cal_id)
         self.assertEqual(type(data),dict)
-        self.assert_("id" in data)
+        self.assertTrue("id" in data)
         self.assertEqual(data["id"],cal_id)
 
     def test_read_var(self):
@@ -131,7 +131,7 @@ class Test_a5Crud(unittest.TestCase):
         )
         data = crud.readVar(2)
         self.assertEqual(type(data),dict)
-        self.assert_("id" in data)
+        self.assertTrue("id" in data)
         self.assertEqual(data["id"],2)
 
     def test_read_serie_prono(self):
@@ -146,12 +146,12 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(data),dict)
         self.assertEqual(data["cal_id"],289)
         self.assertEqual(data["series_id"],1540)
-        self.assert_("pronosticos" in data)
+        self.assertTrue("pronosticos" in data)
         self.assertEqual(type(data["pronosticos"]), list)
-        self.assert_(len(data["pronosticos"]) > 0)
+        self.assertTrue(len(data["pronosticos"]) > 0)
         for x in data["pronosticos"]:
-            self.assert_("timestart" in x)
-            self.assert_("valor" in x)
+            self.assertTrue("timestart" in x)
+            self.assertTrue("valor" in x)
 
     def test_list_to_dataframe(self):
         df = observacionesListToDataFrame(
@@ -170,8 +170,8 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(df), DataFrame)
         self.assertEqual(len(df), 2)
         self.assertEqual(len(df.columns), 2)
-        self.assert_("valor" in df.columns)
-        self.assert_("tag" in df.columns)
+        self.assertTrue("valor" in df.columns)
+        self.assertTrue("tag" in df.columns)
         self.assertEqual(type(df.index), DatetimeIndex)
 
     def test_dataframe_to_list(self):
@@ -204,8 +204,8 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(df), DataFrame)
         self.assertEqual(len(df), 0)
         self.assertEqual(len(df.columns), 2)
-        self.assert_("valor" in df.columns)
-        self.assert_("tag" in df.columns)
+        self.assertTrue("valor" in df.columns)
+        self.assertTrue("tag" in df.columns)
         self.assertEqual(type(df.index), DatetimeIndex)
 
     def test_read_corridas(self):
@@ -219,13 +219,13 @@ class Test_a5Crud(unittest.TestCase):
         self.assertEqual(type(data),list)
         for corrida in data:
             self.assertEqual(corrida["cal_id"],289)
-            self.assert_("id" in corrida)
-            self.assert_("series" in corrida)
+            self.assertTrue("id" in corrida)
+            self.assertTrue("series" in corrida)
             self.assertEqual(type(corrida["series"]), list)
-            self.assert_(len(corrida["series"]) > 0)
+            self.assertTrue(len(corrida["series"]) > 0)
             for serie in corrida["series"]:
-                self.assert_("series_id" in serie)
-                self.assert_("pronosticos" in serie)
+                self.assertTrue("series_id" in serie)
+                self.assertTrue("pronosticos" in serie)
                 self.assertEqual(type(serie["pronosticos"]), list)
             
     def test_read_serie_prono_concat(self):
@@ -240,14 +240,14 @@ class Test_a5Crud(unittest.TestCase):
         )
         self.assertEqual(type(serie),dict)
         self.assertEqual(serie["series_id"],29586)
-        self.assert_("pronosticos" in serie)
+        self.assertTrue("pronosticos" in serie)
         self.assertEqual(type(serie["pronosticos"]),list)
-        self.assert_(len(serie["pronosticos"]) > 0)
+        self.assertTrue(len(serie["pronosticos"]) > 0)
         ts = [p["timestart"] for p in serie["pronosticos"]]
         self.assertEqual(len(ts),len(set(ts)))
         for pronostico in serie["pronosticos"]:
             self.assertEqual(type(pronostico),dict)
-            self.assert_("timestart" in pronostico)
-            self.assert_("valor" in pronostico)
-            self.assert_("cor_id" in pronostico)
+            self.assertTrue("timestart" in pronostico)
+            self.assertTrue("valor" in pronostico)
+            self.assertTrue("cor_id" in pronostico)
             self.assertEqual(pronostico["qualifier"],"main")

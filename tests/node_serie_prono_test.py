@@ -49,7 +49,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             json_file = "sample_data/json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        self.assert_(isinstance(node_serie.data.index,DatetimeIndex))
+        self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 
@@ -61,7 +61,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             json_file = "sample_data/yaml/series_sample.yaml"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        self.assert_(isinstance(node_serie.data.index,DatetimeIndex))
+        self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 
@@ -73,7 +73,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             csv_file = "sample_data/csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        self.assert_(isinstance(node_serie.data.index,DatetimeIndex))
+        self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 

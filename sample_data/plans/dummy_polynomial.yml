@@ -4,7 +4,7 @@ name: dummy_polynomial
 id: 2346524646
 topology:
   timestart: "2022-07-15T03:00:00.000Z"
-  timeend: "2022-07-18T03:00:00.000Z"
+  timeend: "2022-07-17T03:00:00.000Z"
   nodes:
   - id: 1
     name: andresito

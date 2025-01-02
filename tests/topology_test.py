@@ -2,12 +2,13 @@ from pydrodelta.topology import Topology
 from pydrodelta.node import Node
 from pydrodelta.observed_node_variable import ObservedNodeVariable
 from pydrodelta.node_serie import NodeSerie
-import pydrodelta.config as config 
+from pydrodelta.config import config 
 from unittest import TestCase
 import os
 import yaml
 import time
 from pydrodelta.types.typed_list import TypedList
+from pydrodelta.config import config
 
 class Test_Topology(TestCase):
 
@@ -55,7 +56,7 @@ class Test_Topology(TestCase):
         
     def test_topology_batch(self):
         timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-22T02:00:00.000Z"
+        timeend = "2022-02-22T01:00:00.000Z"
         time_interval = { "hours": 1}
         topology = Topology(
             timestart = timestart,
@@ -124,7 +125,7 @@ class Test_Topology(TestCase):
                 "url": "https://alerta.ina.gob.ar/test",
                 "token": "MY_TOKEN"
             })
-        self.assert_(topology.no_metadata)
+        self.assertTrue(topology.no_metadata)
         self.assertIsInstance(topology.nodes,TypedList)
         self.assertEqual(len(topology.nodes),1)
         self.assertIsInstance(topology.nodes[0],Node)
@@ -194,28 +195,28 @@ class Test_Topology(TestCase):
         )
     
     def test_plot_prono(self):
-        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**config)
+        topology_config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**topology_config)
         topology.batchProcessInput(include_prono=False)
         self.assertIsNotNone(topology.nodes[0].variables[39].series_prono[0].plot_params)
-        self.assert_("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
+        self.assertTrue("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
         file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
-        self.assert_(file_mtime  > time.time() - 10)
+        self.assertTrue(file_mtime  > time.time() - 10)
 
     def test_plot_bad_qualifier(self):
-        config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**config)
+        topology_config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**topology_config)
         topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
         self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
 
     def test_series_save_csv_batch(self):
-        config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**config)
+        topology_config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        topology = Topology(**topology_config)
         topology.batchProcessInput(include_prono=False)
         file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series[0].output_file))
-        self.assert_(file_mtime  > time.time() - 10)
+        self.assertTrue(file_mtime  > time.time() - 10)
         file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
-        self.assert_(file_mtime  > time.time() - 10)
+        self.assertTrue(file_mtime  > time.time() - 10)
     
     def test_node_inherited_properties(self):
         topology = Topology(
@@ -231,13 +232,13 @@ class Test_Topology(TestCase):
                 }
             ]
         )
-        self.assertEquals(len(topology.nodes),1)
+        self.assertEqual(len(topology.nodes),1)
         node = topology.getNode(345)
-        self.assertEquals(node._topology,topology)
-        self.assertEquals(node.timestart,topology.timestart)
-        self.assertEquals(node.timeend,topology.timeend)
-        self.assertEquals(node.forecast_timeend,topology.forecast_timeend)
-        self.assertEquals(node.time_offset,topology.time_offset_start)
+        self.assertEqual(node._topology,topology)
+        self.assertEqual(node.timestart,topology.timestart)
+        self.assertEqual(node.timeend,topology.timeend)
+        self.assertEqual(node.forecast_timeend,topology.forecast_timeend)
+        self.assertEqual(node.time_offset,topology.time_offset_start)
 
     def test_append_node(self):
         topology = Topology(
@@ -251,19 +252,19 @@ class Test_Topology(TestCase):
             "name": "node",
             "time_interval": {"days": 1}
         })
-        self.assertEquals(len(topology.nodes),1)
+        self.assertEqual(len(topology.nodes),1)
         node = topology.getNode(345)
-        self.assertEquals(node._topology,topology)
-        self.assertEquals(node.timestart,topology.timestart)
-        self.assertEquals(node.timeend,topology.timeend)
-        self.assertEquals(node.forecast_timeend,topology.forecast_timeend)
-        self.assertEquals(node.time_offset,topology.time_offset_start)
+        self.assertEqual(node._topology,topology)
+        self.assertEqual(node.timestart,topology.timestart)
+        self.assertEqual(node.timeend,topology.timeend)
+        self.assertEqual(node.forecast_timeend,topology.forecast_timeend)
+        self.assertEqual(node.time_offset,topology.time_offset_start)
         topology.nodes.append({
             "id": 346,
             "name": "node",
             "time_interval": {"days": 1}
         })
-        self.assertEquals(len(topology.nodes),2)
+        self.assertEqual(len(topology.nodes),2)
 
     def test_duplicate_node_id(self):          
         self.assertRaises(

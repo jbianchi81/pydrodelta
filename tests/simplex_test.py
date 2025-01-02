@@ -1,12 +1,13 @@
 from pydrodelta.plan import Plan
 from unittest import TestCase
 import yaml
+from pydrodelta.config import config
 
 class Test_Simplex(TestCase):
 
     def test_make_simplex(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         simplex = plan.procedures[0].function.makeSimplex()
         self.assertTrue(isinstance(simplex,list))
         self.assertEqual(

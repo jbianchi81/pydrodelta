@@ -1,12 +1,13 @@
 from pydrodelta.plan import Plan
 from unittest import TestCase
 import yaml
+from pydrodelta.config import config
 
 class Test_SacramentoSimplified(TestCase):
 
     def test_calibration_save_result(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(upload=False)
         
         self.assertTrue(isinstance(plan.procedures[0].calibration.calibration_result[0],list))

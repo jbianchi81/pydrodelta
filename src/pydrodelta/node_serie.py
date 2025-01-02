@@ -319,7 +319,7 @@ class NodeSerie(Base):
             else:
                 raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
-            if self._variable.time_support is not None:
+            if self._variable is not None and self._variable.time_support is not None:
                 timeend = timeend + self._variable.time_support
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
@@ -460,7 +460,7 @@ class NodeSerie(Base):
         timeend : datetime,
         time_interval : timedelta,
         time_offset : timedelta,
-        interpolation_limit : timedelta,
+        interpolation_limit : Union[timedelta,int],
         inline : bool = True,
         interpolate : bool = False,
         agg_func : str = None
@@ -481,7 +481,7 @@ class NodeSerie(Base):
         time_offset : timedelta
             Start time of the day of the output regular timeseries (overrides that of timestart)
 
-        interpolation_limit : timedelta
+        interpolation_limit : timedelta or int
             Maximum number of time steps to interpolate (default: 1)
         
         inline : bool = True
@@ -493,6 +493,7 @@ class NodeSerie(Base):
         agg_func : str = None
             Aggregate observations of data using agg_func function. If set, interpolation is not performed"""
         agg_func = agg_func if agg_func is not None else self.agg_func
+        interpolation_limit = int(interpolation_limit / time_interval) if type(interpolation_limit) == timedelta else interpolation_limit 
         data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func)
         if inline:
             self.data = data

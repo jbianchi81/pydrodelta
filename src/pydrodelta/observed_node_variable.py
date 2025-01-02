@@ -121,7 +121,7 @@ class ObservedNodeVariable(NodeVariable):
                         serie.assertNotEmpty()
                 except Exception as e:
                     logging.error(e)
-                    raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i, forecast_timestart: %s: failed loadData: %s" % (self._node.id,self.id,serie.series_id,serie.cal_id,serie.forecast_timestart.isoformat() if serie.forecast_timestart is not None else "None", str(e)))
+                    raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i, forecast_timestart: %s: failed loadData: %s" % (self._node.id if self._node is not None else "None",self.id,serie.series_id,serie.cal_id,serie.forecast_timestart.isoformat() if serie.forecast_timestart is not None else "None", str(e)))
         if self.data is None and self.series is not None and len(self.series):
             self.setDataWithNoValues()
             self.concatenate(self.series[0].data)

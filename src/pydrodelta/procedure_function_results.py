@@ -1,5 +1,5 @@
 from pydrodelta.result_statistics import ResultStatistics
-import pydrodelta.config as config
+from pydrodelta.config import config
 from pandas import DataFrame
 import numpy as np
 import logging

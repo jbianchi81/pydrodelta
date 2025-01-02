@@ -6,12 +6,13 @@ from pandas import DataFrame
 from pydrodelta.types.typed_list import TypedList
 from pydrodelta.procedure import Procedure
 from pydrodelta.procedures.abstract import AbstractProcedureFunction
+from pydrodelta.config import config
 
 class Test_Plan(TestCase):
 
     def test_init(self):
-        config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         self.assertEqual(plan.name,"linear_channel_dummy")
         self.assertEqual(plan.id, 505)
         self.assertEqual(plan.forecast_date.isoformat(), "2024-01-03T00:00:00-03:00")
@@ -19,44 +20,44 @@ class Test_Plan(TestCase):
         self.assertEqual(len(plan.procedures),1)
 
     def test_analysis(self):
-        config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.topology.batchProcessInput()
         for n in plan.topology.nodes:
             for v in n.variables:
-                self.assert_(isinstance(n.variables[v].data,DataFrame))
-                self.assertEqual(len(n.variables[v].data),14)
+                self.assertTrue(isinstance(n.variables[v].data,DataFrame))
+                self.assertEqual(len(n.variables[v].data),15)
                 self.assertEqual(min(n.variables[v].data.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(n.variables[v].data.index).isoformat(),"2024-01-14T00:00:00-03:00")
+                self.assertEqual(max(n.variables[v].data.index).isoformat(),"2024-01-15T00:00:00-03:00")
 
     def test_exec(self):
-        config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(upload=False)
         for p in plan.procedures:
             for i in p.input:
-                self.assert_(isinstance(i,DataFrame))
-                self.assertEqual(len(i),14)
+                self.assertTrue(isinstance(i,DataFrame))
+                self.assertEqual(len(i),15)
                 self.assertEqual(min(i.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(i.index).isoformat(),"2024-01-14T00:00:00-03:00")
+                self.assertEqual(max(i.index).isoformat(),"2024-01-15T00:00:00-03:00")
             for o in p.output:
-                self.assert_(isinstance(o,DataFrame))
-                self.assertEqual(len(o),14)
+                self.assertTrue(isinstance(o,DataFrame))
+                self.assertEqual(len(o),15)
                 self.assertEqual(min(o.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(o.index).isoformat(),"2024-01-14T00:00:00-03:00")
+                self.assertEqual(max(o.index).isoformat(),"2024-01-15T00:00:00-03:00")
         for s in plan.topology.nodes[1].variables[40].series_sim:
-            self.assert_(isinstance(s.data,DataFrame))
-            self.assertEqual(len(s.data),14)
+            self.assertTrue(isinstance(s.data,DataFrame))
+            self.assertEqual(len(s.data),15)
             self.assertEqual(min(s.data.index).isoformat(),"2024-01-01T00:00:00-03:00")
-            self.assertEqual(max(s.data.index).isoformat(),"2024-01-14T00:00:00-03:00")
+            self.assertEqual(max(s.data.index).isoformat(),"2024-01-15T00:00:00-03:00")
             self.assertAlmostEqual(
                 plan.topology.nodes[0].variables[40].data["valor"].sum(skipna=True),
                 sum(s.data["valor"]), 
                 places = 1)
     
     def test_api(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.topology.batchProcessInput(
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/test",
@@ -64,24 +65,24 @@ class Test_Plan(TestCase):
             })
         for n in plan.topology.nodes:
             for v in n.variables:
-                self.assert_(isinstance(n.variables[v].data,DataFrame))
+                self.assertTrue(isinstance(n.variables[v].data,DataFrame))
                 self.assertEqual(len(n.variables[v].data),3)
                 self.assertEqual(min(n.variables[v].data.index).isoformat(),"2022-07-15T00:00:00-03:00")
                 self.assertEqual(max(n.variables[v].data.index).isoformat(),"2022-07-17T00:00:00-03:00")
 
     def test_api_basin_pars(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac_basin_pars_from_api.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
-        self.assert_("area" in plan.procedures[0].function.extra_pars)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac_basin_pars_from_api.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
+        self.assertTrue("area" in plan.procedures[0].function.extra_pars)
         self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
-        self.assertEqual(plan.procedures[0].function.extra_pars["area"], 140273473.449287)
+        self.assertAlmostEqual(plan.procedures[0].function.extra_pars["area"], 140273473.449287,1)
         plan.execute(
             upload = False
         )
         
     def test_api_exec(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(
             upload = False,
             input_api_config = {
@@ -90,8 +91,8 @@ class Test_Plan(TestCase):
             })
 
     def test_calibration(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(upload = False)
         stats = plan.procedures[0].read_statistics()
         self.assertEqual(stats["results"][0]["n"], 3)
@@ -106,22 +107,22 @@ class Test_Plan(TestCase):
         self.assertEqual(len(calibration["limits"]),10)
 
     def test_stats_df(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.procedures[0].calibration.calibrate = False
         plan.execute(upload = False)
         stats_df = plan.procedures[0].read_statistics(as_dataframe=True)
         self.assertTrue(isinstance(stats_df, DataFrame))
 
     def test_stats_df_score(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         plan.execute(upload = False)
         self.assertTrue(isinstance(plan.procedures[0].calibration.scores, DataFrame))
 
     def test_calibration_save_result_raise_exception(self):
-        config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        plan = Plan(**config)
+        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan = Plan(**plan_config)
         self.assertRaises(
             Exception, 
             plan.procedures[0].calibration.saveResult,

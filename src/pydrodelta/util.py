@@ -159,7 +159,9 @@ def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=No
         date_0 = date_0 + timeOffset 
     while date_0 < date:
         date_0 = date_0 + timeInterval
-    if to == "up":
+    if date_0 == date:
+        return date_0
+    elif to == "up":
         return date_0
     else:
         return date_0 - timeInterval

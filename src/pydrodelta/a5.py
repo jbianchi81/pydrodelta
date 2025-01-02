@@ -732,6 +732,14 @@ class Crud():
             tipo = tipo)
         # logging.debug('Cantidad total de corridas: ',len(corridas))
         qualifiers = {}
+        if not len(corridas):
+            raise Exception("No forecast runs found for cal_id=%i, series_id=%i, forecast_timestart=%s, forecast_timeend=%s, qualifier=%s" % (
+                cal_id,
+                series_id,
+                forecast_timestart.isoformat() if forecast_timestart else "None",
+                forecast_timeend.isoformat() if forecast_timeend else "None",
+                qualifier
+            ))
         last_forecast_date = corridas[len(corridas)-1]["forecast_date"]
         for corrida in sorted(corridas, key = lambda c: c["forecast_date"]):
             last_forecast_date = corrida["forecast_date"]
