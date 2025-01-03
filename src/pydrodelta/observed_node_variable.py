@@ -256,3 +256,14 @@ class ObservedNodeVariable(NodeVariable):
                 self.data = data
             else:
                 return data
+
+    def fillNullsWithValue(self,inline : bool = True, fill_value : float = None):
+        fill_value = fill_value if fill_value is not None else self.fill_value
+        data = DataFrame(self.data)
+        if fill_value is not None:
+            data["valor"] = self.data["valor"].fillna(fill_value)
+            data["tag"] = self.data["tag"].fillna("filled")
+        if inline:
+            self.data = data
+        else:
+            return data

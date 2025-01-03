@@ -88,16 +88,19 @@ class LinearNet3ProcedureFunction(ProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         data = None
-        linear_net_input = []
+        input_colnames = []
         for i in range(3):
             data = input[i][["valor"]].rename(columns={"valor":"input"}) if data is None else data.join(input[i][["valor"]].rename(columns={"valor":"input"}))
             if not len(data.dropna().index):
                 raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self._procedure.id, i))
             last_date = max(data.dropna().index)
-            linear_net_input.append(data[data.index <= last_date]["input"].values)
-            if True in np.isnan(linear_net_input[i]):
+            if True in np.isnan(data[data.index <= last_date]["input"].values):
                 raise Exception("NaN values found in input before last date %s" % last_date.isoformat())
             data = data.rename(columns={"input": "input_%i" % (i + 1)})
+            input_colnames.append("input_%i" % (i + 1))
+        input_data = data.dropna()
+        linear_net_input = [ input_data[input_colname].values for input_colname in input_colnames ]
+
         self.engine = LinearNet(self.coefficients,linear_net_input,self.Proc,self.dt)
         self.engine.computeOutflow()
         output = list(self.engine.Outflow[:len(input[i])])

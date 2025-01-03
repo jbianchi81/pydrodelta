@@ -881,6 +881,26 @@ class Node:
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.fillNulls(inline,fill_value)
+
+    def fillNullsWithValue(self,
+        inline : bool =True,
+        fill_value : float = None
+        ) -> None:
+        """
+        For each variable of .variables, if variable is an ObservedNodeVariable, run .fillNullsWithValue(). 
+
+        Parameters:
+        -----------
+        inline : bool = True
+            Store result in variables' data property
+        
+        fill_value : float = None
+            Fill missing values with this value
+        """
+        for variable in self.variables.values():
+            if isinstance(variable,ObservedNodeVariable):
+                variable.fillNullsWithValue(inline,fill_value)
+    
     def derive(self) -> None:
         """For each variable of .variables, if variable is a DerivedNodeVariable, run .derive()"""
         for variable in self.variables.values():

@@ -389,6 +389,8 @@ class Topology(Base):
         if include_prono:
             logging.debug("concatenateProno")
             self.concatenateProno()
+        logging.debug("fillNullsWithValue")
+        self.fillNullsWithValue()
         logging.debug("derive")
         self.derive()
         logging.debug("interpolate")
@@ -500,6 +502,13 @@ class Topology(Base):
         """
         for node in self.nodes:
             node.fillNulls()
+
+    def fillNullsWithValue(self) -> None:
+        """For each observed variable of each node, if fill_value is defined, fills nulls of data with that value
+        """
+        for node in self.nodes:
+            node.fillNullsWithValue()
+        
 
     def derive(self) -> None:
         """For each derived variable of each node, derives data from related variable according to derived_from attribute

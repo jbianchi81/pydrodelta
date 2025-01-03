@@ -103,6 +103,10 @@
         "interpolation_coefficient"
       ]
     },
+    "fill_value": {
+      "type": "number",
+      "description": "Value used to fill missing values"
+    },
     "adjust_from": {
       "type": "object",
       "properties": {
