@@ -924,10 +924,10 @@ def getRandColor():
     return colormap(random.randrange(colormap.N))
 
 def first(l : list) -> any:
-    return l[0] if len(l) else np.NaN
+    return l[0] if len(l) else np.nan
 
 def last(l : list) -> any:
-    return l[len(l)-1] if len(l) else np.NaN
+    return l[len(l)-1] if len(l) else np.nan
 
 def mad(l : list) -> float:
     mean = np.mean(l)
@@ -957,7 +957,7 @@ def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timede
         raise ValueError("Invalid agg_func")
     rows = getRowsWithinTimestep(data, base, dt)
     if pass_nan and not len(rows["valor"]):
-        return np.NaN  
+        return np.nan  
     return valid_agg_func[agg_func](rows[column])
 
 def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:

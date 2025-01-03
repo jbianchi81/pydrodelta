@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from .node import Node
 import logging
 import json
-from numpy import nan, NaN
+from numpy import nan
 from .a5 import createEmptyObsDataFrame, Crud
 import pandas
 import matplotlib.pyplot as plt
@@ -885,7 +885,7 @@ class Topology(Base):
         #     del data[column]
         del data["valor"]
         del data["tag"]
-        data = data.replace({NaN:None})
+        data = data.replace({nan:None})
         return data
     def pivotOutputData(
         self,
@@ -908,7 +908,7 @@ class Topology(Base):
             i = i+1
             node_data = node.pivotOutputData(include_tag=include_tag)
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
-        # data = data.replace({np.NaN:None})
+        # data = data.replace({np.nan:None})
         return data
     
     def pivotSimData(
@@ -928,7 +928,7 @@ class Topology(Base):
                     data = node_data
                 else:
                     data = pandas.concat([data,node_data],axis=1)
-        # data = data.replace({np.NaN:None})
+        # data = data.replace({np.nan:None})
         return data
     
 

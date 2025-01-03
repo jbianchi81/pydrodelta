@@ -102,7 +102,7 @@ class LinearNet3ProcedureFunction(ProcedureFunction):
         self.engine.computeOutflow()
         output = list(self.engine.Outflow[:len(input[i])])
         while len(output) < len(input[i]):
-            output.append(np.NaN)
+            output.append(np.nan)
         data["output"] = output
         return (
             [data[["output"]].rename(columns={"output":"valor"})],

@@ -272,7 +272,7 @@ class Procedure():
                             sort=True)
             for column in columns:
                 del data[column]
-            # data = data.replace({np.NaN:None})
+            # data = data.replace({np.nan:None})
         else:
             data = []
             for boundary in self.function.boundaries:

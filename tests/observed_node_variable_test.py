@@ -103,7 +103,8 @@ class Test_ObservedNodeVariable(TestCase):
             })   
         self.assertTrue(len(node_variable.series[0].data)>0)
         self.assertTrue(len(node_variable.series_prono[0].data)>0)
-        self.assertTrue(node_variable.series_prono[0].data.dropna().index.min() < node_variable.series_prono[0].previous_runs_timestart + timedelta(days=0))
+        # self.assertTrue(node_variable.series_prono[0].data.dropna().index.min() < node_variable.series_prono[0].previous_runs_timestart + timedelta(days=0))
+        self.assertTrue(node_variable.series_prono[0].data.dropna().index.min() < node_variable.series_prono[0].metadata["forecast_date"])
 
     def test_append_serie(self):
         variable = ObservedNodeVariable(

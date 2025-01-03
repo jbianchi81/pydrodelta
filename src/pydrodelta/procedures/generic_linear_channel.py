@@ -83,7 +83,7 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         linear_channel.computeOutFlow()
         output = list(linear_channel.Outflow[:len(data)])
         while len(output) < len(data):
-            output.append(np.NaN)
+            output.append(np.nan)
         data["output"] = output
         return (
             [data[["output"]].rename(columns={"output":"valor"})],
