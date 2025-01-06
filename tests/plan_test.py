@@ -194,4 +194,189 @@ class Test_Plan(TestCase):
             procedure
         )
 
+    def test_nan(self):
+        plan = Plan(
+            name = "test_nan",
+            id = 111,
+            topology = {
+                "timestart": "2000-01-01T03:00:00.000Z",
+                "timeend": "2000-01-05T03:00:00.000Z",
+                "nodes":  [
+                    {
+                        "id": 0,
+                        "name": "node_0",
+                        "time_interval": {
+                            "days": 1
+                        },
+                        "node_type": "station",
+                        "variables": [
+                            {
+                                "id": 40,
+                                "series": [
+                                    {
+                                        "series_id": 100,
+                                        "observations": [ 
+                                            [ "2000-01-01T03:00:00.000Z", 1011.111],
+                                            [ "2000-01-02T03:00:00.000Z", 1012.111],
+                                            [ "2000-01-03T03:00:00.000Z", 1013.111],
+                                            [ "2000-01-04T03:00:00.000Z", 1014.111],
+                                            [ "2000-01-05T03:00:00.000Z", 1015.111]
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": 1,
+                        "name": "node_1",
+                        "time_interval": {
+                            "days": 1
+                        },
+                        "node_type": "station",
+                        "variables": [
+                            {
+                                "id": 40,
+                                "series": [
+                                    {
+                                        "series_id": 101,
+                                        "observations": [ 
+                                            [ "2000-01-01T03:00:00.000Z", 2011.111],
+                                            [ "2000-01-02T03:00:00.000Z", 2012.111],
+                                            [ "2000-01-03T03:00:00.000Z", 2013.111],
+                                            [ "2000-01-04T03:00:00.000Z", 2014.111],
+                                            [ "2000-01-05T03:00:00.000Z", 2015.111]
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": 2,
+                        "name": "node_2",
+                        "time_interval": {
+                            "days": 1
+                        },
+                        "node_type": "station",
+                        "variables": [
+                            {
+                                "id": 40,
+                                "series": [
+                                    {
+                                        "series_id": 102,
+                                        "observations": [ 
+                                            [ "2000-01-01T03:00:00.000Z", 3011.111],
+                                            [ "2000-01-02T03:00:00.000Z", 3012.111],
+                                            [ "2000-01-03T03:00:00.000Z", 3013.111]
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": 3,
+                        "name": "node_3",
+                        "time_interval": {
+                            "days": 1
+                        },
+                        "node_type": "station",
+                        "variables": [
+                            {
+                                "id": 40,
+                                "series_sim": [
+                                    {
+                                        "series_id": 103
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            procedures = [
+                {
+                    "id": "Yacyretá/Pilco - Corrientes",
+                    "adjust": True,
+                    "warmup_steps": 20,
+                    "tail_steps": 60,
+                    "function": {
+                        "type": "LinearNet3",
+                        "boundaries": [
+                            {
+                                "name": "input_1",
+                                "node_variable": [
+                                    0,
+                                    40
+                                ]
+                            },
+                            {
+                                "name": "input_2",
+                                "node_variable": [
+                                    1,
+                                    40
+                                ]
+                            },
+                            {
+                                "name": "input_3",
+                                "node_variable": [
+                                    2,
+                                    40
+                                ]
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "name": "output",
+                                "node_variable": [
+                                    3,
+                                    40
+                                ]
+                            }
+                        ],
+                        "parameters": {
+                            "k_1": 3,
+                            "n_1": 2,
+                            "k_2": 5,
+                            "n_2": 2,
+                            "k_3": 2.45,
+                            "n_3": 2
+                        }
+                    }
+                }
+            ],
+            forecast_date = "2000-01-03T03:00:00.000Z",
+            time_interval = {"days": 1}
+        )
+        self.assertEqual(plan.name,"test_nan")
+        self.assertEqual(plan.id, 111)
+        self.assertEqual(plan.forecast_date.isoformat(), "2000-01-03T00:00:00-03:00")
+        self.assertEqual(len(plan.topology.nodes),4)
+        self.assertEqual(len(plan.procedures),1)
         
+        plan.topology.batchProcessInput()
+
+        procedure = plan.procedures[0]
+        self.assertRaises(
+            Exception,
+            procedure.loadInput,
+            message = "expected raised exception"
+        )
+        # procedure.loadInput()
+        # self.assertEqual(
+        #     len(procedure.function.boundaries[2]._variable.data),
+        #     5, 
+        #     "expected length 5, got %i" % len(procedure.function.boundaries[2]._variable.data))
+        # self.assertEqual(
+        #     len(procedure.function.boundaries[2]._variable.data.dropna()),
+        #     3, 
+        #     "expected length 3, got %s " % procedure.function.boundaries[2]._variable.data.dropna())
+        
+        # self.assertRaises(
+        #     AssertionError,
+        #     procedure.function.boundaries[2].assertNoNaN,
+        #     message="expected to raise AssertionError"
+        # )
+
+
