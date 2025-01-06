@@ -188,7 +188,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output = []
         for t_index, forecast_step in enumerate(self.coefficients):
-            forecast_date = self._procedure._plan.forecast_date + t_index * self._procedure._plan.time_interval
+            forecast_date = self._procedure._plan.forecast_date + (t_index + 1) * self._procedure._plan.time_interval
             result = 1 * forecast_step.intercept
             for b_index, boundary in enumerate(forecast_step.boundaries):
                 for c_index, coefficient in enumerate(boundary.values):
