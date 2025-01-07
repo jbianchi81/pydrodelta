@@ -395,7 +395,7 @@ class NodeVariable:
         use_node_id : bool = False
         ) -> List[dict]:
         """
-        Convert .data to list of records (dict)
+        Convert .data to a json-serializable list of dicts
 
         Parameters:
         -----------
@@ -412,10 +412,13 @@ class NodeVariable:
         if use_node_id and self._node is None:
             raise Exception("Can't use_node_id: node is not set")
         data = self.data[self.data.valor.notnull()].copy()
-        data.loc[:,"timestart"] = data.index
+        # data.loc[:,"timestart"] = data.index
+        data = data.reset_index()
         data.loc[:,"timeend"] = [x + self.time_support for x in data["timestart"]] if self.time_support is not None else data["timestart"]
-        data.loc[:,"timestart"] = [x.isoformat() for x in data["timestart"]]
-        data.loc[:,"timeend"] = [x.isoformat() for x in data["timeend"]]
+        # data.loc[:,"timestart"] = [x.isoformat() for x in data["timestart"]]
+        data["timestart"] = data["timestart"].apply(lambda x: x.isoformat())
+        # data.loc[:,"timeend"] = [x.isoformat() for x in data["timeend"]]
+        data["timeend"] = data["timeend"].apply(lambda x: x.isoformat())
         if len(data) and include_series_id:
             data.loc[:,"series_id"] = self.node_id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
         return data.to_dict(orient="records")
