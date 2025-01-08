@@ -2,6 +2,7 @@ from .config import config
 import dateutil.parser
 import dateutil.relativedelta
 import pytz
+from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
 from datetime import timedelta, datetime
@@ -182,7 +183,7 @@ def createDatetimeSequence(
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
     timeend = timeend if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
-    return pandas.date_range(start=timestart, end=timeend, freq=pandas.DateOffset(days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60))
+    return pandas.date_range(start=timestart.astimezone(tz.UTC), end=timeend.astimezone(tz.UTC), freq=pandas.DateOffset(days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60)).tz_convert(timestart.tzinfo)
 
 def f1(row,column="valor",timedelta_threshold=None):
     if -row["diff_with_next"] > timedelta_threshold:
