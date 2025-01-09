@@ -105,7 +105,7 @@ class LinearRegressionCalibration(Calibration):
 
             Save result inplace (self._calibration_result) and return None. Else return result
 
-        save_results : str = None
+        save_result : str = None
 
             Save the calibration result into this file
 

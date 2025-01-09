@@ -314,7 +314,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 Displace training set by int steps or timedelta
             input : List[DataFrame] = None
                 First element is the target, the rest is the training set 
-            remove_nan : bool = False
+            dropna : bool = False
                 If True, remove rows with NaN
             calibration_period : Tuple[datetime,datetime] = None 
         
