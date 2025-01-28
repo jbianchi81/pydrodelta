@@ -179,6 +179,8 @@ class Topology(Base):
     save_post_data = StringDescriptor()
     """Save prono creation request data into this file"""
 
+    prono_ignore_warmup = BoolDescriptor()
+    """In concatenation, ignore warmup period of series_prono (default True)"""
 
     def __init__(
         self,
@@ -207,6 +209,7 @@ class Topology(Base):
         qualifiers : List[str] = None,
         save_response : str = None,
         save_post_data : str = None,
+        prono_ignore_warmup : bool = True,
         **kwargs
         ):
         """Initiate topology
@@ -299,6 +302,10 @@ class Topology(Base):
 
         save_post_data : str = None
             Save prono creation request data into this file
+
+        prono_ignore_warmup : bool
+        In concatenation, ignore warmup period of series_prono (default True)
+
         """
         super().__init__(**kwargs)
         params = {
@@ -360,6 +367,7 @@ class Topology(Base):
         self.qualifiers = qualifiers
         self.save_response = save_response
         self.save_post_data = save_post_data
+        self.prono_ignore_warmup = prono_ignore_warmup
     
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
@@ -565,12 +573,13 @@ class Topology(Base):
             node.apply_linear_combination()
             node.adjustProno()
 
-    def concatenateProno(self) -> None:
+    def concatenateProno(self, ignore_warmup : bool = None) -> None:
         """For each variable of each node, if series_prono are available, concatenate series_prono into variable.data"""
+        ignore_warmup = ignore_warmup if ignore_warmup is not None else self.prono_ignore_warmup
         for node in self.nodes:
             for variable in node.variables.values():
                 if variable.series_prono is not None:
-                    variable.concatenateProno()
+                    variable.concatenateProno(ignore_warmup=ignore_warmup)
 
     def interpolate(
         self,

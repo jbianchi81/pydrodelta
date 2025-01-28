@@ -170,10 +170,16 @@
       ]
     },
     "save_response": {
+      "type": "string",
       "description": "Save forecast creation response into this file. Use together with upload_prono"
     },
     "save_post_data": {
+      "type": "string",
       "description": "Save forecast creation request data into this file. Use together with upload_prono"
+    },
+    "prono_ignore_warmup": {
+      "type": "boolean",
+      "description": "In concatenation, ignore warmup period of series_prono (default True)"
     }
   },
   "required": [
