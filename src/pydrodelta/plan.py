@@ -311,7 +311,7 @@ class Plan(Base):
                 self.topology.plotVariable(**item)
         if self.topology.save_variable is not None:
             for i, item in enumerate(self.topology.save_variable):
-                item["file"] = item["output"]
+                item["file"] = os.path.join(config["PYDRODELTA_DIR"],item["output"])
                 del item["output"]
                 item["variables"] = [item["var_id"]]
                 del item["var_id"]
