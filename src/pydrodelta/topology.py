@@ -1015,9 +1015,17 @@ class Topology(Base):
         return data
     
     def pivotSimData(
-        self
+        self,
+        nodes : List[int] = None,
+        variables : List[int] = None
         ) -> DataFrame:
-        """Pivot data of all series_sim of all variables of all nodes into columns of a single DataFrame
+        """Pivot data of all series_sim of selected variables of selected nodes into columns of a single DataFrame
+
+        nodes : List[int] = None
+        Node ids. If None, selects all nodes
+
+        variables : List[int] = None
+        Variable ids. If None, selects all variables
         
         Returns:
         --------
@@ -1025,7 +1033,10 @@ class Topology(Base):
         """
         data = None
         for node in self.nodes:
-            node_data = node.pivotSimData()
+            if nodes is not None and node.id not in nodes:
+                # skip node
+                continue
+            node_data = node.pivotSimData(variables=variables)
             if node_data is not None:
                 if data is None:
                     data = node_data

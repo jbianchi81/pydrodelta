@@ -72,6 +72,23 @@
         "type": "string",
         "description": "Save simulation series as csv"
       },
+      "save_variable_sim": {
+        "type": "array",
+        "description": "Save simulation series as csv, each variable into a different file",
+        "items": {
+          "type": "object",
+          "properties": {
+            "var_id": {
+              "type": "number",
+              "description": "Variable id"
+            },
+            "output": {
+              "type": "string",
+              "description": "output filename"
+            }
+          }
+        }
+      },
       "qualifiers": {
         "type": "array",
         "items": {

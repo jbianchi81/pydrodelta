@@ -22,6 +22,7 @@ from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.filepath_descriptor import FilepathDescriptor
 from .base import Base
 from .types.typed_list import TypedList
+from .types.save_variable_sim_dict import SaveVariableSimDict
 
 from pydrodelta.config import config
 
@@ -105,6 +106,29 @@ class Plan(Base):
     """Print simulated series into csv"""
     qualifiers = ListDescriptor()
     """Include this forecast members into the simulation output"""
+    @property
+    def save_variable_sim(self):
+        """Select simulated variables to save as separate csv"""
+        return self._save_variable_sim
+    @save_variable_sim.setter
+    def save_variable_sim(self, params : List[SaveVariableSimDict]) -> None:
+        if params is None:
+            self._save_variable_sim = None
+            return
+        self._save_variable_sim = []
+        for i, item in enumerate(params):
+            if "var_id" not in item:
+                raise ValueError("Missing var_id from SaveVariableSimDict at index %i of save_variable_sim" %i)
+            if "output" not in item:
+                raise ValueError("Missing output from SaveVariableSimDict at index %i of save_variable_sim" %i)
+            d = {
+                "var_id": int(item["var_id"]),
+                "output": item["output"]
+            }
+            self._save_variable_sim.append(d)
+        if not len(self._save_variable_sim):
+            self._save_variable_sim = None
+
         
     def __init__(
             self,
@@ -122,6 +146,7 @@ class Plan(Base):
             save_response: str = None,
             output_sim_csv: str = None,
             qualifiers : List[str] = None,
+            save_variable_sim : List[SaveVariableSimDict] = None,
             **kwargs
             ):
         """
@@ -171,6 +196,9 @@ class Plan(Base):
         
         qualifiers : List[str] = None
             Include this forecast members into the simulation output
+
+        save_variable_sim : List[SaveVariableSimDict] or None
+            Select simulated variables to save as separate csv 
         """
         super().__init__(**kwargs)
         params = {
@@ -187,7 +215,8 @@ class Plan(Base):
             "save_post": save_post,
             "save_response": save_response,
             "output_sim_csv": output_sim_csv,
-            "qualifiers" : qualifiers
+            "qualifiers" : qualifiers,
+            "save_variable_sim": save_variable_sim
         }
         getSchemaAndValidate(params=params, name="plan")
 
@@ -207,6 +236,7 @@ class Plan(Base):
         self.save_response = save_response
         self.output_sim_csv = output_sim_csv
         self.qualifiers = qualifiers
+        self.save_variable_sim = save_variable_sim
     def execute(
         self,
         include_prono : bool = True,
@@ -290,6 +320,11 @@ class Plan(Base):
             sim_data = self.topology.pivotSimData()
             with open(os.path.join(config["PYDRODELTA_DIR"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
                 sim_data.to_csv(outfile)
+        if self.save_variable_sim is not None:
+            for v in self.save_variable_sim:
+                sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
+                with open(os.path.join(config["PYDRODELTA_DIR"], v["output"]),"w",encoding='utf-8') as outfile:
+                    sim_data.to_csv(outfile)
         self.saveSimData()
     
     def saveSimData(self):

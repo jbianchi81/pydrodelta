@@ -471,16 +471,23 @@ class Node:
         return data
 
     def pivotSimData(
-        self
+        self,
+        variables : List[int] = None
         ) -> DataFrame:
-        """Join all variables' sim data into a single pivoted DataFrame
+        """Join selected variables' sim data into a single pivoted DataFrame
         
+        variables : List[int] = None
+        Variable ids. If None, selects all variables
+
         Returns:
         --------
         joined, pivoted data : DataFrame
         """
         data = None
-        for variable in self.variables.values():
+        for var_id, variable in self.variables.items():
+            if variables is not None and var_id not in variables:
+                # skip variables
+                continue
             var_data = variable.pivotSimData()
             if var_data is not None:
                 if data is None:
