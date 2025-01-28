@@ -30,6 +30,7 @@ from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.list_descriptor import ListDescriptor
 from .types.plot_variable_params_dict import PlotVariableParamsDict
+from .types.save_variable_params_dict import SaveVariableParamsDict
 from .types.node_dict import NodeDict
 from .types.plot_params_dict import PlotParamsDict
 from .base import Base
@@ -123,6 +124,34 @@ class Topology(Base):
         if not len(self._plot_variable):
             self._plot_variable = None
 
+    @property
+    def save_variable(self) -> List[SaveVariableParamsDict]:
+        return self._save_variable
+    @save_variable.setter
+    def save_variable(self, params : List[SaveVariableParamsDict]) -> None:
+        if params is None:
+            self._save_variable = None
+            return
+        self._save_variable = []
+        for i, item in enumerate(params):
+            if "var_id" not in item:
+                raise ValueError("Missing var_id from SaveVariableParamsDict at index %i of save_variable" %i)
+            if "output" not in item:
+                raise ValueError("Missing output from SaveVariableParamsDict at index %i of save_variable" %i)
+            d = {
+                "var_id": int(item["var_id"]),
+                "output": item["output"]
+            }
+            if "format" in item:
+                d["format"] = item["format"]
+            if "pretty" in item:
+                d["pretty"] = bool(item["pretty"])
+            if "pivot" in item:
+                d["pivot"] = bool(item["pivot"])
+            self._save_variable.append(d)
+        if not len(self._save_variable):
+            self._save_variable = None
+
     include_prono = BoolDescriptor()
     """While executing .batchProcessInput, use series_prono to fill nulls of series"""
 
@@ -168,6 +197,7 @@ class Topology(Base):
         plan = None,
         no_metadata : bool = False,
         plot_variable : List[PlotVariableParamsDict] = None,
+        save_variable : List[SaveVariableParamsDict] = None,
         include_prono : bool = False,
         output_csv : str = None,
         output_json : str = None,
@@ -233,6 +263,16 @@ class Topology(Base):
                     timestart : Union[datetime,str,dict], optional
                     timeend : Union[datetime,str,dict], optional
         
+        save_variable : List[SaveVariableParamsDict] = None
+            Print text files of the selected variables
+                SaveVariableParamsDict:
+                    var_id : int
+                    nodes : list[int]
+                    output : str
+                    format : Literal["csv", "json"]
+                    pretty : bool
+                    pivot : bool
+        
         include_prono : bool = False
             While executing .batchProcessInput, use series_prono to fill nulls of series 
         
@@ -276,6 +316,7 @@ class Topology(Base):
             "report_file" : report_file,
             "no_metadata": no_metadata,
             "plot_variable": plot_variable,
+            "save_variable": save_variable,
             "include_prono": include_prono,
             "output_csv": output_csv,
             "output_json": output_json,
@@ -309,6 +350,7 @@ class Topology(Base):
         self._graph = self.toGraph()
         self.no_metadata = no_metadata
         self.plot_variable = plot_variable
+        self.save_variable = save_variable
         self.include_prono = include_prono
         self.output_csv = "%s/%s" % (config["PYDRODELTA_DIR"],output_csv) if output_csv is not None else None
         self.output_json = "%s/%s" % (config["PYDRODELTA_DIR"],output_json) if output_json is not None else None
@@ -555,25 +597,40 @@ class Topology(Base):
 
     def toCSV(
         self,
-        pivot : bool=False
+        pivot : bool=False,
+        nodes : list = None,
+        variables : list = None
         ) -> str:
         """Generates csv table from all variables of all nodes
         
         Parameters:
         -----------
-        pivot : bool
-            If true, pivots variables into columns
+        pivot : bool = False
+            If True, pivots variables into columns
+
+        nodes : list or None = None
+            Print only the selected nodes
+
+        variables : list or None = None
+            Print only the selected variables
         
         Returns:
         --------
         str"""
         if pivot:
-            data = self.pivotData()
+            data = self.pivotData(nodes=nodes, variables=variables)
             data["timestart"] = [x.isoformat() for x in data.index]
             # data.reset_index(inplace=True)
-            return data.to_csv(index=False)    
-        header = ",".join(["timestart","valor","tag","series_id"])
-        return header + "\n" + "\n".join([node.toCSV(True,False) for node in self.nodes])
+            return data.to_csv(index=False)
+        else:
+            header = ",".join(["timestart","valor","tag","series_id"])
+            csv_list = []
+            for node in self.nodes:
+                if nodes is not None and node.id not in nodes:
+                    # skip node
+                    continue
+                csv_list.append(node.toCSV(True,False,variables=variables))
+            return header + "\n" + "\n".join(csv_list)
 
     def outputToCSV(
         self,
@@ -617,10 +674,12 @@ class Topology(Base):
         self,
         pivot : bool = False,
         use_node_id : bool = False,
-        flatten : bool = True
+        flatten : bool = True,
+        nodes : list = None,
+        variables : list = None
         ) -> list:
         """
-        returns list of all data in nodes[0..n].data
+        returns list of data of selected variables of selected nodes
         
         Parameters:
         -----------
@@ -633,24 +692,35 @@ class Topology(Base):
         flatten : bool
             If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
         
+        nodes : list or None = None
+
+        variables : list or None = None
+        
         Returns:
         --------
         list of Series or list of Observations
         """
         if pivot:
-            data = self.pivotData()
+            data = self.pivotData(nodes=nodes, variables=variables)
             data["timestart"] = [x.isoformat() for x in data.index]
             data.reset_index
             data["timeend"] = data["timestart"]
             return data.to_dict(orient="records")
-        obs_list = []
-        for node in self.nodes:
-            for variable in node.variables.values():
-                if flatten:
-                    obs_list.extend(variable.toList(True,use_node_id=use_node_id))
-                else:
-                    obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
-        return obs_list
+        else:
+            obs_list = []
+            for node in self.nodes:
+                if nodes is not None and node.id not in nodes:
+                    # skip node
+                    continue
+                for var_id, variable in node.variables.items():
+                    if variables is not None and var_id not in variables:
+                        # skip variable
+                        continue
+                    if flatten:
+                        obs_list.extend(variable.toList(True,use_node_id=use_node_id))
+                    else:
+                        obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
+            return obs_list
     
     def outputToList(
         self,
@@ -686,9 +756,11 @@ class Topology(Base):
         file : str,
         format : str = "csv",
         pivot : bool = False,
-        pretty : bool = False
+        pretty : bool = False,
+        nodes : list = None,
+        variables : list = None
         ) -> None:
-        """Save data of all variables of all nodes to a file in the desired format
+        """Save data of selected variables of selected nodes to a file in the desired format
         
         Parameters:
         -----------
@@ -702,20 +774,26 @@ class Topology(Base):
             pivot variables into columns
 
         pretty : bool
-            Pretty-print JSON (w/ indentation)        
+            Pretty-print JSON (w/ indentation)    
+
+        nodes : list or None = None
+
+        variables : list or None = None
+
         """
         f = open(file,"w")
         if format == "json":
             if pretty:
-                obs_json = json.dumps(self.toList(pivot),ensure_ascii=False,indent=4)
+                obs_json = json.dumps(self.toList(pivot=pivot, nodes=nodes, variables=variables),ensure_ascii=False,indent=4)
             else:
-                obs_json = json.dumps(self.toList(pivot),ensure_ascii=False)
+                obs_json = json.dumps(self.toList(pivot=pivot, nodes=nodes, variables=variables),ensure_ascii=False)
             f.write(obs_json)
             f.close()
             return
-        f.write(self.toCSV(pivot))
-        f.close
-        return
+        else:
+            f.write(self.toCSV(pivot,nodes=nodes, variables=variables))
+            f.close()
+            return
     def saveOutputData(
         self,
         file : str,
@@ -850,7 +928,8 @@ class Topology(Base):
         include_tag : bool = True,
         use_output_series_id : bool = True,
         use_node_id : bool = False,
-        nodes : list = None
+        nodes : list = None,
+        variables : list = None
         ) -> DataFrame:
         """Pivot variables of all nodes into columns of a single DataFrame
         
@@ -867,6 +946,9 @@ class Topology(Base):
         
         nodes : list or None
             Nodes of the topology to read. If None, reads all self.nodes
+
+        variables : list or None
+            Variables of the topology to read. If None, reads all variables
         
         Returns:
         --------
@@ -878,7 +960,10 @@ class Topology(Base):
         #data = nodes[0].data[columns]
         data = createEmptyObsDataFrame(extra_columns={"tag":str})
         for node in nodes:
-            for variable in node.variables.values():
+            for var_id, variable in node.variables.items():
+                if variables is not None and var_id not in variables:
+                    # skip variable
+                    continue
                 if variable.data is not None and len(variable.data):
                     rsuffix = "_%i" % (variable.series_output[0].series_id) if use_output_series_id and variable.series_output is not None else "_%s_%i" % (str(node.id),variable.id) if use_node_id else "_%s_%i" % (node.name,variable.id) 
                     # if include_prono:

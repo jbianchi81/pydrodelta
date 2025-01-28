@@ -79,6 +79,40 @@
         ]
       }
     },
+    "save_variable": {
+      "type": "array",
+      "description": "Print data selected variables for each node where said variables are defined (one file per variable)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "var_id": {
+            "type": "integer",
+            "description": "Variable identifier"
+          },
+          "output": {
+            "type": "string",
+            "description": "Output file path"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "csv",
+              "json"
+            ]
+          },
+          "pretty": {
+            "type": "boolean"
+          },
+          "pivot": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "var_id",
+          "output"
+        ]
+      }
+    },
     "interpolation_limit": {
       "description": "maximum duration between observations for interpolation",
       "$ref": "timeinterval.json"

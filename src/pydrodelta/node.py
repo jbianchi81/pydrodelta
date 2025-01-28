@@ -221,7 +221,8 @@ class Node:
     def toCSV(
             self,
             include_series_id : bool = True,
-            include_header : bool = True
+            include_header : bool = True,
+            variables : list = None
             ) -> str:
         """
         returns self.variables.data as csv
@@ -233,13 +234,19 @@ class Node:
         
         include_header : bool = True
             Add a header row
+
+        variables : list or None = None
+            Print only the selected variables
         
         Returns:
         --------
         csv string : str
         """
         data = createEmptyObsDataFrame(extra_columns={"tag":"str","series_id":"int"} if include_series_id else {"tag":"str"})
-        for variable in self.variables.values():
+        for var_id, variable in self.variables.items():
+            if variables is not None and var_id not in variables:
+                # skip variable
+                continue
             data = pandas.concat([data,variable.getData(include_series_id=include_series_id)])
         return data.to_csv(header=include_header)
     

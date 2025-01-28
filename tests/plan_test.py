@@ -379,4 +379,18 @@ class Test_Plan(TestCase):
         #     message="expected to raise AssertionError"
         # )
 
+    def test_save_variable(self):
+        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config["topology"]["save_variable"] = [
+            {
+                "var_id": 40,
+                "output": "%s/results/q_data.csv" % config["PYDRODELTA_DIR"],
+                "format": "csv",
+                "pivot": True
+            }
+        ]
+        plan = Plan(
+            **plan_config
+        )
+        plan.execute(upload=False)
 

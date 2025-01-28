@@ -139,61 +139,37 @@ class Test_Topology(TestCase):
         self.assertNotIn("geom",topology.nodes[0].variables[1].series[0].metadata["estacion"])
 
     def test_variable_plot(self):
-        topology = Topology(
-            timestart = "2024-03-03T12:00:00.000Z",
-            timeend = "2024-03-07T12:00:00.000Z",
-            forecast_timeend = "2024-03-11T12:00:00.000Z",
-            interpolation_limit =  {"hours": 12},
-            no_metadata = True,
-            nodes = [
-              {
-                "id": 1,
-                "name": "h",
-                "time_interval": {"days": 1},
-                "variables": [
-                  {
-                    "id": 4,
-                    "series": [
-                      {
-                        "series_id": 1,
-                        "tipo": "puntual",
-                        "comment": "dummy puntual",
-                        "observations": [
-                            ["2024-03-03T12:00:00.000Z", 0.1],
-                            ["2024-03-04T12:00:00.000Z", 0.4],
-                            ["2024-03-05T12:00:00.000Z", 0.3],
-                            ["2024-03-06T12:00:00.000Z", 0.8],
-                            ["2024-03-07T12:00:00.000Z", 1.1]
-                        ]
-                      }
-                    ],
-                    "series_prono":  [
-                        {
-                            "series_id": 1,
-                            "tipo": "puntual",
-                            "comment": "dummy prono",
-                            "observations": [
-                                ["2024-03-06T12:00:00.000Z", 0.82],
-                                ["2024-03-07T12:00:00.000Z", 1.12],
-                                ["2024-03-08T12:00:00.000Z", 1.3],
-                                ["2024-03-09T12:00:00.000Z", 1.8],
-                                ["2024-03-10T12:00:00.000Z", 1.4]
-                            ],
-                            "cal_id": 1
-                        }
-                    ]
-                  }
-                ]
-              }
-            ]
-        )
+        topology = Topology(**dummy_topology)
         topology.batchProcessInput(include_prono=True)
         topology.nodes[0].variables[4].plot()
         topology.plotVariable(
             var_id = 4,
             output = "%s/results/h_plot.pdf" % config["PYDRODELTA_DIR"]
         )
-    
+
+    def test_variable_save(self):
+        topology = Topology(**dummy_topology)
+        topology.batchProcessInput(include_prono=True)
+        topology.saveData(
+            file = "%s/results/h_data.csv" % config["PYDRODELTA_DIR"],
+            format = "csv",
+            pivot = True,
+            variables = [4]
+        )
+
+    def test_variable_save_auto(self):
+        topology = Topology(
+            **dummy_topology,
+            save_variable=[
+                {
+                    "var_id": 4,
+                    "output": "%s/results/h_data.csv" % config["PYDRODELTA_DIR"],
+                    "format": "csv",
+                    "pivot": True
+                }
+            ])
+        topology.batchProcessInput(include_prono=True)
+
     def test_plot_prono(self):
         topology_config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
         topology = Topology(**topology_config)
@@ -334,4 +310,51 @@ class Test_Topology(TestCase):
             }]
         )
 
-
+dummy_topology = {
+    "timestart": "2024-03-03T12:00:00.000Z",
+    "timeend": "2024-03-07T12:00:00.000Z",
+    "forecast_timeend": "2024-03-11T12:00:00.000Z",
+    "interpolation_limit":  {"hours": 12},
+    "no_metadata": True,
+    "nodes": [
+        {
+        "id": 1,
+        "name": "h",
+        "time_interval": {"days": 1},
+        "variables": [
+            {
+            "id": 4,
+            "series": [
+                {
+                "series_id": 1,
+                "tipo": "puntual",
+                "comment": "dummy puntual",
+                "observations": [
+                    ["2024-03-03T12:00:00.000Z", 0.1],
+                    ["2024-03-04T12:00:00.000Z", 0.4],
+                    ["2024-03-05T12:00:00.000Z", 0.3],
+                    ["2024-03-06T12:00:00.000Z", 0.8],
+                    ["2024-03-07T12:00:00.000Z", 1.1]
+                ]
+                }
+            ],
+            "series_prono":  [
+                {
+                    "series_id": 1,
+                    "tipo": "puntual",
+                    "comment": "dummy prono",
+                    "observations": [
+                        ["2024-03-06T12:00:00.000Z", 0.82],
+                        ["2024-03-07T12:00:00.000Z", 1.12],
+                        ["2024-03-08T12:00:00.000Z", 1.3],
+                        ["2024-03-09T12:00:00.000Z", 1.8],
+                        ["2024-03-10T12:00:00.000Z", 1.4]
+                    ],
+                    "cal_id": 1
+                }
+            ]
+            }
+        ]
+        }
+    ]
+}

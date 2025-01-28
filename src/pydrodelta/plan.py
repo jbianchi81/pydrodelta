@@ -279,6 +279,13 @@ class Plan(Base):
         if self.topology.plot_variable is not None:
             for i, item in enumerate(self.topology.plot_variable):
                 self.topology.plotVariable(**item)
+        if self.topology.save_variable is not None:
+            for i, item in enumerate(self.topology.save_variable):
+                item["file"] = item["output"]
+                del item["output"]
+                item["variables"] = [item["var_id"]]
+                del item["var_id"]
+                self.topology.saveData(**item)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
             with open(os.path.join(config["PYDRODELTA_DIR"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
