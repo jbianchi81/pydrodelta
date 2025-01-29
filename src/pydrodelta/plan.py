@@ -323,6 +323,7 @@ class Plan(Base):
         if self.save_variable_sim is not None:
             for v in self.save_variable_sim:
                 sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
+                sim_data = sim_data if sim_data is not None else createEmptyObsDataFrame()
                 with open(os.path.join(config["PYDRODELTA_DIR"], v["output"]),"w",encoding='utf-8') as outfile:
                     sim_data.to_csv(outfile)
         self.saveSimData()

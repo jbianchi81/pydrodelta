@@ -681,10 +681,10 @@ class NodeVariable:
         data = self.series[0].data[["valor",]]
         for serie in self.series:
             if len(serie.data):
-                data = data.join(serie.data[["valor",]],how='outer',rsuffix="_%s" % serie.series_id,sort=True)
+                data = data.join(serie.data[["valor",]].dropna(),how='outer',rsuffix="_%s" % serie.series_id,sort=True)
         if include_prono and self.series_prono is not None and len(self.series_prono):
             for serie in self.series_prono:
-                data = data.join(serie.data[["valor",]],how='outer',rsuffix="_prono_%s" % serie.series_id,sort=True)
+                data = data.join(serie.data[["valor",]].dropna(),how='outer',rsuffix="_prono_%s" % serie.series_id,sort=True)
         del data["valor"]
         return data
     
@@ -998,8 +998,8 @@ class NodeVariable:
             # plt.axvline(x=self._node.timeend, color="black",label="timeend")
             plt.vlines(
                 x = [self._node.timeend],
-                ymin = min(data.min()),
-                ymax = max(data.max()),
+                ymin = min(data.min().dropna()),
+                ymax = max(data.max().dropna()),
                 colors = ["gray"], 
                 label = "_forecast_date",
                 linestyles="dashed")
@@ -1007,8 +1007,8 @@ class NodeVariable:
             # plt.axvline(x=self._node.forecast_timeend, color="red",label="forecast_timeend")
             plt.vlines(
                 x = [self._node.forecast_timeend],
-                ymin = min(data.min()),
-                ymax = max(data.max()),
+                ymin = min(data.min().dropna()),
+                ymax = max(data.max().dropna()),
                 colors = ["red"], 
                 label = "_forecast_timeend",
                 linestyles="dashed")

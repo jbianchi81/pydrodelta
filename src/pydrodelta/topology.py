@@ -1147,6 +1147,7 @@ class Topology(Base):
                 logging.debug("topology.plotVariable: Skipping node %s" % str(node.id))
         if output is not None:
             pdf.close()
+            matplotlib.use(os.environ["MPLBACKEND"])
         else:
             plt.show()
     def plotProno(
