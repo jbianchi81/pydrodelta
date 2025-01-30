@@ -2,7 +2,7 @@ from .procedure_function import ProcedureFunction
 import logging
 import json
 from . import util
-from .a5 import createEmptyObsDataFrame
+from a5client import createEmptyObsDataFrame
 from .result_statistics import ResultStatistics
 from .procedure_function_results import ProcedureFunctionResults
 from .pydrology import testPlot

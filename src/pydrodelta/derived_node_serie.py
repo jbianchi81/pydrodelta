@@ -2,7 +2,7 @@ from .derived_origin import DerivedOrigin
 from .interpolated_origin import InterpolatedOrigin
 import logging
 from datetime import timedelta
-from .a5 import createEmptyObsDataFrame
+from a5client import createEmptyObsDataFrame
 from .util import applyTimeOffsetToIndex
 from .types.derived_origin_dict import DerivedOriginDict
 from .types.interpolated_origin_dict import InterpolatedOriginDict

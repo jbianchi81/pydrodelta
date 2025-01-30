@@ -10,3 +10,4 @@ pyyaml
 click
 colour
 minio
+a5_client

@@ -1,7 +1,7 @@
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
-from ..a5 import createEmptyObsDataFrame
+from a5client import createEmptyObsDataFrame
 from typing import Union, List, Tuple
 from pandas import DataFrame
 

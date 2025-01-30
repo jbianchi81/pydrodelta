@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 import pydrodelta.util as util
 import os
 import logging
-from .a5 import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
+from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame
 from .config import config
 from typing import Union, List, Tuple

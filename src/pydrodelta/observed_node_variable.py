@@ -1,7 +1,7 @@
 from .node_variable import NodeVariable
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
-from .a5 import createEmptyObsDataFrame
+from a5client import createEmptyObsDataFrame
 import logging
 from .util import serieFillNulls, serieRegular, createDatetimeSequence
 import numpy as np

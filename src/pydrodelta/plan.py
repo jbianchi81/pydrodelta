@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from typing import Union, List
 from pandas import DataFrame
 
-from .a5 import Crud, createEmptyObsDataFrame
+from a5client import Crud, createEmptyObsDataFrame
 from .topology import Topology
 import pydrodelta.util as util
 from .procedure import Procedure

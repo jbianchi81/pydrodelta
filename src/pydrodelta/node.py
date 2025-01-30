@@ -1,7 +1,7 @@
 from .util import interval2timedelta, createDatetimeSequence
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
-from .a5 import createEmptyObsDataFrame, Serie, Crud
+from a5client import createEmptyObsDataFrame, Serie, Crud
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor

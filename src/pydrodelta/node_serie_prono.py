@@ -1,6 +1,6 @@
 from .node_serie import NodeSerie
 import logging
-from .a5 import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
+from a5client import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
 from .node_serie_prono_metadata import NodeSeriePronoMetadata
 from .config import config
 from datetime import datetime

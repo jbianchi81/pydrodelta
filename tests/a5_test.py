@@ -1,4 +1,4 @@
-from pydrodelta.a5 import Observacion, Serie, Crud, observacionesListToDataFrame, observacionesDataFrameToList, createEmptyObsDataFrame
+from a5client import Observacion, Serie, Crud, observacionesListToDataFrame, observacionesDataFrameToList, createEmptyObsDataFrame
 import unittest
 from pydrodelta.util import tryParseAndLocalizeDate
 from pandas import DataFrame, DatetimeIndex

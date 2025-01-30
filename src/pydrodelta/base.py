@@ -1,7 +1,7 @@
 import yaml
 from .config import config
 from .util import coalesce
-from .a5 import Crud
+from a5client import Crud
 from .descriptors.dict_descriptor import DictDescriptor
 from .persistence import S3Client
 from .types.api_config_dict import ApiConfigDict
