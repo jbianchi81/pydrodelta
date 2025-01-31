@@ -15,7 +15,8 @@ dependencies = [
     "jsonschema",
     "pyyaml",
     "isodate",
-    "networkx"
+    "networkx",
+    "a5_client"
 ]
 
 [project.scripts]
