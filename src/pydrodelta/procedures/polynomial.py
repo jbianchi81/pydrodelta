@@ -46,7 +46,7 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
             - coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic coefficient, and so on
             - intercept : float - default 0
         
-        \**kwargs : see ..procedure_function.ProcedureFunction
+        **kwargs : see ..procedure_function.ProcedureFunction
         """
         super().__init__(parameters = parameters, **kwargs)
         getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")

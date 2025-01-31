@@ -50,7 +50,7 @@ class ObservedNodeVariable(NodeVariable):
         series_prono : List[Union[dict,NodeSerieProno]]
             Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs
 
-        \**kwargs:
+        **kwargs:
             Keyword arguments inherited from the parent class (see NodeVariable :func:`~pydrodelta.NodeVariable.__init__`)
         """
         super().__init__(**kwargs)
