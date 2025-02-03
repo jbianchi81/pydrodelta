@@ -88,7 +88,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
     
     def setEngine(
             self,
-            input : list
+            input : List[List[float]]
         ) -> None:
         """Set HOSH4P1L procedure engine
         
@@ -107,7 +107,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,self.k,self.n] #línea corregida, estaba invertido el orden de pars k y n LMG 2024/04
         self._engine = HOSH4P1L(
             pars = hosh_pars,
-            Boundaries = np.array(input),
+            Boundaries = input, 
             InitialConditions = [self.SurfaceStorage,self.SoilStorage],
             Proc = self.Proc)
 
@@ -168,13 +168,13 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
         Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        pma = input[0]["valor"].to_list()
-        etp = input[1]["valor"].to_list()
+        pma = list(input[0].valor) # input[0]["valor"].to_list()
+        etp = list(input[1].valor) #input[1]["valor"].to_list()
         if len(etp) < len(pma):
             raise Exception("etp boundary length must be the same as pma")
         self.Boundaries = [ (x, etp[i]) for i, x in enumerate(pma)]
         self.setEngine(
-            input = [ (x, etp[i]) for i, x in enumerate(pma) ]
+            input = [ list(input[0].valor), list(input[1].valor) ]  #(x, etp[i]) for i, x in enumerate(pma)  se modificó en adaptors. Continuar con resto de adpators. Revisar siempre tipos en self.setEngine
         )
         self.engine.executeRun()
         q_sim = [x / 1000 / 24 / 60 / 60 * self.area * self.ae for x in self.engine.Q]

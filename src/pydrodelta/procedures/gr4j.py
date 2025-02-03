@@ -146,7 +146,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
         """
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        self.setEngine([ ( input[0]["valor"][i], input[1]["valor"][i]) for i in range(len(input[0])) ])
+        self.setEngine([ list(input[0].valor), list(input[1].valor) ]) #modificados a lista (se cambió adaptor para evitar crash en Pydrology 20240607)
         self.engine.executeRun()
         q = [x / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae for x in self.engine.Q][0:len(input[0].index)]
         smc = [x / self.engine.prodStoreMaxStorage * (self.rho - self.wp) + self.wp for x in self.engine.prodStore.SoilStorage][0:len(input[0].index)]
@@ -183,15 +183,15 @@ class GR4JProcedureFunction(PQProcedureFunction):
     
     def setEngine(
         self,
-        input : List[Tuple[float,float]]
+        input : List[List[float]]
         ) -> None:
         """Instantiate GR4J procedure engine using input as Boundaries
         
         Args:
-        input : List[Tuple[float,float]] - Boundary conditions: list of (pmad : float, etpd : float)"""
+        input : List[float] - Boundary conditions: list of (pmad : float, etpd : float)"""
         self._engine = GR4J(
             pars=[self.X0,self.X3,self.X2,self.X1],
-            Boundaries=np.array(input),
+            Boundaries=input,
             InitialConditions=[self.Sk_init,self.Rk_init])
     
     def setParameters(
