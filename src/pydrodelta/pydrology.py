@@ -772,34 +772,39 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
 
     @property
     def K(self) -> float:
+        if self.pars[0] <= 0:
+            raise ValueError("Invalid parameter K: must be > 0")
         return self.pars[0]
     
     @property
-    def N(self) -> float:
+    def N(self) -> int:
         if(len(self.pars)<2):
             return 2
         else:
-            return self.pars[1]
+            return int(self.pars[1])
 
     def __init__(self,pars : List[float],Boundaries : List[float] =[0],InitialConditions : List[float] =[0],dt=1):
         """
             pars : List[float]
                 lista con los valores del tiempo de residencia K y de la cantidad discreta de N de reservorios lineales en cascada 
             InitialConditions : List[float]
-                lista con el valor de caudal inicial y final para cada reservorio (puede brindarse un valor solamente, común a todos los reservorios, por defecto si se omite este es igual a 0)
+                lista con el valor de caudal inicial para cada reservorio (puede brindarse un valor solamente, común a todos los reservorios, por defecto si se omite este es igual a 0)
             Boundaries : List[float]
                 lista con el vector de la condición de borde (serie temporal de caudal afluente)
         """
+        if not len(InitialConditions):
+            InitialConditions = [0]
         super().__init__(pars,Boundaries,InitialConditions)
+        self.K
         self.Inflow=np.array(self.boundaries)   
-        if len(self.initial_conditions)==1:
+        if len(self.initial_conditions) == 1:
             self.Cascade=np.array([[self.initial_conditions[0]]*self.N]*2,dtype='float')
             self.Outflow=np.array([self.initial_conditions[0]]*(len(self.boundaries)+1),dtype='float')
         else:
-            if len(self.initial_conditions)!=2*self.N:
-                raise NameError("Initial conditions list must have length 2*N")
+            if len(self.initial_conditions) != self.N:
+                raise ValueError("Initial conditions list must have length N")
             else:
-                self.Cascade=np.array(self.initial_conditions,dtype='float').reshape(-1,2)
+                self.Cascade=np.array([self.initial_conditions,[0] * self.N],dtype='float') # .reshape(2,-1)
                 self.Outflow=np.array([self.Cascade[0,1]]*(len(self.boundaries)+1),dtype='float')
         self.dt=dt
     def computeOutFlow(self):
@@ -817,7 +822,7 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
                         self.Cascade[1][j]=c*self.Cascade[0][j]+a*self.Cascade[0][j-1]+b*self.Cascade[1][j-1]
                 for j in range(0,self.N,1):
                     self.Cascade[0][j]=self.Cascade[1][j]
-            self.Outflow[i+1]=self.Cascade[0][j]
+            self.Outflow[i]=self.Cascade[0][j]
 
 #Reservorio de enrutamiento (HIDROSAT)
 class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
@@ -1178,69 +1183,89 @@ class LagAndRoute(PydrologyProcedureInterface):
     dt : float
     """Longitud de paso de cálculo"""
     type='Lag and route method'
+    Q : List[float]
+    """Output hydrogram"""
     
     @property
     def lag(self) -> float:
         if self.pars[0] is not None:
             return self.pars[0]
         else:
-            raise Exception("lag time must be provided. Check pars[0]")
+            raise ValueError("lag time must be provided. Check pars[0]")
 
     @property
     def k(self) -> float:
-        if self.pars[1] is not None:
+        if len(self.pars) >= 2 and self.pars[1] is not None:
             return self.pars[1]
         else:
-            raise Exception("Residence time (k) must ne provided, for computation you may take attenuation index = -1/ln(k). Check pars[1]")
+            raise ValueError("Residence time (k) must ne provided, for computation you may take attenuation index = -1/ln(k). Check pars[1]")
     
     @property
-    def n(self) -> float:
-        if len(self.pars)>2:
-            print("assuming Cascade of Linear Reservoirs Routing")
-            return self.pars[2]
+    def n(self) -> int:
+        if len(self.pars) > 2:
+            logging.debug("assuming Cascade of Linear Reservoirs Routing")
+            return int(self.pars[2])
         else:
-            print("assuming Linear Reservoir Routing")
+            logging.debug("assuming Linear Reservoir Routing")
             return 1
         
-    def __init__(self,pars : List[float],Boundaries : List[float] =[[0],[0]],InitialConditions : float = [0],Proc : str = 'Lag and Route',dt=1):
-       """
-        pars : List[List[float]]
-            Lista que contiene el tiempo de retardo (celeridad), el tiempo de residencia (memoria) y opcionalmente el número de reservorios (lineales) utilizados en la propagación
-        InitialConditions : List [float]
-            Lista  con el valor de la condición inicial de almacenamiento en el sistema de reservorios (por defecto se cosnsideran vacíos)
-        Boundaries : List[float]
-            Lista con el hidrograma de entrada (resolución dt) y opcionalmente una lista con valores de pérdida (leakages)  
-        dt : float
-             Resolución del hidrograma de entrada, por defecto se establece en la unidad
-       """
-       super().__init__(pars,Boundaries,InitialConditions)
-       self.routingProc=Proc
-       self.Inflow=np.array(self.boundaries[0],dtype='float')
-       if len(self.boundaries)>1:
-            if self.boundaries[1]==len(self.boundaries[0]):
-                    self.Leakages=np.array(self.boundaries[1],dtype='float')
-            elif len(self.boundaries[1])<len(self.boundaries[0]):
-                    dif=len(self.boundaries[0])-len(self.boundaries[1])
-                    self.Leakages=np.append(self.boundaries[1],np.zeros(dif))
-            else:
-                dif=len(self.boundaries[1])-len(self.boundaries[0])
-                self.Inflow=np.append(self.boundaries[0],np.zeros(dif))
-                self.Leakages=self.boundaries[1]
-       else:
-            self.Leakages=np.zeros(len(self.boundaries[0]))
-       self.dt=dt
-       if len(self.initial_conditions)!=self.n:
-           if len(self.initial_conditions)==1:
-               self.initial_conditions=np.array([self.initial_conditions]*len(self.n))
-           else:
-               raise Exception("If the number 'n' of reservoirs is greater than 1 and initial conditions are not the same in these reservoirs, you must specify them. Check Boundaries")
+    def __init__(self,pars : List[float],Boundaries : List[List[float]] = [[0],[0]],InitialConditions : List[float] = [0], dt = 1):
+        """
+            pars : List[List[float]]
+                Lista que contiene:
+                - lag: el tiempo de retardo (celeridad), 
+                - k: el tiempo de residencia (memoria) y opcionalmente 
+                - n: el número de reservorios (lineales) utilizados en la propagación
             
+            Boundaries : List[List[float]]
+                Lista con el hidrograma de entrada (resolución dt) y opcionalmente una lista con valores de pérdida (leakages)  
+            
+            InitialConditions : List [float]
+                lista con el valor de caudal inicial para cada reservorio (puede brindarse un valor solamente, común a todos los reservorios, por defecto si se omite este es igual a 0)
+            
+            dt : float
+                Resolución del hidrograma de entrada, por defecto se establece en la unidad
+        """
+        super().__init__(pars,Boundaries)
+        
+        # check pars
+        self.lag
+        self.k
+        self.n
+
+        self.routingProc = 'Lag and Route'
+        self.Inflow = np.array(self.boundaries[0], dtype='float')
+        if len(self.boundaries) > 1:
+                if len(self.boundaries[1]) == len(self.boundaries[0]):
+                        self.Leakages=np.array(self.boundaries[1], dtype='float')
+                elif len(self.boundaries[1]) < len(self.boundaries[0]):
+                        dif = len(self.boundaries[0]) - len(self.boundaries[1])
+                        self.Leakages=np.append(self.boundaries[1], np.zeros(dif))
+                else:
+                    dif = len(self.boundaries[1])-len(self.boundaries[0])
+                    self.Inflow = np.append(self.boundaries[0],np.zeros(dif))
+                    self.Leakages = self.boundaries[1]
+        else:
+                self.Leakages = np.zeros(len(self.boundaries[0]))
+        self.dt = dt
+        # if len(self.initial_conditions) != self.n:
+        #     if len(self.initial_conditions) == 1:
+        #         self.initial_conditions=np.array([self.initial_conditions] * self.n)
+        #     else:
+        #         raise ValueError("If the number 'n' of reservoirs is greater than 1 and initial conditions are not the same in these reservoirs, you must specify them. Check Boundaries")
+
+        self.laggedInflow = np.zeros(len(self.Inflow)+int(round(self.lag)))
+        self.laggedInflow[int(round(self.lag)):len(self.laggedInflow)] = self.Inflow
+        self.routingSystem = LinearReservoirCascade(
+            pars=[self.k,self.n],
+            Boundaries=self.laggedInflow, 
+            InitialConditions=InitialConditions,
+            dt=self.dt
+        )
+
     def executeRun(self):
-        self.laggedInflow=np.zeros(len(self.Inflow)+int(round(self.lag)))
-        self.laggedInflow[int(round(self.lag)):len(self.laggedInflow)]=self.Inflow
-        self.routingSystem=LinearReservoirCascade(pars=[self.k,self.n],InitialConditions=self.initial_conditions,Boundaries=self.laggedInflow)
         self.routingSystem.computeOutFlow()
-        self.Q=self.routingSystem.Outflow
+        self.Q = self.routingSystem.Outflow
 
 #3. Modelos PQ/QQ
 
