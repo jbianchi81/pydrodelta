@@ -6,6 +6,7 @@ from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 from numpy import array
+from pandas import DataFrame
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
@@ -323,3 +324,19 @@ class ProcedureFunction:
                 self.initial_states[p.name] = states[i]
         else:
             self.initial_states = list(states)
+
+    def extractListsFromInput(self, input : List[DataFrame]) -> List[List[float]]:
+        return [ self._procedure.getInputListFromDataFrame(df) for df in input ]
+    
+    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame|List[float]] = []) -> DataFrame:
+        if not len(input):
+            raise ValueError("input must be of length 1 or greater")
+        result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})
+        for i in range(1,len(self._boundaries)):
+            result = result.join(input[i][["valor"]].rename(columns={"valor": self._boundaries[i].name}))
+        for i in range(0,len(self._outputs)):
+            if type(output[i]) == DataFrame:
+                result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
+            else:
+                result[self._outputs[i].name] = output[i]
+        return result

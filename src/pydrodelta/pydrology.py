@@ -778,7 +778,7 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
     
     @property
     def N(self) -> int:
-        if(len(self.pars)<2):
+        if(len(self.pars) < 2):
             return 2
         else:
             return int(self.pars[1])

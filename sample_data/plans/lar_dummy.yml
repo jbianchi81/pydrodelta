@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../../schemas/json/plan.json
+---
+name: dummy lag and route
+id: 1
+forecast_date: "2024-01-31T03:00:00.000Z"
+time_interval:
+  days: 1
+topology:
+  timestart: "2024-01-01T03:00:00.000Z" # "2021-11-01T00:00:00.000Z"
+  timeend: "2024-01-31T03:00:00.000Z"
+  forecast_timeend: "2024-02-03T03:00:00.000Z"
+  time_offset:
+    hours: 0
+  nodes:
+  - id: 1
+    name: node 1
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      name: QMD
+      series:
+      - series_id: 1
+        tipo: puntual
+        csv_file: sample_data/csv/lc_dummy.csv
+    node_type: station
+  - id: 2
+    name: node 2
+    time_interval:
+      days: 1
+    variables:
+    - id: 40
+      name: HMD
+      series:
+      - series_id: 2
+        tipo: puntual
+        csv_file: sample_data/csv/lc_dummy.csv
+      series_sim:
+      - tipo: puntual
+        series_id: 2
+    node_type: station
+procedures:
+- id: dummy lag and route
+  function:
+    type: LagAndRoute
+    boundaries:
+    - name: input_1
+      node_variable: [1,40]
+    - name: input_2
+      node_variable: [2,40]
+    outputs:
+    - name: output
+      node_variable: [2,40]
+    parameters:
+      lag: 3
+      k: 0.5
+      n: 2

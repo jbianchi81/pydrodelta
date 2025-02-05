@@ -1,6 +1,7 @@
 from .procedure_function import ProcedureFunction
 import logging
 import json
+import numpy as np
 from . import util
 from a5client import createEmptyObsDataFrame
 from .result_statistics import ResultStatistics
@@ -288,6 +289,18 @@ class Procedure():
             self.input = data
         else:
             return data
+        
+    def getInputListFromDataFrame(self, df : DataFrame) -> List[float]:
+        data = df[["valor"]].rename(columns={"valor":"input"})
+        if not len(data.dropna().index):
+            raise Exception("Procedure %s: Missing input data: no valid values found" % self.id)
+        last_date = max(data.dropna().index)
+        input = data[data.index <= last_date]["input"].values
+        if True in np.isnan(input):
+            raise Exception("Procedure %s: NaN values found in input before last date %s" % (self.id, last_date.isoformat()))
+        return input
+    
+
     def loadOutputObs(
         self,
         inplace : bool = True,
@@ -742,6 +755,7 @@ from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
 from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
 from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
 from pydrodelta.procedures.abstract import AbstractProcedureFunction
+from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -772,5 +786,6 @@ procedureFunctionDict = {
     "Difference": DifferenceProcedureFunction,
     "LinearNet3": LinearNet3ProcedureFunction,
     "ExponentialFit": ExponentialFitProcedureFunction,
-    "LinearFit": LinearFitProcedureFunction
+    "LinearFit": LinearFitProcedureFunction,
+    "LagAndRoute": LagAndRouteProcedureFunction
 }

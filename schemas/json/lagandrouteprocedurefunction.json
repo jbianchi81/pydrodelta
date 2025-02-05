@@ -1,0 +1,52 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "lagandrouteprocedurefunction.json",
+    "title": "LagAndRouteProcedureFunction",
+    "type": "object",
+    "description": "Lag and route procedure function",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LagAndRoute"
+            ]
+        },
+        "parameters": {
+            "type": "object",
+            "desciption": "Model parameters",
+            "properties": {
+                "lag": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
+            },
+            "required": ["lag", "k"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                }
+            }
+        }
+    },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}
