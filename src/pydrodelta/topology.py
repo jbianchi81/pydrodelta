@@ -1083,7 +1083,7 @@ class Topology(Base):
                 )
             )
         else:
-            matplotlib.use(os.environ["MPLBACKEND"])
+            matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         for node in self.nodes:
             # if hasattr(node.series[0],"data"):
             if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
@@ -1147,7 +1147,7 @@ class Topology(Base):
                 logging.debug("topology.plotVariable: Skipping node %s" % str(node.id))
         if output is not None:
             pdf.close()
-            matplotlib.use(os.environ["MPLBACKEND"])
+            matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         else:
             plt.show()
     def plotProno(
