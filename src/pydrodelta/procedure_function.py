@@ -328,7 +328,7 @@ class ProcedureFunction:
     def extractListsFromInput(self, input : List[DataFrame]) -> List[List[float]]:
         return [ self._procedure.getInputListFromDataFrame(df) for df in input ]
     
-    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame|List[float]] = []) -> DataFrame:
+    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame] = []) -> DataFrame:
         if not len(input):
             raise ValueError("input must be of length 1 or greater")
         result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})
