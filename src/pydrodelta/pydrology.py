@@ -956,7 +956,7 @@ class MuskingumChannel(PydrologyProcedureInterface):
         return self.pars[0]
     
     @property
-    def N(self) -> float:
+    def X(self) -> float:
         return self.pars[1]
 
     def __init__(
