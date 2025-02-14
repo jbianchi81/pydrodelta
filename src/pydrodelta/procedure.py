@@ -290,13 +290,15 @@ class Procedure():
         else:
             return data
         
-    def getInputListFromDataFrame(self, df : DataFrame) -> List[float]:
+    def getInputListFromDataFrame(self, df : DataFrame, allow_na : bool=False) -> List[float]:
         data = df[["valor"]].rename(columns={"valor":"input"})
         if not len(data.dropna().index):
+            if allow_na:
+                return []
             raise Exception("Procedure %s: Missing input data: no valid values found" % self.id)
         last_date = max(data.dropna().index)
         input = data[data.index <= last_date]["input"].values
-        if True in np.isnan(input):
+        if True in np.isnan(input) and not allow_na:
             raise Exception("Procedure %s: NaN values found in input before last date %s" % (self.id, last_date.isoformat()))
         return input
     

@@ -156,12 +156,11 @@ class Test_lagandroute(TestCase):
         self.assertGreaterEqual(len(procedure.Q),1000)
         self.assertAlmostEqual(procedure.Q[999],1,7)
 
-    def test_invalid_k(self):    
-        self.assertRaises(
-            ValueError,
-            LagAndRoute,
+    def test_no_route_k_0(self):    
+        procedure = LagAndRoute(
             pars = [1, 0]
         )
+        self.assertIsNone(procedure.routingSystem, "Expected RoutingSystem = None")
 
     def test_sum(self):    
         procedure = LagAndRoute(
@@ -184,7 +183,7 @@ class Test_lagandroute(TestCase):
 
     def test_lag(self):    
         procedure = LagAndRoute(
-            pars = [1, 0.00001],
+            pars = [1, 0],
             Boundaries = [
                 [0,1,0,0,0,0,0,0,0,0,0,0,0,0]
             ]

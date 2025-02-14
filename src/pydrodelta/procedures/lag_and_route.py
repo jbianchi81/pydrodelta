@@ -12,8 +12,8 @@ class LagAndRouteProcedureFunction(ProcedureFunction):
 
     _parameters = [
         ModelParameter(name="lag", constraints=(0,0,10,50)),
-        ModelParameter(name="k", constraints=(0.2,0.5,8,25)),
-        ModelParameter(name="n", constraints=(2,2,5,8))
+        ModelParameter(name="k", constraints=(0.00001,0.5,8,25)),
+        ModelParameter(name="n", constraints=(0,2,5,8))
     ]
     """Model parameters: lag, k, n"""
 
@@ -96,7 +96,7 @@ class LagAndRouteProcedureFunction(ProcedureFunction):
         ) -> tuple:
         if input is None:
             input = self._procedure.loadInput(inplace=False)
-        input_list = self.extractListsFromInput(input)
+        input_list = self.extractListsFromInput(input, allow_na=[False,True])
         self.setEngine(input_list)
         self.engine.executeRun()
         outflow = list(self.engine.Q[:len(input[0])])

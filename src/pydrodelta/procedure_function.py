@@ -325,8 +325,10 @@ class ProcedureFunction:
         else:
             self.initial_states = list(states)
 
-    def extractListsFromInput(self, input : List[DataFrame]) -> List[List[float]]:
-        return [ self._procedure.getInputListFromDataFrame(df) for df in input ]
+    def extractListsFromInput(self, input : List[DataFrame], allow_na : List[bool]=[False]) -> List[List[float]]:
+        while len(allow_na) < len(input):
+            allow_na.append(False)
+        return [ self._procedure.getInputListFromDataFrame(df,allow_na[i]) for i, df in enumerate(input) ]
     
     def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame] = []) -> DataFrame:
         if not len(input):

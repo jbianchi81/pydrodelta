@@ -1256,16 +1256,22 @@ class LagAndRoute(PydrologyProcedureInterface):
 
         self.laggedInflow = np.zeros(len(self.Inflow)+int(round(self.lag)))
         self.laggedInflow[int(round(self.lag)):len(self.laggedInflow)] = self.Inflow
-        self.routingSystem = LinearReservoirCascade(
-            pars=[self.k,self.n],
-            Boundaries=self.laggedInflow, 
-            InitialConditions=InitialConditions,
-            dt=self.dt
-        )
-
+        if round(self.k,3) <= 0 or round(self.n,0) == 0:
+            logging.debug("No routing, will return lagged inflow as outflow")
+            self.routingSystem = None
+        else:
+            self.routingSystem = LinearReservoirCascade(
+                pars=[self.k,self.n],
+                Boundaries=self.laggedInflow, 
+                InitialConditions=InitialConditions,
+                dt=self.dt
+            )
     def executeRun(self):
-        self.routingSystem.computeOutFlow()
-        self.Q = self.routingSystem.Outflow
+        if self.routingSystem is not None:
+            self.routingSystem.computeOutFlow()
+            self.Q = self.routingSystem.Outflow
+        else:
+            self.Q = self.laggedInflow
 
 #3. Modelos PQ/QQ
 
