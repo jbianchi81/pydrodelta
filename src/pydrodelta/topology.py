@@ -870,6 +870,51 @@ class Topology(Base):
             if obs_created is not None and len(obs_created):
                 created.extend(obs_created)
         return created
+
+    def dataAsProno(
+        self,
+        include_obs : bool = True,
+        include_prono : bool = False
+    ) -> dict:
+        """
+        Converts analysis data (series_output) of all variables of all nodes to a5 'corrida' object (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
+
+        Parameters:
+        -----------
+        include_obs : bool
+            Include period before the forecast date
+        include_prono : bool
+            Include period after the forecast date
+
+        Returns:
+        --------
+        dict : (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/corrida.yml)
+        """
+        if self.cal_id is None:
+            if self._plan is not None:
+                 cal_id = self._plan.id
+            else:
+                raise Exception("upload analysis: Missing required parameter cal_id")
+        else:
+            cal_id = self.cal_id
+        prono = {
+            "cal_id": cal_id,
+            "forecast_date": self.timeend.isoformat(),
+            "series": []
+        }
+        if include_obs:
+            for node in self.nodes:
+                serieslist = node.variablesOutputToList(flatten=False)
+                for serie in serieslist:
+                    serie["pronosticos"] = serie["observaciones"]
+                    del serie["observaciones"]
+                prono["series"].extend(serieslist)
+        if include_prono:
+            for node in self.nodes:
+                serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
+                prono["series"].extend(serieslist)
+        return prono
+        
     def uploadDataAsProno(
         self,
         include_obs : bool = True,
@@ -901,29 +946,9 @@ class Topology(Base):
         """
         save_response = coalesce(save_response, self.save_response)
         save_post_data = coalesce(save_post_data, self.save_post_data)
-        if self.cal_id is None:
-            if self._plan is not None:
-                 cal_id = self._plan.id
-            else:
-                raise Exception("upload analysis: Missing required parameter cal_id")
-        else:
-            cal_id = self.cal_id
-        prono = {
-            "cal_id": cal_id,
-            "forecast_date": self.timeend.isoformat(),
-            "series": []
-        }
-        if include_obs:
-            for node in self.nodes:
-                serieslist = node.variablesOutputToList(flatten=False)
-                for serie in serieslist:
-                    serie["pronosticos"] = serie["observaciones"]
-                    del serie["observaciones"]
-                prono["series"].extend(serieslist)
-        if include_prono:
-            for node in self.nodes:
-                serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
-                prono["series"].extend(serieslist)
+        
+        prono = self.dataAsProno(include_obs=include_obs, include_prono=include_prono)
+        
         if save_post_data:
             json.dump(prono, open("%s/%s" % (config["PYDRODELTA_DIR"], save_post_data), "w"), indent=4)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
