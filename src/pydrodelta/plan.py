@@ -129,6 +129,11 @@ class Plan(Base):
         if not len(self._save_variable_sim):
             self._save_variable_sim = None
 
+    @property
+    def procedureIndex(self) -> List[Union[str,int]]:
+        """ returns list of procedure ids"""
+        return [p.id for p in self.procedures]
+
         
     def __init__(
             self,
@@ -237,6 +242,14 @@ class Plan(Base):
         self.output_sim_csv = output_sim_csv
         self.qualifiers = qualifiers
         self.save_variable_sim = save_variable_sim
+    
+    def getProcedure(self,id : Union[str,int]) -> Procedure:
+        """get procedure by id"""
+        for p in self.procedures:
+            if str(p.id) == str(id):
+                return p
+        raise KeyError("Procedure id %s not found" % str(id))
+    
     def execute(
         self,
         include_prono : bool = True,

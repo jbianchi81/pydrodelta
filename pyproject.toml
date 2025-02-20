@@ -16,7 +16,10 @@ dependencies = [
     "pyyaml",
     "isodate",
     "networkx",
-    "a5_client"
+    "a5_client",
+    "scikit-learn",
+    "minio",
+    "colour"
 ]
 
 [project.scripts]

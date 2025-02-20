@@ -5,6 +5,7 @@ from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRand
 from pathlib import Path
 from datetime import timedelta, datetime
 from .node import Node
+from .node_variable import NodeVariable
 import logging
 import json
 from numpy import nan
@@ -372,7 +373,13 @@ class Topology(Base):
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
         return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
-        
+
+    def __getitem__(self, key : int):
+        return self.getNode(key)
+
+    def index(self) -> List[int]:
+        return [n.id for n in self.nodes]
+
     def getNode(
         self,
         node_id : int) -> Node:
@@ -382,7 +389,21 @@ class Topology(Base):
             if n.id == node_id:
                 return n
         raise KeyError("Node with id %i not found" % node_id)
-    
+
+    def getNodeVariable(
+        self,
+        node_id : int,
+        var_id: int) -> NodeVariable:
+        if self.nodes is None:
+            raise Exception("Nodes is not defined")
+        for i, n in enumerate(self.nodes):
+            if n.id == node_id:
+                if var_id in n.variables:
+                    return n[var_id]
+                else:
+                    raise KeyError("Variable with id %i not found in node %i" % (var_id, node_id))
+        raise KeyError("Node with id %i not found" % node_id)
+
     def batchProcessInput(
         self,
         include_prono : bool = None,
@@ -1098,7 +1119,7 @@ class Topology(Base):
         extra_sim_columns : bool = True
             Add additional simulation series to plot
         """
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
         if output is not None:
             matplotlib.use('pdf')
             pdf = matplotlib.backends.backend_pdf.PdfPages(

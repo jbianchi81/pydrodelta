@@ -235,6 +235,12 @@ class NodeVariable:
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
     
+    def __getitem__(self, key):
+        """key is passed to self.data.loc"""
+        if self.data is None:
+            return None
+        return self.data.loc[key]
+
     def setOriginalData(self):
         """copies .data into .original_data"""
         self.original_data = self.data.copy(deep=True)

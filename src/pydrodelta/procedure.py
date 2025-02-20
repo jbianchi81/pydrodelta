@@ -753,6 +753,7 @@ from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
 from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
 from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
 from pydrodelta.procedures.difference import DifferenceProcedureFunction
+from pydrodelta.procedures.linear_net import LinearNetProcedureFunction
 from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
 from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
 from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
@@ -786,6 +787,7 @@ procedureFunctionDict = {
     "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
     "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
     "Difference": DifferenceProcedureFunction,
+    "LinearNet": LinearNetProcedureFunction,
     "LinearNet3": LinearNet3ProcedureFunction,
     "ExponentialFit": ExponentialFitProcedureFunction,
     "LinearFit": LinearFitProcedureFunction,

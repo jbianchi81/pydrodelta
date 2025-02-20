@@ -1,6 +1,7 @@
 from .util import interval2timedelta, createDatetimeSequence
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
+from .node_variable import NodeVariable
 from a5client import createEmptyObsDataFrame, Serie, Crud
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
@@ -193,6 +194,19 @@ class Node:
         variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
         return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
     
+    def __getitem__(self, key : int) -> NodeVariable:
+        return self.getVariable(key)
+
+    def index(self) -> List[int]:
+        """Get list of variable keys"""
+        return [v for v in self.variables]
+
+
+    def getVariable(self, key : int) -> NodeVariable:
+        if key not in self.variables:
+            raise KeyError("Variable key %i not found in node %i" % (key, self.id))
+        return self.variables[key]
+
     def setOriginalData(self):
         """For each variable in .variables, set original data"""
         for variable in self.variables.values():
