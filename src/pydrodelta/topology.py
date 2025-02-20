@@ -211,6 +211,7 @@ class Topology(Base):
         save_response : str = None,
         save_post_data : str = None,
         prono_ignore_warmup : bool = True,
+        output_graph : str = None,
         **kwargs
         ):
         """Initiate topology
@@ -307,6 +308,8 @@ class Topology(Base):
         prono_ignore_warmup : bool
         In concatenation, ignore warmup period of series_prono (default True)
 
+        output_graph : str
+        Print graph representation of the topology into this file (png) 
         """
         super().__init__(**kwargs)
         params = {
@@ -333,7 +336,8 @@ class Topology(Base):
             "upload_prono": upload_prono,
             "qualifiers": qualifiers,
             "save_response": save_response,
-            "save_post_data": save_post_data
+            "save_post_data": save_post_data,
+            "output_graph": output_graph
         }
         getSchemaAndValidate(params=params, name="topology")
         self.timestart = timestart
@@ -369,6 +373,7 @@ class Topology(Base):
         self.save_response = save_response
         self.save_post_data = save_post_data
         self.prono_ignore_warmup = prono_ignore_warmup
+        self.output_graph = output_graph
     
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
@@ -426,6 +431,7 @@ class Topology(Base):
         - .setOutputData()
         - .plotProno()
         - .printReport() if ().report_file is not None)
+        - .printGraph()
         
         Parameters:
         -----------
@@ -487,6 +493,8 @@ class Topology(Base):
             self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
         if self.upload_prono:
             self.uploadDataAsProno(False, True)
+        if self.output_graph:
+            self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"],self.output_graph))
 
     def loadData(
         self,

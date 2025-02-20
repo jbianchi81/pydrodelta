@@ -134,6 +134,8 @@ class Plan(Base):
         """ returns list of procedure ids"""
         return [p.id for p in self.procedures]
 
+    """File path where to save graph representation of the plan"""
+    output_graph = FilepathDescriptor()
         
     def __init__(
             self,
@@ -152,6 +154,7 @@ class Plan(Base):
             output_sim_csv: str = None,
             qualifiers : List[str] = None,
             save_variable_sim : List[SaveVariableSimDict] = None,
+            output_graph : str = None,
             **kwargs
             ):
         """
@@ -204,6 +207,10 @@ class Plan(Base):
 
         save_variable_sim : List[SaveVariableSimDict] or None
             Select simulated variables to save as separate csv 
+
+        output_graph : str or None
+            File path where to save graph representation of the plan
+
         """
         super().__init__(**kwargs)
         params = {
@@ -221,7 +228,8 @@ class Plan(Base):
             "save_response": save_response,
             "output_sim_csv": output_sim_csv,
             "qualifiers" : qualifiers,
-            "save_variable_sim": save_variable_sim
+            "save_variable_sim": save_variable_sim,
+            "output_graph": output_graph
         }
         getSchemaAndValidate(params=params, name="plan")
 
@@ -242,6 +250,7 @@ class Plan(Base):
         self.output_sim_csv = output_sim_csv
         self.qualifiers = qualifiers
         self.save_variable_sim = save_variable_sim
+        self.output_graph = output_graph
     
     def getProcedure(self,id : Union[str,int]) -> Procedure:
         """get procedure by id"""
@@ -340,6 +349,8 @@ class Plan(Base):
                 with open(os.path.join(config["PYDRODELTA_DIR"], v["output"]),"w",encoding='utf-8') as outfile:
                     sim_data.to_csv(outfile)
         self.saveSimData()
+        if self.output_graph:
+            self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"], self.output_graph))
     
     def saveSimData(self):
         for node in self.topology.nodes:

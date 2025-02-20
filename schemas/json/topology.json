@@ -180,6 +180,10 @@
     "prono_ignore_warmup": {
       "type": "boolean",
       "description": "In concatenation, ignore warmup period of series_prono (default True)"
+    },
+    "output_graph": {
+      "type": "string",
+      "description": "Print graph representation of the topology into this file (png)"
     }
   },
   "required": [

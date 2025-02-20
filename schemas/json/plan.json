@@ -95,6 +95,10 @@
           "type": "string"
         },
         "description": "Include this forecast members into the simulation output"
+      },
+      "output_graph": {
+        "type": "string",
+        "description": "File path where to save graph representation of the plan"
       }
     },
     "required": [
