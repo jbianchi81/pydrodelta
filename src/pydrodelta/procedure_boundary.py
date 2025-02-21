@@ -136,7 +136,9 @@ class ProcedureBoundary():
         raise Exception("ProcedureBoundary.setNodeVariable error: node with id: %s , var %i not found in topology" % (str(self.node_id), self.var_id))
     def assertNoNaN(
         self,
-        warmup_only : bool = False
+        warmup_only : bool = False,
+        read_sim : bool = False,
+        sim_index : int = 0
         ) -> None:
         """
         Assert if the are missing values in the boundary
@@ -145,6 +147,12 @@ class ProcedureBoundary():
         -----------
         warmup_only : bool (default False)
             Check only the period before the forecast date
+
+        read_sim : bool = False
+            Check series_sim[sim_index].data
+        
+        sim_index : int = 0
+            Read this item of series_sim
         
         Raises:
         -------
@@ -156,13 +164,21 @@ class ProcedureBoundary():
         """
         if self._variable is None:
             raise AssertionError("procedure boundary variable is None")
-        if self._variable.data is None:
-            raise AssertionError("procedure boundary data is None")
-        if warmup_only:
-            na_count = self._variable.data[self._variable.data.index <= self._plan.forecast_date]["valor"].isna().sum()
+        if read_sim:
+            if len(self._variable.series_sim) < sim_index + 1:
+                raise AssertionError("procedure boundary series_sim not found at required index %i" % sim_index)
+            if self._variable.series_sim[sim_index].data is None:
+                raise AssertionError("procedure boundary sim data is None at required index %i" % sim_index)
+            data = self._variable.series_sim[sim_index].data
         else:
-            na_count = self._variable.data["valor"].isna().sum()
+            if self._variable.data is None:
+                raise AssertionError("procedure boundary data is None")
+            data = self._variable.data
+        if warmup_only:
+            na_count = data[data.index <= self._plan.forecast_date]["valor"].isna().sum()
+        else:
+            na_count = data["valor"].isna().sum()
         if na_count > 0:
-            first_na_datetime = self._variable.data[self._variable.data["valor"].isna()].iloc[0].name.isoformat()
-            raise AssertionError("procedure boundary variable data has NaN values starting at position %s" % first_na_datetime)
+            first_na_datetime = data[data["valor"].isna()].iloc[0].name.isoformat()
+            raise AssertionError("procedure boundary variable %s has NaN values starting at position %s" % ( ("sim data at index %i" % sim_index) if read_sim else "data", first_na_datetime))
         return

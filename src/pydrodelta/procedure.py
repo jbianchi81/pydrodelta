@@ -96,6 +96,12 @@ class Procedure():
     error_band = BoolOrNoneDescriptor()
     """Add error band series to adjusted result"""
 
+    read_sim = BoolDescriptor()
+    """Instead of reading .data from input node variables, read .series_sim[0].data """
+
+    sim_index = IntDescriptor()
+    """With read_sim, which series_sim index of node variables to read from"""
+
     def __init__(
         self,
         id : Union[int, str],
@@ -112,7 +118,9 @@ class Procedure():
         adjust : bool = False,
         warmup_steps : int = None,
         tail_steps : int = None,
-        error_band : bool = None
+        error_band : bool = None,
+        read_sim : bool = False,
+        sim_index : int = 0
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -177,6 +185,9 @@ class Procedure():
         self.tail_steps = tail_steps
         self.linear_model = None
         self.error_band = error_band
+        self.read_sim = read_sim
+        self.sim_index = sim_index
+    
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -227,7 +238,9 @@ class Procedure():
         inplace : bool = True,
         pivot : bool = False,
         use_boundary_name : bool = False,
-        tag_column : bool = True
+        tag_column : bool = True,
+        read_sim : bool = None,
+        sim_index : int = None
         ) -> Union[List[DataFrame],DataFrame]:
         """
         Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
@@ -246,31 +259,43 @@ class Procedure():
         
         tag_column : bool = True
             When pivot=True, create a tag column for each boundary
+
+        read_sim : bool = False
+            Instead of reading .data of input node variables, read .series_sim[0].data . Defaults to self.read_sim
+        
+        sim_index : int = 0
+            read this series_sim index of boundary node variables (with read_sim) 
         """
+        read_sim = read_sim if read_sim is not None else self.read_sim
+        sim_index = sim_index if sim_index is not None else self.sim_index
         if pivot:
             data = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
             columns = ["valor","tag"] if tag_column else ["valor"] 
             for boundary in self.function.boundaries:
-                if boundary._variable.data is not None and len(boundary._variable.data):
-
-                    if use_boundary_name:
-                        data = data.join(
-                            boundary._variable.data[columns][boundary._variable.data.valor.notnull()].rename(
-                                columns={
-                                    "valor": boundary.name, 
-                                    "tag": "tag_%s" % boundary.name
-                                }
-                            ),
-                            how='outer',
-                            # rsuffix=rsuffix,
-                            sort=True)
-                    else:
-                        rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id)
-                        data = data.join(
-                            boundary._variable.data[columns][boundary._variable.data.valor.notnull()],
-                            how='outer',
-                            rsuffix=rsuffix,
-                            sort=True)
+                if read_sim and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
+                    boundary_data = boundary._variable.series_sim[sim_index].data
+                elif boundary._variable.data is not None and len(boundary._variable.data):
+                    boundary_data = boundary._variable.data
+                else:
+                    continue
+                if use_boundary_name:
+                    data = data.join(
+                        boundary_data[columns][boundary_data.valor.notnull()].rename(
+                            columns={
+                                "valor": boundary.name, 
+                                "tag": "tag_%s" % boundary.name
+                            }
+                        ),
+                        how='outer',
+                        # rsuffix=rsuffix,
+                        sort=True)
+                else:
+                    rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id)
+                    data = data.join(
+                        boundary_data[columns][boundary_data.valor.notnull()],
+                        how='outer',
+                        rsuffix=rsuffix,
+                        sort=True)
             for column in columns:
                 del data[column]
             # data = data.replace({np.nan:None})
@@ -281,10 +306,13 @@ class Procedure():
                 if not boundary.optional:
                     try:
                         warmup_only = boundary.warmup_only if boundary.warmup_only else False
-                        boundary.assertNoNaN(warmup_only)
+                        boundary.assertNoNaN(warmup_only, read_sim)
                     except AssertionError as e:
                         raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
-                data.append(boundary._variable.data.copy())
+                if read_sim:
+                    data.append(boundary._variable.series_sim[sim_index].data.copy())
+                else:
+                    data.append(boundary._variable.data.copy())
         if inplace:
             self.input = data
         else:

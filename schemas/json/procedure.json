@@ -129,6 +129,16 @@
         "type": "boolean",
         "description": "If ajusting output, add error band series",
         "default": true
+      },
+      "read_sim": {
+        "type": "boolean",
+        "description": "Instead of reading .data of input node variables, read .series_sim[0].data . Defaults to self.read_sim",
+        "default": false
+      },
+      "sim_index": {
+        "type": "number",
+        "description": "read this series_sim index of boundary node variables (with read_sim) ",
+        "default": 0
       }
     },
     "required": [

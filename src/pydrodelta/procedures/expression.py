@@ -1,6 +1,7 @@
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
+import math
 
 class ExpressionProcedureFunction(ProcedureFunction):
     """Procedure function that evaluates an arbitrary expression where 'value' is replaced with the values of input"""
