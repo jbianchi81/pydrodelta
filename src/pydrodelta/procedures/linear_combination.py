@@ -15,6 +15,8 @@ from ..types.forecast_step_dict import ForecastStepDict
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
 from ..result_statistics import ResultStatistics
 from ..util import groupByCalibrationPeriod
+import json
+import logging
 
 class BoundaryCoefficients():
     """Linear combination coefficients for a boundary at a given forecast step"""
@@ -108,6 +110,9 @@ class ForecastStep():
             "intercept": self.intercept,
             "boundaries": [ x.toDict() for x in self.boundaries ]
         }
+    
+    def __repr__(self) -> str:
+        return json.dumps(self.toDict(),indent=4)
 
 
 
@@ -138,7 +143,13 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     @property
     def coefficients(self) -> List[ForecastStep]:
         """Coefficients of the linear combination"""
-        return self._coefficients
+        if "coefficients" not in self.parameters:
+            logging.warning("Coefficients not set")
+            return None
+        return [
+            ForecastStep(**step, procedure_function = self)
+            for step in self.parameters["coefficients"]
+        ]
 
     _no_sim = True
 
@@ -161,13 +172,19 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         """
         super().__init__(parameters = parameters, **kwargs)
         getSchemaAndValidate(dict(kwargs, parameters = parameters),"LinearCombinationProcedureFunction")
-        self._coefficients = list()
+        # self._coefficients = list()
         if len(self.parameters["coefficients"]) < self.forecast_steps:
             raise Exception("length of coefficients is shorter than forecast_steps")
         if len(self.parameters["coefficients"]) > self.forecast_steps:
             raise Exception("length of coefficients exceeds forecast_steps")
-        for forecast_step in self.parameters["coefficients"]:
-            self._coefficients.append(ForecastStep(**forecast_step, procedure_function = self))
+        # set warmup_steps
+        if self._procedure.calibration is not None and self._procedure.calibration.calibrate == True:
+            pass
+        else:
+            for boundary in self.boundaries:
+                boundary.warmup_steps = self.lookback_steps
+        # for forecast_step in self.parameters["coefficients"]:
+        #     self._coefficients.append(ForecastStep(**forecast_step, procedure_function = self))
     
     def run(
         self,

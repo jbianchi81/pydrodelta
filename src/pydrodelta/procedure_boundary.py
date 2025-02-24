@@ -46,6 +46,9 @@ class ProcedureBoundary():
 
     warmup_only = BoolDescriptor()
     """If true, null values in the forecast horizon will not raise an error"""
+
+    warmup_steps = IntDescriptor()
+    """Number of steps needed for warmup"""
         
     compute_statistics = BoolDescriptor()
     """Compute result statistics for this boundary"""
@@ -58,7 +61,8 @@ class ProcedureBoundary():
             optional : bool = False,
             warmup_only : bool = False,
             compute_statistics : bool = True,
-            node_variable : Tuple[int,int] = None
+            node_variable : Tuple[int,int] = None,
+            warmup_steps : int = None
         ):
         """Initiate class ProcedureBoundary
         
@@ -84,6 +88,10 @@ class ProcedureBoundary():
         
         compute_statistics : bool (default True)
             Compute result statistics for this boundary
+
+        warmup_steps : int = None
+            Number of steps needed for warmup
+
         """
         if node_id is None and node_variable is None:
             raise TypeError("Either node_id or node_variable must be set")
@@ -104,6 +112,7 @@ class ProcedureBoundary():
             self._node = None
         self.warmup_only = warmup_only
         self.compute_statistics = compute_statistics
+        self.warmup_steps = warmup_steps
     
     def toDict(self) -> dict:
         """Convert object into dict"""
@@ -138,7 +147,8 @@ class ProcedureBoundary():
         self,
         warmup_only : bool = False,
         read_sim : bool = False,
-        sim_index : int = 0
+        sim_index : int = 0,
+        warmup_steps : int = None
         ) -> None:
         """
         Assert if the are missing values in the boundary
@@ -153,6 +163,9 @@ class ProcedureBoundary():
         
         sim_index : int = 0
             Read this item of series_sim
+        
+        warmup_length : int = None
+            If not None, chek only period from this number of steps before forecast date
         
         Raises:
         -------
@@ -175,9 +188,16 @@ class ProcedureBoundary():
                 raise AssertionError("procedure boundary data is None")
             data = self._variable.data
         if warmup_only:
-            na_count = data[data.index <= self._plan.forecast_date]["valor"].isna().sum()
+            if warmup_steps is not None:
+                na_count = data[data.index <= self._plan.forecast_date]["valor"].tail(warmup_steps).isna().sum()
+            else:
+                na_count = data[data.index <= self._plan.forecast_date]["valor"].isna().sum()
         else:
-            na_count = data["valor"].isna().sum()
+            if warmup_steps is not None:
+                na_count = data["valor"].tail(warmup_steps).isna().sum()
+            else:
+                na_count = data["valor"].isna().sum()
+
         if na_count > 0:
             first_na_datetime = data[data["valor"].isna()].iloc[0].name.isoformat()
             raise AssertionError("procedure boundary variable %s has NaN values starting at position %s" % ( ("sim data at index %i" % sim_index) if read_sim else "data", first_na_datetime))

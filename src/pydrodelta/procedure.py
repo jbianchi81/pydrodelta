@@ -64,6 +64,8 @@ class Procedure():
         "linear-regression": LinearRegressionCalibration
     }
 
+    _calibration = None
+
     @property
     def calibration(self) -> Union[DownhillSimplexCalibration, LinearRegressionCalibration]:
         return self._calibration
@@ -306,7 +308,7 @@ class Procedure():
                 if not boundary.optional:
                     try:
                         warmup_only = boundary.warmup_only if boundary.warmup_only else False
-                        boundary.assertNoNaN(warmup_only, read_sim)
+                        boundary.assertNoNaN(warmup_only, read_sim, 0, boundary.warmup_steps)
                     except AssertionError as e:
                         raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
                 if read_sim:
