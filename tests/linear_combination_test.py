@@ -47,10 +47,12 @@ class Test_LinearCombination(TestCase):
             if i == 0:
                 self.assertTrue(results["r"][i] >= 0.99)
                 self.assertTrue(results["nse"][i] >= 0.99)
+                self.assertTrue(results["rse"][i] < 21.0)
             else:
                 self.assertTrue(results["rmse"][i] > results["rmse"][i-1])
                 self.assertTrue(results["r"][i] < results["r"][i-1])
                 self.assertTrue(results["nse"][i] < results["nse"][i-1])
+                self.assertTrue(results["rse"][i] >= results["rse"][i-1])
 
 
     def test_calibration_period(self):

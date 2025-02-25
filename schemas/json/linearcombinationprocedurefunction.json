@@ -68,6 +68,15 @@
                 "forecast_steps",
                 "lookback_steps"
             ]        
+        },
+        "extra_pars": {
+            "type": "object",
+            "propeties": {
+                "Z": {
+                    "type": "number",
+                    "description": "Confidence level multiplier (e.g., Z = 1.96 for 95% confidence)"
+                }
+            }
         }
     },
     "required": [

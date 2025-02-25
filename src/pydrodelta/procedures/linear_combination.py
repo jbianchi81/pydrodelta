@@ -2,6 +2,7 @@ from pandas import DataFrame
 from pandas import Series
 from datetime import timedelta, datetime
 from sklearn.linear_model import LinearRegression
+import scipy.stats as stats
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
@@ -153,9 +154,38 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
 
     _no_sim = True
 
+    @property
+    def k(self) -> int:
+        """Number of independent variables"""
+        return self.lookback_steps * len(self.coefficients[0].boundaries)
+    
+    @property 
+    def Z(self) -> float:
+        """Confidence level multiplier (e.g., Z = 1.96 for 95% confidence)"""
+        return self.extra_pars["Z"] if "Z" in self.extra_pars else 1.96
+    
+    @property
+    def confidence_level(self) -> float:
+        return 2 * stats.norm.cdf(self.Z) - 1
+
+    @property
+    def error_band(self) -> List[float]|None:
+        """Error band half-widths for each step in the forecast horizon"""
+        if self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
+            error_band = []
+            for i, step in enumerate(self._procedure.calibration.result["scores"]):
+                rse = step["rse_val"] if "rse_val" is not None else step["rse"]
+                if rse is None:
+                    raise ValueError("rse not found for step %i of procedure %s" % (i, self._procedure.id))
+                error_band.append(self.Z * rse)
+            return error_band
+        else:
+            return None
+
     def __init__(
         self,
         parameters : LinearCombinationParametersDict,
+        extra_pars : dict = {},
         **kwargs
         ):
         """
@@ -165,12 +195,15 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 - forecast_steps : int
                 - lookback_steps : int
                 - coefficients : List[ForecastStepDict]
+            
+            extra_pars : {Z: float = 1.96}
+                Z: Confidence level multiplier (e.g., Z = 1.96 for 95% confidence)
 
         Raises:
             Exception: _description_
             Exception: _description_
         """
-        super().__init__(parameters = parameters, **kwargs)
+        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
         getSchemaAndValidate(dict(kwargs, parameters = parameters),"LinearCombinationProcedureFunction")
         # self._coefficients = list()
         if len(self.parameters["coefficients"]) < self.forecast_steps:
@@ -204,6 +237,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output = []
+        error_band = self.error_band
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = self._procedure._plan.forecast_date + (t_index + 1) * self._procedure._plan.time_interval
             result = 1 * forecast_step.intercept
@@ -219,9 +253,16 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 "timestart": forecast_date,
                 "valor": result 
             })
+            # ADD ERROR BAND
+            if error_band is not None and len(error_band) >= t_index + 1:
+                output[len(output)-1]["superior"] = result + error_band[t_index]
+                output[len(output)-1]["inferior"] = result - error_band[t_index]
         output = DataFrame(output)
         output = output.set_index("timestart")
-        results_data = output[["valor"]] # .join(output_obs.rename(columns={"valor_1": "obs"}),how="outer")
+        if error_band is not None:
+            results_data = output[["valor","inferior","superior"]]
+        else:
+            results_data = output[["valor"]] # .join(output_obs.rename(columns={"valor_1": "obs"}),how="outer")
         for i, input_ in enumerate(input):
             colname = "input_%i" % (i + 1)
             results_data = results_data.join(input_[["valor"]].rename(columns={"valor": colname}),how="outer")
@@ -260,10 +301,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             "rmse": Series(dtype="float"),
             "r": Series(dtype="float"),
             "nse": Series(dtype="float"),
+            "rse": Series(dtype="float"),
             "n_val": Series(dtype="int"),
             "rmse_val": Series(dtype="float"),
             "r_val": Series(dtype="float"),
-            "nse_val": Series(dtype="float")
+            "nse_val": Series(dtype="float"),
+            "rse_val": Series(dtype="float"),
         })
         stats_all = []
         fitted_parameters : LinearCombinationParametersDict = {
@@ -277,12 +320,24 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             target = data.loc[:, data.columns=='target'].to_numpy()
             reg = LinearRegression().fit(training_set, target)
             predict = reg.predict(training_set)
-            stats = ResultStatistics([x[0] for x in target],[x[0] for x in predict],compute=True, group = "cal", calibration_period = calibration_period)
+            stats = ResultStatistics(
+                [x[0] for x in target],
+                [x[0] for x in predict],
+                compute=True, 
+                group = "cal", 
+                calibration_period = calibration_period, 
+                k = self.k)
             stats_all.append(stats)
             if data_val is not None:
                 predict_val = reg.predict(data_val.loc[:, data_val.columns!='target'].to_numpy())
                 target_val = data_val.loc[:, data_val.columns=='target'].to_numpy()
-                stats_val = ResultStatistics([x[0] for x in target_val],[x[0] for x in predict_val],compute=True, group = "val", calibration_period = calibration_period)
+                stats_val = ResultStatistics(
+                    [x[0] for x in target_val],
+                    [x[0] for x in predict_val],
+                    compute=True, 
+                    group = "val", 
+                    calibration_period = calibration_period,
+                    k = self.k)
                 stats_all.append(stats_val)
             else:
                 stats_val = None
@@ -292,10 +347,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 stats.rmse,
                 stats.r,
                 stats.nse,
+                stats.rse,
                 stats_val.n if stats_val is not None else None,
                 stats_val.rmse if stats_val is not None else None,
                 stats_val.r if stats_val is not None else None,
                 stats_val.nse if stats_val is not None else None,
+                stats_val.rse if stats_val is not None else None,
             ]
 
             forecast_step : ForecastStepDict = {
@@ -377,8 +434,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 "forecast_steps": forecast_steps,
                 "lookback_steps": lookback_steps,
                 "coefficients": coefficients
-            }
-            
+            }            
         
 
 

@@ -943,3 +943,9 @@ class Node:
         """For each series, series_prono, series_sim and series_output of each variable, save data into file if .output_file is defined"""
         for var_id, variable in self.variables.items():
             variable.saveSeriesSeparately(types)
+    
+    def readVar(self, id : int):
+        if self._topology is not None:
+            return self._topology.readVar(id)
+        else:
+            return self._crud.readVar(id)

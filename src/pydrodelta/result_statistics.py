@@ -15,7 +15,8 @@ class ResultStatistics:
         group : str = "cal",
         compute : bool = False,
         procedure = None,
-        output = None
+        output = None,
+        k : int = None
         ):
         """Initiate collection of statistic analysis for the procedure
         
@@ -38,6 +39,9 @@ class ResultStatistics:
 
         compute : bool (defaults to False)
             Compute statistical analysis
+        
+        k : int
+            Number of independent variables
             """
         self.obs : List[float] = list(obs) if obs is not None else list()
         """List of observed values"""
@@ -83,6 +87,11 @@ class ResultStatistics:
         """Pearson's r correlation coefficient"""
         self.oneminusr : float = None
         """One minus Pearson's r correlation coefficient"""
+        self.rse : float = None
+        """residual standard error"""
+        self.k : int = k
+        """number of independent variables"""
+
         if compute:
             self.compute()
 
@@ -121,6 +130,8 @@ class ResultStatistics:
         self.cov = sum([ (self.obs[i] - self.mean_obs) * (self.sim[i] - self.mean_sim) for i in range(len(self.obs))]) / self.n
         self.r = self.cov / self.var_obs / self.var_sim if self.var_obs != 0 and self.var_sim != 0 else None
         self.oneminusr = 1 - self.r if self.r is not None else None
+        if self.k is not None:
+            self.rse = ( sum([ e ** 2 for e in self.errors]) / ( self.n - self.k - 1 )) ** 0.5
     def toDict(self) -> dict:
         """Convert result statistics into dict
         

@@ -615,7 +615,7 @@ class NodeSerie(Base):
                             new_obs["series_id"] = self.series_id
                         qualifier_obs.append(new_obs)
                     else:
-                        logging.warn("Qualifier %s not found in data at timestart %s" % (qualifier, obs["timestart"]))
+                        logging.debug("Qualifier %s not found in %s" % (qualifier, obs["timestart"]))
             obs["valor"] = obs[value_key]
             if qualifiers is not None:
                 obs["qualifier"] = "main"

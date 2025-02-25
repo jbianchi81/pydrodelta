@@ -207,7 +207,7 @@ class NodeVariable:
         """
         self.id = id
         self._node = node
-        self.metadata = self._node._crud.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
+        self.metadata = self._node.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
         self.fill_value = fill_value
         self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
         self.series_sim = series_sim if series_sim is not None else None

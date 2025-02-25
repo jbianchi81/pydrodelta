@@ -78,10 +78,10 @@ class ExpressionProcedureFunction(ProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output  = []
-        for serie in input:
-            output_serie = serie.copy()
-            output_serie.valor = [self.transformation_function(valor) for valor in output_serie.valor]
-            output.append(output_serie)
+        for in_df in input:
+            out_df = in_df.copy()
+            out_df[out_df.select_dtypes(include=["float64"]).columns] = out_df.select_dtypes(include=["float64"]).map(lambda value: eval(self.expression))
+            output.append(out_df)
         return (
             output, 
             ProcedureFunctionResults()

@@ -183,6 +183,9 @@ class Topology(Base):
     prono_ignore_warmup = BoolDescriptor()
     """In concatenation, ignore warmup period of series_prono (default True)"""
 
+    var_map = DictDescriptor()
+    """Variable metadata is stored in this dict"""
+
     def __init__(
         self,
         timestart : Union[str,dict], 
@@ -340,6 +343,7 @@ class Topology(Base):
             "output_graph": output_graph
         }
         getSchemaAndValidate(params=params, name="topology")
+        self.var_map = {}
         self.timestart = timestart
         self.timeend = timeend
         self.forecast_timeend = forecast_timeend
@@ -1657,3 +1661,9 @@ class Topology(Base):
                 self.restoreSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
                 self.restoreSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
                 self.restoreSeries(bucket_name,variable.series_output,node_id,var_id, "series_output")
+
+    def readVar(self, id : int):
+        if id not in self.var_map:
+            self.var_map[id]  = self.input_crud.readVar(id)
+        return self.var_map[id]
+        
