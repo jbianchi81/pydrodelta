@@ -80,7 +80,7 @@ class ExpressionProcedureFunction(ProcedureFunction):
         output  = []
         for in_df in input:
             out_df = in_df.copy()
-            out_df[out_df.select_dtypes(include=["float64"]).columns] = out_df.select_dtypes(include=["float64"]).map(lambda value: eval(self.expression))
+            out_df[out_df.select_dtypes(include=["float64"]).columns] = out_df.select_dtypes(include=["float64"]).applymap(lambda value: eval(self.expression))
             output.append(out_df)
         return (
             output, 

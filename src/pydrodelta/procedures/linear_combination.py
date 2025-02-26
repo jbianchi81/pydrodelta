@@ -174,7 +174,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         if self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
             error_band = []
             for i, step in enumerate(self._procedure.calibration.result["scores"]):
-                rse = step["rse_val"] if "rse_val" is not None else step["rse"]
+                rse = step["rse_val"] if step["rse_val"] is not None else step["rse"]
                 if rse is None:
                     raise ValueError("rse not found for step %i of procedure %s" % (i, self._procedure.id))
                 error_band.append(self.Z * rse)
