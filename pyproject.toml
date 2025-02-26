@@ -19,7 +19,8 @@ dependencies = [
     "a5_client",
     "scikit-learn",
     "minio",
-    "colour"
+    "colour",
+    "statsmodels"
 ]
 
 [project.scripts]

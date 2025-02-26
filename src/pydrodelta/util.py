@@ -469,13 +469,13 @@ def adjustSeries(
     Returns:
         Union[dict,Tuple[pandas.Series, pandas.Series, dict]]: If return_adjusted_seris is True, it returns a tuple of (adjusted values (pandas.Series), adjusted series tag (pandas.Series), fit result stats (dict)). Else it returns only fit result stats (dict)
     """
+    truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
+    truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
+    data = truth_warm.join(sim_df[covariables],how="left",rsuffix="_sim")
+    covariables_sim = ["%s_sim" % x if x == "valor" else x for x in covariables]
+    if sim_range is not None:
+        data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])]
     if method == "lfit":
-        truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
-        truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
-        data = truth_warm.join(sim_df[covariables],how="left",rsuffix="_sim")
-        covariables_sim = ["%s_sim" % x if x == "valor" else x for x in covariables]
-        if sim_range is not None:
-            data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])]
         try:
             lr, quant_Err, r2, coef, intercept, train =  ModelRL(data,"valor",covariables_sim)
         except ValueError as e:
