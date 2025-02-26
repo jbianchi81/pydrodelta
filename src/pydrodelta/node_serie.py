@@ -440,10 +440,10 @@ class NodeSerie(Base):
     def applyOffset(self) -> None:
         """Applies .x_offset (time axis) and .y_offset (values axis) to the data"""
         if self.data is None:
-            logging.warn("applyOffset: self.data is None")
+            logging.debug("applyOffset: self.data is None")
             return
         if not len(self.data):
-            logging.warn("applyOffset: self.data is empty")
+            logging.debug("applyOffset: self.data is empty")
             return
         if isinstance(self.x_offset,timedelta):
             self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
