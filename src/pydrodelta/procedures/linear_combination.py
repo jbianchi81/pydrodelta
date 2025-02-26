@@ -169,7 +169,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         return 2 * stats.norm.cdf(self.Z) - 1
 
     @property
-    def error_band(self) -> List[float]|None:
+    def error_band(self) -> Union[List[float],None]:
         """Error band half-widths for each step in the forecast horizon"""
         if self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
             error_band = []
