@@ -1466,12 +1466,7 @@ class Topology(Base):
                             "tag_counts": serie.data.groupby("tag").size().to_dict(),
                             "min_date": serie_notnull.index[0].isoformat() if len(serie_notnull) else None,
                             "max_date": serie_notnull.index[-1].isoformat() if len(serie_notnull) else None,
-                            "adjust_results": {
-                                "quant_Err": serie.adjust_results["quant_Err"].to_dict(),
-                                "r2": serie.adjust_results["r2"],
-                                "coef": [x for x in serie.adjust_results["coef"]],
-                                "intercept": serie.adjust_results["intercept"]
-                            } if serie.adjust_results is not None else None
+                            "adjust_results": serie.adjust_results_dict
                         }
                         variable_report["series_prono"].append(serie_report)
                 if variable.data is not None:

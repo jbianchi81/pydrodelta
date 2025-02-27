@@ -46,8 +46,46 @@ class NodeSerieProno(NodeSerie):
 
     @property
     def adjust_results_string(self) -> str:
-        return "r2: %.04f, y = %.05f + %.05f x" % (self.adjust_results["r2"], self.adjust_results["intercept"], self.adjust_results["coef"][0]) if self.adjust_results is not None else None
+        if self.adjust_results is not None:
+            if self.adjust_result["method"] == "lfit":
+                return "r2: %.04f, y = %.05f + %.05f x" % (self.adjust_results["r2"], self.adjust_results["intercept"], self.adjust_results["coef"][0])
+            elif self.adjust_result["method"] == "arima":
+                return "mse: %.2e, const: %.04f, ar.L1: %.04f, ma.L1: %.04f, sigma2: %.04f" % (
+                    self.adjust_results["mse"],
+                    self.adjust_results["const"],
+                    self.adjust_results["ar.L1"],
+                    self.adjust_results["ma.L1"],
+                    self.adjust_results["sigma2"]
+                )
+            else:
+                return None
+        else:
+            return None
     
+    @property
+    def adjust_result_dict(self) -> dict:
+        if self.adjust_results is not None:
+            if self.adjust_result["method"] == "lfit":
+                return {
+                    "quant_Err": self.adjust_results["quant_Err"].to_dict(),
+                    "r2": self.adjust_results["r2"],
+                    "coef": [x for x in self.adjust_results["coef"]],
+                    "intercept": self.adjust_results["intercept"]
+                }
+            elif self.adjust_result["method"] == "arima":
+                return {
+                    "quant_Err": self.adjust_results["quant_Err"].to_dict(),
+                    "mse": self.adjust_results["mse"],
+                    "const": self.adjust_results["const"],
+                    "ar.L1": self.adjust_results["ar.L1"],
+                    "ma.L1": self.adjust_results["ma.L1"],
+                    "sigma2": self.adjust_results["sigma2"]
+                }
+            else:
+                return None
+        else:
+            return None
+
     warmup = IntDescriptor()
 
     tial = IntDescriptor()

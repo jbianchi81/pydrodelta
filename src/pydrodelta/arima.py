@@ -16,34 +16,49 @@ def adjustSeriesArima(
     """
     
     # Ajustar modelo de regresión lineal
-    model = np.polyfit(data['valor_sim'], data['valor'], 1)
-    
-    # Modelo ARIMA sobre los residuos
-    residuals = data['valor'] - data['valor_sim']
-    arima_model = ARIMA(residuals, order=(1, 0, 1)).fit()
-    model_error = arima_model.get_forecast(steps=len(data))
+    # lm_coeffs = np.polyfit(data['valor_sim'], data['valor'], 1)
     
     # Predicciones futuras
     last_obs_date = data[data["valor"].notna()].index[-1]
     v0 = data.loc[last_obs_date, 'valor']
-    data_future = data[data.index > last_obs_date]
-    
-    lo = model_error.conf_int()["lower y"]
-    up = model_error.conf_int()["upper y"]
-    mean_err = model_error.predicted_mean
-    
-    error_modeled_serie = pandas.DataFrame({
-        'valor_sim_mean': data_future['valor_sim'],
-        'valor_sim_up': data_future['valor_sim'] + arima_model.scale * k,
-        'valor_sim_do': data_future['valor_sim'] - arima_model.scale * k,
-        'valor_sim_err_do': data_future['valor_sim'] + lo,
-        'valor_sim_err_mean': data_future['valor_sim'] + mean_err,
-        'valor_sim_err_up': data_future['valor_sim'] + up
-    }, index=data_future.index)
-    
+    data_future = data[data.index > last_obs_date].copy()
+    data_past = data[data.index <= last_obs_date]
+
+    # Modelo ARIMA sobre los residuos
+    residuals = data_past['valor'] - data_past['valor_sim']
+    arima_model = ARIMA(residuals, order=(1, 0, 1)).fit()
+    model_error = arima_model.get_forecast(steps=len(data_future))
+    quant_Err = residuals.quantile([.001,.05,.95,.999])
+    mean_predicted_mean = sum(model_error.predicted_mean) / len(model_error.predicted_mean)
+        
+    data_future["lo"] = model_error.conf_int()["lower y"]
+    data_future["up"] = model_error.conf_int()["upper y"]
+    data_future["mean_err"] = model_error.predicted_mean
+    # data_future['superior'] = data_future['valor_sim'] + np.sqrt(np.diag(lm_cov)) * k
+    # data_future['inferior'] = data_future['valor_sim'] - np.sqrt(np.diag(lm_cov)) * k
+    data_future["lower"] = data_future['valor_sim'] + data_future["lo"]
+    data_future["adj"] = data_future['valor_sim'] + data_future["mean_err"]
+    data_future["upper"] = data_future['valor_sim'] + data_future["up"]
+
+    # drop columns
+    data_future = data_future.drop(columns=["valor","lo","up","mean_err","valor_sim"])
+    #set index
+    # data_future = data_future.set_index("timestart")
     # Agregar la primera fila con v0 repetido
-    first_row = pandas.DataFrame([[v0] * error_modeled_serie.shape[1]], index=[last_obs_date], columns=error_modeled_serie.columns)
-    error_modeled_serie = pandas.concat([first_row, error_modeled_serie])
-    
-    return arima_model, pandas.concat([data,error_modeled_serie], axis=1)
+    # first_row = pandas.DataFrame([[v0] * data_future.shape[1]], index=[last_obs_date], columns=data_future.columns)
+    # data_future = pandas.concat([first_row, data_future])
+    data_result = pandas.concat([data,data_future], axis=1)
+    # adjust past using mean predicted mean 
+    data_result["adj"] = data_result["adj"].fillna(data_result["valor_sim"] + mean_predicted_mean)
+
+    return {
+        "method": "arima", 
+        "model": arima_model, 
+        "quant_Err": quant_Err,
+        "mse": arima_model.mse,
+        "const": arima_model.params["const"],
+        "ar.L1": arima_model.params["ar.L1"],
+        "ma.L1": arima_model.params["ma.L1"],
+        "sigma2": arima_model.params["sigma2"]
+        }, data_result
 

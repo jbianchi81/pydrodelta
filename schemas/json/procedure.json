@@ -117,6 +117,15 @@
         "description": "Adjust output series using observations. Adjustment is performed after statistics computation",
         "default": false
       },
+      "adjust_method": {
+        "type": "string",
+        "description": "Adjust method. Default: lfit",
+        "enum": [
+          "lfit",
+          "arima"
+        ],
+        "default": false
+      },
       "warmup_steps": {
         "type": "integer",
         "description": "For output adjustment, discard this number of initial rows"        

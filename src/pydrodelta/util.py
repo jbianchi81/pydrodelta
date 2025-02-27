@@ -1,4 +1,5 @@
 from .config import config
+from pydrodelta.arima import adjustSeriesArima
 import dateutil.parser
 import dateutil.relativedelta
 import pytz
@@ -446,7 +447,8 @@ def adjustSeries(
         warmup : int = None,
         tail : int = None,
         sim_range : Tuple[float,float] = None,
-        covariables : List[str] = ["valor"]
+        covariables : List[str] = ["valor"],
+        return_df : bool = False
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -462,6 +464,7 @@ def adjustSeries(
         tail (int, optional): Number of final steps to use for the fit procedure (discard the rest).
         sim_range (Tuple[float,float],optional): Select data pairs where sim is within this range.
         covariables (List[float],optional): Column names to extract from sim_df to be used as explanatory variables
+        return_df Bool = True: Return DataFrame instead of Series
 
     Raises:
         ValueError: unknown method
@@ -469,15 +472,15 @@ def adjustSeries(
     Returns:
         Union[dict,Tuple[pandas.Series, pandas.Series, dict]]: If return_adjusted_seris is True, it returns a tuple of (adjusted values (pandas.Series), adjusted series tag (pandas.Series), fit result stats (dict)). Else it returns only fit result stats (dict)
     """
-    truth_warm = truth_df.iloc[warmup:] if warmup is not None else truth_df
+    truth_warm = truth_df.iloc[warmup:].copy() if warmup is not None else truth_df
     truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
-    data = truth_warm.join(sim_df[covariables],how="left",rsuffix="_sim")
+    data = truth_warm.join(sim_df[covariables],how="outer" if method == "arima" else "left",rsuffix="_sim")
     covariables_sim = ["%s_sim" % x if x == "valor" else x for x in covariables]
     if sim_range is not None:
-        data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])]
+        data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])].copy()
     if method == "lfit":
         try:
-            lr, quant_Err, r2, coef, intercept, train =  ModelRL(data,"valor",covariables_sim)
+            lr, quant_Err, r2, coef, intercept, train, mse, rse =  ModelRL(data,"valor",covariables_sim)
         except ValueError as e:
             raise ValueError("Linear regression error: %s" % str(e))
         # logging.info(quant_Err)
@@ -486,23 +489,46 @@ def adjustSeries(
         predict = lr.predict(aux_df[covariables].values)
         aux_df["adj"] = predict
         aux_df = aux_df.rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm.rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
-        if plot:
-            plt.figure(figsize=(16,8))
-            plt.plot(aux_df[["valor_obs","valor_sim","adj"]]) # (data)
-            plt.legend(["valor_obs","valor_sim","adj"]) # data.columns)
-            if title:
-                plt.title(title)
-            plt.figtext(0.5, 0.01, "r2: %.04f, coef: %s, intercept: %.04f" % (r2,",".join(["%.04f" % x for x in coef]), intercept))
-        if return_adjusted_series:
-            if tag_column is not None:
-                aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
-                return (aux_df["adj"], aux_df["tag_adj"],{"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train})
-            else:
-                return (aux_df["adj"], None, {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train})
-        else:
-            return {"lr": lr, "quant_Err": quant_Err, "r2": r2, "coef": coef, "intercept": intercept, "train": train}
+        figtext = "r2: %.04f, coef: %s, intercept: %.04f" % (r2,",".join(["%.04f" % x for x in coef]), intercept)
+        plot_columns = ["valor_obs","valor_sim","adj"]
+        fitted_model = {
+            "method": "lfit",
+            "lr": lr, 
+            "quant_Err": quant_Err, 
+            "r2": r2, 
+            "coef": coef, 
+            "intercept": intercept, 
+            "train": train
+        }
+    elif method == "arima":
+        arima_model, aux_df =  adjustSeriesArima(data)
+        figtext = "mse: %.2e, const: %.04f, ar.L1: %.04f, ma.L1: %.04f, sigma2: %.04f" % (
+            arima_model["mse"],
+            arima_model["const"],
+            arima_model["ar.L1"],
+            arima_model["ma.L1"],
+            arima_model["sigma2"]
+        )
+        plot_columns = ["valor","valor_sim","adj","lower","upper"]
+        fitted_model = arima_model
     else:
         raise ValueError("unknown method " + method)
+    if plot:
+        plt.figure(figsize=(16,8))
+        plt.plot(aux_df[plot_columns]) # (data)
+        plt.legend(plot_columns) # data.columns)
+        if title:
+            plt.title(title)
+        plt.figtext(0.5, 0.01, figtext)
+    if return_adjusted_series:
+        return_value_0 = aux_df if return_df else aux_df["adj"]
+        if tag_column is not None:
+            aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
+            return (return_value_0, aux_df["tag_adj"],fitted_model)
+        else:
+            return (return_value_0, None, fitted_model)
+    else:
+        return fitted_model
 
 def linearCombination(sim_df : pandas.DataFrame,params : dict,plot=True,tag_column=None) -> pandas.Series:
     '''
@@ -551,6 +577,8 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     Y_predictions = lr.predict(X_test)
     train['Y_predictions'] = Y_predictions
     #train['Y_predictions'] = train['h_sim'] - train['Y_predictions'] 
+    residuals = Y_test - Y_predictions
+    rse = np.sqrt(np.sum(residuals**2) / (len(Y_test) - 2))
     # The coefficients
     # The mean squared error
     mse = mean_squared_error(Y_test, Y_predictions)
@@ -559,7 +587,7 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     logging.debug('Coefficients B0: %.5f, coefficients: %s, Mean squared error: %.5f, r2_score: %.5f' % (lr.intercept_, ", ".join(["%.5f" % c for c in lr.coef_]), mse, coefDet))
     train['Error_pred'] =  train['Y_predictions']  - train[var_obj]
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
-    return lr,quant_Err,r2,coef,intercept,train
+    return lr,quant_Err,r2,coef,intercept,train, mse, rse
 
 def lfunc_of_datetime(x : datetime, coef : float, intercept : float) -> float:
     return x.timestamp() // 10**9 * coef + intercept 
@@ -571,7 +599,7 @@ def extrapolate_linear(data : pandas.DataFrame, column : str="valor", extrapolat
         raise ValueError("Not enough observations for linear regression. Required: %d" % train_length)
     # set datetime index as covariable
     train['epoch'] = train.index.astype(int) // 10**9
-    model, quant_Err, r2, coef, intercept, train_ = ModelRL(train,varObj=column,covariables=["epoch"])
+    model, quant_Err, r2, coef, intercept, train_ , mse, rse = ModelRL(train,varObj=column,covariables=["epoch"])
     # get index of last row with value
     last_index = train.tail(1).index[0]
     # get indexes of nans

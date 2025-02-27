@@ -16,6 +16,7 @@ from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.bool_or_none_descriptor import BoolOrNoneDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
+from .descriptors.string_descriptor import StringDescriptor
 
 class Procedure():
     """
@@ -104,6 +105,9 @@ class Procedure():
     sim_index = IntDescriptor()
     """With read_sim, which series_sim index of node variables to read from"""
 
+    adjust_method = StringDescriptor()
+    """Adjust method. Options: lfit (linear regression), arima (ARIMA)"""
+
     def __init__(
         self,
         id : Union[int, str],
@@ -118,6 +122,7 @@ class Procedure():
         overwrite_original : bool = False,
         calibration : dict = None,
         adjust : bool = False,
+        adjust_method : str = "lfit",
         warmup_steps : int = None,
         tail_steps : int = None,
         error_band : bool = None,
@@ -189,6 +194,7 @@ class Procedure():
         self.error_band = error_band
         self.read_sim = read_sim
         self.sim_index = sim_index
+        self.adjust_method = adjust_method
     
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
@@ -513,6 +519,7 @@ class Procedure():
         load_input : bool = True, 
         load_output_obs : bool = True,
         adjust : bool = None,
+        adjust_method : str = None,
         warmup_steps : int = None,
         tail_steps : int = None,
         error_band : bool = None
@@ -551,6 +558,7 @@ class Procedure():
         """
         save_results = save_results if save_results is not None else self.save_results
         adjust = adjust if adjust is not None else self.adjust
+        adjust_method = adjust_method if adjust_method is not None else self.adjust_method
         warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
         tail_steps = tail_steps if tail_steps is not None else self.tail_steps
         error_band = util.coalesce(error_band,self.error_band,True)
@@ -608,13 +616,21 @@ class Procedure():
                 (adjusted, adjusted_tag, lm_stats) = util.adjustSeries(
                     o,
                     self.output_obs[i],
-                    warmup = self.warmup_steps,
-                    tail = self.tail_steps)
+                    warmup = warmup_steps,
+                    tail = tail_steps,
+                    method = adjust_method,
+                    return_df = True)
                 self.linear_model = lm_stats
-                o["valor"] = adjusted
+                adjusted = adjusted.drop(columns=["valor","valor_sim"])
+                if "adj" not in adjusted:
+                    raise Exception("adj column missing in data")
+                o["valor"] = adjusted["adj"] # .fillna(o["valor"])
+                for col in adjusted.columns:
+                    if col != "adj":
+                        o[col] = adjusted[col]
                 if error_band:
-                    o["inferior"] = adjusted - self.linear_model["quant_Err"][0.950]
-                    o["superior"] = adjusted + self.linear_model["quant_Err"][0.950]
+                    o["inferior"] = o["valor"] - self.linear_model["quant_Err"][0.950]
+                    o["superior"] = o["valor"] + self.linear_model["quant_Err"][0.950]
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)

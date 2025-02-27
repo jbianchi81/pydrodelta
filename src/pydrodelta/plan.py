@@ -356,7 +356,7 @@ class Plan(Base):
         for node in self.topology.nodes:
             node.saveSeriesSeparately(["series_sim", "series_output"])
     
-    def toCorrida(self) -> dict:
+    def toCorrida(self,strict_properties : bool=True) -> dict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         
         Returns:
@@ -376,7 +376,7 @@ class Plan(Base):
                             series_sim.append({
                                 "series_id": serie.series_id,
                                 "series_table": serie.getSeriesTable(),
-                                "pronosticos": serie.toList(remove_nulls=True,qualifiers=self.qualifiers)
+                                "pronosticos": serie.toList(remove_nulls=True,qualifiers=self.qualifiers,strict_properties=strict_properties)
                             })
         return {
             "cal_id": self.id,
@@ -407,7 +407,7 @@ class Plan(Base):
         
         dict : created forecast
         """
-        corrida = self.toCorrida()
+        corrida = self.toCorrida(strict_properties=True)
         if self.save_post is not None:
             save_path = os.path.join(
                 config["PYDRODELTA_DIR"], 

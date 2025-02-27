@@ -565,7 +565,8 @@ class NodeVariable:
         error_band : bool = True,
         warmup : int = None,
         tail : int = None,
-        sim_range : Tuple[float,float] = None
+        sim_range : Tuple[float,float] = None,
+        method : str = "lfit"
         ) -> None:
         """For each serie in series_prono where adjust is True, perform adjustment against observed data (series[0].data). series_prono[x].data are updated with the results of the adjustment
         
@@ -579,6 +580,11 @@ class NodeVariable:
         tail : int = None
 
         sim_range : Tuple[float,float] = None
+
+        method : str = "lfit"
+            options:
+            - lfit: Linear regression
+            - arima: ARIMA
         """
         if not self.series_prono or not len(self.series_prono) or self.series is None or len(self.series) == 0 or self.series[0].data is None:
             return
@@ -590,7 +596,7 @@ class NodeVariable:
                 adj_serie, tags , model = adjustSeries(
                     sim_data,
                     truth_data,
-                    method="lfit",
+                    method=method,
                     plot=True,
                     tag_column="tag",
                     title="%s @ %s" % (serie_prono.name, self.name),

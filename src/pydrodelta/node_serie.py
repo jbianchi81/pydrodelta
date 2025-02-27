@@ -561,7 +561,8 @@ class NodeSerie(Base):
         remove_nulls : bool = False,
         max_obs_date : datetime = None,
         qualifiers : List[str] = None,
-        value_key : str = "valor"
+        value_key : str = "valor",
+        strict_properties : bool = False
         ) -> List[TVP]:
         """Convert timeseries to list of time-value pair dicts
         
@@ -584,6 +585,9 @@ class NodeSerie(Base):
 
         value_key : str = "valor"
             Use the values of this key as the value for the observations 
+        
+        strict_properties : bool = False
+            Keep only a5-compliant properties of observations
 
         Returns:
         --------
@@ -597,9 +601,9 @@ class NodeSerie(Base):
         data["timeend"] = [x.isoformat() for x in data["timeend"]]
         if include_series_id:
             data["series_id"] = self.series_id
-        obs_list = data.to_dict(orient="records")
+        main_obs = []
         qualifier_obs = []
-        for obs in obs_list:
+        for obs in data.to_dict(orient="records"):
             obs[value_key] = None if isna(obs[value_key]) else obs[value_key]
             obs["tag"] = None if "tag" not in obs else None if isna(obs["tag"]) else obs["tag"]
             if qualifiers is not None:
@@ -617,12 +621,21 @@ class NodeSerie(Base):
                     else:
                         logging.debug("Qualifier %s not found in %s" % (qualifier, obs["timestart"]))
             obs["valor"] = obs[value_key]
+            if strict_properties:
+                obs = {
+                    "timestart": obs["timestart"],
+                    "timeend": obs["timeend"],
+                    "valor":  obs["valor"]
+                }
+                if include_series_id:
+                    obs["series_id"] = self.series_id
             if qualifiers is not None:
                 obs["qualifier"] = "main"
-        obs_list = [*obs_list, *qualifier_obs]
+            main_obs.append(obs)
+        all_obs = [*main_obs, *qualifier_obs]
         if remove_nulls:
-            obs_list = [x for x in obs_list if x["valor"] is not None] # remove nulls
-        return obs_list
+            all_obs = [x for x in all_obs if x["valor"] is not None] # remove nulls
+        return all_obs
     
     def toDict(
         self,
