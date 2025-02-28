@@ -1466,7 +1466,7 @@ class Topology(Base):
                             "tag_counts": serie.data.groupby("tag").size().to_dict(),
                             "min_date": serie_notnull.index[0].isoformat() if len(serie_notnull) else None,
                             "max_date": serie_notnull.index[-1].isoformat() if len(serie_notnull) else None,
-                            "adjust_results": serie.adjust_results_dict
+                            "adjust_results": serie.adjust_result_dict
                         }
                         variable_report["series_prono"].append(serie_report)
                 if variable.data is not None:
