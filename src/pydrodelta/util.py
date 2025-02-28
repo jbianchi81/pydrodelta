@@ -488,9 +488,11 @@ def adjustSeries(
         aux_df = sim_df.copy().dropna()
         predict = lr.predict(aux_df[covariables].values)
         aux_df["adj"] = predict
-        aux_df = aux_df.rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm.rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
+        a_cols = [c for c in ["valor","tag","adj"] if c in aux_df]
+        t_cols = [c for c in ["valor","tag"] if c in truth_warm]
+        aux_df = aux_df[a_cols].rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm[t_cols].rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
         figtext = "r2: %.04f, coef: %s, intercept: %.04f" % (r2,",".join(["%.04f" % x for x in coef]), intercept)
-        plot_columns = ["valor_obs","valor_sim","adj"]
+        plot_columns = [c for c in ["valor_obs","valor_sim","adj"] if c in aux_df.columns]
         fitted_model = {
             "method": "lfit",
             "lr": lr, 
@@ -500,6 +502,7 @@ def adjustSeries(
             "intercept": intercept, 
             "train": train
         }
+        result_columns = ["adj"]
     elif method == "arima":
         arima_model, aux_df =  adjustSeriesArima(data)
         figtext = "mse: %.2e, const: %.04f, ar.L1: %.04f, ma.L1: %.04f, sigma2: %.04f" % (
@@ -509,8 +512,9 @@ def adjustSeries(
             arima_model["ma.L1"],
             arima_model["sigma2"]
         )
-        plot_columns = ["valor","valor_sim","adj","lower","upper"]
+        plot_columns = [c for c in ["valor","valor_sim","adj","lower","upper"] if c in aux_df.columns]
         fitted_model = arima_model
+        result_columns = ["adj", "lower", "upper"]
     else:
         raise ValueError("unknown method " + method)
     if plot:
@@ -521,7 +525,7 @@ def adjustSeries(
             plt.title(title)
         plt.figtext(0.5, 0.01, figtext)
     if return_adjusted_series:
-        return_value_0 = aux_df if return_df else aux_df["adj"]
+        return_value_0 = aux_df[result_columns] if return_df else aux_df["adj"]
         if tag_column is not None:
             aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
             return (return_value_0, aux_df["tag_adj"],fitted_model)

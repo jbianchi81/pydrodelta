@@ -8,6 +8,7 @@ from ..descriptors.dict_descriptor import DictDescriptor
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from typing import Tuple
+import logging
 
 class LinearFitProcedureFunction(ProcedureFunction):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
@@ -120,7 +121,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
                 covariables=covariables
             )
         except ValueError as e:
-            raise ValueError("Adjust series error at procedure %s: %s" % (self._procedure.id if self._procedure is not None else "unknown", str(e)))
+            logging.error("Adjust series error at procedure %s: %s" % (self._procedure.id if self._procedure is not None else "unknown", str(e)))
+            raise e
         output_data = input_data.copy()
         output_data["valor"] = output_serie
         self.linear_model = stats

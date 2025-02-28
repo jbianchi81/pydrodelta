@@ -621,7 +621,8 @@ class Procedure():
                     method = adjust_method,
                     return_df = True)
                 self.linear_model = lm_stats
-                adjusted = adjusted.drop(columns=["valor","valor_sim"])
+                columns_drop = [ c for c in ["valor","valor_sim", "valor_obs"] if c in adjusted.columns ]
+                adjusted = adjusted.drop(columns=columns_drop)
                 if "adj" not in adjusted:
                     raise Exception("adj column missing in data")
                 o["valor"] = adjusted["adj"] # .fillna(o["valor"])
