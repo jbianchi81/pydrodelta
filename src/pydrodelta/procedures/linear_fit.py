@@ -91,7 +91,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
-        input_data = input[0].copy()
+        input_data = input[0][["valor"]].copy()
         self._sim_range = self.getSimRange(input_data, 0.1) if self.use_forecast_range else None
         covariables = ["valor"]
         if len(input) > 1:
