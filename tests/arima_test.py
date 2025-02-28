@@ -4,6 +4,7 @@ from pydrodelta.util import adjustSeries
 from pydrodelta.procedure import Procedure
 from pandas import DataFrame, date_range
 from numpy import nan
+import json
 
 class Test_ARIMA(TestCase):
 
@@ -94,3 +95,12 @@ class Test_ARIMA(TestCase):
         self.assertEqual(len(procedure.output[0]["superior"].dropna()), 10)
         self.assertEqual(len(procedure.output[0][procedure.output[0].index >= '2024-01-06']["lower"].dropna()), 4)
         self.assertEqual(len(procedure.output[0][procedure.output[0].index >= '2024-01-06']["upper"].dropna()), 4)
+
+        # results to dict
+        self.assertEqual(type(procedure.procedure_function_results.__dict__), dict)
+        self.assertEqual(type(procedure.procedure_function_results.adjust_results), dict)
+        results_dict = procedure.procedure_function_results.toDict()
+        self.assertEqual(type(results_dict), dict)
+        self.assertEqual(type(results_dict["adjust_results"]), dict)
+        self.assertEqual(type(json.dumps(results_dict)), str)
+

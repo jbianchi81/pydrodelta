@@ -93,6 +93,10 @@
         "type": "string",
         "description": "File path where to save the results of the procedure"
       },
+      "save_dict": {
+        "type": "string",
+        "description": "File path where to save the results of the procedure as dict"
+      },
       "overwrite": {
         "type": "boolean",
         "description": "Choice to overwrite observations at the node-variable with the procedure output"

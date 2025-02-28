@@ -53,12 +53,18 @@ def adjustSeriesArima(
 
     return {
         "method": "arima", 
-        "model": arima_model, 
         "quant_Err": quant_Err,
         "mse": arima_model.mse,
         "const": arima_model.params["const"],
         "ar.L1": arima_model.params["ar.L1"],
         "ma.L1": arima_model.params["ma.L1"],
-        "sigma2": arima_model.params["sigma2"]
+        "sigma2": arima_model.params["sigma2"],
+        "order": arima_model.model.order,
+        "aic": arima_model.aic,
+        "bic": arima_model.bic,
+        "hqic": arima_model.hqic,
+        "params": arima_model.params.tolist(),  # Convert to list for JSON compatibility
+        "pvalues": arima_model.pvalues.tolist(),
+        "resid": arima_model.resid.tolist(),
+        "fittedvalues": arima_model.fittedvalues.tolist()
         }, data_result
-

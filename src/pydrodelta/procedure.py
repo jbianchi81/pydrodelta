@@ -1,7 +1,9 @@
 from .procedure_function import ProcedureFunction
+from .config import config
 import logging
 import json
 import numpy as np
+import os
 from . import util
 from a5client import createEmptyObsDataFrame
 from .result_statistics import ResultStatistics
@@ -48,6 +50,9 @@ class Procedure():
 
     save_results : str or None
         Save procedure results into this file (csv pivoted table)
+
+    save_dict : str or None
+        Save procedure results into this file (json)
 
     overwrite : bool
         When exporting procedure results into the topology, overwrite observations in NodeVariable.data   
@@ -127,7 +132,8 @@ class Procedure():
         tail_steps : int = None,
         error_band : bool = None,
         read_sim : bool = False,
-        sim_index : int = 0
+        sim_index : int = 0,
+        save_dict : str = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -195,6 +201,7 @@ class Procedure():
         self.read_sim = read_sim
         self.sim_index = sim_index
         self.adjust_method = adjust_method
+        self.save_dict = save_dict
     
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
@@ -510,6 +517,23 @@ class Procedure():
             "function_type": self.function_type_name,
             "results": self.procedure_function_results.toDict() if self.procedure_function_results is not None else None
         }
+
+    save_dict = StringDescriptor()
+    """Save results as dict to this file"""
+
+    def saveDict(self, output : str):
+        try:
+            with open(
+                os.path.join(
+                    config["PYDRODELTA_DIR"],
+                    output
+                ),
+                'w') as f:
+                json.dump(self.read_results(), f)
+            logging.info("Procedure function results saved into %s" % output)
+        except IOError as e:
+            # logging.ERROR(f"Couldn't write to file ({e})")
+            raise e
     def run(
         self,
         inplace : bool = True,
@@ -522,7 +546,8 @@ class Procedure():
         adjust_method : str = None,
         warmup_steps : int = None,
         tail_steps : int = None,
-        error_band : bool = None
+        error_band : bool = None,
+        save_dict : str = None
         ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
@@ -550,6 +575,8 @@ class Procedure():
             For adjustment, user this number of final steps
         error_band : bool = True
             When adjusting, generate error band series from adjusted serie minus/plus linear model quant_error 95 %
+        save_dict : str = None
+            Save results as dict to this file
             
         Returns
         -------
@@ -557,6 +584,7 @@ class Procedure():
         list of DataFrames
         """
         save_results = save_results if save_results is not None else self.save_results
+        save_dict = save_dict if save_dict is not None else self.save_dict
         adjust = adjust if adjust is not None else self.adjust
         adjust_method = adjust_method if adjust_method is not None else self.adjust_method
         warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
@@ -632,9 +660,12 @@ class Procedure():
                 if error_band:
                     o["inferior"] = o["valor"] - self.linear_model["quant_Err"][0.950]
                     o["superior"] = o["valor"] + self.linear_model["quant_Err"][0.950]
+            self.procedure_function_results.setAdjustResults(lm_stats)
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
+        if bool(save_dict):
+            self.procedure_function_results.saveDict(output=save_dict)
         # returns
         if inplace:
             return

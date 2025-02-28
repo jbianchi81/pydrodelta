@@ -495,12 +495,13 @@ def adjustSeries(
         plot_columns = [c for c in ["valor_obs","valor_sim","adj"] if c in aux_df.columns]
         fitted_model = {
             "method": "lfit",
-            "lr": lr, 
             "quant_Err": quant_Err, 
             "r2": r2, 
             "coef": coef, 
             "intercept": intercept, 
-            "train": train
+            "train": train,
+            "coefficients": lr.coef_.tolist(),  # Convert numpy array to list
+            "intercept": lr.intercept_
         }
         result_columns = ["adj"]
     elif method == "arima":

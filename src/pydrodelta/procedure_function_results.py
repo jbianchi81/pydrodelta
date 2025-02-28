@@ -5,6 +5,7 @@ import numpy as np
 import logging
 from typing import Optional, Union, List
 import os
+import json
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -17,7 +18,8 @@ class ProcedureFunctionResults:
         statistics : Union[list,dict] = None,
         statistics_val : list = None,
         data : DataFrame = None,
-        extra_pars : dict = None
+        extra_pars : dict = None,
+        adjust_results :dict = None
         ):
         """
         border_conditions : Union[List[DataFrame],DataFrame] = None
@@ -52,6 +54,10 @@ class ProcedureFunctionResults:
 
             Additional, non-calibratable parameters
 
+        adjust_results = None
+
+            Results of adjustment (lfit or arima model properties)
+
         """
         self.border_conditions : Union[list,DataFrame,None] = border_conditions
         """Border conditions timeseries"""
@@ -69,6 +75,7 @@ class ProcedureFunctionResults:
         """Procedure function pivoted table including boundaries, states and outputs"""
         self.extra_pars : Optional[dict] = extra_pars
         """Additional, non-calibratable parameters"""
+        self.adjust_results = adjust_results
     # def toJSON(self):
     #     return json.dumps(self, default=lambda o: o.__dict__, 
     #         sort_keys=True, indent=4)
@@ -109,6 +116,19 @@ class ProcedureFunctionResults:
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.ERROR(f"Couldn't write to file ({e})")
+    def saveDict(self, output : str):
+        try:
+            with open(
+                os.path.join(
+                    config["PYDRODELTA_DIR"],
+                    output
+                ),
+                'w') as f:
+                json.dump(self.toDict(), f)
+            logging.info("Procedure function results saved into %s" % output)
+        except IOError as e:
+            # logging.ERROR(f"Couldn't write to file ({e})")
+            raise e
     def toDict(self) -> dict:
         """Convert procedure function results to dict"""
         # logging.debug({
@@ -130,6 +150,21 @@ class ProcedureFunctionResults:
             "extra_pars": self.extra_pars,
             "statistics": [x.toDict() for x in self.statistics] if self.statistics is not None else None,
             "statistics_val": [x.toDict() for x in self.statistics_val] if self.statistics_val is not None else None,
-            "data": self.data.replace({np.nan:None}).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [df.replace({np.nan:None}).to_dict("records") for df in self.data] if self.data is not None else None
+            "data": self.data.replace({np.nan:None}).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [df.replace({np.nan:None}).to_dict("records") for df in self.data] if self.data is not None else None,
+            "adjust_results": self.adjust_results_dict
         }
+
+    def setAdjustResults(self, adjust_results : dict):
+        self.adjust_results = adjust_results
+
+    @property
+    def adjust_results_dict(self) -> dict:
+        if self.adjust_results is not None:
+            quant_err =  self.adjust_results["quant_Err"].to_list() if "quant_Err" in self.adjust_results else None
+            return {
+                **self.adjust_results,
+                "quant_Err": quant_err
+            }
+        else:
+            return None
 
