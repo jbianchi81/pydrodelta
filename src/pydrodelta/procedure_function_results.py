@@ -103,7 +103,7 @@ class ProcedureFunctionResults:
                 
             Path of csv file to write"""   
         if self.data is None:
-            logging.warn("Procedure function produced no result to save. File %s not saved" % output)
+            logging.warning("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
             with open(
@@ -115,7 +115,7 @@ class ProcedureFunctionResults:
                 self.data.to_csv(f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
-            logging.ERROR(f"Couldn't write to file ({e})")
+            logging.error(f"Couldn't write to file (%s)" % str(e))
     def saveDict(self, output : str):
         try:
             with open(

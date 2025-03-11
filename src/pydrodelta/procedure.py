@@ -325,6 +325,8 @@ class Procedure():
                     except AssertionError as e:
                         raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
                 if read_sim:
+                    if boundary._variable.series_sim[sim_index].data is None:
+                        raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
                     data.append(boundary._variable.series_sim[sim_index].data.copy())
                 else:
                     data.append(boundary._variable.data.copy())
