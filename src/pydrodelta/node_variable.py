@@ -714,6 +714,8 @@ class NodeVariable:
         Returns:
         --------
         pivoted data : DataFrame"""
+        if self.series_output is None or not len(self.series_output):
+            raise Exception("Nothing to pivot: no series_output")
         columns = ["valor","tag"] if include_tag else ["valor"]
         data = self.series_output[0].data[columns]
         for serie in self.series_output:
@@ -1027,6 +1029,7 @@ class NodeVariable:
         data_lines = plt.plot(data)
         plt.legend(handles=data_lines, labels=[c for c in data.columns]) # plt.legend(data.columns)
         plt.title(self.name if self.name is not None else self.id)
+        plt.show()
         # if self._node._topology.forecast_timeend is not None:
         #     plt.vlines(
         #         x = [self._node._topology.timeend],

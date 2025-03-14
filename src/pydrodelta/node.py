@@ -481,7 +481,8 @@ class Node:
         """
         data = createEmptyObsDataFrame()
         for variable in self.variables.values():
-            data = data.join(variable.pivotOutputData(include_tag=include_tag))
+            if variable.series_output is not None and len(variable.series_output):
+                data = data.join(variable.pivotOutputData(include_tag=include_tag))
         return data
 
     def pivotSimData(

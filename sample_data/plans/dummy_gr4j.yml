@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=../../schemas/json/plan.json
+---
+  name: grp_dummy_from_csv_one_node
+  id: 666
+  topology: # data/topologies/from_csv.yml
+    timestart: "2023-04-23 00:00:00-03:00"
+    timeend: "2023-05-03 00:00:00-03:00"
+    interpolation_limit:
+      hours: 12 
+    nodes:
+    - id: 1
+      node_type: basin
+      name: sample pma
+      time_interval:
+        days: 1
+      variables:
+      - id: 1
+        series:
+        - series_id: 1
+          comment: sample pma series 1
+          csv_file: sample_data/csv/pq_dummy_1.csv
+        series_sim:
+        - series_id: 6
+      - id: 15
+        series:
+        - series_id: 2
+          comment: Sample etp series 2
+          csv_file: sample_data/csv/pq_dummy_1.csv
+        series_sim:
+        - series_id: 7
+      - id: 4
+        series:
+        - series_id: 3
+          comment: Sample q_obs series 3
+          csv_file: sample_data/csv/pq_dummy_1.csv
+        series_sim:
+        - series_id: 8
+      - id: 20
+        series:
+        - series_id: 4
+          comment: Sample smc_obs series 4
+          csv_file: sample_data/csv/pq_dummy_1.csv
+        series_sim:
+        - series_id: 9
+      basin_pars:
+        ae: 1
+  forecast_date: "2023-05-01 00:00:00-03:00"
+  time_interval:
+    days: 1
+  procedures:
+  - id: 1
+    function:
+      type: GR4J
+      initial_states:
+        Sk: 0
+        Rk: 0
+      parameters:
+        X0: 100
+        X1: 0
+        X2: 10
+        X3: 1
+      extra_pars:
+        area: 1000000
+        wp: 0.03
+        rho: 0.5
+      boundaries:
+      - name: pma
+        node_variable: 
+        - 1
+        - 1
+      - name: etp
+        node_variable: [1, 15]
+      - name: q_obs
+        node_variable: [1, 4]
+      - name: smc_obs
+        node_variable: [1, 20]
+      outputs:
+      - name: q_sim
+        node_variable: [1, 4]
+      - name: smc_sim
+        node_variable: [1, 20]
+    save_results: results/gr4j_dummy.csv

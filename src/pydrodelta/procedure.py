@@ -784,6 +784,28 @@ class Procedure():
         if index > len(self.output) - 1:
             raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
         testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
+    
+    def pivotInOut(self) -> DataFrame:
+        df = None
+        if isinstance(self.input, DataFrame):
+            df = self.input.copy()
+        else:
+            for i, boundary in enumerate(self.function.boundaries):
+                data_renamed = self.input[i][["valor"]].rename(columns={"valor":boundary.name})
+                if df is None:
+                    df = data_renamed
+                else:
+                    df = df.join(data_renamed)
+        for i, boundary in enumerate(self.function.outputs):
+            data_renamed = self.output[i][["valor"]].rename(columns={"valor":boundary.name})
+            data_obs_renamed = self.output_obs[i][["valor"]].rename(columns={"valor":"%s_obs" % boundary.name})
+            if df is None:
+                df = data_renamed
+            else:
+                df = df.join(data_renamed)
+                df = df.join(data_obs_renamed)
+        return df
+    
     def calibrate(
         self,
         inplace : bool = True

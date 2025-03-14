@@ -23,4 +23,4 @@ class DifferenceProcedureFunction(JunctionProcedureFunction):
         Returns:
         --------
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
-        return self.runJunction(input=input,substract=True)
+        return self.runJunction(input=input,substract=True,truncate_negative=True)

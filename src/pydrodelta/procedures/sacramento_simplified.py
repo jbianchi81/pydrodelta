@@ -14,6 +14,7 @@ from ..model_parameter import ModelParameter
 from ..model_state import ModelState
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
+from ..descriptors.dataframe_descriptor import DataFrameDescriptor
 
 class ParFg():
     """Flood guidance parameters"""
@@ -234,6 +235,9 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     sm_sim = ListDescriptor()
     """Simulated soil moisture"""
+
+    results = DataFrameDescriptor()
+    """Procedure results"""
 
     @property
     def mock_run(self) -> bool:
@@ -554,11 +558,12 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
 
             #advance step
+            x_0 = x.copy()
             (x, npasos) = self.advance_step(x,pma,etp)
             # new_row.loc[[0],'substeps'] = npasos
             
             # write row
-            result_rows.append([i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, npasos])
+            result_rows.append([i, pma, etp, q_obs, smc_obs, x_0[0], x_0[1], x_0[2], x_0[3], q3, q4, smcsim, k, fg1, fg2, npasos])
             if q_obs is not None:
                 sim.append(q4)
                 obs.append(q_obs)
@@ -592,6 +597,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             # },
             data = results    
         )
+        self.results = results
         return (
             [results[["q4"]].rename(columns={"q4":"valor"}),results[["smc"]].rename(columns={"smc":"valor"})],
             procedure_results
