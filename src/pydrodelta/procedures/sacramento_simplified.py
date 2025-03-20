@@ -185,10 +185,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         """soil moisture rescaling parameters (scale, bias)"""
         return SmTransform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else SmTransform([1,0])
 
-    @property
-    def x(self) -> list:
-        """Model states (x1,x2,x3,x4)"""
-        return [self.initial_states[0],self.initial_states[1],self.initial_states[2],self.initial_states[3]]
+    x = ListDescriptor()
     
     @property
     def par_fg(self) -> dict:
@@ -238,6 +235,12 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     results = DataFrameDescriptor()
     """Procedure results"""
+
+    X = ListDescriptor()
+    """Runge-Kutta derivatives of each substep"""
+
+    Xw = ListDescriptor()
+    """Runge-Kutta weigthed derivatives of each substep"""
 
     @property
     def mock_run(self) -> bool:
@@ -310,6 +313,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         
                 Initial model states (x1,x2,x3,x4)
                 """
+        kwargs["type"] = "SacramentoSimplified"
         super().__init__(
             parameters = parameters, 
             initial_states = initial_states,
@@ -318,6 +322,9 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self.volume = 0
         self.sm_obs = []
         self.sm_sim = []
+        self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
+        self.X = []
+        self.Xw = []
     
     def constraint(self,value,name):
         if name == 'x1':
@@ -391,7 +398,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         return (n1, n2)
 
     def advance_substep(self, x_n, p, pet, npasos):
-        x_ = x_n            # @x_n: estados iniciales @x_: estados intermedios
+        x_ = x_n.copy()            # @x_n: estados iniciales @x_: estados intermedios
         X = [list() for i in range(4)]                   # @X: derivadas
         for rk in range(4):
             sr = p * (x_[0] / self.x1_0)**self.m1
@@ -403,7 +410,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             bf = (1 + self.mu)**(-1) * gw + int
             X[rk].append(p - sr - pc - et1 - int)
             X[rk].append(pc - et2 - gw)
-            X[rk].append(sr + bf- x_[2] * self.alfa)
+            X[rk].append(sr + bf - x_[2] * self.alfa)
             X[rk].append(x_[2] * self.alfa - x_[3] * self.alfa)
             # rk = rk + 1
             # sr = p * (x_[0] / self.x1_0) ** self.m1
@@ -439,12 +446,18 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                 else:
                     out = []
                     max = (self.x1_0,self.x2_0)
+                    Xw = []
                     for k in range(4):
-                        out.append(self.constraint(x_n[k] + (X[0][k] + 2 * X[1][k] + 2 * X[2][k] + X[3][k]) / 6 / npasos, self._statenames[k]))
+                        Xw_ = (X[0][k] + 2 * X[1][k] + 2 * X[2][k] + X[3][k]) / 6 / npasos
+                        out.append(self.constraint(x_n[k] + Xw_, self._statenames[k]))
+                        Xw.append(Xw_)
+                    self.X.append(X)
+                    self.Xw.append(Xw)
                     return [out[0], out[1], out[2], out[3]]
 
 
-    def advance_step(self,x,pma,etp):
+    def advance_step(self,x : List[float],pma,etp):
+        x_ = x.copy()
         if not self.no_check1:
             npasos = max(1,int(pma/2))
         else:
@@ -453,17 +466,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         n2 = 1
         maxn = self.max_npasos if self.max_npasos is not None else 24
         if not self.no_check2:
-            (n1, n2) = self.check(x[0],x[1],pma,etp)
+            (n1, n2) = self.check(x_[0],x_[1],pma,etp)
         npasos = max(n2, max(npasos, min(24, n1)))
         npasos = npasos if self.max_npasos is None else min(self.max_npasos, npasos)
         l = 1
         while(l <= npasos):
             # gl_mjd += 1/npasos
-            x = self.advance_substep(x, pma, etp, npasos)
+            x_ = self.advance_substep(x_, pma, etp, npasos)
             # printf $super_out "%s    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n", $gl_date, $gl_mjd, $_[4]/$npasos, $_[5]/$npasos, @x;
             l = l + 1
 
-        return [x[0], x[1], x[2], x[3]], npasos
+        return x_, npasos
 
     def run(self,input: Optional[DataFrame]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
         """
@@ -496,7 +509,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         # })
         # results.set_index("timestart", inplace=True)
         # initialize states
-        x = [self.constraint(self.x[i],self._statenames[i]) for i in range(4)]
+        self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
         step = 0
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
@@ -518,30 +531,33 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             smc_obs = row["smc_obs"] # input[3].loc[[i]].valor.item() if len(input) > 3 else None
 
             if self.mock_run:
-                result_rows.append([i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], 0, 0, 0, k, 0, 0, 1])
+                result_rows.append([i, pma, etp, q_obs, smc_obs, self.x[0], self.x[1], self.x[2], self.x[3], 0, 0, 0, k, 0, 0, 1])
                 sim.append(0)
                 obs.append(0)
                 continue
 
-            smc = (self.rho - self.wp) * x[0] / self.x1_0 + self.wp
+            smc = (self.rho - self.wp) * self.x[0] / self.x1_0 + self.wp
 
             if np.isnan(pma):
                 if self.fill_nulls:
-                    logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0
                 else:
-                    logging.warn("Missing pma value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing pma value for date: %s. Unable to continue" % i)
                     break
             if etp is None:
                 if self.fill_nulls:
-                    logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing etp value for date: %s. Filling up with 0" % i)
                     etp = 0
                 else:
-                    logging.warn("Missing etp value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing etp value for date: %s. Unable to continue" % i)
                     break
-            q3 = self.area * self.alfa * x[2] / 1000 / self.dt_sec * self.ae
-            q4 = self.area * self.alfa * x[3] / 1000 / self.dt_sec * self.ae
-            smcsim = (self.rho - self.wp) * x[0] / self.x1_0 + self.wp
+            # calculate fluxes at the beggining of the step 
+            q3 = self.area * self.alfa * self.x[2] / 1000 / self.dt_sec * self.ae
+            q4 = self.area * self.alfa * self.x[3] / 1000 / self.dt_sec * self.ae
+            deep_perc = self.c3 * self.x[1] * (1 - (1 + self.mu)**(-1) )
+            real_et = etp * (self.x[0] / self.x1_0  + (1 - self.x[0] / self.x1_0) * (self.x[1] / self.x2_0)**self.m3)
+            smcsim = (self.rho - self.wp) * self.x[0] / self.x1_0 + self.wp
             gl_date = i
             q_ = q_obs
             sm_ = min(max(smc,self.wp),self.rho) if smc is not None else None
@@ -550,31 +566,31 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             # flood guidance
             if self.par_fg is not None:
                 Qcurrent = q_ if q_ is not None else q4
-                (fg1, fg2) = self.computeFloodGuidance(x,Qcurrent)
+                (fg1, fg2) = self.computeFloodGuidance(self.x,Qcurrent)
             else:
                 fg1 = None
                 fg2 = None
 
             # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
-
+            
             #advance step
-            x_0 = x.copy()
-            (x, npasos) = self.advance_step(x,pma,etp)
+            x_0 = self.x.copy()
+            (self.x, npasos) = self.advance_step(self.x,pma,etp)
             # new_row.loc[[0],'substeps'] = npasos
             
             # write row
-            result_rows.append([i, pma, etp, q_obs, smc_obs, x_0[0], x_0[1], x_0[2], x_0[3], q3, q4, smcsim, k, fg1, fg2, npasos])
+            result_rows.append([i, pma, etp, q_obs, smc_obs, x_0[0], x_0[1], x_0[2], x_0[3], q3, q4, smcsim, k, fg1, fg2, npasos, deep_perc, real_et])
             if q_obs is not None:
                 sim.append(q4)
                 obs.append(q_obs)
         
-        results = DataFrame(result_rows, columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
+        results = DataFrame(result_rows, columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps","deep_perc","real_et"])
         results.set_index("timestart", inplace=True)
         # results = concat(result_rows).set_index("timestart")
         # logging.debug(str(results))
         procedure_results = ProcedureFunctionResults(
-            border_conditions =  results[["pma","etp","q_obs","smc_obs"]],
-            initial_states =  self.initial_states,
+            border_conditions = results[["pma","etp","q_obs","smc_obs"]],
+            initial_states = self.initial_states,
             states = results[["x0","x1","x2","x3"]],
             parameters = self.parameters,
             extra_pars = {

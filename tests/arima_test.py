@@ -18,9 +18,9 @@ class Test_ARIMA(TestCase):
         arima_model, data_adj = adjustSeriesArima(data)
 
         self.assertEqual(len(data_adj),len(data))
-        self.assertEqual(len(data_adj["adj"].dropna()), 5)
-        self.assertEqual(len(data_adj["superior"].dropna()), 5)
-        self.assertEqual(len(data_adj["inferior"].dropna()), 5)
+        self.assertEqual(len(data_adj["adj"].dropna()), 10)
+        self.assertEqual(len(data_adj["upper"].dropna()), 4)
+        self.assertEqual(len(data_adj["lower"].dropna()), 4)
 
     def test_arima_adjust(self):
         data = DataFrame({
@@ -45,7 +45,7 @@ class Test_ARIMA(TestCase):
         )
 
         self.assertEqual(len(adj),len(data))
-        self.assertEqual(len(adj.dropna()), 5)
+        self.assertEqual(len(adj.dropna()), 10)
 
     def test_arima_adjust_procedure(self):
         data = DataFrame({

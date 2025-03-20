@@ -83,7 +83,7 @@ class Test_ObservedNodeVariable(TestCase):
             ],
             series_prono = [
                 {
-                    "cal_id": 445,
+                    "cal_id": 489,
                     "series_id": 29586,
                     "tipo":  "puntual",
                     "qualifier": "main",

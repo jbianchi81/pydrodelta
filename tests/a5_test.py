@@ -234,7 +234,7 @@ class Test_a5Crud(unittest.TestCase):
             token = "my_token"
         )
         serie = crud.readSeriePronoConcat(
-            445,
+            489,
             29586,
             qualifier = "main"
         )

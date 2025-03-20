@@ -22,7 +22,7 @@ class Test_NodeSerieProno(unittest.TestCase):
 
     def test_previous_runs_timestart(self):
         node_serie = NodeSerieProno(
-            cal_id = 445,
+            cal_id = 489,
             series_id = 29586,
             tipo = "puntual",
             previous_runs_timestart = {"days": -10},

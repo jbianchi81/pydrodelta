@@ -1,7 +1,12 @@
 from pydrodelta.plan import Plan
+from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from pydrodelta.util import createDatetimeSequence
+from pandas import DataFrame, read_csv
 from unittest import TestCase
 import yaml
 from pydrodelta.config import config
+from datetime import datetime, timedelta
+from pytz import timezone
 
 class Test_SacramentoSimplified(TestCase):
 
@@ -55,5 +60,144 @@ class Test_SacramentoSimplified(TestCase):
             len(saved_result["scores"]),
             1
         )
+
+    def test_water_balance(self):
+        pf = SacramentoSimplifiedProcedureFunction(
+            parameters = {
+                "x1_0": 10,
+                "x2_0": 10,
+                "m1": 1,
+                "c1": 0,
+                "c2": 0.0001,
+                "c3": 0.02,
+                "mu": 0,
+                "alfa": 0.5,
+                "m2": 1,
+                "m3": 1
+            },
+            initial_states = [0, 0, 0, 0],
+            extra_pars = {
+                "area": 86400000,
+                "ae": 1,
+                "rho": 0.5,
+                "wp": 0.03,
+                "fill_nulls": False,
+                "no_check1": False,
+                "no_check2": False,
+                "mock_run": False
+            },
+            boundaries = [
+                {
+                    "name": "pma",
+                    "node_variable": [1,1]
+                },
+                {
+                    "name": "etp",
+                    "node_variable": [1,15]
+                },
+                {
+                    "name": "q_obs",
+                    "node_variable": [1,40]
+                },
+                {
+                    "name": "smc_obs",
+                    "node_variable": [1,20]
+                }
+            ],
+            outputs = [
+                {
+                    "name": "q_sim",
+                    "node_variable": [1,40]
+                },
+                {
+                    "name": "smc_sim",
+                    "node_variable": [1,20]
+                }
+            ]
+        )
+
+        # no rain
+
+        input = DataFrame({
+            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "pma": [0,0,0,0,0,0,0,0],
+            "etp": [0,0,0,0,0,0,0,0],
+            "q_obs": [0.0,0,0,0,0,0,0,0],
+            "smc_obs": [0.0,0,0,0,0,0,0,0]
+        })
+
+        output, procedure_results = pf.run(input)
+
+        self.assertEqual(len(output),2)
+        self.assertEqual(len(output[0]),8)
+        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
+        dx = sum(pf.x) - sum(pf.initial_states) 
+        self.assertAlmostEqual(
+            io,
+            dx,
+            1,
+            "Mass balance failed: input - output: %.1f, delta storage: %.1f" % (io, dx)
+        )
+
+        # no rain, initial storage
+
+        pf.initial_states = [5,0,0,0]
+
+        output, procedure_results = pf.run(input)
+
+        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
+        dx = sum(pf.x) - sum(pf.initial_states) 
+        self.assertAlmostEqual(
+            io,
+            dx,
+            1,
+            "Mass balance failed: input - output: %.1f, delta storage: %.1f" % (io, dx)
+        )
+
+        # 1 rain pulse
+
+        pf.initial_states = [0,0,0,0]
+
+        input = DataFrame({
+            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "pma": [5,0,0,0,0,0,0,0],
+            "etp": [0,0,0,0,0,0,0,0],
+            "q_obs": [0.0,0,0,0,0,0,0,0],
+            "smc_obs": [0.0,0,0,0,0,0,0,0]
+        })
+
+        output, procedure_results = pf.run(input)
+
+        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
+        dx = sum(pf.x) - sum(pf.initial_states) 
+        self.assertAlmostEqual(
+            io,
+            dx,
+            1,
+            "Mass balance failed: input - output: %.1f, delta storage: %.1f" % (io, dx)
+        )
         
+        # 1 rain pulse, constant etp
+
+        pf.initial_states = [0,0,0,0]
+
+        input = DataFrame({
+            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "pma": [5,0,0,0,0,0,0,0],
+            "etp": [1,1,1,1,1,1,1,1],
+            "q_obs": [0.0,0,0,0,0,0,0,0],
+            "smc_obs": [0.0,0,0,0,0,0,0,0]
+        })
+
+        output, procedure_results = pf.run(input)
+
+        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
+        dx = sum(pf.x) - sum(pf.initial_states) 
+        self.assertAlmostEqual(
+            io,
+            dx,
+            0,
+            "Mass balance failed: input - output: %.f, delta storage: %.f" % (io, dx)
+        )
+
 
