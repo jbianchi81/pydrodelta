@@ -434,8 +434,13 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         x_[i] = self.constraint(x_n[i] + X[rk][i]/npasos,self._statenames[i])         
                 else:
                     out = []
+                    Xw = []
                     for k in range(4):
-                        out.append(self.constraint(x_n[k] + (X[0][k] + X[1][k]) / 2 / npasos,self._statenames[k]))
+                        Xw_ = (X[0][k] + X[1][k]) / 2 / npasos
+                        out.append(self.constraint(x_n[k] + Xw_, self._statenames[k]))
+                        Xw.append(Xw_)
+                    self.X.append(X)
+                    self.Xw.append(Xw)
                     #~ @x = @out;
                     return [out[0], out[1], out[2], out[3]]
                 #~ last;

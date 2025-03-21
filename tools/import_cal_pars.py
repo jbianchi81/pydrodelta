@@ -1,10 +1,10 @@
 import json
 import yaml
 import click
-from pydrodelta.a5 import Crud
+from a5client import Crud
 import os
 import sys
-config_file = open("~/.pydrodelta.yml"["PYDRODELTA_DIR"]) # "src/pydrodelta/config/config.json")
+config_file = open("%s/.pydrodelta.yml" % os.environ["HOME"]) # "src/pydrodelta/config/config.json")
 config = yaml.load(config_file,yaml.CLoader)
 config_file.close()
 import logging
@@ -62,6 +62,9 @@ def parse_sac(calibrado,node_id):
             "id": node_id,
             "name": "node 1",
             "node_type": "basin",
+            "basin_pars": {
+                "area_id": node_id
+            },
             "time_interval": {
                 "days": 1
             },
@@ -186,7 +189,7 @@ def parse_sac(calibrado,node_id):
                             "node_variable": [node_id,20]
                         }
                     ],
-                    "initial_states": [e["valor"] for e in calibrado["estados_iniciales"]],
+                    "initial_states": [e["valor"] for e in calibrado["estados"]],
                     "extra_pars": calibrado["extra_pars"] if "extra_pars" in calibrado else {"area":0, "ae":0, "wp": 0, "rho": 0, "fill_nulls": False}
                 }
             }   
