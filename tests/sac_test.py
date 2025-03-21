@@ -191,6 +191,7 @@ class Test_SacramentoSimplified(TestCase):
 
         output, procedure_results = pf.run(input)
 
+        mass_balance = pf.massBalance()
         io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
         dx = sum(pf.x) - sum(pf.initial_states) 
         self.assertAlmostEqual(
@@ -199,5 +200,8 @@ class Test_SacramentoSimplified(TestCase):
             0,
             "Mass balance failed: input - output: %.f, delta storage: %.f" % (io, dx)
         )
+        self.assertEqual(io, mass_balance["mass_balance"])
+        self.assertEqual(dx, mass_balance["storage_difference"])
+        self.assertAlmostEqual(mass_balance["discrepancy"],0,0)
 
 

@@ -628,3 +628,23 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self, 
         states: Union[list,tuple] = ...) -> None:
         super().setInitialStates(states)
+    
+    def massBalance(self) -> dict:
+        if self.results  is None or not len(self.results):
+            raise ValueError("Can't compute mass balance: results not found")
+        r = {
+            "pma": self.results.pma.sum(),
+            "real_et": self.results.real_et.sum(),
+            "runoff": sum(self.results.x3 * self.alfa),
+            "deep_perc": sum(self.results.deep_perc),
+            "initial_storage": sum(self.initial_states),
+            "final_storage":  sum(self.x),
+        }
+        r["mass_balance"] = r["pma"] - r["real_et"] - r["runoff"] - r["deep_perc"]
+        r["storage_difference"] = r["final_storage"] - r["initial_storage"]
+        r["discrepancy"] = r["mass_balance"] - r["storage_difference"]
+        r["discrepancy_per_step"] = r["discrepancy"] / len(self.results)
+        r["discrepancy_as_fraction_of_input"] = r["discrepancy"] / r["pma"]
+        r["runoff_coefficient"] = r["runoff"] / r["pma"]
+        return r
+        
