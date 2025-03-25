@@ -448,7 +448,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2)]
+                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2), *x_n, *Xw]
                     #~ @x = @out;
                     return [out[0], out[1], out[2], out[3]]
                 #~ last;
@@ -466,7 +466,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4)]
+                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4), *x_n, *Xw]
                     return [out[0], out[1], out[2], out[3]]
 
 
@@ -525,7 +525,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         # initialize states
         self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
         step = 0
-        self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc"])
+        self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc", "x1", "x2", "x3", "x4", "X1", "X2", "X3", "X4"])
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
         if len(input) < 2:

@@ -366,7 +366,7 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
     if tag_column is not None:
         mapper[tag_column] = "tag_fillnulls"
         data = data.join(other_data[[other_column,tag_column]].rename(mapper,axis=1), how = how)
-        data[column] = data[column].fillna(data["valor_fillnulls"].shift(shift_by, axis = 0) + bias)    
+        data[column] = data[column].fillna(data["valor_fillnulls"].shift(shift_by, axis = 0) + bias)
         data[tag_column] = data[tag_column].fillna(data["tag_fillnulls"].shift(shift_by, axis = 0))
         if fill_value is not None:
             data[column] = data[column].fillna(fill_value)
