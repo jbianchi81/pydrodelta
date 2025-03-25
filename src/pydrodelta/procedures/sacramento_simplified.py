@@ -242,6 +242,9 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     Xw = ListDescriptor()
     """Runge-Kutta weigthed derivatives of each substep"""
 
+    flows = DataFrameDescriptor()
+    """Mean flows for each substep"""
+
     @property
     def mock_run(self) -> bool:
         """Perform mock run"""
@@ -325,6 +328,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
         self.X = []
         self.Xw = []
+        self.flows = None
     
     def constraint(self,value,name):
         if name == 'x1':
@@ -397,9 +401,10 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             rk = rk + 1
         return (n1, n2)
 
-    def advance_substep(self, x_n, p, pet, npasos):
+    def advance_substep(self, x_n, p, pet, npasos, step, substep : int):
         x_ = x_n.copy()            # @x_n: estados iniciales @x_: estados intermedios
         X = [list() for i in range(4)]                   # @X: derivadas
+        flows = []
         for rk in range(4):
             sr = p * (x_[0] / self.x1_0)**self.m1
             et1 = pet * (x_[0] / self.x1_0)
@@ -412,6 +417,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             X[rk].append(pc - et2 - gw)
             X[rk].append(sr + bf - x_[2] * self.alfa)
             X[rk].append(x_[2] * self.alfa - x_[3] * self.alfa)
+            deep_perc = self.c3 * x_[1] * (1 - (1 + self.mu)**(-1) )
+            flows.append((rk, p, sr, et1, int, pc, et2, gw, bf, x_[2] * self.alfa, x_[3] * self.alfa, deep_perc))
             # rk = rk + 1
             # sr = p * (x_[0] / self.x1_0) ** self.m1
             # et1 = pet * (x_[0] / self.x1_0)
@@ -441,6 +448,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
+                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2)]
                     #~ @x = @out;
                     return [out[0], out[1], out[2], out[3]]
                 #~ last;
@@ -458,10 +466,11 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
+                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4)]
                     return [out[0], out[1], out[2], out[3]]
 
 
-    def advance_step(self,x : List[float],pma,etp):
+    def advance_step(self,x : List[float],pma,etp, step):
         x_ = x.copy()
         if not self.no_check1:
             npasos = max(1,int(pma/2))
@@ -477,7 +486,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         l = 1
         while(l <= npasos):
             # gl_mjd += 1/npasos
-            x_ = self.advance_substep(x_, pma, etp, npasos)
+            x_ = self.advance_substep(x_, pma, etp, npasos, step, l - 1)
             # printf $super_out "%s    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n", $gl_date, $gl_mjd, $_[4]/$npasos, $_[5]/$npasos, @x;
             l = l + 1
 
@@ -516,6 +525,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         # initialize states
         self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
         step = 0
+        self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc"])
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
         if len(input) < 2:
@@ -580,7 +590,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             
             #advance step
             x_0 = self.x.copy()
-            (self.x, npasos) = self.advance_step(self.x,pma,etp)
+            (self.x, npasos) = self.advance_step(self.x,pma,etp, i)
             # new_row.loc[[0],'substeps'] = npasos
             
             # write row
@@ -637,19 +647,41 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     def massBalance(self) -> dict:
         if self.results  is None or not len(self.results):
             raise ValueError("Can't compute mass balance: results not found")
+        integrated_flows = self.integrateFlows()
         r = {
-            "pma": self.results.pma.sum(),
-            "real_et": self.results.real_et.sum(),
-            "runoff": sum(self.results.x3 * self.alfa),
-            "deep_perc": sum(self.results.deep_perc),
+            **integrated_flows,
             "initial_storage": sum(self.initial_states),
             "final_storage":  sum(self.x),
         }
-        r["mass_balance"] = r["pma"] - r["real_et"] - r["runoff"] - r["deep_perc"]
+        r["mass_balance"] = r["p"] - r["et1"] - r["et2"] - r["q3"] - r["deep_perc"]
         r["storage_difference"] = r["final_storage"] - r["initial_storage"]
         r["discrepancy"] = r["mass_balance"] - r["storage_difference"]
         r["discrepancy_per_step"] = r["discrepancy"] / len(self.results)
-        r["discrepancy_as_fraction_of_input"] = r["discrepancy"] / r["pma"]
-        r["runoff_coefficient"] = r["runoff"] / r["pma"]
+        r["discrepancy_as_fraction_of_input"] = r["discrepancy"] / r["p"]
+        r["runoff_coefficient"] = r["q3"] / r["p"]
         return r
         
+    def computeMeanFlows(self,flows_, x_n, rk):
+        flows = DataFrame(flows_, columns=["rk", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3", "deep_perc"])
+        mean_flows = []
+        for key in ["p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3", "deep_perc"]:
+            if rk == 2:
+                mean = flows[key].sum() / len(flows)
+            else:
+                mean = flows.apply(
+                    lambda row: row[key] * (2 if row["rk"] in [1,2] else 1),
+                    axis=1
+                ).sum() / 6
+            mean_flows.append(mean)
+        return mean_flows
+    
+    def integrateFlows(self):
+        if self.flows is None:
+            raise Exception("Can´t integrate flows, flows property is None. Run the procedure to generate flows.")
+        results = {}
+        for key in ["p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3", "deep_perc"]:
+            results[key] = self.flows.apply(
+                lambda row: row[key] * row["substep_duration"],
+                axis=1
+            ).sum()
+        return results

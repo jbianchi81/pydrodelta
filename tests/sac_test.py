@@ -192,7 +192,7 @@ class Test_SacramentoSimplified(TestCase):
         output, procedure_results = pf.run(input)
 
         mass_balance = pf.massBalance()
-        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
+        io = mass_balance["p"] - mass_balance["et1"] - mass_balance["et2"] - mass_balance["q3"] - mass_balance["deep_perc"]
         dx = sum(pf.x) - sum(pf.initial_states) 
         self.assertAlmostEqual(
             io,
