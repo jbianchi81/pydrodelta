@@ -1110,7 +1110,8 @@ class Topology(Base):
         timestart : datetime = None,
         timeend : datetime = None,
         output : str = None,
-        extra_sim_columns : bool = True
+        extra_sim_columns : bool = True,
+        table : bool = True
         ) -> None:
         """Generates time-value plots for a selected variable, one per node where this variable is found. 
         
@@ -1130,6 +1131,9 @@ class Topology(Base):
         
         extra_sim_columns : bool = True
             Add additional simulation series to plot
+
+        table : bool = True
+            Add table
         """
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
         if output is not None:
@@ -1152,21 +1156,24 @@ class Topology(Base):
                     data = data[data["timestart"] <= timeend]
                 # data = node.series[0].data.reset_index() # .plot(y="valor")
                 # data.plot(kind="scatter",x="timestart",y="valor",title=node.name, figsize=(20,8),grid=True)
-                fig, ax = plt.subplots(figsize=(20,8))
+                fig, ax = plt.subplots(ncols=2,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1]})
                 grouped = data.groupby('tag')
                 for key, group in grouped:
-                    group.plot(ax=ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
+                    group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
+                data_table = data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
                 if len(original_data.dropna()["valor"]):
                     logging.debug("Add original data to plot at node %s" % str(node.name))
                     if timestart is not None:
                         original_data = original_data[original_data["timestart"] >= timestart]
                     if timeend is not None:
                         original_data = original_data[original_data["timestart"] <= timeend]
-                    original_data.plot(ax=ax,kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
+                    original_data.plot(ax=ax[0],kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
+                    data_table = original_data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
                 else:
                     logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
+                data_table["analysis"] = data_table["analysis"].round(2)
                 if node.variables[var_id].series_sim is not None and len(node.variables[var_id].series_sim):
                     sim_colors = list(Color("orange").range_to(Color("red"),len(node.variables[var_id].series_sim)))
                     for i, serie_sim in enumerate(node.variables[var_id].series_sim):
@@ -1178,14 +1185,16 @@ class Topology(Base):
                             if timeend is not None:
                                 data_sim = data_sim[data_sim["timestart"] <= timeend]
                             label = "sim_%i" % serie_sim.series_id
-                            data_sim.plot(ax=ax,kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
+                            data_sim.plot(ax=ax[0],kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
+                            data_table = data_table.join(data_sim.set_index("timestart")[["valor"]].rename(columns={"valor":label}))
+                            data_table[label] = data_table[label].round(2)
                             # plot extra sim columns
                             if extra_sim_columns:
                                 for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
                                     label = "sim_%i_%s" % (serie_sim.series_id, c)
                                     logging.debug("Add series sim column %s, label %s" % (c,label))
                                     data_sim.plot(
-                                        ax=ax,
+                                        ax=ax[0],
                                         kind='line', 
                                         x='timestart', 
                                         y=c, 
@@ -1196,8 +1205,16 @@ class Topology(Base):
                                         color=getRandColor(),
                                         linestyle="--",
                                         alpha=0.5)
+                                    data_table = data_table.join(data_sim.set_index("timestart")[[c]].rename(columns={c:label}))
+                                    data_table[label] = data_table[label].round(2)
                 if hasattr(node.variables[var_id],"max_obs_date") and node.variables[var_id].max_obs_date is not None:
                     plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
+                if table:
+                    ax[1].axis('off')  # Hide axes
+                    data_table = data_table.reset_index()
+                    data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and node.time_interval >= timedelta(days=1) else '%Y-%m-%d %H:%M')
+                    table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).values.tolist(), loc='center')
+                    table.auto_set_font_size(False)
                 if output is not None:
                     pdf.savefig()
                 plt.close()
