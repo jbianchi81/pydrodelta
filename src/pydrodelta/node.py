@@ -90,7 +90,7 @@ class Node:
             timeend : datetime = None,
             forecast_timeend : datetime = None,
             plan = None,
-            time_offset : timedelta = None,
+            time_offset : Union[dict,int] = None,
             topology = None,
             hec_node : dict = None,
             variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
@@ -165,6 +165,8 @@ class Node:
         # if "time_interval" not in params:
         #     raise ValueError("time_interval of node must be defined")
         self.time_interval = time_interval
+        if datetime(2000,1,1) - self.time_interval == datetime(2000,1,1):
+            raise ValueError("Invalid time_interval")
         self.time_offset = time_offset # if time_offset is not None else interval2timedelta(params["time_offset"]) if "time_offset" in params and params["time_offset"] is not None else None
         self.hec_node = hec_node
         self._plan = plan

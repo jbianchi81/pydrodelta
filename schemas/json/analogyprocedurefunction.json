@@ -1,0 +1,62 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "analogyprocedurefunction.json",
+    "title": "AnalogyProcedureFunction",
+    "type": "object",
+    "description": "Procedure function that finds analogs in the history of the timeseries",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "Analogy"
+            ]
+        },
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "search_length": {
+                    "description": "longitud de la serie para buscar Analogas",
+                    "type": "integer"
+                },
+                "forecast_length": {
+                    "description": "longitud del pronostico",
+                    "type": "integer"
+                },
+                "order_by": {
+                    "description":"Ordena Por",
+                    "type": "string",
+                    "enum": [
+                        "Nash","CoefC","RMSE","SPEDS","ErrVol"
+                    ],
+                    "default": "RMSE"
+                },
+                "ascending": {
+                    "description": "Sort ascending",
+                    "type": "boolean",
+                    "desfault": true
+                },
+                "number_of_analogs": {
+                    "description": "Cantidad de series que toma",
+                    "type": "integer",
+                    "default": 5
+                },
+                "time_window": {
+                    "description": "Ventana temporal",
+                    "type": "string",
+                    "enum": ["year", "month", "day", "yrDay", "wkDay"],
+                    "default": "month"
+                }
+            },
+            "required": ["search_length", "forecast_length"]
+        }
+   },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}

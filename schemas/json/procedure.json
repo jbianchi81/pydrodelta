@@ -74,6 +74,9 @@
           },
           {
             "$ref": "lagandrouteprocedurefunction.json"
+          },
+          {
+            "$ref": "analogyprocedurefunction.json"
           }
         ]
       },

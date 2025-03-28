@@ -7,6 +7,7 @@ import pandas
 import logging
 import json
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
@@ -139,11 +140,11 @@ class NodeVariable:
         linear_combination : LinearCombinationDict = None,
         interpolation_limit : int = None,
         extrapolate : bool = None,
-        time_interval : Union[timedelta,dict,float] = None,
+        time_interval : Union[relativedelta,dict,float] = None,
         name : str = None,
         timestart : datetime = None,
         timeend : datetime = None,
-        time_offset : timedelta = None,
+        time_offset : relativedelta = None,
         forecast_timeend : datetime = None
         ):
         """
@@ -182,7 +183,7 @@ class NodeVariable:
         extrapolate : bool = False
             If true, extrapolate data up to a distance of limit
 
-        time_interval : Union[timedelta,dict,float] = None
+        time_interval : Union[relativedelta,dict,float] = None
             Intended time spacing of the variable
         
         name :  str = None
@@ -197,7 +198,7 @@ class NodeVariable:
 
             End date (overrides _node.timeend)
 
-        time_offset : timedelta = None
+        time_offset : relativedelta = None
 
             Time start offset relative to 00:00 (overrides _node.time_offset)
 
@@ -937,14 +938,14 @@ class NodeVariable:
 
     def interpolate(
         self,
-        limit : timedelta = None,
+        limit : relativedelta = None,
         extrapolate : bool = None
         ) -> None:
         """Interpolate missing values in .data
         
         Parameters:
         -----------
-        limit : timedelta = None
+        limit : relativedelta = None
             Maximum interpolation distance
         
         extrapolate : bool = None

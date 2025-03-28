@@ -1,7 +1,7 @@
-from .config import config
+from pydrodelta.config import config
 from pydrodelta.arima import adjustSeriesArima
 import dateutil.parser
-import dateutil.relativedelta
+from dateutil.relativedelta import relativedelta
 import pytz
 from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
@@ -23,12 +23,12 @@ DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
 import numpy as np
 
-def interval2timedelta(interval : Union[dict,float,timedelta]):
-    """Parses duration dict or number of days into datetime.timedelta object
+def interval2timedelta(interval : Union[dict,float,relativedelta]):
+    """Parses duration dict or number of days into dateutil.relativedelta object
     
     Parameters:
     -----------
-    interval : dict or float (decimal number of days) or datetime.timedelta
+    interval : dict or float (decimal number of days) or relativedelta
         If dict, allowed keys are:
         - days
         - seconds
@@ -39,7 +39,7 @@ def interval2timedelta(interval : Union[dict,float,timedelta]):
     
     Returns:
     --------
-    duration : datetime.timedelta
+    duration : dateutil.relativedelta.relativedelta
 
     Examples:
 
@@ -48,31 +48,38 @@ def interval2timedelta(interval : Union[dict,float,timedelta]):
     interval2timedelta(1.5/24)
     ```
     """
-    if isinstance(interval,timedelta):
+    if isinstance(interval, relativedelta):
         return interval
     if isinstance(interval,(float,int)):
-        return timedelta(days=interval)
-    days = 0
-    seconds = 0
-    microseconds = 0
-    milliseconds = 0
-    minutes = 0
-    hours = 0
-    weeks = 0
-    for k in interval:
-        if k == "milliseconds" or k == "millisecond":
-            milliseconds = interval[k]
-        elif k == "seconds" or k == "second":
-            seconds = interval[k]
-        elif k == "minutes" or k == "minute":
-            minutes = interval[k]
-        elif k == "hours" or k == "hour":
-            hours = interval[k]
-        elif k == "days" or k == "day":
-            days = interval[k]
-        elif k == "weeks" or k == "week":
-            weeks = interval[k] * 86400 * 7
-    return timedelta(days=days, seconds=seconds, microseconds=microseconds, milliseconds=milliseconds, minutes=minutes, hours=hours, weeks=weeks)
+        return relativedelta(days=interval)
+    if isinstance(interval, dict):
+        days = 0
+        seconds = 0
+        microseconds = 0
+        minutes = 0
+        hours = 0
+        weeks = 0
+        months = 0
+        for k in interval:
+            if k == "microseconds" or k == "microsecond":
+                microseconds = microseconds + interval[k]
+            if k == "milliseconds" or k == "millisecond":
+                microseconds = microseconds + interval[k] * 1000
+            elif k == "seconds" or k == "second":
+                seconds = interval[k]
+            elif k == "minutes" or k == "minute":
+                minutes = interval[k]
+            elif k == "hours" or k == "hour":
+                hours = interval[k]
+            elif k == "days" or k == "day":
+                days = interval[k]
+            elif k == "weeks" or k == "week":
+                weeks = interval[k]
+            elif k == "months" or k == "months":
+                months = interval[k]
+        return relativedelta(days=days, seconds=seconds, microseconds=microseconds, minutes=minutes, hours=hours, weeks=weeks, months=months)
+    else:
+        raise TypeError("Invalid type for time interval: %s" % type(interval))
 
 def interval2epoch(interval):
     seconds = 0
@@ -127,10 +134,10 @@ def tryParseAndLocalizeDate(
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
     is_from_interval = False
     if isinstance(date,dict):
-        date = datetime.now() + dateutil.relativedelta.relativedelta(**date)
+        date = datetime.now() + relativedelta(**date)
         is_from_interval = True
     elif isinstance(date,(int,float)):
-        date = datetime.now() + dateutil.relativedelta.relativedelta(days=date)
+        date = datetime.now() + relativedelta(days=date)
         is_from_interval = True
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
@@ -142,7 +149,7 @@ def tryParseAndLocalizeDate(
         date = date.astimezone(pytz.timezone(timezone))
     return date # , is_from_interval
 
-def roundDownDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=None) -> datetime:
+def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None) -> datetime:
     if timeInterval.microseconds == 0:
         date = date.replace(microsecond=0)
     if timeInterval.seconds % 60 == 0:
@@ -155,7 +162,7 @@ def roundDownDate(date : datetime,timeInterval : timedelta,timeOffset : timedelt
             date = date + timeOffset
     return date
 
-def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=None, to="up") -> datetime:
+def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None, to="up") -> datetime:
     date_0 = tryParseAndLocalizeDate(datetime.combine(date.date(),datetime.min.time()))
     if timeOffset is not None:
         date_0 = date_0 + timeOffset 
@@ -170,7 +177,7 @@ def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=No
 
 def createDatetimeSequence(
     datetime_index : pandas.DatetimeIndex=None, 
-    timeInterval  = timedelta(days=1), 
+    timeInterval  = relativedelta(days=1), 
     timestart = None, 
     timeend = None, 
     timeOffset = None
@@ -184,21 +191,27 @@ def createDatetimeSequence(
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
     timeend = timeend if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
-    return pandas.date_range(start=timestart.astimezone(tz.UTC), end=timeend.astimezone(tz.UTC), freq=pandas.DateOffset(days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60)).tz_convert(timestart.tzinfo)
+    return pandas.date_range(start=timestart.astimezone(tz.UTC), end=timeend.astimezone(tz.UTC), freq=pandas.DateOffset(months=timeInterval.months,weeks=timeInterval.weeks,days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60)).tz_convert(timestart.tzinfo)
 
-def f1(row,column="valor",timedelta_threshold=None):
-    if -row["diff_with_next"] > timedelta_threshold:
+def f1(row,column="valor",timedelta_threshold : relativedelta=None):
+    now = datetime.now()
+    a = now - row["diff_with_next"]
+    b = now + timedelta_threshold
+    if a > b:
         return row[column]
     else:
         return row["interpolated_backward"]
 
-def f2(row,column="valor",timedelta_threshold=None):
-    if row["diff_with_previous"] > timedelta_threshold:
+def f2(row,column="valor",timedelta_threshold : relativedelta=None):
+    now = datetime.now()
+    a = now + row["diff_with_previous"]
+    b = now + timedelta_threshold
+    if a > b:
         return row[column]
     else:
         return row["interpolated_forward"]
 
-def f3(row,column="valor",timedelta_threshold=None):
+def f3(row,column="valor",timedelta_threshold : relativedelta=None):
     if pandas.isna(row["interpolated_forward_filtered"]):
         return row["interpolated_backward_filtered"]
     else:
@@ -214,10 +227,10 @@ def f4(row,column="valor",tag_column="tag"):
 
 def serieRegular(
     data : pandas.DataFrame, 
-    time_interval : timedelta, 
+    time_interval : relativedelta, 
     timestart : datetime  = None, 
     timeend : datetime = None, 
-    time_offset : timedelta = None, 
+    time_offset : relativedelta = None, 
     column : str = "valor", 
     interpolate : bool = True, 
     interpolation_limit : int = 1,
@@ -234,10 +247,10 @@ def serieRegular(
 
     Args:
         data(DataFrame): input data to be regularized
-        time_interval(timedelta): desired time step of the regularized output
+        time_interval(relativedelta): desired time step of the regularized output
         timestart(datetime, optional): begin date of regularized output. If not set, begin date of data is used
         timeend(datetime, optional): end date of regularized output. If not set, end date of data is used
-        time_offset(timedelta, optional): time offset of regularized output. If not set, begin time of data is used
+        time_offset(relativedelta, optional): time offset of regularized output. If not set, begin time of data is used
         column(str, optional): column name of data to extract. Defaults to "valor"
         interpolate(bool, optional): Interpolate missing rows. Defaults to True. If agg_func is set, interpolation is not performed
         interpolation_limit(int, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
@@ -306,7 +319,7 @@ def serieRegular(
 def regularizeColumn(
     df_regular : pandas.DataFrame,
     df_join : pandas.DataFrame, 
-    timedelta_threshold : timedelta, 
+    timedelta_threshold : relativedelta, 
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
@@ -384,7 +397,7 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
 
 def serieMovingAverage(
     obs_df : pandas.DataFrame,
-    offset : timedelta,
+    offset : relativedelta,
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
@@ -743,17 +756,17 @@ def plot_prono(
     offset = 10
     #xycoords='figure pixels',
     if annotate:
-        xdisplay = ahora + timedelta(days=1.0)
+        xdisplay = ahora + relativedelta(days=1.0)
         ax.annotate(prono_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18,
             color = prono_annotation_color)#arrowprops=arrowprops
-        xdisplay = ahora - timedelta(days=2)
+        xdisplay = ahora - relativedelta(days=2)
         ax.annotate(obs_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
-            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
     if adjust_results_string is not None:
         plt.gcf().text(0.6, 0.85, adjust_results_string, fontsize=10)
     if footnote is not None:
@@ -778,8 +791,8 @@ def plot_prono(
             xlim[1] = xmax
     else:
         xlim = [xmin,xmax]
-    xlim[0] = roundDownDate(xlim[0],timedelta(days=1))
-    xlim[1] = roundDownDate(xlim[1],timedelta(days=1))
+    xlim[0] = roundDownDate(xlim[0],relativedelta(days=1))
+    xlim[1] = roundDownDate(xlim[1],relativedelta(days=1))
     ax.set_xlim(xlim[0],xlim[1])
     ax.tick_params(labeltop=False, labelright=True)
     plt.grid(True, which='both', color='0.75', linestyle='-.',linewidth=0.5)
@@ -826,11 +839,11 @@ def plot_prono(
     ax.xaxis.set_minor_locator(mdates.HourLocator(xaxis_minor_tick_hours)) # (3,9,15,21,)
     ## FRANJAS VERTICALES
     start_0hrs = sim_df.index.min().date()
-    end_0hrs = (sim_df.index.max() + timedelta(hours=12)).date()
+    end_0hrs = (sim_df.index.max() + relativedelta(hours=12)).date()
     list0hrs = pandas.date_range(start_0hrs,end_0hrs)
     i = 1
     while i < len(list0hrs):
-        ax.axvspan(list0hrs[i-1] + timedelta(hours=3), list0hrs[i] + timedelta(hours=3), alpha=0.1, color='grey')
+        ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
     plt.savefig(
         os.path.join(
@@ -967,13 +980,13 @@ def mad(l : list) -> float:
     mean = np.mean(l)
     return np.mean([abs(x - mean) for x in l])
 
-def filter_func(ind, base : datetime, dt: timedelta):
+def filter_func(ind, base : datetime, dt: relativedelta):
     return ind >= base and ind < base + dt
 
-def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : timedelta) -> DataFrame:
+def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta) -> DataFrame:
     return data.loc[map(filter_func, data.index, [base for x in data.index], [dt for x in data.index])]
 
-def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
+def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
     valid_agg_func = {
         "sum": np.sum,
         "first": first,
@@ -994,7 +1007,7 @@ def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timede
         return np.nan  
     return valid_agg_func[agg_func](rows[column])
 
-def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
+def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
     """For each timestamp in index, return aggregate function agg_func column column of matching rows of data. data.index must be a DatetimeIndex. For a given index item i, matching rows are those where row index is greater than or equal to i and lower than i + dt
 
     Args:
