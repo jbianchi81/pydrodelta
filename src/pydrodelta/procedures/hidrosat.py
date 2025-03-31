@@ -63,10 +63,6 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
     
     @property
     def soilStorage(self) -> float:
-        """Almacenamiento inicial en reservorio de retención / Initial Storage Tension Water [mm]"""
-    
-    @property
-    def soilStorage(self) -> float:
         """Almacenamiento inicial en reservorio de retención / Initial tension water storage [mm]"""
         return self.initial_states[0] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["soilStorage"] if isinstance(self.initial_states,dict) and "soilStorage" in self.initial_states  else [0]
     
