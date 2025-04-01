@@ -4,6 +4,7 @@ import os
 from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce
 from pathlib import Path
 from datetime import timedelta, datetime
+from dateutil.relativedelta import relativedelta
 from .node import Node
 from .node_variable import NodeVariable
 import logging
@@ -616,14 +617,14 @@ class Topology(Base):
 
     def interpolate(
         self,
-        limit : timedelta = None,
+        limit : relativedelta = None,
         extrapolate: bool = None
         ) -> None:
         """For each variable of each node, fill nulls of data by interpolation
         
         Parameters:
         -----------
-        limit : timedelta
+        limit : relativedelta
             Maximum interpolation distance
         
         extrapolate : bool
@@ -1212,7 +1213,7 @@ class Topology(Base):
                 if table:
                     ax[1].axis('off')  # Hide axes
                     data_table = data_table.reset_index()
-                    data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and node.time_interval >= timedelta(days=1) else '%Y-%m-%d %H:%M')
+                    data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
                     table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).values.tolist(), loc='center')
                     table.auto_set_font_size(False)
                 if output is not None:

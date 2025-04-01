@@ -11,6 +11,7 @@ from .descriptors.dict_descriptor import DictDescriptor
 import pandas
 import json
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import isodate
 from typing import Union, List, Dict, Tuple
 from pandas import DatetimeIndex, DataFrame
@@ -596,7 +597,7 @@ class Node:
     
     def interpolate(
         self,
-        limit : timedelta = None,
+        limit : relativedelta = None,
         extrapolate : bool = None
         ) -> None:
         """Join every variable in .variables, run .interpolate().
