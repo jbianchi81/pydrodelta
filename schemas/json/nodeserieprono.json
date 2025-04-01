@@ -2,61 +2,58 @@
   "$id": "nodeserieprono.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NodeSerieProno",
-  "allOf": [
-    {
-      "$ref": "abstractnodeserie.json"
+  "$ref": "abstractnodeserie.json",
+  "properties": {
+    "cal_id": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "id de calibrado, para utilizar salida de pronóstico"
     },
-    {
-      "type": "object",
-      "properties": {
-        "cal_id": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "id de calibrado, para utilizar salida de pronóstico"
-        },
-        "qualifier": {
-          "type": "string"
-        },
-        "main_qualifier": {
-          "type": "string",
-          "description": "if qualifier == 'all', set this qualifier as the main qualifier"
-        },
-        "adjust": {
-          "type": "boolean"
-        },
-        "plot_params": {
-          "href": "plotparams.json"
-        },
-        "previous_runs_timestart": {
-          "href": "dateorinterval.json",
-          "description": "If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"
-        },
-        "forecast_timestart": {
-          "href": "dateorinterval.json",
-          "description": "Begin date of last forecast run. If last forecast date is older than this value, it raises an error"
-        },
-        "warmup": {
-          "type": "integer",
-          "description": "Skip this number of initial steps from the fit procedure",
-          "default": 0
-        },
-        "tail": {
-            "type": "integer",
-            "description": "Use only this number of final steps for the fit procedure",
-            "default": 0
-        },
-        "sim_range": {
-            "type": "array",
-            "description": "Fit using only pairs where values are within this range",
-            "examples": [
-              [-1,2.5]
-            ]
-        }
-      },
-      "required": ["cal_id"]
+    "qualifier": {
+      "type": "string"
+    },
+    "main_qualifier": {
+      "type": "string",
+      "description": "if qualifier == 'all', set this qualifier as the main qualifier"
+    },
+    "adjust": {
+      "type": "boolean"
+    },
+    "plot_params": {
+      "$ref": "plotparams.json"
+    },
+    "previous_runs_timestart": {
+      "$ref": "dateorinterval.json",
+      "description": "If set, retrieves previous forecast runs with forecast_date posterior to the chosen date and concatenates the results into a single series"
+    },
+    "forecast_timestart": {
+      "$ref": "dateorinterval.json",
+      "description": "Begin date of last forecast run. If last forecast date is older than this value, it raises an error"
+    },
+    "warmup": {
+      "type": "integer",
+      "description": "Skip this number of initial steps from the fit procedure",
+      "default": 0
+    },
+    "tail": {
+      "type": "integer",
+      "description": "Use only this number of final steps for the fit procedure",
+      "default": 0
+    },
+    "sim_range": {
+      "type": "array",
+      "description": "Fit using only pairs where values are within this range",
+      "examples": [
+        [
+          -1,
+          2.5
+        ]
+      ]
     }
-  ],
-  "unevaluatedProperties": false
+  },
+  "required": [
+    "cal_id"
+  ]
 }

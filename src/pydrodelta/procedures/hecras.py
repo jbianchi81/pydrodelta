@@ -3,14 +3,14 @@ from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from pydrodelta.validation import getSchema, validate
+# from pydrodelta.validation import getSchema, validate
 from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
 from pathlib import Path
-import jsonschema
+# import jsonschema
 import yaml
 
-schemas, resolver = getSchema("HecRasProcedureFunction","schemas/json")
-schema = schemas["HecRasProcedureFunction"]
+# schemas, resolver = getSchema("HecRasProcedureFunction","schemas/json")
+# schema = schemas["HecRasProcedureFunction"]
 
 # from pyras.controllers import RAS41, kill_ras
 # from pyras.controllers.hecras import ras_constants as RC
@@ -37,10 +37,10 @@ class ModelConfig():
 class HecRasProcedureFunction(ProcedureFunction):
     def __init__(self,params,procedure):
         super().__init__(params,procedure)
-        jsonschema.validate(
-            instance=params,
-            schema=schema,
-            resolver=resolver)
+        # jsonschema.validate(
+        #     instance=params,
+        #     schema=schema,
+        #     resolver=resolver)
         self.workspace = params["workspace"]
         self.model_path = params["model_path"]
         self.project_name = params["project_name"]

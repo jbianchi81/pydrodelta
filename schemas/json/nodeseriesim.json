@@ -2,11 +2,7 @@
   "$id": "nodeseriesim.json",
   "schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NodeSerieSim",
-  "allOf": [
-    {
-      "$ref": "nodeserie.json"
-    }
-  ],
+  "$ref": "abstractnodeserie.json",
   "properties": {
     "cal_id": {
       "type": [

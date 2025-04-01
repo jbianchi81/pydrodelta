@@ -5,7 +5,6 @@ from typing import Union, List, Tuple
 from ..procedure_function import ProcedureFunctionResults
 from ..procedures.pq import PQProcedureFunction
 from ..pydrology import HIDROSAT, HIDROSATPowerLawReservoir, RetentionReservoir, LinearReservoirCascade
-from ..validation import getSchemaAndValidate
 from ..model_state import ModelState
 
 class HIDROSATProcedureFunction(PQProcedureFunction):
@@ -131,14 +130,6 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
             extra_pars = extra_pars,
             initial_states = initial_states,
             **kwargs)
-        getSchemaAndValidate(
-            dict(
-                kwargs,
-                parameters = parameters,
-                extra_pars = extra_pars,
-                initial_states = initial_states
-            ),
-            "HIDROSATProcedureFunction")
         
     def run(
         self,

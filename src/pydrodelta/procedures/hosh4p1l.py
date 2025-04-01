@@ -9,7 +9,6 @@ from typing import Union, List, Tuple
 from ..procedure_function import ProcedureFunctionResults
 from ..procedures.pq import PQProcedureFunction
 from ..pydrology import HOSH4P1L, triangularDistribution
-from ..validation import getSchemaAndValidate
 from ..model_state import ModelState
 
 class HOSH4P1LProcedureFunction(PQProcedureFunction):
@@ -139,14 +138,6 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             extra_pars = extra_pars,
             initial_states = initial_states,
             **kwargs)
-        getSchemaAndValidate(
-            dict(
-                kwargs,
-                parameters = parameters,
-                extra_pars = extra_pars,
-                initial_states = initial_states
-            ),
-            "HOSH4P1LProcedureFunction")
         if self.Proc == "UH" and self.T is None:
             raise Exception("Missing parameter T")
         if self.Proc == "Nash" and self.k is None:
