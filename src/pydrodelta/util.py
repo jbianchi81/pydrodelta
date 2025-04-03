@@ -7,6 +7,7 @@ from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
 from datetime import timedelta, datetime
+from zoneinfo import ZoneInfo
 import numpy as np
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -103,7 +104,7 @@ def interval2epoch(interval):
     return seconds
 
 def tryParseAndLocalizeDate(
-        date_string : Union[str,float,datetime],
+        date_string : Union[str,float,datetime,tuple],
         timezone : str='America/Argentina/Buenos_Aires'
     ) -> datetime:
     """
@@ -112,7 +113,7 @@ def tryParseAndLocalizeDate(
     Parameters:
     -----------
     date_string : str or float or datetime.datetime
-        For absolute date: ISO-8601 datetime string or datetime.datetime.
+        For absolute date: ISO-8601 datetime string or datetime.datetime or (year,month,date) tuple.
         For relative date: dict (duration key-values) or float (decimal number of days)
     
     timezone : str
@@ -128,6 +129,7 @@ def tryParseAndLocalizeDate(
     tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
     tryParseAndLocalizeDate(1.5)
     tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
+    tryParseAndLocalizeDate((2000,1,1))
     ```
     """
     
@@ -139,14 +141,18 @@ def tryParseAndLocalizeDate(
     elif isinstance(date,(int,float)):
         date = datetime.now() + relativedelta(days=date)
         is_from_interval = True
+    elif isinstance(date, tuple):
+        if len(date) < 3:
+            raise ValueError("Invalid date tuple: missing items (3 required)")
+        date = datetime(*date)
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
-            date = pytz.timezone(timezone).localize(date)
+            date = date.replace(tzinfo = ZoneInfo(timezone))
         except pytz.exceptions.NonExistentTimeError:
             logging.warning("NonexistentTimeError: %s" % str(date))
             return None
     else:
-        date = date.astimezone(pytz.timezone(timezone))
+        date = date.astimezone(ZoneInfo(timezone))
     return date # , is_from_interval
 
 def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None) -> datetime:
@@ -177,21 +183,33 @@ def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relative
 
 def createDatetimeSequence(
     datetime_index : pandas.DatetimeIndex=None, 
-    timeInterval  = relativedelta(days=1), 
-    timestart = None, 
-    timeend = None, 
-    timeOffset = None
+    timeInterval : Union[relativedelta,dict,int] = relativedelta(days=1), 
+    timestart : Union[datetime,tuple,str] = None, 
+    timeend : Union[datetime,tuple,str] = None, 
+    timeOffset : Union[relativedelta,dict] = None
     ) -> pandas.DatetimeIndex:
     #Fechas desde timestart a timeend con un paso de timeInterval
     #data: dataframe con index tipo datetime64[ns, America/Argentina/Buenos_Aires]
     #timeOffset sólo para timeInterval n days
     if datetime_index is None and (timestart is None or timeend is None):
         raise Exception("Missing datetime_index or timestart+timeend")
-    timestart = timestart if timestart is not None else datetime_index.min()
+    timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else datetime_index.min()
+    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timeInterval
+    timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
-    timeend = timeend if timeend  is not None else datetime_index.max()
+    timeend = tryParseAndLocalizeDate(timeend) if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
-    return pandas.date_range(start=timestart.astimezone(tz.UTC), end=timeend.astimezone(tz.UTC), freq=pandas.DateOffset(months=timeInterval.months,weeks=timeInterval.weeks,days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60)).tz_convert(timestart.tzinfo)
+    return pandas.date_range(
+        start=timestart.astimezone(tz.UTC), 
+        end=timeend.astimezone(tz.UTC), 
+        freq=pandas.DateOffset(
+            months=timeInterval.months,
+            weeks=timeInterval.weeks,
+            days=timeInterval.days, 
+            hours=timeInterval.seconds // 3600, 
+            minutes = (timeInterval.seconds // 60) % 60
+        )
+    ).tz_convert(timestart.tzinfo)
 
 def f1(row,column="valor",timedelta_threshold : relativedelta=None):
     now = datetime.now()
