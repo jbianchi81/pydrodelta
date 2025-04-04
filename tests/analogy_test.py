@@ -1,5 +1,6 @@
 from pydrodelta.plan import Plan
 from pydrodelta.procedures.analogy import AnalogyProcedureFunction, CreaVariablesTemporales, TransfDatos, CalcIndicXFecha
+from pydrodelta.util import tryParseAndLocalizeDate
 from unittest import TestCase
 from pydrodelta.util import createDatetimeSequence
 from pandas import DataFrame
@@ -7,11 +8,14 @@ import numpy as np
 
 class Test_Analogy(TestCase):
 
+    timestart = (1900,1,1)
+    timeend = (2000,1,1)
+
     index = createDatetimeSequence(
         timeInterval={"months":1},
-        timestart = (1900,1,1), 
-        timeend = (2000,1,1))
-    
+        timestart = timestart, 
+        timeend = timeend
+    )
     # genera serie autoregresiva
     phi = 0.8
     sigma = 1
@@ -82,3 +86,9 @@ class Test_Analogy(TestCase):
         ]
 
         output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        self.assertEqual(len(output),1)
+        self.assertEqual(len(output[0]),4)
+        self.assertTrue("valor" in output[0].columns)
+        self.assertIsInstance(output[0]["valor"].sum(),float)
+        self.assertNotEqual(output[0]["valor"].sum(),np.nan)
+        self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
