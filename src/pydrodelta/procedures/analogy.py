@@ -67,6 +67,19 @@ class AnalogyProcedureFunction(ProcedureFunction):
             "time_window": self.time_window
         }
 
+    @property
+    def skip_first_years(self) -> int:
+        return self.extra_pars.get("skip_first_years") if "skip_first_years" in self.extra_pars else 10
+    @property
+    def only_last_years(self) -> int:
+        return self.extra_pars.get("only_last_years")
+    @property 
+    def vent_resamp_range(self) -> Tuple[int,int]:
+        return self.extra_pars.get("vent_resamp_range")
+    @property
+    def error_forecast_date_window(self) -> int:
+        return self.extra_pars.get("error_forecast_date_window")
+
     errores = DataFrameDescriptor()
 
     df_prono_analog = DataFrameDescriptor()
@@ -104,6 +117,9 @@ class AnalogyProcedureFunction(ProcedureFunction):
         
             Properties:
             - add_error_band : bool = False
+            - skip_first_years : int = 10
+            - only_last_years : int = None
+            - vent_resamp_range : Tuple[int,int] = None
         
         **kwargs : see ..procedure_function.ProcedureFunction
         """
@@ -119,7 +135,12 @@ class AnalogyProcedureFunction(ProcedureFunction):
         self,
         input : List[DataFrame] = None,
         forecast_date : datetime = None,
-        save_results : str = None
+        save_results : str = None,
+        add_error_band : bool = None,
+        skip_first_years : int = None, 
+        only_last_years : int = None, 
+        vent_resamp_range : Tuple[int,int] = None,
+        error_forecast_date_window : int = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -143,6 +164,12 @@ class AnalogyProcedureFunction(ProcedureFunction):
         if save_results is None:
             save_results = self.save_results
         
+        add_error_band = add_error_band if add_error_band is not None else self.extra_pars.get("add_error_band")
+        skip_first_years = skip_first_years if skip_first_years is not None else self.skip_first_years
+        only_last_years = only_last_years if only_last_years is not None else self.only_last_years
+        vent_resamp_range = vent_resamp_range if vent_resamp_range is not None else self.vent_resamp_range
+        error_forecast_date_window = error_forecast_date_window if error_forecast_date_window is not None else self.error_forecast_date_window
+
         if input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         
@@ -185,9 +212,13 @@ class AnalogyProcedureFunction(ProcedureFunction):
         # crea columna mes_ant
         self.df_prono_analog["mes_ant"] = self.df_prono_analog.index + 1
         
-        if self.extra_pars.get("add_error_band"):
+        if add_error_band:
             ## 2 - Calcula errores X serie
-            self.errores = MetodoAnalogia_errores_v2(self.boundaries[0].node_id,self.data,"valor",self.time_window,self.parameters_with_defaults,outputfile=save_results) # connBBDD=conn
+            if vent_resamp_range is None and error_forecast_date_window is not None:
+                # set forecast date window for seasonsized error
+                steps = range(1,53 if self.time_window == "week" else 13,1)
+                vent_resamp_range = (steps[(forecast_date.month - error_forecast_date_window - 1) % len(steps)],steps[(forecast_date.month + error_forecast_date_window - 1)  % len(steps)])
+            self.errores = MetodoAnalogia_errores_v2(self.boundaries[0].node_id,self.data,"valor",self.time_window,self.parameters_with_defaults,outputfile=save_results,skip_first_years=skip_first_years, only_last_years=only_last_years, vent_resamp_range=vent_resamp_range) # connBBDD=conn
 
             error_stats = self.errores[["Dif_Prono"]].groupby(level="mes_ant").agg(['count','mean','std']).reset_index()
             self.error_stats = error_stats["Dif_Prono"] 
@@ -479,7 +510,7 @@ def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : str,mes_selct,n_var
 def month2Date(y,x):
         return datetime(y, x, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires"))
 
-def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile : str=None,connBBDD=None) -> DataFrame:
+def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile : str=None,connBBDD=None,skip_first_years:int=10, only_last_years:int=None,vent_resamp_range:Tuple[int,int]=None) -> DataFrame:
     longBusqueda = ParamMetodo['search_length']
     longProno = ParamMetodo['forecast_length']
     orden = ParamMetodo['order_by']
@@ -495,24 +526,33 @@ def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile
     columnas = ['timestart','nombre','year','month','mes_ant','Caudal','Prono','Dif_Prono','E1','E2','E3','E4','E5']
     df_errorXMes = DataFrame(columns=columnas)
     
-    # Quita los ultimos 10 años y los primeros "longProno" registros. Porque no van a tener la serie completa.
-    df_clip = df[10*12:-longProno].copy()
-
+    # Quita los primeros 10 años y los primeros "longProno" registros. Porque no van a tener la serie completa.
+    # con only_last_years deja solo esos últimos años
+    if only_last_years is not None:
+        start = max(len(df)-only_last_years*12,skip_first_years*12)
+        fechas_prono = df[start:-longProno][["month","year"]]
+    else:
+        fechas_prono = df[skip_first_years*12:-longProno][["month","year"]]
+    # filtra por rango de meses (para estacionalizar el error)
+    if vent_resamp_range:
+        if vent_resamp_range[0] < vent_resamp_range[1]:
+            # i.e. (3,5) mar-may
+            fechas_prono = fechas_prono[(fechas_prono["month"] >= vent_resamp_range[0]) & (fechas_prono["month"] <= vent_resamp_range[1])]
+        else:
+            # i.e. (12,2) dec-feb
+            fechas_prono = fechas_prono[(fechas_prono["month"] >= vent_resamp_range[0]) | (fechas_prono["month"] <= vent_resamp_range[1])]
     # Loop sobre todos los meses desde el inicio de la serie. Saca los primeros 10 años para que los primeros años tengan datos para buscar analogia
-    for index, row in df_clip.iterrows():
+    for index, fecha_prono in fechas_prono.iterrows():
         # Si hay valores negativos en la serie se le suma el valor minimo.
-        # Luego se le vuelve a sumar el valor. Se hace para que el log no tiere error
+        # Luego se le vuelve a sumar el valor. Se hace para que el log no tire error
         min_val = df[var].min()
         if min_val<=0:
             df[var]=df[var]-(min_val-0.01)
 
-        mes_select = int(row['month'])
-        yr_select = int(row['year'])
-        # if yr_select<1944: continue
-        # if mes_selct<9: continue
-        # print(mes_selct)
-        if mes_select==1: print(yr_select)
+        mes_select = int(fecha_prono['month'])
+        yr_select = int(fecha_prono['year'])
 
+        if mes_select==1: logging.debug(yr_select)
 
         fecha_a_prono = df.query("year=="+str(yr_select)+" and month=="+str(mes_select))     # Busca la fecha seleccionada
         idx_select = fecha_a_prono.index[0].to_pydatetime()                                          # Toma el id de la fecha seleccionada
@@ -559,8 +599,8 @@ def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile
         cols_var = [var,'LogVar_Est']
         n_sim_sin_nan = 0
         par_comp = DataFrame(index=range(0,cantidad,1),columns=df_indicadores.columns)
-        for index, row in df_indicadores.iterrows():
-            yr_sim = int(row['YrSim'])
+        for index, fecha_prono in df_indicadores.iterrows():
+            yr_sim = int(fecha_prono['YrSim'])
             # Arma el Df para comparar con el seleccionado.
             fecha_sim = df_pasado.query("year=="+str(yr_sim)+" and month=="+str(mes_select))
             idx_sim = fecha_sim.index[0].to_pydatetime() # + 1
@@ -585,9 +625,9 @@ def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile
         par_comp['YrSim'] = par_comp['YrSim'].astype('int')
         
         # Multiplica por los pesos
-        for index, row in par_comp.iterrows():
-            yrstr = str(row['YrSim'])+'_Transf'
-            df_union[yrstr] = df_union[yrstr] * row['wi']
+        for index, fecha_prono in par_comp.iterrows():
+            yrstr = str(fecha_prono['YrSim'])+'_Transf'
+            df_union[yrstr] = df_union[yrstr] * fecha_prono['wi']
         
         list_years_analog = [str(yr)+'_Transf' for yr in par_comp['YrSim'].to_list()]
         df_union['Prono'] = df_union[list_years_analog].sum(axis=1)

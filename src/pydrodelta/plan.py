@@ -236,7 +236,6 @@ class Plan(Base):
         self.name = name
         self.id = id
         self.topology = topology
-        self.procedures = procedures
         self._forecast_date : datetime = None
         self._time_interval : timedelta = None
         self.forecast_date = forecast_date
@@ -251,6 +250,7 @@ class Plan(Base):
         self.qualifiers = qualifiers
         self.save_variable_sim = save_variable_sim
         self.output_graph = output_graph
+        self.procedures = procedures
     
     def getProcedure(self,id : Union[str,int]) -> Procedure:
         """get procedure by id"""

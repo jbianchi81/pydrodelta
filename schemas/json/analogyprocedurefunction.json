@@ -53,6 +53,40 @@
                 }
             },
             "required": ["search_length", "forecast_length"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+                "add_error_band": {
+                    "type": "boolean"
+                },
+                "skip_first_years": {
+                    "type": "number",
+                    "default": 10
+                },
+                "only_last_years": {
+                    "type": "number"
+                },
+                "vent_resamp_range": {
+                    "type": "array",
+                    "description": "Perform hindcast for forecast dates inside this range (i.e. (3,5) for march to may)",
+                    "prefixItems": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "number"
+                        }
+                    ],
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "error_forecast_date_window": {
+                    "type": "number",
+                    "description": "Perform hindcast for forecast dates within this window (current forecast date plus/minus this value; i.e. if current is april, set to 1 to use march to may)"
+                }
+            }
         }
    },
     "required": [

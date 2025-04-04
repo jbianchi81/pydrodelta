@@ -139,6 +139,8 @@ class Procedure():
         """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
+        self.save_results : str = save_results
+        """Save procedure results into this file (csv pivoted table)"""
         self.initial_states : list = initial_states
         """List of procedure initial states"""
         if type(function) != dict:
@@ -184,8 +186,6 @@ class Procedure():
         """Pivot DataFrame of procedure states. Byproduct of .run(inplace=True) execution"""
         self.procedure_function_results : ProcedureFunctionResults = None
         """Results of the procedure function execution"""
-        self.save_results : str = save_results
-        """Save procedure results into this file (csv pivoted table)"""
         self.overwrite : bool = bool(overwrite)
         """When exporting procedure results into the topology, overwrite observations in NodeVariable.data"""
         self.overwrite_original : bool = bool(overwrite_original)

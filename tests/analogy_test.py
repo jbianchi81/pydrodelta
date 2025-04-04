@@ -92,3 +92,102 @@ class Test_Analogy(TestCase):
         self.assertIsInstance(output[0]["valor"].sum(),float)
         self.assertNotEqual(output[0]["valor"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
+
+    def test_run_error_band(self):
+        pf = AnalogyProcedureFunction(
+            parameters={
+                "search_length":6,
+                "forecast_length": 4
+            },
+            boundaries = [
+                {
+                    "name": "input",
+                    "node_variable": [1,1]
+                }
+            ],
+            outputs = [
+                {
+                    "name": "output",
+                    "node_variable": [1,1]
+                }
+            ],
+            extra_pars = {
+                "add_error_band": True,
+                "only_last_years": 10,
+                "vent_resamp_range": [12,2]
+            }
+        )
+
+        input = [
+            self.data.copy()
+        ]
+
+        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        self.assertEqual(len(output),1)
+        self.assertEqual(len(output[0]),4)
+        self.assertTrue("inferior" in output[0].columns)
+        self.assertTrue("superior" in output[0].columns)
+        self.assertIsInstance(output[0]["inferior"].sum(),float)
+        self.assertNotEqual(output[0]["inferior"].sum(),np.nan)
+        self.assertIsInstance(output[0]["superior"].sum(),float)
+        self.assertNotEqual(output[0]["superior"].sum(),np.nan)
+        self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
+        for i, row in output[0].iterrows():
+            self.assertTrue(row["inferior"] < row["valor"])
+            self.assertTrue(row["superior"] > row["valor"])
+        for i, row in pf.error_stats.iterrows():
+            if i > 0:
+                self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+        distinct_months = set(pf.errores["month"])
+        for month in distinct_months:
+            self.assertTrue(month in [12,1,2,3,4,5,6])
+
+
+    def test_run_error_band_relative_window(self):
+        pf = AnalogyProcedureFunction(
+            parameters={
+                "search_length":6,
+                "forecast_length": 4
+            },
+            boundaries = [
+                {
+                    "name": "input",
+                    "node_variable": [1,1]
+                }
+            ],
+            outputs = [
+                {
+                    "name": "output",
+                    "node_variable": [1,1]
+                }
+            ],
+            extra_pars = {
+                "add_error_band": True,
+                "only_last_years": 2,
+                "error_forecast_date_window": 1
+            }
+        )
+
+        input = [
+            self.data.copy()
+        ]
+
+        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        self.assertEqual(len(output),1)
+        self.assertEqual(len(output[0]),4)
+        self.assertTrue("inferior" in output[0].columns)
+        self.assertTrue("superior" in output[0].columns)
+        self.assertIsInstance(output[0]["inferior"].sum(),float)
+        self.assertNotEqual(output[0]["inferior"].sum(),np.nan)
+        self.assertIsInstance(output[0]["superior"].sum(),float)
+        self.assertNotEqual(output[0]["superior"].sum(),np.nan)
+        self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
+        for i, row in output[0].iterrows():
+            self.assertTrue(row["inferior"] < row["valor"])
+            self.assertTrue(row["superior"] > row["valor"])
+        for i, row in pf.error_stats.iterrows():
+            if i > 0:
+                self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+        distinct_months = set(pf.errores["month"])
+        for month in distinct_months:
+            self.assertTrue(month in [12,1,2,3,4,5,6])
