@@ -2,7 +2,7 @@ from a5client import Crud, Serie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta
 import pandas
 import logging
 import json
@@ -88,7 +88,7 @@ class NodeVariable:
     """Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)."""
     
     interpolation_limit = IntDescriptor()
-    """Maximum rows to interpolate"""
+    """Maximum steps to interpolate"""
     
     extrapolate = BoolDescriptor()
     """If true, extrapolate data up to a distance of limit"""
@@ -138,7 +138,7 @@ class NodeVariable:
         time_support : Union[datetime,dict,int,str] = None,
         adjust_from : AdjustFromDict = None,
         linear_combination : LinearCombinationDict = None,
-        interpolation_limit : int = None,
+        interpolation_limit : Union[relativedelta,int] = None,
         extrapolate : bool = None,
         time_interval : Union[relativedelta,dict,float] = None,
         name : str = None,
@@ -177,8 +177,8 @@ class NodeVariable:
         linear_combination : LinearCombinationDict = None
             Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)
 
-        interpolation_limit : Union[timedelta,dict,float] = None
-            Maximum rows to interpolate
+        interpolation_limit : Union[relativedelta,dict,float] = None
+            Maximum steps to interpolate
         
         extrapolate : bool = False
             If true, extrapolate data up to a distance of limit
@@ -217,14 +217,15 @@ class NodeVariable:
             self.time_support = self.metadata["timeSupport"]
         self.adjust_from = adjust_from
         self.linear_combination = linear_combination
-        self.interpolation_limit = interpolation_limit # in rows
-        self.extrapolate = extrapolate
-        if self.interpolation_limit is not None and self.interpolation_limit <= 0:
-            raise("Invalid interpolation_limit: must be greater than 0")
         self.data = None
         self.original_data = None
         self.adjust_results = None
         self.time_interval = time_interval if time_interval is not None else self._node.time_interval if self._node is not None else None
+        interpolation_limit = relativedelta(**interpolation_limit) if isinstance(interpolation_limit,dict) else interpolation_limit
+        self.interpolation_limit = int(relativedeltaToSeconds(interpolation_limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit # in number of steps
+        self.extrapolate = extrapolate
+        if self.interpolation_limit is not None and relativedeltaToSeconds(self.interpolation_limit) <= 0:
+            raise ValueError("Invalid interpolation_limit: must be greater than 0")
         self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
         self.derived = False
         self.timestart = timestart if timestart is not None else self._node.timestart if self._node is not None else None
@@ -964,7 +965,7 @@ class NodeVariable:
             )
             # logging.debug("limit: %s" % str(limit))
             # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
-            interpolation_limit = int(limit.total_seconds() / self.time_interval.total_seconds()) if isinstance(limit,timedelta) else int(limit) if limit is not None else None
+            interpolation_limit = int(relativedeltaToSeconds(limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,relativedelta) else int(limit) if limit is not None else None
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:
@@ -1005,9 +1006,12 @@ class NodeVariable:
     
     def plot(self) -> None:
         """Plot .data together with .series"""
-        data = self.data[["valor",]]
+        data = self.data[["valor",]]            
         pivot_series = self.pivotData()
         data = data.join(pivot_series,how="outer")
+        if not len(data.dropna()):
+            logging.warning("Nothing to plot")
+            return
         plt.figure(figsize=(16,8))
         if self._node is not None and self._node.timeend is not None:
             # plt.axvline(x=self._node.timeend, color="black",label="timeend")

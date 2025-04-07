@@ -6,6 +6,7 @@ from unittest import TestCase
 import yaml
 from pydrodelta.config import config
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from pytz import timezone
 
 class Test_SacramentoSimplified(TestCase):
@@ -119,7 +120,7 @@ class Test_SacramentoSimplified(TestCase):
         # no rain
 
         input = DataFrame({
-            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "timestart": createDatetimeSequence(None, relativedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
             "pma": [0,0,0,0,0,0,0,0],
             "etp": [0,0,0,0,0,0,0,0],
             "q_obs": [0.0,0,0,0,0,0,0,0],
@@ -159,7 +160,7 @@ class Test_SacramentoSimplified(TestCase):
         pf.initial_states = [0,0,0,0]
 
         input = DataFrame({
-            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "timestart": createDatetimeSequence(None, relativedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
             "pma": [5,0,0,0,0,0,0,0],
             "etp": [0,0,0,0,0,0,0,0],
             "q_obs": [0.0,0,0,0,0,0,0,0],
@@ -182,7 +183,7 @@ class Test_SacramentoSimplified(TestCase):
         pf.initial_states = [0,0,0,0]
 
         input = DataFrame({
-            "timestart": createDatetimeSequence(None, timedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
+            "timestart": createDatetimeSequence(None, relativedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
             "pma": [5,0,0,0,0,0,0,0],
             "etp": [1,1,1,1,1,1,1,1],
             "q_obs": [0.0,0,0,0,0,0,0,0],

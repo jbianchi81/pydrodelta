@@ -510,7 +510,18 @@ def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : str,mes_selct,n_var
 def month2Date(y,x):
         return datetime(y, x, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires"))
 
-def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile : str=None,connBBDD=None,skip_first_years:int=10, only_last_years:int=None,vent_resamp_range:Tuple[int,int]=None) -> DataFrame:
+def MetodoAnalogia_errores_v2(
+        name_Est,
+        df,
+        var,
+        vent_resamp,
+        ParamMetodo,
+        outputfile : str=None,
+        connBBDD=None,
+        skip_first_years:int=10, 
+        only_last_years:int=None,
+        vent_resamp_range:Tuple[int,int]=None
+        ) -> DataFrame:
     longBusqueda = ParamMetodo['search_length']
     longProno = ParamMetodo['forecast_length']
     orden = ParamMetodo['order_by']
@@ -532,7 +543,7 @@ def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile
         start = max(len(df)-only_last_years*12,skip_first_years*12)
         fechas_prono = df[start:-longProno][["month","year"]]
     else:
-        fechas_prono = df[skip_first_years*12:-longProno][["month","year"]]
+        fechas_prono = df[df.dropna().index[0] + relativedelta(years=skip_first_years):df.index[-1] - relativedelta(months=longProno)][["month","year"]]
     # filtra por rango de meses (para estacionalizar el error)
     if vent_resamp_range:
         if vent_resamp_range[0] < vent_resamp_range[1]:
@@ -616,6 +627,10 @@ def MetodoAnalogia_errores_v2(name_Est,df,var,vent_resamp,ParamMetodo,outputfile
                 df_union = df_union.merge(dfSim, on='month')
                 n_sim_sin_nan += 1
                 if n_sim_sin_nan == 5: break
+
+        # controla cantidad
+        if len(par_comp[["RMSE"]].dropna()) < cantidad:
+            raise ValueError("History too short: need at least %i observations before %i-%i" % (cantidad, yr_sim, mes_select))
         
         # Calculo de los pesos
         par_comp['wi'] = 1/par_comp['RMSE']

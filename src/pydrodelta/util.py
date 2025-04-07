@@ -17,7 +17,7 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 import csv
 import os.path
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Literal
 import random
 DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
@@ -183,7 +183,7 @@ def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relative
 
 def createDatetimeSequence(
     datetime_index : pandas.DatetimeIndex=None, 
-    timeInterval : Union[relativedelta,dict,int] = relativedelta(days=1), 
+    timeInterval : Union[relativedelta,dict,int,timedelta] = relativedelta(days=1), 
     timestart : Union[datetime,tuple,str] = None, 
     timeend : Union[datetime,tuple,str] = None, 
     timeOffset : Union[relativedelta,dict] = None
@@ -194,7 +194,7 @@ def createDatetimeSequence(
     if datetime_index is None and (timestart is None or timeend is None):
         raise Exception("Missing datetime_index or timestart+timeend")
     timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else datetime_index.min()
-    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timeInterval
+    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else timeInterval
     timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
     timeend = tryParseAndLocalizeDate(timeend) if timeend  is not None else datetime_index.max()
@@ -203,11 +203,14 @@ def createDatetimeSequence(
         start=timestart.astimezone(tz.UTC), 
         end=timeend.astimezone(tz.UTC), 
         freq=pandas.DateOffset(
+            years=timeInterval.years,
             months=timeInterval.months,
             weeks=timeInterval.weeks,
             days=timeInterval.days, 
-            hours=timeInterval.seconds // 3600, 
-            minutes = (timeInterval.seconds // 60) % 60
+            hours=timeInterval.hours, 
+            minutes = timeInterval.minutes,
+            seconds = timeInterval.seconds,
+            microseconds = timeInterval.microseconds
         )
     ).tz_convert(timestart.tzinfo)
 
@@ -271,7 +274,7 @@ def serieRegular(
         time_offset(relativedelta, optional): time offset of regularized output. If not set, begin time of data is used
         column(str, optional): column name of data to extract. Defaults to "valor"
         interpolate(bool, optional): Interpolate missing rows. Defaults to True. If agg_func is set, interpolation is not performed
-        interpolation_limit(int, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
+        interpolation_limit(int,, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
         tag_column(str, optional): name of the tag column. If not set, output will not have a tag column
         extrapolate(bool, optional): enable extrapolation up to interpolation_limit steps. Defaults to False
         agg_func(str, optional): aggregation function. See aggregateByTimestep()
@@ -283,7 +286,7 @@ def serieRegular(
     """
     df_regular = DataFrame(index = createDatetimeSequence(data.index, time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
-    if agg_func:
+    if agg_func is not None:
         agg_serie = aggregateByTimestep(
             data,
             df_regular.index,
@@ -1052,3 +1055,96 @@ def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativede
         Series: the aggregated series. Series of type float with index of type DatetimeIndex
     """
     return Series([aggregateValuesWithinTimestep(data, i, dt, column, pass_nan, agg_func) for i in index], index)
+
+def relativedeltaToSeconds(rd : relativedelta):
+    now = datetime.now()
+    future = now + rd
+    delta = future - now
+    return delta.total_seconds()
+
+def compare_durations(d1 : Union[relativedelta,timedelta], d2 : Union[relativedelta,timedelta],operation:Literal["gt","lt","ge","le","e"]="gt"):
+    d1_seconds = relativedeltaToSeconds(d1) if isinstance(d1,relativedelta) else d1.total_seconds()
+    d2_seconds = relativedeltaToSeconds(d2) if isinstance(d2,relativedelta) else d2.total_seconds()
+    if operation == "gt":
+        return d1_seconds > d2_seconds
+    elif operation == "lt":
+        return d1_seconds < d2_seconds
+    elif operation == "ge":
+        return d1_seconds >= d2_seconds
+    elif operation == "le":
+        return d1_seconds <= d2_seconds
+    elif operation == "e":
+        return d1_seconds == d2_seconds
+    else:
+        raise ValueError("Invalid operation. Valid values: gt, lt, ge, le, e")
+
+def timedelta_to_relativedelta(td: timedelta) -> relativedelta:
+    total_seconds = td.total_seconds()
+    
+    days, remainder = divmod(total_seconds, 86400)  # seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return relativedelta(
+        days=int(days),
+        hours=int(hours),
+        minutes=int(minutes),
+        seconds=int(seconds)
+    )
+
+def relativedelta_to_timedelta(rd: relativedelta) -> timedelta:
+    total_seconds = relativedeltaToSeconds(rd)
+    days, remainder = divmod(total_seconds, 86400)  # seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return timedelta(
+        days=int(days),
+        hours=int(hours),
+        minutes=int(minutes),
+        seconds=int(seconds)
+    )
+
+def multiply_relativedelta(rd: relativedelta, n: int) -> relativedelta:
+    return relativedelta(
+        years=rd.years * n,
+        months=rd.months * n,
+        days=rd.days * n,
+        hours=rd.hours * n,
+        minutes=rd.minutes * n,
+        seconds=rd.seconds * n,
+        microseconds=rd.microseconds * n,
+        weeks=rd.weeks * n
+    )
+
+def interpolate_or_copy_closest(data : DataFrame,interpolation_limit : timedelta) -> DataFrame:
+
+    # Forward and backward fills
+    ffill = data.ffill(limit=None)
+    bfill = data.bfill(limit=None)
+
+    # Timestamps of fills
+    ffill_times = data.index.to_series().where(data.notna()).ffill()
+    bfill_times = data.index.to_series().where(data.notna()).bfill()
+
+    # Time differences between original and fill
+    delta_fwd = data.index.to_series() - ffill_times
+    delta_bwd = bfill_times - data.index.to_series()
+
+    # Mask values where gap is too big
+    use_ffill = (delta_fwd <= interpolation_limit)
+    use_bfill = (delta_bwd <= interpolation_limit)
+
+    # Choose closest direction when both are valid
+    filled = data.copy()
+    for i in data[data.isna()].index:
+        if use_ffill[i] and use_bfill[i]:
+            # interpolate
+            filled[i] = (ffill[i] * delta_fwd[i] + bfill[i] * delta_bwd[i]) / (delta_fwd[i] + delta_bwd[i])
+        elif use_ffill[i]:
+            filled[i] = ffill[i]
+        elif use_bfill[i]:
+            filled[i] = bfill[i]
+        # else: leave as NaN (too far from both sides)
+
+    return filled

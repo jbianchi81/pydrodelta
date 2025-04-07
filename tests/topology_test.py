@@ -9,6 +9,10 @@ import yaml
 import time
 from pydrodelta.types.typed_list import TypedList
 from pydrodelta.config import config
+from pydrodelta.util import interpolate_or_copy_closest
+from datetime import timedelta
+import numpy as np
+import pandas as pd
 
 class Test_Topology(TestCase):
 
@@ -141,11 +145,49 @@ class Test_Topology(TestCase):
     def test_variable_plot(self):
         topology = Topology(**dummy_topology)
         topology.batchProcessInput(include_prono=True)
+        self.assertEqual(len(topology.nodes[0].variables[4].data.dropna()),5)
         topology.nodes[0].variables[4].plot()
         topology.plotVariable(
             var_id = 4,
             output = "%s/results/h_plot.pdf" % config["PYDRODELTA_DIR"]
         )
+
+    def test_interpolate_regularize(self):
+        topology = Topology(**dummy_topology)
+        topology.loadData(include_prono=True)
+        topology.regularize(interpolate=True)
+        self.assertEqual(len(topology.nodes[0].variables[4].data.dropna()),5)
+
+    def test_interpolate_regularize_missing(self):
+        topology = Topology(**dummy_topology)
+        topology.loadData(include_prono=True)
+        topology.nodes[0].variables[4].series[0].data.at[topology.nodes[0].variables[4].series[0].data.index[1],"valor"] = np.nan
+        topology.nodes[0].variables[4].series[0].data.at[topology.nodes[0].variables[4].series[0].data.index[3],"valor"] = np.nan
+        topology.regularize(interpolate=True)
+        self.assertEqual(len(topology.nodes[0].series[0].variables[4].data.dropna()),3)
+
+    def test_interpolate_or_copy(self):
+        data = pd.Series(
+            [1.0, np.nan, np.nan, 4.0, np.nan, 6.0, np.nan, 7.0, np.nan, 8.0],
+            index=pd.to_datetime([
+                '2023-01-01',
+                '2023-01-02',
+                '2023-01-03',
+                '2023-01-04',
+                '2023-01-08',  # 4-day gap from previous
+                '2023-01-09',
+                '2023-01-11',
+                '2023-01-13',
+                '2023-01-14',
+                '2023-01-15'
+            ])
+        )
+        filled = interpolate_or_copy_closest(data,timedelta(days=1))
+        self.assertEqual(filled.iloc[1], filled.iloc[0])
+        self.assertEqual(filled.iloc[2], filled.iloc[3])
+        self.assertEqual(filled.iloc[4], filled.iloc[5])
+        self.assertTrue(np.isnan(filled.iloc[6]))
+        self.assertAlmostEqual(filled.iloc[8], 7.5, 2)
 
     def test_variable_save(self):
         topology = Topology(**dummy_topology)
@@ -324,6 +366,7 @@ dummy_topology = {
         "variables": [
             {
             "id": 4,
+            "interpolation_limit":  {"hours": 12},
             "series": [
                 {
                 "series_id": 1,

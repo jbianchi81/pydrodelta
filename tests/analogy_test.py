@@ -17,7 +17,7 @@ class Test_Analogy(TestCase):
         timeend = timeend
     )
     # genera serie autoregresiva
-    phi = 0.8
+    phi = 0.9
     sigma = 1
     epsilon = np.random.normal(0, sigma, len(index))
     values = np.zeros(len(index))
@@ -144,6 +144,7 @@ class Test_Analogy(TestCase):
 
 
     def test_run_error_band_relative_window(self):
+        only_last_years = 10
         pf = AnalogyProcedureFunction(
             parameters={
                 "search_length":6,
@@ -163,7 +164,7 @@ class Test_Analogy(TestCase):
             ],
             extra_pars = {
                 "add_error_band": True,
-                "only_last_years": 2,
+                "only_last_years": only_last_years,
                 "error_forecast_date_window": 1
             }
         )
@@ -186,8 +187,9 @@ class Test_Analogy(TestCase):
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
         for i, row in pf.error_stats.iterrows():
-            if i > 0:
+            if i > 0 and i <= 3:
                 self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+                self.assertTrue(row["count"] >= (only_last_years - 1) * 3 and row["count"] <= only_last_years * 3)
         distinct_months = set(pf.errores["month"])
         for month in distinct_months:
             self.assertTrue(month in [12,1,2,3,4,5,6])
