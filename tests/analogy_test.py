@@ -17,7 +17,7 @@ class Test_Analogy(TestCase):
         timeend = timeend
     )
     # genera serie autoregresiva
-    phi = 0.9
+    phi = 0.99
     sigma = 1
     epsilon = np.random.normal(0, sigma, len(index))
     values = np.zeros(len(index))

@@ -214,7 +214,7 @@ def createDatetimeSequence(
         )
     ).tz_convert(timestart.tzinfo)
 
-def f1(row,column="valor",timedelta_threshold : relativedelta=None):
+def f1(row,column="valor",timedelta_threshold : timedelta=None):
     now = datetime.now()
     a = now - row["diff_with_next"]
     b = now + timedelta_threshold
@@ -223,7 +223,7 @@ def f1(row,column="valor",timedelta_threshold : relativedelta=None):
     else:
         return row["interpolated_backward"]
 
-def f2(row,column="valor",timedelta_threshold : relativedelta=None):
+def f2(row,column="valor",timedelta_threshold : timedelta=None):
     now = datetime.now()
     a = now + row["diff_with_previous"]
     b = now + timedelta_threshold
@@ -232,7 +232,7 @@ def f2(row,column="valor",timedelta_threshold : relativedelta=None):
     else:
         return row["interpolated_forward"]
 
-def f3(row,column="valor",timedelta_threshold : relativedelta=None):
+def f3(row,column="valor",timedelta_threshold : timedelta=None):
     if pandas.isna(row["interpolated_forward_filtered"]):
         return row["interpolated_backward_filtered"]
     else:
@@ -254,7 +254,7 @@ def serieRegular(
     time_offset : relativedelta = None, 
     column : str = "valor", 
     interpolate : bool = True, 
-    interpolation_limit : int = 1,
+    interpolation_limit : Union[int,timedelta] = 1,
     tag_column : str = None, 
     extrapolate : bool = False,
     agg_func : str = None,
@@ -304,13 +304,17 @@ def serieRegular(
             df_regular[tag_column] = None
         return df_regular
     df_join = df_regular.join(data, how = 'outer')
+    df_join.index.name = "timestart"
     if interpolate:
         # Interpola
         min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
-        # extrapolate before so that only noninterpolated points are used in regression
-        if extrapolate and extrapolate_function == "linear":
-            extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
-        df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+        if isinstance(interpolation_limit, timedelta):
+            df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+        else:
+            # extrapolate before so that only noninterpolated points are used in regression
+            if extrapolate and extrapolate_function == "linear":
+                extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
+            df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         if extrapolate and extrapolate_function == "linear":
             # fill interpolated nans with extrapolated
             df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
@@ -327,7 +331,7 @@ def serieRegular(
             df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         df_regular = df_regular.join(df_join, how = 'left')
     else:
-        timedelta_threshold = time_interval / 2 # takes half time interval as maximum time distance for interpolation
+        timedelta_threshold = relativedelta_to_timedelta(time_interval) * 0.5 # takes half time interval as maximum time distance for interpolation
         df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
         for c in df_join.columns:
             if c == column:
@@ -340,26 +344,28 @@ def serieRegular(
 def regularizeColumn(
     df_regular : pandas.DataFrame,
     df_join : pandas.DataFrame, 
-    timedelta_threshold : relativedelta, 
+    timedelta_threshold : timedelta, 
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
-    if column == "tag":
-        logging.warning("interpolating tag")
-    df_join = df_join.reset_index()
-    df_join["diff_with_previous"] = df_join["timestart"].diff()
-    df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
-    df_join = df_join.set_index("timestart")
-    df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
-    df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
-    df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df.iterrows()]
-    df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df.iterrows()]
-    df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
+    # if column == "tag":
+    #     logging.warning("interpolating tag")
+    # df_join = df_join.reset_index()
+    # df_join["diff_with_previous"] = df_join["timestart"].diff()
+    # df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
+    # df_join = df_join.set_index("timestart")
+    # df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
+    # df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
+    # df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df.iterrows()]
+    # df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df.iterrows()]
+    # df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
+    df_ = df_join.copy()
+    df_["interpolated_final"] = interpolate_or_copy_closest(df_[column], timedelta_threshold)
     if tag_column is not None:
-        df_join["new_tag"] = df_join.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
-        df_regular = df_regular.join(df_join[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
+        df_["new_tag"] = df_.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
+        df_regular = df_regular.join(df_[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
     else:
-        df_regular = df_regular.join(df_join[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
+        df_regular = df_regular.join(df_[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
     return df_regular    
 
 def f5(row,column="valor",tag_column="tag",min_obs_date=None,max_obs_date=None):
@@ -1057,6 +1063,8 @@ def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativede
     return Series([aggregateValuesWithinTimestep(data, i, dt, column, pass_nan, agg_func) for i in index], index)
 
 def relativedeltaToSeconds(rd : relativedelta):
+    if not isinstance(rd, relativedelta):
+        raise TypeError("Value must be of type relativedelta")
     now = datetime.now()
     future = now + rd
     delta = future - now
@@ -1093,6 +1101,8 @@ def timedelta_to_relativedelta(td: timedelta) -> relativedelta:
     )
 
 def relativedelta_to_timedelta(rd: relativedelta) -> timedelta:
+    if not isinstance(rd, relativedelta):
+        raise TypeError("Value must be of type relativedelta")
     total_seconds = relativedeltaToSeconds(rd)
     days, remainder = divmod(total_seconds, 86400)  # seconds in a day
     hours, remainder = divmod(remainder, 3600)
@@ -1117,7 +1127,7 @@ def multiply_relativedelta(rd: relativedelta, n: int) -> relativedelta:
         weeks=rd.weeks * n
     )
 
-def interpolate_or_copy_closest(data : DataFrame,interpolation_limit : timedelta) -> DataFrame:
+def interpolate_or_copy_closest(data : Series,interpolation_limit : timedelta) -> Series:
 
     # Forward and backward fills
     ffill = data.ffill(limit=None)

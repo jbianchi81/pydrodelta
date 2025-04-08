@@ -461,7 +461,7 @@ class NodeSerie(Base):
         timeend : datetime,
         time_interval : timedelta,
         time_offset : timedelta,
-        interpolation_limit : int,
+        interpolation_limit : Union[int,timedelta],
         inline : bool = True,
         interpolate : bool = False,
         agg_func : str = None

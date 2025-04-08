@@ -2,7 +2,7 @@ from a5client import Crud, Serie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta
 import pandas
 import logging
 import json
@@ -87,7 +87,7 @@ class NodeVariable:
     linear_combination = DictDescriptor()
     """Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)."""
     
-    interpolation_limit = IntDescriptor()
+    interpolation_limit : Union[int,timedelta] = None
     """Maximum steps to interpolate"""
     
     extrapolate = BoolDescriptor()
@@ -221,11 +221,15 @@ class NodeVariable:
         self.original_data = None
         self.adjust_results = None
         self.time_interval = time_interval if time_interval is not None else self._node.time_interval if self._node is not None else None
-        interpolation_limit = relativedelta(**interpolation_limit) if isinstance(interpolation_limit,dict) else interpolation_limit
-        self.interpolation_limit = int(relativedeltaToSeconds(interpolation_limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit # in number of steps
+        self.interpolation_limit = timedelta(**interpolation_limit) if isinstance(interpolation_limit,dict) else int(interpolation_limit) if isinstance(interpolation_limit,int) else interpolation_limit
+        # self.interpolation_limit = int(relativedeltaToSeconds(interpolation_limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit # in number of steps
         self.extrapolate = extrapolate
-        if self.interpolation_limit is not None and relativedeltaToSeconds(self.interpolation_limit) <= 0:
-            raise ValueError("Invalid interpolation_limit: must be greater than 0")
+        if self.interpolation_limit is not None:
+            if isinstance(self.interpolation_limit, timedelta):
+                if self.interpolation_limit.total_seconds() <= 0:
+                    raise ValueError("Invalid interpolation_limit: must be greater than 0")
+            elif self.interpolation_limit <= 0: 
+                raise ValueError("Invalid interpolation_limit: must be greater than 0")
         self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
         self.derived = False
         self.timestart = timestart if timestart is not None else self._node.timestart if self._node is not None else None
@@ -954,7 +958,7 @@ class NodeVariable:
         limit = coalesce(
             limit,
             self.interpolation_limit,
-            self._node._topology.interpolation_limit if self._node is not None and self._node._topology is not None else None
+            relativedelta_to_timedelta(self._node._topology.interpolation_limit) if self._node is not None and self._node._topology is not None and self._node._topology.interpolation_limit is not None else None
         )
         if self.data is not None:
             extrapolate = coalesce(
@@ -965,7 +969,7 @@ class NodeVariable:
             )
             # logging.debug("limit: %s" % str(limit))
             # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
-            interpolation_limit = int(relativedeltaToSeconds(limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,relativedelta) else int(limit) if limit is not None else None
+            interpolation_limit = int(limit.total_seconds() / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,timedelta) else int(limit) if limit is not None else None
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:
