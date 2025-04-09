@@ -145,6 +145,8 @@ class Test_Persistence(TestCase):
         self.assertNotEqual(output[0]["superior"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
         for i, row in output[0].iterrows():
+            self.assertTrue(not np.isnan(row["superior"]))
+            self.assertTrue(not np.isnan(row["inferior"]))
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
         for i, row in pf.error_stats.iterrows():

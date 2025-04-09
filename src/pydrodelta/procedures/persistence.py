@@ -12,8 +12,6 @@ from pandas import DataFrame, concat, DatetimeIndex
 from matplotlib import pyplot as plt
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-import time
-from zoneinfo import ZoneInfo
 from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
 from pydrodelta.descriptors.float_descriptor import FloatDescriptor
 from pydrodelta.procedures.analogy import CreaVariablesTemporales, month2Date
@@ -216,7 +214,7 @@ class PersistenceProcedureFunction(ProcedureFunction):
                 ]
                 column = column + 1
             # merge stats a df_prono
-            self.df_prono = self.df_prono.merge(self.error_stats,on="mes_ant")
+            self.df_prono = self.df_prono.merge(self.error_stats,on="mes_ant",how="left")
             # set uncertainty band
             self.df_prono["inferior"] = self.df_prono["VarProno"] - 1.645 * self.df_prono["std"]
             self.df_prono["superior"] = self.df_prono["VarProno"] + 1.645 * self.df_prono["std"]

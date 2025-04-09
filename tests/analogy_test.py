@@ -17,14 +17,14 @@ class Test_Analogy(TestCase):
         timeend = timeend
     )
     # genera serie autoregresiva
-    phi = 0.99
-    sigma = 1
+    phi = 0.9
+    sigma = 100
     epsilon = np.random.normal(0, sigma, len(index))
     values = np.zeros(len(index))
-    values[0] = epsilon[0]
+    values[0] = epsilon[0] + 1000
 
     for t in range(1, len(index)):
-        values[t] = phi * values[t-1] + epsilon[t]
+        values[t] = phi * values[t-1] + (phi - 1) * epsilon[t]
 
     data = DataFrame({
         "timestart": index,
@@ -132,6 +132,7 @@ class Test_Analogy(TestCase):
         self.assertIsInstance(output[0]["superior"].sum(),float)
         self.assertNotEqual(output[0]["superior"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
+        self.assertTrue(len(pf.error_stats) <= 4,"error stats horizon longer than expected")
         for i, row in output[0].iterrows():
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
@@ -140,7 +141,7 @@ class Test_Analogy(TestCase):
                 self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
         distinct_months = set(pf.errores["month"])
         for month in distinct_months:
-            self.assertTrue(month in [12,1,2,3,4,5,6])
+            self.assertTrue(month in [12,1,2,3,4,5])
 
 
     def test_run_error_band_relative_window(self):
