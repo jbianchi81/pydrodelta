@@ -104,8 +104,7 @@
                     "type": "number",
                     "description": "effective area (0-1)"
                 }
-            },
-            "required": ["area"]
+            }
         }
     }
 }

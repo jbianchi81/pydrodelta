@@ -1,0 +1,83 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "hidrosatprocedurefunction.json",
+    "title": "HIDROSATProcedureFunction",
+    "type": "object",
+    "description": "HIDROSAT",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": ["HIDROSAT"]
+        },
+        "initial_states": {
+            "type": "array",
+            "description": "Initial states: [SoilStorage, Runoff]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+                "type": "number"
+            }
+        },
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "S0": {
+                    "type": "number",
+                    "description": "Almacenamiento máximo en reservorio de retención (Agua de Tensión en perfil de suelo) / Maximum Retention Capacity [mm]"
+                },
+                "K": {
+                    "type": "number",
+                    "description": "Tiempo de residencia (propagación escorrentía de interfluvios a flujo encauzado en valle) / Residence Time delayed runoff - Discrete Linear Reservoir Cascade Approach - [days]"
+                },
+                "N": {
+                    "type": "number",
+                    "description": "Número de reservorios en serie (propagación escorrentía de interfluvios a flujo encauzado en valle) / Number of Reservoirs - Discrete Linear Reservoir Cascade Approach - [1]"
+                },
+                "W0": {
+                    "type": "number",
+                    "description": "Almacenamiento Máximo en reservorio de Detención (valle) / Maximum Detention Capacity [mm]"
+                },
+                "Q0": {
+                    "type": "number",
+                    "description": "Caudal Máximo (flujo encauzado en valle) / Maximum Discharge [mm]"
+                },
+                "gamma": {
+                    "type": "number",
+                    "description": "Factor de forma. Ley de Potencia reservorio de Detención / shape factor power law reservoir [-]"
+                },
+                "maxFlooded": {
+                    "type": "number",
+                    "description": "Área anegada máxima (fracción del sistema) / maximum flooded area [-]"
+                },
+                "detentionRatio": {
+                    "type": "number",
+                    "description": "Coeficiente de prorateo entre aporte directo y aporte demorado en red de drenaje  / diversion ratio direct rainfall (detention/drainfall) [-]"
+                },
+                "epsilon": {
+                    "type": "number",
+                    "description": "Valor umbral de tolerancia error en Newton-Raphson / Tolerance threshold Newton-Raphson [mm]"
+                }
+            },
+            "required": ["S0","K","N","W0","Q0","gamma"]
+
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "Longitud de subpaso de cómputo en Newton-Raphson / time step resolution Newton-Raphson [-]"
+                }
+            }
+        }
+    },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}

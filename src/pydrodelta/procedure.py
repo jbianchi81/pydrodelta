@@ -861,6 +861,7 @@ from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunctio
 from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
 from pydrodelta.procedures.abstract import AbstractProcedureFunction
 from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
+from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
 from pydrodelta.procedures.analogy import AnalogyProcedureFunction
 
 procedureFunctionDict = {
@@ -895,5 +896,6 @@ procedureFunctionDict = {
     "ExponentialFit": ExponentialFitProcedureFunction,
     "LinearFit": LinearFitProcedureFunction,
     "LagAndRoute": LagAndRouteProcedureFunction,
+    "HIDROSAT": HIDROSATProcedureFunction
     "Analogy": AnalogyProcedureFunction
 }

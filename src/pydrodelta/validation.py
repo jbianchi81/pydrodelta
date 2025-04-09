@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 from typing import Tuple
 from .config import config
+import logging
 
 def getSchema(
         name : str,
@@ -37,6 +38,7 @@ def getSchema(
         config["PYDRODELTA_DIR"], 
         rel_base_path
     )
+    logging.debug("base path as uri: %s/" %base_path.as_uri())
     resolver = jsonschema.validators.RefResolver(
         base_uri=f"{base_path.as_uri()}/",
         referrer=True,
@@ -118,4 +120,5 @@ def getSchemaAndValidate(
         if the schema itself is invalid
     """
     schemas, resolver = getSchema(name, rel_base_path)
+    # print("Base URI:", resolver.base_uri)
     return validate(params, schemas[name], resolver)
