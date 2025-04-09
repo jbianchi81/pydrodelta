@@ -1,12 +1,13 @@
-from .config import config
+from pydrodelta.config import config
 from pydrodelta.arima import adjustSeriesArima
 import dateutil.parser
-import dateutil.relativedelta
+from dateutil.relativedelta import relativedelta
 import pytz
 from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
 from datetime import timedelta, datetime
+from zoneinfo import ZoneInfo
 import numpy as np
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -16,19 +17,19 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 import csv
 import os.path
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Literal
 import random
 DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
 import numpy as np
 
-def interval2timedelta(interval : Union[dict,float,timedelta]):
-    """Parses duration dict or number of days into datetime.timedelta object
+def interval2timedelta(interval : Union[dict,float,relativedelta]):
+    """Parses duration dict or number of days into dateutil.relativedelta object
     
     Parameters:
     -----------
-    interval : dict or float (decimal number of days) or datetime.timedelta
+    interval : dict or float (decimal number of days) or relativedelta
         If dict, allowed keys are:
         - days
         - seconds
@@ -39,7 +40,7 @@ def interval2timedelta(interval : Union[dict,float,timedelta]):
     
     Returns:
     --------
-    duration : datetime.timedelta
+    duration : dateutil.relativedelta.relativedelta
 
     Examples:
 
@@ -48,31 +49,38 @@ def interval2timedelta(interval : Union[dict,float,timedelta]):
     interval2timedelta(1.5/24)
     ```
     """
-    if isinstance(interval,timedelta):
+    if isinstance(interval, relativedelta):
         return interval
     if isinstance(interval,(float,int)):
-        return timedelta(days=interval)
-    days = 0
-    seconds = 0
-    microseconds = 0
-    milliseconds = 0
-    minutes = 0
-    hours = 0
-    weeks = 0
-    for k in interval:
-        if k == "milliseconds" or k == "millisecond":
-            milliseconds = interval[k]
-        elif k == "seconds" or k == "second":
-            seconds = interval[k]
-        elif k == "minutes" or k == "minute":
-            minutes = interval[k]
-        elif k == "hours" or k == "hour":
-            hours = interval[k]
-        elif k == "days" or k == "day":
-            days = interval[k]
-        elif k == "weeks" or k == "week":
-            weeks = interval[k] * 86400 * 7
-    return timedelta(days=days, seconds=seconds, microseconds=microseconds, milliseconds=milliseconds, minutes=minutes, hours=hours, weeks=weeks)
+        return relativedelta(days=interval)
+    if isinstance(interval, dict):
+        days = 0
+        seconds = 0
+        microseconds = 0
+        minutes = 0
+        hours = 0
+        weeks = 0
+        months = 0
+        for k in interval:
+            if k == "microseconds" or k == "microsecond":
+                microseconds = microseconds + interval[k]
+            if k == "milliseconds" or k == "millisecond":
+                microseconds = microseconds + interval[k] * 1000
+            elif k == "seconds" or k == "second":
+                seconds = interval[k]
+            elif k == "minutes" or k == "minute":
+                minutes = interval[k]
+            elif k == "hours" or k == "hour":
+                hours = interval[k]
+            elif k == "days" or k == "day":
+                days = interval[k]
+            elif k == "weeks" or k == "week":
+                weeks = interval[k]
+            elif k == "months" or k == "months":
+                months = interval[k]
+        return relativedelta(days=days, seconds=seconds, microseconds=microseconds, minutes=minutes, hours=hours, weeks=weeks, months=months)
+    else:
+        raise TypeError("Invalid type for time interval: %s" % type(interval))
 
 def interval2epoch(interval):
     seconds = 0
@@ -96,7 +104,7 @@ def interval2epoch(interval):
     return seconds
 
 def tryParseAndLocalizeDate(
-        date_string : Union[str,float,datetime],
+        date_string : Union[str,float,datetime,tuple],
         timezone : str='America/Argentina/Buenos_Aires'
     ) -> datetime:
     """
@@ -105,7 +113,7 @@ def tryParseAndLocalizeDate(
     Parameters:
     -----------
     date_string : str or float or datetime.datetime
-        For absolute date: ISO-8601 datetime string or datetime.datetime.
+        For absolute date: ISO-8601 datetime string or datetime.datetime or (year,month,date) tuple.
         For relative date: dict (duration key-values) or float (decimal number of days)
     
     timezone : str
@@ -121,28 +129,33 @@ def tryParseAndLocalizeDate(
     tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
     tryParseAndLocalizeDate(1.5)
     tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
+    tryParseAndLocalizeDate((2000,1,1))
     ```
     """
     
     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
     is_from_interval = False
     if isinstance(date,dict):
-        date = datetime.now() + dateutil.relativedelta.relativedelta(**date)
+        date = datetime.now() + relativedelta(**date)
         is_from_interval = True
     elif isinstance(date,(int,float)):
-        date = datetime.now() + dateutil.relativedelta.relativedelta(days=date)
+        date = datetime.now() + relativedelta(days=date)
         is_from_interval = True
+    elif isinstance(date, tuple):
+        if len(date) < 3:
+            raise ValueError("Invalid date tuple: missing items (3 required)")
+        date = datetime(*date)
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
-            date = pytz.timezone(timezone).localize(date)
+            date = date.replace(tzinfo = ZoneInfo(timezone))
         except pytz.exceptions.NonExistentTimeError:
             logging.warning("NonexistentTimeError: %s" % str(date))
             return None
     else:
-        date = date.astimezone(pytz.timezone(timezone))
+        date = date.astimezone(ZoneInfo(timezone))
     return date # , is_from_interval
 
-def roundDownDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=None) -> datetime:
+def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None) -> datetime:
     if timeInterval.microseconds == 0:
         date = date.replace(microsecond=0)
     if timeInterval.seconds % 60 == 0:
@@ -155,7 +168,7 @@ def roundDownDate(date : datetime,timeInterval : timedelta,timeOffset : timedelt
             date = date + timeOffset
     return date
 
-def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=None, to="up") -> datetime:
+def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None, to="up") -> datetime:
     date_0 = tryParseAndLocalizeDate(datetime.combine(date.date(),datetime.min.time()))
     if timeOffset is not None:
         date_0 = date_0 + timeOffset 
@@ -170,35 +183,56 @@ def roundDate(date : datetime,timeInterval : timedelta,timeOffset : timedelta=No
 
 def createDatetimeSequence(
     datetime_index : pandas.DatetimeIndex=None, 
-    timeInterval  = timedelta(days=1), 
-    timestart = None, 
-    timeend = None, 
-    timeOffset = None
+    timeInterval : Union[relativedelta,dict,int,timedelta] = relativedelta(days=1), 
+    timestart : Union[datetime,tuple,str] = None, 
+    timeend : Union[datetime,tuple,str] = None, 
+    timeOffset : Union[relativedelta,dict] = None
     ) -> pandas.DatetimeIndex:
     #Fechas desde timestart a timeend con un paso de timeInterval
     #data: dataframe con index tipo datetime64[ns, America/Argentina/Buenos_Aires]
     #timeOffset sólo para timeInterval n days
     if datetime_index is None and (timestart is None or timeend is None):
         raise Exception("Missing datetime_index or timestart+timeend")
-    timestart = timestart if timestart is not None else datetime_index.min()
+    timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else datetime_index.min()
+    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else timeInterval
+    timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
-    timeend = timeend if timeend  is not None else datetime_index.max()
+    timeend = tryParseAndLocalizeDate(timeend) if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
-    return pandas.date_range(start=timestart.astimezone(tz.UTC), end=timeend.astimezone(tz.UTC), freq=pandas.DateOffset(days=timeInterval.days, hours=timeInterval.seconds // 3600, minutes = (timeInterval.seconds // 60) % 60)).tz_convert(timestart.tzinfo)
+    return pandas.date_range(
+        start=timestart.astimezone(tz.UTC), 
+        end=timeend.astimezone(tz.UTC), 
+        freq=pandas.DateOffset(
+            years=timeInterval.years,
+            months=timeInterval.months,
+            weeks=timeInterval.weeks,
+            days=timeInterval.days, 
+            hours=timeInterval.hours, 
+            minutes = timeInterval.minutes,
+            seconds = timeInterval.seconds,
+            microseconds = timeInterval.microseconds
+        )
+    ).tz_convert(timestart.tzinfo)
 
-def f1(row,column="valor",timedelta_threshold=None):
-    if -row["diff_with_next"] > timedelta_threshold:
+def f1(row,column="valor",timedelta_threshold : timedelta=None):
+    now = datetime.now()
+    a = now - row["diff_with_next"]
+    b = now + timedelta_threshold
+    if a > b:
         return row[column]
     else:
         return row["interpolated_backward"]
 
-def f2(row,column="valor",timedelta_threshold=None):
-    if row["diff_with_previous"] > timedelta_threshold:
+def f2(row,column="valor",timedelta_threshold : timedelta=None):
+    now = datetime.now()
+    a = now + row["diff_with_previous"]
+    b = now + timedelta_threshold
+    if a > b:
         return row[column]
     else:
         return row["interpolated_forward"]
 
-def f3(row,column="valor",timedelta_threshold=None):
+def f3(row,column="valor",timedelta_threshold : timedelta=None):
     if pandas.isna(row["interpolated_forward_filtered"]):
         return row["interpolated_backward_filtered"]
     else:
@@ -214,13 +248,13 @@ def f4(row,column="valor",tag_column="tag"):
 
 def serieRegular(
     data : pandas.DataFrame, 
-    time_interval : timedelta, 
+    time_interval : relativedelta, 
     timestart : datetime  = None, 
     timeend : datetime = None, 
-    time_offset : timedelta = None, 
+    time_offset : relativedelta = None, 
     column : str = "valor", 
     interpolate : bool = True, 
-    interpolation_limit : int = 1,
+    interpolation_limit : Union[int,timedelta] = 1,
     tag_column : str = None, 
     extrapolate : bool = False,
     agg_func : str = None,
@@ -234,13 +268,13 @@ def serieRegular(
 
     Args:
         data(DataFrame): input data to be regularized
-        time_interval(timedelta): desired time step of the regularized output
+        time_interval(relativedelta): desired time step of the regularized output
         timestart(datetime, optional): begin date of regularized output. If not set, begin date of data is used
         timeend(datetime, optional): end date of regularized output. If not set, end date of data is used
-        time_offset(timedelta, optional): time offset of regularized output. If not set, begin time of data is used
+        time_offset(relativedelta, optional): time offset of regularized output. If not set, begin time of data is used
         column(str, optional): column name of data to extract. Defaults to "valor"
         interpolate(bool, optional): Interpolate missing rows. Defaults to True. If agg_func is set, interpolation is not performed
-        interpolation_limit(int, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
+        interpolation_limit(int,, optional): Number of steps to interpolate. Defaults to 1. If agg_func is set, interpolation is not performed
         tag_column(str, optional): name of the tag column. If not set, output will not have a tag column
         extrapolate(bool, optional): enable extrapolation up to interpolation_limit steps. Defaults to False
         agg_func(str, optional): aggregation function. See aggregateByTimestep()
@@ -252,7 +286,7 @@ def serieRegular(
     """
     df_regular = DataFrame(index = createDatetimeSequence(data.index, time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
-    if agg_func:
+    if agg_func is not None:
         agg_serie = aggregateByTimestep(
             data,
             df_regular.index,
@@ -270,13 +304,17 @@ def serieRegular(
             df_regular[tag_column] = None
         return df_regular
     df_join = df_regular.join(data, how = 'outer')
+    df_join.index.name = "timestart"
     if interpolate:
         # Interpola
         min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
-        # extrapolate before so that only noninterpolated points are used in regression
-        if extrapolate and extrapolate_function == "linear":
-            extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
-        df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+        if isinstance(interpolation_limit, timedelta):
+            df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+        else:
+            # extrapolate before so that only noninterpolated points are used in regression
+            if extrapolate and extrapolate_function == "linear":
+                extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
+            df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         if extrapolate and extrapolate_function == "linear":
             # fill interpolated nans with extrapolated
             df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
@@ -293,7 +331,7 @@ def serieRegular(
             df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         df_regular = df_regular.join(df_join, how = 'left')
     else:
-        timedelta_threshold = time_interval / 2 # takes half time interval as maximum time distance for interpolation
+        timedelta_threshold = relativedelta_to_timedelta(time_interval) * 0.5 # takes half time interval as maximum time distance for interpolation
         df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
         for c in df_join.columns:
             if c == column:
@@ -310,22 +348,24 @@ def regularizeColumn(
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
-    if column == "tag":
-        logging.warning("interpolating tag")
-    df_join = df_join.reset_index()
-    df_join["diff_with_previous"] = df_join["timestart"].diff()
-    df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
-    df_join = df_join.set_index("timestart")
-    df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
-    df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
-    df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df.iterrows()]
-    df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df.iterrows()]
-    df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
+    # if column == "tag":
+    #     logging.warning("interpolating tag")
+    # df_join = df_join.reset_index()
+    # df_join["diff_with_previous"] = df_join["timestart"].diff()
+    # df_join["diff_with_next"] = df_join["timestart"].diff(periods=-1)
+    # df_join = df_join.set_index("timestart")
+    # df_join["interpolated_backward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='backward',limit_area=None)
+    # df_join["interpolated_forward"] = df_join[column].interpolate(method='time',limit=1,limit_direction='forward',limit_area=None)
+    # df_join["interpolated_backward_filtered"] = df_join.apply(lambda row: f1(row,column,timedelta_threshold),axis=1) #[ x[column] if -x["diff_with_next"] > timedelta_threshold else x.interpolated_backward for (i,x) in df.iterrows()]
+    # df_join["interpolated_forward_filtered"] = df_join.apply(lambda row: f2(row,column,timedelta_threshold),axis=1)#[ x[column] if x["diff_with_previous"] > timedelta_threshold else x.interpolated_forward for (i,x) in df.iterrows()]
+    # df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
+    df_ = df_join.copy()
+    df_["interpolated_final"] = interpolate_or_copy_closest(df_[column], timedelta_threshold)
     if tag_column is not None:
-        df_join["new_tag"] = df_join.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
-        df_regular = df_regular.join(df_join[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
+        df_["new_tag"] = df_.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
+        df_regular = df_regular.join(df_[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
     else:
-        df_regular = df_regular.join(df_join[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
+        df_regular = df_regular.join(df_[["interpolated_final",]].rename(columns={"interpolated_final":column}), how = 'left')
     return df_regular    
 
 def f5(row,column="valor",tag_column="tag",min_obs_date=None,max_obs_date=None):
@@ -384,7 +424,7 @@ def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, colum
 
 def serieMovingAverage(
     obs_df : pandas.DataFrame,
-    offset : timedelta,
+    offset : relativedelta,
     column : str = "valor",
     tag_column : str = None
     ) -> pandas.DataFrame:
@@ -743,17 +783,17 @@ def plot_prono(
     offset = 10
     #xycoords='figure pixels',
     if annotate:
-        xdisplay = ahora + timedelta(days=1.0)
+        xdisplay = ahora + relativedelta(days=1.0)
         ax.annotate(prono_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18,
             color = prono_annotation_color)#arrowprops=arrowprops
-        xdisplay = ahora - timedelta(days=2)
+        xdisplay = ahora - relativedelta(days=2)
         ax.annotate(obs_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
-            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+timedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
     if adjust_results_string is not None:
         plt.gcf().text(0.6, 0.85, adjust_results_string, fontsize=10)
     if footnote is not None:
@@ -778,8 +818,8 @@ def plot_prono(
             xlim[1] = xmax
     else:
         xlim = [xmin,xmax]
-    xlim[0] = roundDownDate(xlim[0],timedelta(days=1))
-    xlim[1] = roundDownDate(xlim[1],timedelta(days=1))
+    xlim[0] = roundDownDate(xlim[0],relativedelta(days=1))
+    xlim[1] = roundDownDate(xlim[1],relativedelta(days=1))
     ax.set_xlim(xlim[0],xlim[1])
     ax.tick_params(labeltop=False, labelright=True)
     plt.grid(True, which='both', color='0.75', linestyle='-.',linewidth=0.5)
@@ -826,11 +866,11 @@ def plot_prono(
     ax.xaxis.set_minor_locator(mdates.HourLocator(xaxis_minor_tick_hours)) # (3,9,15,21,)
     ## FRANJAS VERTICALES
     start_0hrs = sim_df.index.min().date()
-    end_0hrs = (sim_df.index.max() + timedelta(hours=12)).date()
+    end_0hrs = (sim_df.index.max() + relativedelta(hours=12)).date()
     list0hrs = pandas.date_range(start_0hrs,end_0hrs)
     i = 1
     while i < len(list0hrs):
-        ax.axvspan(list0hrs[i-1] + timedelta(hours=3), list0hrs[i] + timedelta(hours=3), alpha=0.1, color='grey')
+        ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
     plt.savefig(
         os.path.join(
@@ -967,13 +1007,13 @@ def mad(l : list) -> float:
     mean = np.mean(l)
     return np.mean([abs(x - mean) for x in l])
 
-def filter_func(ind, base : datetime, dt: timedelta):
+def filter_func(ind, base : datetime, dt: relativedelta):
     return ind >= base and ind < base + dt
 
-def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : timedelta) -> DataFrame:
+def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta) -> DataFrame:
     return data.loc[map(filter_func, data.index, [base for x in data.index], [dt for x in data.index])]
 
-def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
+def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
     valid_agg_func = {
         "sum": np.sum,
         "first": first,
@@ -994,7 +1034,7 @@ def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : timede
         return np.nan  
     return valid_agg_func[agg_func](rows[column])
 
-def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : timedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
+def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
     """For each timestamp in index, return aggregate function agg_func column column of matching rows of data. data.index must be a DatetimeIndex. For a given index item i, matching rows are those where row index is greater than or equal to i and lower than i + dt
 
     Args:
@@ -1021,3 +1061,100 @@ def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : timedelta,
         Series: the aggregated series. Series of type float with index of type DatetimeIndex
     """
     return Series([aggregateValuesWithinTimestep(data, i, dt, column, pass_nan, agg_func) for i in index], index)
+
+def relativedeltaToSeconds(rd : relativedelta):
+    if not isinstance(rd, relativedelta):
+        raise TypeError("Value must be of type relativedelta")
+    now = datetime.now()
+    future = now + rd
+    delta = future - now
+    return delta.total_seconds()
+
+def compare_durations(d1 : Union[relativedelta,timedelta], d2 : Union[relativedelta,timedelta],operation:Literal["gt","lt","ge","le","e"]="gt"):
+    d1_seconds = relativedeltaToSeconds(d1) if isinstance(d1,relativedelta) else d1.total_seconds()
+    d2_seconds = relativedeltaToSeconds(d2) if isinstance(d2,relativedelta) else d2.total_seconds()
+    if operation == "gt":
+        return d1_seconds > d2_seconds
+    elif operation == "lt":
+        return d1_seconds < d2_seconds
+    elif operation == "ge":
+        return d1_seconds >= d2_seconds
+    elif operation == "le":
+        return d1_seconds <= d2_seconds
+    elif operation == "e":
+        return d1_seconds == d2_seconds
+    else:
+        raise ValueError("Invalid operation. Valid values: gt, lt, ge, le, e")
+
+def timedelta_to_relativedelta(td: timedelta) -> relativedelta:
+    total_seconds = td.total_seconds()
+    
+    days, remainder = divmod(total_seconds, 86400)  # seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return relativedelta(
+        days=int(days),
+        hours=int(hours),
+        minutes=int(minutes),
+        seconds=int(seconds)
+    )
+
+def relativedelta_to_timedelta(rd: relativedelta) -> timedelta:
+    if not isinstance(rd, relativedelta):
+        raise TypeError("Value must be of type relativedelta")
+    total_seconds = relativedeltaToSeconds(rd)
+    days, remainder = divmod(total_seconds, 86400)  # seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return timedelta(
+        days=int(days),
+        hours=int(hours),
+        minutes=int(minutes),
+        seconds=int(seconds)
+    )
+
+def multiply_relativedelta(rd: relativedelta, n: int) -> relativedelta:
+    return relativedelta(
+        years=rd.years * n,
+        months=rd.months * n,
+        days=rd.days * n,
+        hours=rd.hours * n,
+        minutes=rd.minutes * n,
+        seconds=rd.seconds * n,
+        microseconds=rd.microseconds * n,
+        weeks=rd.weeks * n
+    )
+
+def interpolate_or_copy_closest(data : Series,interpolation_limit : timedelta) -> Series:
+
+    # Forward and backward fills
+    ffill = data.ffill(limit=None)
+    bfill = data.bfill(limit=None)
+
+    # Timestamps of fills
+    ffill_times = data.index.to_series().where(data.notna()).ffill()
+    bfill_times = data.index.to_series().where(data.notna()).bfill()
+
+    # Time differences between original and fill
+    delta_fwd = data.index.to_series() - ffill_times
+    delta_bwd = bfill_times - data.index.to_series()
+
+    # Mask values where gap is too big
+    use_ffill = (delta_fwd <= interpolation_limit)
+    use_bfill = (delta_bwd <= interpolation_limit)
+
+    # Choose closest direction when both are valid
+    filled = data.copy()
+    for i in data[data.isna()].index:
+        if use_ffill[i] and use_bfill[i]:
+            # interpolate
+            filled[i] = (ffill[i] * delta_fwd[i] + bfill[i] * delta_bwd[i]) / (delta_fwd[i] + delta_bwd[i])
+        elif use_ffill[i]:
+            filled[i] = ffill[i]
+        elif use_bfill[i]:
+            filled[i] = bfill[i]
+        # else: leave as NaN (too far from both sides)
+
+    return filled

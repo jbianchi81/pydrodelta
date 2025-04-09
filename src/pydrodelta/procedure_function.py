@@ -5,8 +5,11 @@ from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
+from .descriptors.string_descriptor import StringDescriptor
+from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
 from numpy import array
 from pandas import DataFrame
+from datetime import datetime
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
@@ -133,6 +136,11 @@ class ProcedureFunction:
     _no_sim : bool = False
     """Set to True if procedure function produces only forecast (no simulation)"""
 
+    forecast_date = DatetimeDescriptor()
+    """Forecast date. By default, copies value from plan"""
+
+    save_results = StringDescriptor()
+
     def __init__(
         self,
         procedure = None,
@@ -141,6 +149,8 @@ class ProcedureFunction:
         boundaries : list = [],
         outputs : list = [],
         extra_pars : dict = dict(),
+        forecast_date : datetime = None,
+        save_results : str = None,
         **kwargs
         ):
         """Initiate a procedure function
@@ -169,7 +179,11 @@ class ProcedureFunction:
         
         extra_pars: dict
         
-            Additional (non-calibratable) parameters"""
+            Additional (non-calibratable) parameters
+            
+        save_results : str = None
+            save results into file. Defaults to save_results of plan
+        """
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
         self.parameters = parameters
@@ -178,6 +192,19 @@ class ProcedureFunction:
         self.outputs = outputs
         self.input = None
         self.extra_pars = extra_pars
+        if forecast_date is not None:
+            self.forecast_date = forecast_date
+        elif self._procedure is not None and self._procedure._plan is not None and self._procedure._plan.forecast_date is not None:
+            self.forecast_date = self._procedure._plan.forecast_date
+        else:
+            self.forecast_date = None
+        if save_results is not None:
+            self.save_results = save_results
+        elif self._procedure is not None:
+            self.save_results = self._procedure.save_results
+        else:
+            self.save_results = None
+
     def toDict(self) -> dict:
         """Convert this procedureFunction to a dict
         

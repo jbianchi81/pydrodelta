@@ -9,6 +9,11 @@ import yaml
 import time
 from pydrodelta.types.typed_list import TypedList
 from pydrodelta.config import config
+from pydrodelta.util import interpolate_or_copy_closest, serieRegular, tryParseAndLocalizeDate
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+import numpy as np
+import pandas as pd
 
 class Test_Topology(TestCase):
 
@@ -141,11 +146,81 @@ class Test_Topology(TestCase):
     def test_variable_plot(self):
         topology = Topology(**dummy_topology)
         topology.batchProcessInput(include_prono=True)
+        self.assertEqual(len(topology.nodes[0].variables[4].series[0].data.dropna()),4)
+        self.assertEqual(len(topology.nodes[0].variables[4].series_prono[0].data.dropna()),5)
+        self.assertEqual(len(topology.nodes[0].variables[4].data.dropna()),7)
         topology.nodes[0].variables[4].plot()
         topology.plotVariable(
             var_id = 4,
             output = "%s/results/h_plot.pdf" % config["PYDRODELTA_DIR"]
         )
+
+    def test_interpolate_regularize(self):
+        topology = Topology(**dummy_topology)
+        topology.loadData(include_prono=True)
+        topology.regularize(interpolate=True)
+        self.assertEqual(len(topology.nodes[0].variables[4].data.dropna()),5)
+
+    def test_interpolate_regularize_missing(self):
+        topology = Topology(**dummy_topology)
+        topology.loadData(include_prono=True)
+        topology.nodes[0].variables[4].series[0].data.at[topology.nodes[0].variables[4].series[0].data.index[1],"valor"] = np.nan
+        topology.nodes[0].variables[4].series[0].data.at[topology.nodes[0].variables[4].series[0].data.index[3],"valor"] = np.nan
+        topology.regularize(interpolate=True)
+        self.assertEqual(len(topology.nodes[0].variables[4].series[0].data.dropna()),2)
+
+    def test_interpolate_or_copy(self):
+        data = pd.Series(
+            [1.0, np.nan, np.nan, 4.0, np.nan, 6.0, np.nan, 7.0, np.nan, 8.0],
+            index=pd.to_datetime([
+                '2023-01-01',
+                '2023-01-02',
+                '2023-01-03',
+                '2023-01-04',
+                '2023-01-08',  # 4-day gap from previous
+                '2023-01-09',
+                '2023-01-11',
+                '2023-01-13',
+                '2023-01-14',
+                '2023-01-15'
+            ])
+        )
+        filled = interpolate_or_copy_closest(data,timedelta(days=1))
+        self.assertEqual(filled.iloc[1], filled.iloc[0])
+        self.assertEqual(filled.iloc[2], filled.iloc[3])
+        self.assertEqual(filled.iloc[4], filled.iloc[5])
+        self.assertTrue(np.isnan(filled.iloc[6]))
+        self.assertAlmostEqual(filled.iloc[8], 7.5, 2)
+
+    def test_serie_regular_interpolate_timedelta(self):
+        data = pd.DataFrame(
+            {
+                "valor": [1.0, np.nan, np.nan, 4.0, np.nan, 6.0, np.nan, 7.0, np.nan, 8.0]
+            },
+            index=pd.to_datetime([
+                '2023-01-01 09:00:00',
+                '2023-01-02 09:00:00',
+                '2023-01-03 09:00:00',
+                '2023-01-04 09:00:00',
+                '2023-01-08 09:00:00',  # 4-day gap from previous
+                '2023-01-09 09:00:00',
+                '2023-01-11 09:00:00',
+                '2023-01-13 09:00:00',
+                '2023-01-14 09:00:00',
+                '2023-01-15 09:00:00'
+            ])
+        )
+        data.index = data.index.tz_localize('America/Argentina/Buenos_Aires')
+        regular = serieRegular(data, relativedelta(days=1), tryParseAndLocalizeDate((2023,1,1,0)), tryParseAndLocalizeDate((2023,1,16,0)), column="valor", interpolate=True,interpolation_limit=timedelta(hours=12))
+        self.assertEqual(regular.index[0], tryParseAndLocalizeDate((2023,1,1,0)))
+        self.assertEqual(regular.index[-1], tryParseAndLocalizeDate((2023,1,16,0)))
+        np.testing.assert_allclose(regular["valor"].values, np.array([1.0,np.nan,np.nan,4.0,np.nan,np.nan,np.nan,np.nan,6.0,np.nan,np.nan,np.nan,7.0,np.nan,8.0,np.nan]), equal_nan=True)
+        # same with interpolate=False
+        regular2 = serieRegular(data, relativedelta(days=1), tryParseAndLocalizeDate((2023,1,1,0)), tryParseAndLocalizeDate((2023,1,16,0)), column="valor", interpolate=False)
+        self.assertEqual(len(regular2.columns.tolist()),1)
+        self.assertEqual(regular2.index[0], tryParseAndLocalizeDate((2023,1,1,0)))
+        self.assertEqual(regular2.index[-1], tryParseAndLocalizeDate((2023,1,16,0)))
+        np.testing.assert_allclose(regular2["valor"].values, np.array([1.0,np.nan,np.nan,4.0,np.nan,np.nan,np.nan,np.nan,6.0,np.nan,np.nan,np.nan,7.0,np.nan,8.0,np.nan]), equal_nan=True)
 
     def test_variable_save(self):
         topology = Topology(**dummy_topology)
@@ -314,7 +389,6 @@ dummy_topology = {
     "timestart": "2024-03-03T12:00:00.000Z",
     "timeend": "2024-03-07T12:00:00.000Z",
     "forecast_timeend": "2024-03-11T12:00:00.000Z",
-    "interpolation_limit":  {"hours": 12},
     "no_metadata": True,
     "nodes": [
         {
@@ -324,6 +398,7 @@ dummy_topology = {
         "variables": [
             {
             "id": 4,
+            "interpolation_limit":  {"hours": 12},
             "series": [
                 {
                 "series_id": 1,

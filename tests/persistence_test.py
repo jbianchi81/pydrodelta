@@ -27,22 +27,27 @@ class PersistenceTest(TestCase):
                     "series_sim": {},
                     "series_output": {}
                 }
+                nodes_data[n.id][var_id]["data"].index = nodes_data[n.id][var_id]["data"].index.tz_convert("America/Argentina/Buenos_Aires")
                 if v.series is not None:
                     for s in v.series:
                         if s.data is not None:
                             nodes_data[n.id][var_id]["series"][s.series_id] = s.data
+                            nodes_data[n.id][var_id]["series"][s.series_id].index = nodes_data[n.id][var_id]["series"][s.series_id].index.tz_convert("America/Argentina/Buenos_Aires")
                 if v.series_prono is not None:
                     for s in v.series_prono:
                         if s.data is not None:
                             nodes_data[n.id][var_id]["series_prono"][s.series_id] = s.data
+                            nodes_data[n.id][var_id]["series_prono"][s.series_id].index = nodes_data[n.id][var_id]["series_prono"][s.series_id].index.tz_convert("America/Argentina/Buenos_Aires")
                 if v.series_sim is not None:
                     for s in v.series_sim:
                         if s.data is not None:
                             nodes_data[n.id][var_id]["series_sim"][s.series_id] = s.data
+                            nodes_data[n.id][var_id]["series_sim"][s.series_id].index = nodes_data[n.id][var_id]["series_sim"][s.series_id].index.tz_convert("America/Argentina/Buenos_Aires")
                 if v.series_output is not None:
                     for s in v.series_output:
                         if s.data is not None:
                             nodes_data[n.id][var_id]["series_output"][s.series_id] = s.data
+                            nodes_data[n.id][var_id]["series_output"][s.series_id].index = nodes_data[n.id][var_id]["series_output"][s.series_id].index.tz_convert("America/Argentina/Buenos_Aires")
         plan_0.topology.storeSeriesData()
         plan_0.topology.restoreSeriesData()
 

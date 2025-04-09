@@ -1,15 +1,15 @@
-from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from pydrodelta.util import interval2timedelta
 
-default = timedelta(hours=0)
+default = relativedelta(hours=0)
 
 class DurationDescriptor:
     """Duration descriptor
     Parses dict of unit: value pairs (i.e., {"hours":1,"minutes":30})
 
-    Return type: datetime.timedelta. 
+    Return type: dateutil.relativedelta.relativedelta. 
     
-    Default: timedelta(hours=0)"""
+    Default: relativedelta(hours=0)"""
     def __set_name__(self, owner, name):
         self._name = name
 

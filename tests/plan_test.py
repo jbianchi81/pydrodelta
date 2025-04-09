@@ -27,8 +27,8 @@ class Test_Plan(TestCase):
             for v in n.variables:
                 self.assertTrue(isinstance(n.variables[v].data,DataFrame))
                 self.assertEqual(len(n.variables[v].data),15)
-                self.assertEqual(min(n.variables[v].data.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(n.variables[v].data.index).isoformat(),"2024-01-15T00:00:00-03:00")
+                self.assertEqual(min(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
+                self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
 
     def test_exec(self):
         plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
@@ -38,18 +38,18 @@ class Test_Plan(TestCase):
             for i in p.input:
                 self.assertTrue(isinstance(i,DataFrame))
                 self.assertEqual(len(i),15)
-                self.assertEqual(min(i.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(i.index).isoformat(),"2024-01-15T00:00:00-03:00")
+                self.assertEqual(min(i.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
+                self.assertEqual(max(i.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
             for o in p.output:
                 self.assertTrue(isinstance(o,DataFrame))
                 self.assertEqual(len(o),15)
-                self.assertEqual(min(o.index).isoformat(),"2024-01-01T00:00:00-03:00")
-                self.assertEqual(max(o.index).isoformat(),"2024-01-15T00:00:00-03:00")
+                self.assertEqual(min(o.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
+                self.assertEqual(max(o.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
         for s in plan.topology.nodes[1].variables[40].series_sim:
             self.assertTrue(isinstance(s.data,DataFrame))
             self.assertEqual(len(s.data),15)
-            self.assertEqual(min(s.data.index).isoformat(),"2024-01-01T00:00:00-03:00")
-            self.assertEqual(max(s.data.index).isoformat(),"2024-01-15T00:00:00-03:00")
+            self.assertEqual(min(s.data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
+            self.assertEqual(max(s.data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
             self.assertAlmostEqual(
                 plan.topology.nodes[0].variables[40].data["valor"].sum(skipna=True),
                 sum(s.data["valor"]), 
@@ -67,8 +67,8 @@ class Test_Plan(TestCase):
             for v in n.variables:
                 self.assertTrue(isinstance(n.variables[v].data,DataFrame))
                 self.assertEqual(len(n.variables[v].data),3)
-                self.assertEqual(min(n.variables[v].data.index).isoformat(),"2022-07-15T00:00:00-03:00")
-                self.assertEqual(max(n.variables[v].data.index).isoformat(),"2022-07-17T00:00:00-03:00")
+                self.assertEqual(min(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2022-07-15T00:00:00-03:00")
+                self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2022-07-17T00:00:00-03:00")
 
     def test_api_basin_pars(self):
         plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac_basin_pars_from_api.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)

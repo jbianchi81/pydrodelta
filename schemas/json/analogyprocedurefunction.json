@@ -1,0 +1,96 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "analogyprocedurefunction.json",
+    "title": "AnalogyProcedureFunction",
+    "type": "object",
+    "description": "Procedure function that finds analogs in the history of the timeseries",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "Analogy"
+            ]
+        },
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "search_length": {
+                    "description": "longitud de la serie para buscar Analogas",
+                    "type": "integer"
+                },
+                "forecast_length": {
+                    "description": "longitud del pronostico",
+                    "type": "integer"
+                },
+                "order_by": {
+                    "description":"Ordena Por",
+                    "type": "string",
+                    "enum": [
+                        "Nash","CoefC","RMSE","SPEDS","ErrVol"
+                    ],
+                    "default": "RMSE"
+                },
+                "ascending": {
+                    "description": "Sort ascending",
+                    "type": "boolean",
+                    "desfault": true
+                },
+                "number_of_analogs": {
+                    "description": "Cantidad de series que toma",
+                    "type": "integer",
+                    "default": 5
+                },
+                "time_window": {
+                    "description": "Ventana temporal",
+                    "type": "string",
+                    "enum": ["year", "month", "day", "yrDay", "wkDay"],
+                    "default": "month"
+                }
+            },
+            "required": ["search_length", "forecast_length"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+                "add_error_band": {
+                    "type": "boolean"
+                },
+                "skip_first_years": {
+                    "type": "number",
+                    "default": 10
+                },
+                "only_last_years": {
+                    "type": "number"
+                },
+                "vent_resamp_range": {
+                    "type": "array",
+                    "description": "Perform hindcast for forecast dates inside this range (i.e. (3,5) for march to may)",
+                    "prefixItems": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "number"
+                        }
+                    ],
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "error_forecast_date_window": {
+                    "type": "number",
+                    "description": "Perform hindcast for forecast dates within this window (current forecast date plus/minus this value; i.e. if current is april, set to 1 to use march to may)"
+                }
+            }
+        }
+   },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}

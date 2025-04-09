@@ -4,6 +4,7 @@ import os
 import logging
 from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame
+from dateutil.relativedelta import relativedelta
 from .config import config
 from typing import Union, List, Tuple
 from .types.tvp import TVP
@@ -120,9 +121,9 @@ class NodeSerie(Base):
         tipo : str = "puntual",
         lim_outliers : Tuple[float,float] = None,
         lim_jump : float = None,
-        x_offset : timedelta = timedelta(seconds=0),
+        x_offset : relativedelta = relativedelta(seconds=0),
         y_offset : float = 0,
-        moving_average : timedelta = None,
+        moving_average : relativedelta = None,
         csv_file : str = None,
         observations : Union[List[TVP],List[Tuple[datetime,float]]] = None,
         save_post : str = None,
@@ -152,13 +153,13 @@ class NodeSerie(Base):
         lim_jump : float = None
             Maximum absolute value for jump detection
 
-        x_offset : timedelta = timedelta(seconds=0)
+        x_offset : relativedelta = relativedelta(seconds=0)
             Apply this time offset to the timestamps of the input data
 
         y_offset : float = 0
             Apply this offset to the values of the input data
 
-        moving_average : timedelta = None
+        moving_average : relativedelta = None
             Compute a moving average using a time window of this size to the input data
          
         csv_file : str = None
@@ -460,7 +461,7 @@ class NodeSerie(Base):
         timeend : datetime,
         time_interval : timedelta,
         time_offset : timedelta,
-        interpolation_limit : Union[timedelta,int],
+        interpolation_limit : Union[int,timedelta],
         inline : bool = True,
         interpolate : bool = False,
         agg_func : str = None
@@ -481,7 +482,7 @@ class NodeSerie(Base):
         time_offset : timedelta
             Start time of the day of the output regular timeseries (overrides that of timestart)
 
-        interpolation_limit : timedelta or int
+        interpolation_limit : relativedelta or int
             Maximum number of time steps to interpolate (default: 1)
         
         inline : bool = True
@@ -493,7 +494,7 @@ class NodeSerie(Base):
         agg_func : str = None
             Aggregate observations of data using agg_func function. If set, interpolation is not performed"""
         agg_func = agg_func if agg_func is not None else self.agg_func
-        interpolation_limit = int(interpolation_limit / time_interval) if type(interpolation_limit) == timedelta else interpolation_limit 
+        # interpolation_limit = int(util.relativedeltaToSeconds(interpolation_limit) / util.relativedeltaToSeconds(time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit 
         data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func)
         if inline:
             self.data = data

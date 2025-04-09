@@ -6,7 +6,7 @@ class DurationDescriptorDefaultNone(DurationDescriptor):
     """Duration descriptor
     Parses dict of unit: value pairs (i.e., {"hours":1,"minutes":30})
 
-    Return type: datetime.timedelta. 
+    Return type: dateutil.relativedelta.relativedelta. 
     
     Default: None(hours=0)"""
     def __set__(self, instance, value):
