@@ -760,7 +760,7 @@ class SCSReservoirsMod(PydrologyProcedureInterface):
 #Cascada de Reservorios Lineales (Discreta). Dos parámetros: Tiempo de Resdiencia (K) y Número de Reservorios (N)
 class LinearReservoirCascade(PydrologyProcedureInterface):
     """
-    Cascada de Reservorios Lineales (Discreta). Lista pars de dos parámetros: Tiempo de Residencia (K) y Número de Reservorios (N). Vector de Condiciones Iniciales (InitialConditions): Si es un escalar (debe ingresarse como elemento de lista) genera una matriz de 2xN con valor constante igual al escalar, también puede ingresarse una matriz de 2XN que represente el caudal inicial en cada reservorio de la cascada. Condiciones de Borde (Boundaries): vector Inflow. 
+    Cascada de Reservorios Lineales (Discreta). Lista pars de dos parámetros: Tiempo de Residencia (K) y Número de Reservorios (N). Vector de Condiciones Iniciales (InitialConditions): Si es un escalar (debe ingresarse como elemento de lista) genera una matriz de 2xN con valor constante igual al escalar, también puede ingresarse una lista de longitud N que represente el caudal inicial en cada reservorio de la cascada. Condiciones de Borde (Boundaries): lista Inflow. 
     """
     K : float
     """Tiempo de residencia en reservorio"""
@@ -788,7 +788,7 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
             pars : List[float]
                 lista con los valores del tiempo de residencia K y de la cantidad discreta de N de reservorios lineales en cascada 
             InitialConditions : List[float]
-                lista con el valor de caudal inicial para cada reservorio (puede brindarse un valor solamente, común a todos los reservorios, por defecto si se omite este es igual a 0)
+                lista con el valor de caudal inicial para cada reservorio ordenados de la siguiente forma: [Q[0,0],Q[0,1],Q[0,1],Q[1,1]...,Q[0,N],Q[1,N]].También puede brindarse un valor solamente, común a todos los reservorios, por defecto si se omite este es igual a 0)
             Boundaries : List[float]
                 lista con el vector de la condición de borde (serie temporal de caudal afluente)
         """
@@ -801,10 +801,10 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
             self.Cascade=np.array([[self.initial_conditions[0]]*self.N]*2,dtype='float')
             self.Outflow=np.array([self.initial_conditions[0]]*(len(self.boundaries)+1),dtype='float')
         else:
-            if len(self.initial_conditions) != self.N:
-                raise ValueError("Initial conditions list must have length N")
+            if len(self.initial_conditions)!=self.N:
+                raise NameError("Initial conditions list must have length N")
             else:
-                self.Cascade=np.array([self.initial_conditions,[0] * self.N],dtype='float') # .reshape(2,-1)
+                self.Cascade=np.array([self.initial_conditions]*2,dtype='float') 
                 self.Outflow=np.array([self.Cascade[0,1]]*(len(self.boundaries)+1),dtype='float')
         self.dt=dt
     def computeOutFlow(self):
@@ -1762,9 +1762,9 @@ class HIDROSAT(PydrologyProcedureInterface):
             self.soilStorage[i+1]=self.soilSystem.Storage[1]
             inflow_gw=[self.freeWater[i]]
             if i==0:
-                initial_gw=[self.initial_conditions[1]]
+                initial_gw=[self.initial_conditions[0]]
             else:
-                initial_gw=[self.gwSystem.Cascade[0,0],self.gwSystem.Cascade[0,1],self.gwSystem.Cascade[1,0],self.gwSystem.Cascade[1,1]]
+                initial_gw=self.gwSystem.Cascade[1,].tolist()
             self.gwSystem=LinearReservoirCascade(pars=[self.K,self.N],Boundaries=inflow_gw,InitialConditions=initial_gw)
             self.gwSystem.computeOutFlow()
             self.Runoff[i+1]=self.gwSystem.Outflow[1]
@@ -1784,5 +1784,3 @@ class HIDROSAT(PydrologyProcedureInterface):
 if __name__ == "__main__":
     import sys
 
-
-    
