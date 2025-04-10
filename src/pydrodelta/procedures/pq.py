@@ -63,6 +63,8 @@ class PQProcedureFunction(ProcedureFunction):
         # if self.boundaries.getById("pma").node.node_type == "basin":
         for key in self._required_extra_pars:
             if key not in self.extra_pars or self.extra_pars[key] is None:
+                if self.boundaries.getById("pma").node is None:
+                    raise ValueError("Missing key '%s' from extra_pars" % key)
                 if self.boundaries.getById("pma").node.basin_pars is None:
                     raise Exception("Missing key '%s' in self.extra_pars with no self.boundariesgetById('pma').node.basin_pars from which to read defaults" % key)
                 if key not in self.boundaries.getById("pma").node.basin_pars or self.boundaries.getById("pma").node.basin_pars[key] is None:

@@ -896,6 +896,6 @@ procedureFunctionDict = {
     "ExponentialFit": ExponentialFitProcedureFunction,
     "LinearFit": LinearFitProcedureFunction,
     "LagAndRoute": LagAndRouteProcedureFunction,
-    "HIDROSAT": HIDROSATProcedureFunction
+    "HIDROSAT": HIDROSATProcedureFunction,
     "Analogy": AnalogyProcedureFunction
 }
