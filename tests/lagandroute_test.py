@@ -85,9 +85,10 @@ class Test_lagandroute(TestCase):
         self.assertEqual(procedure.routingSystem.Cascade[0][1],2.2)
         self.assertEqual(procedure.routingSystem.Cascade[0][2],3.3)
         self.assertEqual(len(procedure.routingSystem.Cascade[1]),3)
-        self.assertEqual(procedure.routingSystem.Cascade[1][0],0)
-        self.assertEqual(procedure.routingSystem.Cascade[1][1],0)
-        self.assertEqual(procedure.routingSystem.Cascade[1][2],0)
+        # ahora los estados al inicio se copian al final de la cascada
+        self.assertEqual(procedure.routingSystem.Cascade[1][0],1.1)
+        self.assertEqual(procedure.routingSystem.Cascade[1][1],2.2)
+        self.assertEqual(procedure.routingSystem.Cascade[1][2],3.3)
 
     def test_init_set_boundaries(self):    
         procedure = LagAndRoute(

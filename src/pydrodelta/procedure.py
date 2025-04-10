@@ -863,6 +863,7 @@ from pydrodelta.procedures.abstract import AbstractProcedureFunction
 from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
 from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
 from pydrodelta.procedures.analogy import AnalogyProcedureFunction
+from pydrodelta.procedures.persistence import PersistenceProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -897,5 +898,6 @@ procedureFunctionDict = {
     "LinearFit": LinearFitProcedureFunction,
     "LagAndRoute": LagAndRouteProcedureFunction,
     "HIDROSAT": HIDROSATProcedureFunction,
-    "Analogy": AnalogyProcedureFunction
+    "Analogy": AnalogyProcedureFunction,
+    "Persistence": PersistenceProcedureFunction
 }

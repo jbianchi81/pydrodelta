@@ -204,7 +204,7 @@ class PersistenceProcedureFunction(ProcedureFunction):
             column = 0
             self.error_stats = DataFrame(columns = ["mes_ant","count","mean","std"])
             for i, row in self.df_prono.iterrows():
-                if column > 2:
+                if column > self.forecast_length - 1:
                     break
                 self.error_stats.loc[len(self.error_stats)] = [
                     row["mes_ant"],
@@ -269,16 +269,22 @@ def MetodoPersistencia( data : DataFrame,
     
     # Busca la fecha seleccionada
     fecha_Obj = data.query("year=="+str(year)+" and "+vent_resamp+"=="+str(mes))
+    if not len(fecha_Obj):
+        raise ValueError("Objective timestamp for year %i, %s %i not found" % (year, vent_resamp, mes))
     
     # Toma el id de la fecha seleccionada
     idx_select = fecha_Obj.index[0].to_pydatetime()
 
     # Toma el caudal de esta fecha
     value_select = fecha_Obj[var].values[0]
+    if np.isnan(value_select):
+        raise ValueError("Invalid value: nan at timestamp %s" % idx_select)
 
     # Calcula el cuantil de ese caudal para el mes correspondiente.
     df_Base = data[:idx_select].copy()   # Filtra datos posteriores a la fecha seleccionada
     ultimo_quantil = getQuantile(df_Base, mes, value_select, vent_resamp, var)
+    if ultimo_quantil < 0 or ultimo_quantil > 1:
+        raise Exception("Cuantil inválido: %s" % str(ultimo_quantil))
     #print(fecha_Obj)
     #print('Cuantil cero: ',ultimo_quantil)
 
@@ -417,10 +423,10 @@ def ErrorXPersistencia(nomEst : str,
     df_errorXMes : DataFrame
     """
     logging.debug('Calcula Error x Mes: %s' % str(nomEst))
-    df_errorXMes = DataFrame(columns=['1er Mes','2do Mes','3er Mes'])
+    df_errorXMes = DataFrame(columns=['mes_%i' % i for i in range(1,l_prono+1,1)])
 
-    # Corta el df. Saca los primeros años y los ultimos 3 meses
-    df_clip = df[skip_first_years * 12:-l_prono]#l_obs
+    # Corta el df. Saca los primeros años y los ultimos l_prono meses
+    df_clip = df[skip_first_years * 12:-l_prono].dropna() #l_obs
 
     if connBBDD != None:
         NombreTabla = 'Salidas_Persist'
@@ -433,8 +439,10 @@ def ErrorXPersistencia(nomEst : str,
         df_prono, percentil = MetodoPersistencia(df,var,mes_select,yr_select,l_obs,l_prono,vent_resamp,Prono=False)
         
         if df_prono["%s_Obs" % var].isna().sum() == 0:
+            if len(df_prono) < l_prono:
+                raise Exception("Hindcast length at month %i, year %i is too short (%i < %i)" % (mes,yr, len(df_prono), l_prono))
             df_prono['Dif_Prono'] = df_prono["%s_Prono" % var] - df_prono["%s_Obs" % var]
-            df_errorXMes.loc[len(df_errorXMes)] = [df_prono.loc[0,'Dif_Prono'],df_prono.loc[1,'Dif_Prono'],df_prono.loc[2,'Dif_Prono']]
+            df_errorXMes.loc[len(df_errorXMes)] = df_prono["Dif_Prono"].values[:l_prono] # [df_prono.loc[0,'Dif_Prono'],df_prono.loc[1,'Dif_Prono'],df_prono.loc[2,'Dif_Prono']]
 
             if connBBDD != None:
                 df_prono['nombre'] = nomEst
@@ -490,4 +498,9 @@ def getQuantile(
         value : float,
         month_column : str="month",
         value_column : str="valor" ):
-    return (data.loc[data[month_column] == month,value_column].dropna() < value).mean()
+    if np.isnan(value):
+        raise ValueError("Invalid value: nan not allowed")
+    quantile = (data.loc[data[month_column] == month,value_column].dropna() < value).mean()
+    if np.isnan(quantile):
+        raise Exception("Quantile for value %s not found in data" % str(value))
+    return quantile
