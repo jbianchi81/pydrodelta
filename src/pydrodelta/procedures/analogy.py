@@ -9,7 +9,8 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import time
-from zoneinfo import ZoneInfo
+# from zoneinfo import ZoneInfo
+import pytz
 from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
 
 import numpy as np
@@ -454,7 +455,7 @@ def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : str,mes_selct,n_var
     #Nash y Sutcliffe
     F = (np.square(np.subtract(df[VarSim], df[VarObs]))).sum()
     F0 = (np.square(np.subtract(df[VarObs], np.mean(df[VarObs])))).sum()
-    E_var = round(100*(F0-F)/F0,3)
+    E_var = round(100*(F0-F)/F0,3) if F0 != 0 else 0
 
     #Coeficiente de correlación (r)
     x = df[VarObs]
@@ -508,7 +509,8 @@ def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : str,mes_selct,n_var
     return  df_i
 
 def month2Date(y,x):
-        return datetime(y, x, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires"))
+        tz = pytz.timezone("America/Argentina/Buenos_Aires")
+        return tz.localize(datetime(y, x, 1)) # , tzinfo=pytz.timezone("America/Argentina/Buenos_Aires")) # ZoneInfo("America/Argentina/Buenos_Aires"))
 
 def MetodoAnalogia_errores_v2(
         name_Est,
@@ -598,9 +600,11 @@ def MetodoAnalogia_errores_v2(
 
         # Arma el Df de datos Obs para la fecha seleccionada
         fecha_Obj = df.query("year=="+str(yr_select)+" and month=="+str(mes_select))     # Busca la fecha seleccionada
-        idx_select = fecha_Obj.index[0].to_pydatetime() # + 1 # Toma el id de la fecha seleccionada
-        idx_fecha_f = idx_select + relativedelta(months=longProno)
-        dfObj = df[idx_select:idx_fecha_f].copy()
+        idx_select = fecha_Obj.index[0] # .to_pydatetime() # + 1 # Toma el id de la fecha seleccionada
+        # idx_fecha_f = idx_select + relativedelta(months=longProno-1)
+        dfObj = df.loc[idx_select:].iloc[:longProno]
+        if len(dfObj) > longProno:
+            dfObj = dfObj.iloc[:longProno]
         # del dfObj['Count']
 
         #print(dfObj_0)
@@ -610,12 +614,12 @@ def MetodoAnalogia_errores_v2(
         cols_var = [var,'LogVar_Est']
         n_sim_sin_nan = 0
         par_comp = DataFrame(index=range(0,cantidad,1),columns=df_indicadores.columns)
-        for index, fecha_prono in df_indicadores.iterrows():
-            yr_sim = int(fecha_prono['YrSim'])
+        for index, fecha_prono_ in df_indicadores.iterrows():
+            yr_sim = int(fecha_prono_['YrSim'])
             # Arma el Df para comparar con el seleccionado.
             fecha_sim = df_pasado.query("year=="+str(yr_sim)+" and month=="+str(mes_select))
             idx_sim = fecha_sim.index[0].to_pydatetime() # + 1
-            idx_sim_f = idx_sim + relativedelta(months=longProno)
+            idx_sim_f = idx_sim + relativedelta(months=longProno - 1)
             dfSim = df_pasado[idx_sim:idx_sim_f].copy().dropna()
             if len(dfSim) < 3:
                 logging.warning('%i con Faltantes.' % yr_sim)
@@ -624,7 +628,11 @@ def MetodoAnalogia_errores_v2(
                 par_comp.iloc[n_sim_sin_nan] = df_indicadores.iloc[index]
                 dfSim = dfSim[['month',]+ cols_var]
                 dfSim = dfSim.rename(columns={cols_var[0]:int(yr_sim),cols_var[1]:str(int(yr_sim))+'_Transf'})
-                df_union = df_union.merge(dfSim, on='month')
+                df_merged = df_union.merge(dfSim, on='month', how='left')
+                if len(df_merged) != len(df_union):
+                    logging.error("Row count changed after merge")
+                    # assert len(df_merged) == len(df_union), "Row count changed after merge"
+                df_union = df_merged
                 n_sim_sin_nan += 1
                 if n_sim_sin_nan == 5: break
 
@@ -640,9 +648,9 @@ def MetodoAnalogia_errores_v2(
         par_comp['YrSim'] = par_comp['YrSim'].astype('int')
         
         # Multiplica por los pesos
-        for index, fecha_prono in par_comp.iterrows():
-            yrstr = str(fecha_prono['YrSim'])+'_Transf'
-            df_union[yrstr] = df_union[yrstr] * fecha_prono['wi']
+        for index, fecha_prono_ in par_comp.iterrows():
+            yrstr = str(fecha_prono_['YrSim'])+'_Transf'
+            df_union[yrstr] = df_union[yrstr] * fecha_prono_['wi']
         
         list_years_analog = [str(yr)+'_Transf' for yr in par_comp['YrSim'].to_list()]
         df_union['Prono'] = df_union[list_years_analog].sum(axis=1)
@@ -658,6 +666,8 @@ def MetodoAnalogia_errores_v2(
         df_union['nombre'] = name_Est
         df_union['mes_ant'] = df_union.index + 1
 
+        if(len(df_union) > longProno):
+            logging.error("forecast too long")
 
         # Agrega los ensambles para guardarlos
         lst_ensam = par_comp['YrSim'].to_list()
@@ -668,7 +678,7 @@ def MetodoAnalogia_errores_v2(
             df_union = df_union.rename(columns={ensam_i: 'E'+str(i)})
             Ensam_columns += ['E'+str(i),]
 
-        columns_save = ['timestart','nombre','year','month','mes_ant',cols_var[0],'Prono','Dif_Prono']+ Ensam_columns
+        columns_save = ['timestart','nombre','year','month','mes_ant',cols_var[0],'Prono','Dif_Prono'] + Ensam_columns
         df_union = df_union[columns_save]
 
         if min_val<0:
@@ -687,7 +697,7 @@ def MetodoAnalogia_errores_v2(
 def CalcIndic_Analog_error(df,year_obj,mes_obj,longBusqueda,longProno):
     # True or False. False: si la serie objetivo tiene faltatnes  
     # df_indicadores: Df con los indicadores
-    # dfObj_0: Df con La serie objetivo, serie a comprar con resto
+    # dfObj_0: Df con La serie objetivo, serie a comparar con resto
     columnas = ['YrObs','MesObs','YrSim','nobs', 'Vobs_media', 'Vsim_media', 'Nash', 'CoefC','RMSE', 'SPEDS', 'ErrVol']
     df_indicadores = DataFrame(columns=columnas)
 
