@@ -170,7 +170,9 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
         q_sim = DataFrame({"valor": q_sim},index=input[0].index)
         smc_sim = [(self.rho - self.wp) * x / self.S0 + self.wp for x in self.engine.soilStorage[0:len(self.Boundaries)]]
         smc_sim = DataFrame({"valor": smc_sim},index=input[0].index)
-        data_ = q_sim[["valor"]].rename(columns={"valor":"output"}).join(input[0][["valor"]].rename(columns={"valor":"pma"})).join(input[1][["valor"]].rename(columns={"valor":"etp"})).join(input[2][["valor"]].rename(columns={"valor":"q_obs"}))
+        data_ = q_sim[["valor"]].rename(columns={"valor":"output"}).join(input[0][["valor"]].rename(columns={"valor":"pma"})).join(input[1][["valor"]].rename(columns={"valor":"etp"}))
+        if len(input) > 2:
+            data_ = data_.join(input[2][["valor"]].rename(columns={"valor":"q_obs"}))
         data_["evapoTranspiration"] = self.engine.EVSoil[0:len(self.Boundaries)]
         data_["soilStorage"] = self.engine.soilStorage[0:len(self.Boundaries)]
         data_["freeWater"] = self.engine.freeWater[0:len(self.Boundaries)]

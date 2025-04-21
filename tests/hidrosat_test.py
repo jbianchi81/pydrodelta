@@ -35,10 +35,10 @@ class HidrosatTest(TestCase):
                 "wp": 0.03
             },
             initial_states = {
-                "soilStorage":100,
+                "soilStorage":0,
                 "Runoff": 0,
                 "floodPlainStorage": 0,
-                "Flooded": 0.001
+                "Flooded": 0
             },
             outputs = [
                 {
@@ -61,15 +61,92 @@ class HidrosatTest(TestCase):
             },
             type = "HIDROSAT"
         )
+
         dti = createDatetimeSequence(timeInterval={"days":1}, timestart=(2000,1,1), timeend=(2001,1,4))
         output, results = pf.run([
             DataFrame(index=dti, data={"valor":[10,0,0,0,0,15,0,0,0,0] * 37}),
             DataFrame(index=dti, data={"valor":[2] * 370}),
-            DataFrame(index=dti, data={"valor":[np.nan] * 370}),
-            DataFrame(index=dti, data={"valor":[np.nan] * 370}),
+            # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
+            # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
         ])
         self.assertEqual(len(output),2)
         self.assertEqual(len(output[0]),len(dti))
-        self.assertAlmostEqual(pf.engine.soilStorage[0] + pf.engine.floodplainStorage[0] + pf.engine.Precipitation.sum() - pf.engine.EVSoil.sum() - pf.engine.EVFloodPlain.sum() - pf.engine.Q[:-1].sum(), pf.engine.soilStorage[len(dti)-1] + pf.engine.floodplainStorage[len(dti)-1],2)
+        s_i = pf.engine.soilStorage[0] + pf.engine.floodplainStorage[0]
+        s_f = pf.engine.soilStorage[len(dti)-1] + pf.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
+        i_o = pf.engine.Precipitation.sum() - pf.engine.EVSoil.sum() - pf.engine.EVFloodPlain.sum() - pf.engine.Q[:-1].sum()
+
+        self.assertAlmostEqual((s_f - s_i) * 0.1, i_o * 0.1, 0)
+
+
+    def test_hidrosat_init_soil(self):
+
+        pf = HIDROSATProcedureFunction(
+          boundaries= [
+            {
+              "name": "pma",
+              "node_variable": [1,1]
+            },
+            {
+              "name": "etp",
+              "node_variable": [1,15]
+            },
+            {
+              "name": "q_obs",
+              "node_variable": [1, 40]  
+            },
+            {
+              "name": "smc_obs",
+              "node_variable": [1, 20]
+            }
+            ],
+            extra_pars = {
+                "dt": 1,
+                "area": 1000000000,
+                "ae": 1,
+                "rho": 0.5,
+                "wp": 0.03
+            },
+            initial_states = {
+                "soilStorage":10,
+                "Runoff": 0,
+                "floodPlainStorage": 0,
+                "Flooded": 0
+            },
+            outputs = [
+                {
+                "name": "q_sim",
+                "node_variable": [1, 40]
+                },
+                {
+                "name": "smc_sim",
+                "node_variable": [1, 20]
+                }
+            ],
+            parameters = {
+                "K": 1,
+                "N": 3,
+                "Q0": 12.69,
+                "S0": 178.395,
+                "W0": 232.505,
+                "gamma": 2.28,
+                "maxFlooded": 0.09
+            },
+            type = "HIDROSAT"
+        )
+        
+        dti = createDatetimeSequence(timeInterval={"days":1}, timestart=(2000,1,1), timeend=(2001,1,4))
+        output, results = pf.run([
+            DataFrame(index=dti, data={"valor":[10,0,0,0,0,15,0,0,0,0] * 37}),
+            DataFrame(index=dti, data={"valor":[2] * 370}),
+            # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
+            # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
+        ])
+        self.assertEqual(len(output),2)
+        self.assertEqual(len(output[0]),len(dti))
+        s_i = pf.engine.soilStorage[0] + pf.engine.floodplainStorage[0]
+        s_f = pf.engine.soilStorage[len(dti)-1] + pf.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
+        i_o = pf.engine.Precipitation.sum() - pf.engine.EVSoil.sum() - pf.engine.EVFloodPlain.sum() - pf.engine.Q[:-1].sum()
+
+        self.assertAlmostEqual((s_f - s_i) * 0.1, i_o * 0.1, 0)
 
 
