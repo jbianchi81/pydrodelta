@@ -510,7 +510,8 @@ def adjustSeries(
         tail : int = None,
         sim_range : Tuple[float,float] = None,
         covariables : List[str] = ["valor"],
-        return_df : bool = False
+        return_df : bool = False,
+        drop_warmup : bool = False
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -527,6 +528,7 @@ def adjustSeries(
         sim_range (Tuple[float,float],optional): Select data pairs where sim is within this range.
         covariables (List[float],optional): Column names to extract from sim_df to be used as explanatory variables
         return_df Bool = True: Return DataFrame instead of Series
+        drop_warmup Bool = False: eliminate warmup steps from output
 
     Raises:
         ValueError: unknown method
@@ -589,6 +591,8 @@ def adjustSeries(
         plt.figtext(0.5, 0.01, figtext)
     if return_adjusted_series:
         return_value_0 = aux_df[result_columns] if return_df else aux_df["adj"]
+        if drop_warmup:
+            return_value_0 = return_value_0[warmup:]
         if tag_column is not None:
             aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
             return (return_value_0, aux_df["tag_adj"],fitted_model)

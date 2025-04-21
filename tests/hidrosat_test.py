@@ -56,7 +56,8 @@ class HidrosatTest(TestCase):
                 "Q0": 12.69,
                 "S0": 178.395,
                 "W0": 232.505,
-                "gamma": 2.28
+                "gamma": 2.28,
+                "maxFlooded": 0.09
             },
             type = "HIDROSAT"
         )

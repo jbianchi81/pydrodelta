@@ -61,7 +61,7 @@ class Test_Persistence(TestCase):
                 row["valor"],
                 "month",
                 "valor")
-            self.assertTrue(quantile > 0)
+            self.assertTrue(quantile >= 0) # 0 is the zeroth quantile (minimum)
             self.assertTrue(quantile < 1)
 
 

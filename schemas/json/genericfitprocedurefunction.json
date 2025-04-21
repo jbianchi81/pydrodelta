@@ -27,6 +27,11 @@
                     "type": "boolean",
                     "description": "Fit using only pairs where sim is within forecasted range of values",
                     "default": false
+                },
+                "drop_warmup": {
+                    "type": "boolean",
+                    "description": "Eliminate warmup steps from output",
+                    "default": false
                 }
             },
             "description": "Additional parameters"
