@@ -802,7 +802,7 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
             self.Outflow=np.array([self.initial_conditions[0]]*(len(self.boundaries)+1),dtype='float')
         else:
             if len(self.initial_conditions)!=self.N:
-                raise NameError("Initial conditions list must have length N")
+                raise ValueError("Initial conditions list must have length N")
             else:
                 self.Cascade=np.array([self.initial_conditions]*2,dtype='float') 
                 self.Outflow=np.array([self.Cascade[0,1]]*(len(self.boundaries)+1),dtype='float')

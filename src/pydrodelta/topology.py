@@ -1112,7 +1112,8 @@ class Topology(Base):
         timeend : datetime = None,
         output : str = None,
         extra_sim_columns : bool = True,
-        table : bool = True
+        table : bool = True,
+        round_to : int = 2
         ) -> None:
         """Generates time-value plots for a selected variable, one per node where this variable is found. 
         
@@ -1151,6 +1152,7 @@ class Topology(Base):
             # if hasattr(node.series[0],"data"):
             if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
                 data = node.variables[var_id].data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
+                data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
                 if timestart is not None:
                     data = data[data["timestart"] >= timestart]
                 if timeend is not None:
@@ -1163,6 +1165,7 @@ class Topology(Base):
                     group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
                 # data.plot.line(x="timestart",y="valor",ax=ax)
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
+                original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
                 data_table = data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
                 if len(original_data.dropna()["valor"]):
                     logging.debug("Add original data to plot at node %s" % str(node.name))
@@ -1181,6 +1184,7 @@ class Topology(Base):
                         if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
                             logging.debug("Add sim data to plot at node %s, series_sim %i" % (str(node.name),i))
                             data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
+                            data_sim["valor"] = pandas.to_numeric(data_sim["valor"], errors="coerce")
                             if timestart is not None:
                                 data_sim = data_sim[data_sim["timestart"] >= timestart]
                             if timeend is not None:
@@ -1192,6 +1196,7 @@ class Topology(Base):
                             # plot extra sim columns
                             if extra_sim_columns:
                                 for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
+                                    data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
                                     label = "sim_%i_%s" % (serie_sim.series_id, c)
                                     logging.debug("Add series sim column %s, label %s" % (c,label))
                                     data_sim.plot(
@@ -1214,7 +1219,7 @@ class Topology(Base):
                     ax[1].axis('off')  # Hide axes
                     data_table = data_table.reset_index()
                     data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
-                    table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).values.tolist(), loc='center')
+                    table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).round(round_to).values.tolist(), loc='center')
                     table.auto_set_font_size(False)
                 if output is not None:
                     pdf.savefig()

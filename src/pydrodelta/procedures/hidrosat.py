@@ -43,7 +43,7 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
     @property
     def maxFlooded(self) -> float:
         """Área anegada máxima (fracción del sistema) / maximum flooded area [-]"""
-        return self.parameters["maxFlooded"] if "MaxFlooded" in self.parameters else 1
+        return self.parameters["maxFlooded"] if "maxFlooded" in self.parameters else 1
     
     @property
     def detentionRatio(self) -> float:
@@ -120,7 +120,7 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
             - W0
             - Q0 
             - gamma
-            - maxFloodedArea (optional, by default 1)
+            - maxFlooded (optional, by default 1)
             - detentionRatio (optional, by default 1)
             - epsilon (optional, by default 0.001)
         """
@@ -185,17 +185,17 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
             )
         )
     
-        def setInitialStates(
-            self, 
-            states: Union[list,tuple] = []
-            ) -> None:
-            """Initial states setter
-            
-            Parameters:
-            -----------
-            states: Union[list,tuple]
-            
-                (SurfaceStorage : float, SoilStorage : float)"""
+    def setInitialStates(
+        self, 
+        states: Union[list,tuple] = []
+        ) -> None:
+        """Initial states setter
+        
+        Parameters:
+        -----------
+        states: Union[list,tuple]
+        
+            (SurfaceStorage : float, SoilStorage : float)"""
         super().setInitialStates(states)
 
 #Todo: Declarar procesos en HIDROSAT(pydrology) como están declarados en HOSH para que los reconozca en lin. 80. 

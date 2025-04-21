@@ -19,6 +19,7 @@ from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
+import traceback
 
 class Node:
     id = IntDescriptor()
@@ -763,41 +764,47 @@ class Node:
             Height of space for footnote in inches    
         """
         for variable in self.variables.values():
-            variable.plotProno(
-                **kwargs
-                # output_dir=output_dir,
-                # figsize=figsize,
-                # title=title,
-                # markersize=markersize,
-                # obs_label=obs_label,
-                # tz=tz,
-                # prono_label=prono_label,
-                # footnote=footnote,
-                # errorBandLabel=errorBandLabel,
-                # obsLine=obsLine,
-                # prono_annotation=prono_annotation,
-                # obs_annotation=obs_annotation,
-                # forecast_date_annotation=forecast_date_annotation,
-                # ylim=ylim,
-                # station_name=station_name,
-                # ydisplay=ydisplay,
-                # text_xoffset=text_xoffset,
-                # xytext=xytext,
-                # datum_template_string=datum_template_string,
-                # title_template_string=title_template_string,
-                # x_label=x_label,
-                # y_label=y_label,
-                # xlim=xlim,
-                # prono_fmt=prono_fmt,
-                # annotate=annotate,
-                # table_columns=table_columns,
-                # date_form=date_form,
-                # xaxis_minor_tick_hours=xaxis_minor_tick_hours,
-                # errorBand=errorBand,
-                # error_band_fmt=error_band_fmt,
-                # forecast_table=forecast_table,
-                # footnote_height=footnote_height
-            )
+            try:
+                variable.plotProno(
+                    **kwargs
+                    # output_dir=output_dir,
+                    # figsize=figsize,
+                    # title=title,
+                    # markersize=markersize,
+                    # obs_label=obs_label,
+                    # tz=tz,
+                    # prono_label=prono_label,
+                    # footnote=footnote,
+                    # errorBandLabel=errorBandLabel,
+                    # obsLine=obsLine,
+                    # prono_annotation=prono_annotation,
+                    # obs_annotation=obs_annotation,
+                    # forecast_date_annotation=forecast_date_annotation,
+                    # ylim=ylim,
+                    # station_name=station_name,
+                    # ydisplay=ydisplay,
+                    # text_xoffset=text_xoffset,
+                    # xytext=xytext,
+                    # datum_template_string=datum_template_string,
+                    # title_template_string=title_template_string,
+                    # x_label=x_label,
+                    # y_label=y_label,
+                    # xlim=xlim,
+                    # prono_fmt=prono_fmt,
+                    # annotate=annotate,
+                    # table_columns=table_columns,
+                    # date_form=date_form,
+                    # xaxis_minor_tick_hours=xaxis_minor_tick_hours,
+                    # errorBand=errorBand,
+                    # error_band_fmt=error_band_fmt,
+                    # forecast_table=forecast_table,
+                    # footnote_height=footnote_height
+                )
+            except ValueError as e:
+                tb = traceback.extract_tb(e.__traceback__)
+                filename, lineno, func, text = tb[-1]
+                raise ValueError("Plot prono failed at node %i variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, variable.id, filename, lineno, func, str(e)))
+
     
     def loadData(
         self,

@@ -80,6 +80,9 @@
           },
           {
             "$ref": "analogyprocedurefunction.json"
+          },
+          {
+            "$ref": "persistenceprocedurefunction.json"
           }
         ]
       },

@@ -7,7 +7,7 @@ from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
 from datetime import timedelta, datetime
-from zoneinfo import ZoneInfo
+# from zoneinfo import ZoneInfo
 import numpy as np
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -147,12 +147,14 @@ def tryParseAndLocalizeDate(
         date = datetime(*date)
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
-            date = date.replace(tzinfo = ZoneInfo(timezone))
+            tz = pytz.timezone(timezone)
+            date = tz.localize(date)
+            # date = date.replace(tzinfo = pytz.timezone(timezone)) # ZoneInfo(timezone))
         except pytz.exceptions.NonExistentTimeError:
             logging.warning("NonexistentTimeError: %s" % str(date))
             return None
     else:
-        date = date.astimezone(ZoneInfo(timezone))
+        date = date.astimezone(pytz.timezone(timezone)) # ZoneInfo(timezone))
     return date # , is_from_interval
 
 def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None) -> datetime:
@@ -199,20 +201,40 @@ def createDatetimeSequence(
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
     timeend = tryParseAndLocalizeDate(timeend) if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
-    return pandas.date_range(
-        start=timestart.astimezone(tz.UTC), 
-        end=timeend.astimezone(tz.UTC), 
-        freq=pandas.DateOffset(
-            years=timeInterval.years,
-            months=timeInterval.months,
-            weeks=timeInterval.weeks,
-            days=timeInterval.days, 
-            hours=timeInterval.hours, 
-            minutes = timeInterval.minutes,
-            seconds = timeInterval.seconds,
-            microseconds = timeInterval.microseconds
+    timezone = pytz.timezone("America/Argentina/Buenos_Aires")
+    is_subdaily = timeInterval.hours > 0 or timeInterval.minutes > 0 or timeInterval.seconds > 0 or timeInterval.microseconds > 0
+    if not is_subdaily:
+        if timestart.day == 1 and timeInterval.months > 0:
+            freq = "%iMS" % timeInterval.months
+        elif timestart.day == 1 and timestart.month == 1 and timeInterval.years > 0:
+            freq = "%iYS" % timeInterval.years 
+        elif timeInterval.days > 0:
+            freq = "%iD" % timeInterval.days
+        dts_utc = pandas.date_range(
+            start=timestart.astimezone(tz.UTC), 
+            end=timeend.astimezone(tz.UTC), 
+            freq = freq
         )
-    ).tz_convert(timestart.tzinfo)
+        if timeOffset is not None:
+            return DatetimeIndex([timezone.localize(datetime(dt.year,dt.month,dt.day,timeOffset.hours,timeOffset.minutes,timeOffset.seconds)) for dt in dts_utc])
+        else:
+            return DatetimeIndex([timezone.localize(datetime(dt.year,dt.month,dt.day)) for dt in dts_utc])
+    else:
+        freq = pandas.DateOffset(
+                years=timeInterval.years,
+                months=timeInterval.months,
+                weeks=timeInterval.weeks,
+                days=timeInterval.days, 
+                hours=timeInterval.hours, 
+                minutes = timeInterval.minutes,
+                seconds = timeInterval.seconds,
+                microseconds = timeInterval.microseconds
+            )
+        return pandas.date_range(
+            start=timestart, 
+            end=timeend, 
+            freq=freq
+        ) # .tz_convert(timestart.tzinfo)
 
 def f1(row,column="valor",timedelta_threshold : timedelta=None):
     now = datetime.now()
@@ -488,7 +510,8 @@ def adjustSeries(
         tail : int = None,
         sim_range : Tuple[float,float] = None,
         covariables : List[str] = ["valor"],
-        return_df : bool = False
+        return_df : bool = False,
+        drop_warmup : bool = False
         )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
@@ -505,6 +528,7 @@ def adjustSeries(
         sim_range (Tuple[float,float],optional): Select data pairs where sim is within this range.
         covariables (List[float],optional): Column names to extract from sim_df to be used as explanatory variables
         return_df Bool = True: Return DataFrame instead of Series
+        drop_warmup Bool = False: eliminate warmup steps from output
 
     Raises:
         ValueError: unknown method
@@ -567,6 +591,8 @@ def adjustSeries(
         plt.figtext(0.5, 0.01, figtext)
     if return_adjusted_series:
         return_value_0 = aux_df[result_columns] if return_df else aux_df["adj"]
+        if drop_warmup:
+            return_value_0 = return_value_0[warmup:]
         if tag_column is not None:
             aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
             return (return_value_0, aux_df["tag_adj"],fitted_model)

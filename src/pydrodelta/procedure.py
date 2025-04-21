@@ -113,6 +113,9 @@ class Procedure():
     adjust_method = StringDescriptor()
     """Adjust method. Options: lfit (linear regression), arima (ARIMA)"""
 
+    drop_warmup = BoolDescriptor()
+    """Eliminate warmup steps of adjusted output"""
+
     def __init__(
         self,
         id : Union[int, str],
@@ -133,7 +136,8 @@ class Procedure():
         error_band : bool = None,
         read_sim : bool = False,
         sim_index : int = 0,
-        save_dict : str = None
+        save_dict : str = None,
+        drop_warmup : bool = False
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -202,6 +206,7 @@ class Procedure():
         self.sim_index = sim_index
         self.adjust_method = adjust_method
         self.save_dict = save_dict
+        self.drop_warmup = drop_warmup
     
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
@@ -549,7 +554,8 @@ class Procedure():
         warmup_steps : int = None,
         tail_steps : int = None,
         error_band : bool = None,
-        save_dict : str = None
+        save_dict : str = None,
+        drop_warmup : bool = None
         ) -> Union[List[DataFrame], None]:
         """
         Run self.function.run()
@@ -579,6 +585,8 @@ class Procedure():
             When adjusting, generate error band series from adjusted serie minus/plus linear model quant_error 95 %
         save_dict : str = None
             Save results as dict to this file
+        drop_warmup : bool = None
+            Eliminate warmup steps from adjusted output 
             
         Returns
         -------
@@ -592,6 +600,7 @@ class Procedure():
         warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
         tail_steps = tail_steps if tail_steps is not None else self.tail_steps
         error_band = util.coalesce(error_band,self.error_band,True)
+        drop_warmup = drop_warmup if drop_warmup is not None else self.drop_warmup
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -649,7 +658,8 @@ class Procedure():
                     warmup = warmup_steps,
                     tail = tail_steps,
                     method = adjust_method,
-                    return_df = True)
+                    return_df = True,
+                    drop_warmup = drop_warmup)
                 self.linear_model = lm_stats
                 columns_drop = [ c for c in ["valor","valor_sim", "valor_obs"] if c in adjusted.columns ]
                 adjusted = adjusted.drop(columns=columns_drop)
@@ -863,6 +873,7 @@ from pydrodelta.procedures.abstract import AbstractProcedureFunction
 from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
 from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
 from pydrodelta.procedures.analogy import AnalogyProcedureFunction
+from pydrodelta.procedures.persistence import PersistenceProcedureFunction
 
 procedureFunctionDict = {
     "ProcedureFunction": ProcedureFunction,
@@ -897,5 +908,6 @@ procedureFunctionDict = {
     "LinearFit": LinearFitProcedureFunction,
     "LagAndRoute": LagAndRouteProcedureFunction,
     "HIDROSAT": HIDROSATProcedureFunction,
-    "Analogy": AnalogyProcedureFunction
+    "Analogy": AnalogyProcedureFunction,
+    "Persistence": PersistenceProcedureFunction
 }

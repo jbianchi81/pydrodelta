@@ -8,6 +8,7 @@ from ..descriptors.dict_descriptor import DictDescriptor
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from typing import Tuple
+from datetime import datetime
 import logging
 
 class LinearFitProcedureFunction(ProcedureFunction):
@@ -27,6 +28,9 @@ class LinearFitProcedureFunction(ProcedureFunction):
 
     warmup_steps = IntDescriptor()
     """Skip this number of initial steps for fit procedure"""
+
+    drop_warmup = BoolDescriptor()
+    """Eliminate warmup steps from output"""
 
     tail_steps = IntDescriptor()
     """Use only this number of final steps for fit procedure"""
@@ -54,6 +58,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
         super().__init__(**kwargs)
         if "warmup_steps" in self.extra_pars:
             self.warmup_steps = self.extra_pars["warmup_steps"]
+            self.drop_warmup = self.extra_pars["drop_warmup"] if "drop_warmup" in self.extra_pars else False
         else:
             self.warmup_steps = None
         if "tail_steps" in self.extra_pars:
@@ -73,7 +78,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
 
     def run(
         self,
-        input : list = None
+        input : list = None,
+        output_obs : list = None
         ) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
@@ -89,8 +95,13 @@ class LinearFitProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
+            if self._procedure is None:
+                raise ValueError("If procedure is not set, input must be passed as an argument to run()")    
             input = self._procedure.loadInput(inplace=False,pivot=False)
-        output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
+        if output_obs is None:
+            if self._procedure is None:
+                raise ValueError("If procedure is not set, output_obs must be passed as an argument to run()")
+            output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
         input_data = input[0][["valor"]].copy()
         self._sim_range = self.getSimRange(input_data, 0.1) if self.use_forecast_range else None
         covariables = ["valor"]
@@ -118,7 +129,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
                 warmup=self.warmup_steps,
                 tail=self.tail_steps,
                 sim_range=sim_range,
-                covariables=covariables
+                covariables=covariables,
+                drop_warmup=self.drop_warmup
             )
         except ValueError as e:
             logging.error("Adjust series error at procedure %s: %s" % (self._procedure.id if self._procedure is not None else "unknown", str(e)))
@@ -137,7 +149,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
             )
         )
 
-    def getSimRange(self, data, expand : float = None) -> Tuple[float,float]:
+    def getSimRange(self, data, expand : float = None, forecast_date : datetime = None) -> Tuple[float,float]:
         """Get values range of data in the forecasted period
 
         Args:
@@ -147,9 +159,14 @@ class LinearFitProcedureFunction(ProcedureFunction):
         Returns:
             Tuple[float,float]: (lower bound, upper bound)
         """
+        forecast_date = forecast_date if forecast_date is not None else self.forecast_date
+        if forecast_date is None:
+            raise ValueError("Missing forecast_date. Can't obtain sim range")
         sim_range = (
-            data.loc[data.index >= self._procedure._plan.forecast_date]["valor"].min(),
-            data.loc[data.index >= self._procedure._plan.forecast_date]["valor"].max()
+            data.loc[data.index >= forecast_date]["valor"].min(),
+            data.loc[data.index >= forecast_date]["valor"].max()
+            # data.loc[data.index >= self._procedure._plan.forecast_date]["valor"].min(),
+            # data.loc[data.index >= self._procedure._plan.forecast_date]["valor"].max()
         )
         if expand is not None:
             abs_range = sim_range[1] - sim_range[0]
