@@ -3,12 +3,13 @@ from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 from a5client import createEmptyObsDataFrame
 import logging
-from .util import serieFillNulls, serieRegular, createDatetimeSequence
+from .util import serieFillNulls, serieRegular, createDatetimeSequence, coalesce
 import numpy as np
 from typing import List, Union
 from datetime import datetime
 from pandas import DataFrame
 from .types.typed_list import TypedList
+import traceback
 
 class ObservedNodeVariable(NodeVariable):
     """This class represents a variable observed at a node"""
@@ -189,9 +190,13 @@ class ObservedNodeVariable(NodeVariable):
         if self.time_interval is None:
             raise Exception("Can't regularize: time_interval is not set")
         for serie in self.series:
+            if serie.data is None:
+                raise Exception("Data not loaded. Load data before running regularize")
             serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
         if self.series_prono is not None:
             for serie in self.series_prono:
+                if serie.data is None:
+                    raise Exception("Data not loaded. Load data before running regularize")
                 if self.forecast_timeend is not None:
                     serie.regularize(self.timestart,self.forecast_timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
                 else:
@@ -267,3 +272,113 @@ class ObservedNodeVariable(NodeVariable):
             self.data = data
         else:
             return data
+    
+    def batchProcessInput(
+        self,
+        timestart : Union[datetime,str,dict] = None,
+        timeend : Union[datetime,str,dict] = None,
+        include_prono : bool = None,
+        forecast_timeend : Union[datetime,str,dict] = None,
+        input_api_config : dict = None,
+        error_band : bool = True,
+        plot : bool = True,
+        fill_value : float = None) -> None:
+        """
+        Run input processing sequence. This includes (in this order):
+        
+        - .loadData()
+        - .removeOutliers()
+        - .detectJumps()
+        - .applyOffset()
+        - .regularize()
+        - .applyMovingAverage()
+        - .fillNulls()
+        - .adjust()
+        - .concatenateProno() (if include_prono is True)
+        - .derive()
+        - .interpolate()
+        - .setOriginalData()
+        - .setOutputData()
+        - .plotProno()
+        - .printReport() if ().report_file is not None)
+        - .printGraph()
+        
+        Parameters:
+        -----------
+        include_prono : bool default False
+            For each variable, fill missing observations with values from series_prono
+        
+        input_api_config : dict
+            Api connection parameters (used to load data). Overrides global config.input_api
+            
+            Properties:
+            - url : str
+            - token : str
+            - proxy_dict : dict
+        """
+        timestart = coalesce(timestart, self.timestart)
+        timeend = coalesce(timeend, self.timeend)
+        forecast_timeend = coalesce(forecast_timeend, self.forecast_timeend)
+        # include_prono = include_prono if include_prono is not None else self.include_prono
+        logging.debug("loadData")
+        self.loadData(
+            timestart=timestart,
+            timeend=timeend,
+            include_prono=include_prono,
+            forecast_timeend=forecast_timeend,
+            input_api_config=input_api_config)
+        logging.debug("removeOutliers")
+        self.removeOutliers()
+        logging.debug("detectJumps")
+        self.detectJumps()
+        logging.debug("applyOffset")
+        self.applyOffset()
+        logging.debug("regularize")
+        self.regularize()
+        logging.debug("applyMovingAverage")
+        self.applyMovingAverage()
+        logging.debug("fillNulls")
+        self.fillNulls()
+        if self.adjust_from is not None:
+            logging.debug("adjust")
+            self.adjust(plot=plot, error_band=error_band)
+        if self.linear_combination is not None:
+            self.apply_linear_combination()
+        self.adjustProno(error_band=error_band)
+        if include_prono:
+            logging.debug("concatenateProno")
+            self.concatenateProno()
+        logging.debug("fillNullsWithValue")
+        self.fillNullsWithValue(fill_value=fill_value)
+        # logging.debug("derive")
+        # self.derive()
+        logging.debug("interpolate")
+        self.interpolate()
+        self.setOriginalData()
+        self.setOutputData()
+        try:
+            self.plotProno()
+        except ValueError as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            filename, lineno, func, text = tb[-1]
+            raise ValueError("Plot prono failed at variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, filename, lineno, func, str(e)))
+        # if(self.report_file is not None):
+        #     report = self.printReport()
+        #     f = open(
+        #         os.path.join(
+        #             config["PYDRODELTA_DIR"],
+        #             self.report_file
+        #         ),
+        #         "w"
+        #     )
+        #     json.dump(report,f,indent=2)
+        #     f.close()
+        self.saveSeriesSeparately()
+        # if self.output_csv is not None:
+        #     self.saveData(self.output_csv,pivot=self.pivot,format="csv")
+        # if self.output_json is not None:
+        #     self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
+        # if self.upload_prono:
+        #     self.uploadDataAsProno(False, True)
+        # if self.output_graph:
+        #     self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"],self.output_graph))

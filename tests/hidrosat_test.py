@@ -149,4 +149,8 @@ class HidrosatTest(TestCase):
 
         self.assertAlmostEqual((s_f - s_i) * 0.1, i_o * 0.1, 0)
 
+        mass_balance = pf.massBalance()
+
+        self.assertAlmostEqual(mass_balance["discrepancy"]*0.1,0,0)
+
 

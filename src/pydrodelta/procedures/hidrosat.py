@@ -200,5 +200,29 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
             (SurfaceStorage : float, SoilStorage : float)"""
         super().setInitialStates(states)
 
+    def massBalance(self):
+        s_i = self.engine.soilStorage[0] + self.engine.floodplainStorage[0]
+        s_f = self.engine.soilStorage[-2] + self.engine.floodplainStorage[-2] # + self.engine.routingSystem.Storage[1]
+        p = self.engine.Precipitation.sum()
+        q = self.engine.Q[:-1].sum()
+        ev = self.engine.EVSoil.sum() + self.engine.EVFloodPlain.sum()
+        i_o = p - ev - q
+
+        (s_f - s_i) * 0.1, i_o * 0.1
+        r = {
+            "p": p,
+            "ev": ev,
+            "q": q,
+            "initial_storage": s_i,
+            "final_storage":  s_f,
+            "mass_balance": i_o,
+            "storage_difference": s_f - s_i,
+            "discrepancy": i_o - (s_f - s_i),
+            "discrepancy_per_step": (i_o - (s_f - s_i)) / len(self.engine.Q),
+            "discrepancy_as_fraction_of_input": (i_o - (s_f - s_i)) /  p,
+            "runoff_coefficient": q / p
+        }        
+        return r
+
 #Todo: Declarar procesos en HIDROSAT(pydrology) como están declarados en HOSH para que los reconozca en lin. 80. 
     
