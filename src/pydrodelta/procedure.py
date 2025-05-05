@@ -845,6 +845,13 @@ class Procedure():
         else:
             return calibration_result
     
+    def batchProcessInput(self, **kwargs):
+        for boundary in self.function.boundaries:
+            boundary.variable.batchProcessInput(**kwargs)
+        for boundary in self.function.outputs:
+            boundary.variable.batchProcessInput(**kwargs)
+
+    
 from pydrodelta.procedures.hecras import HecRasProcedureFunction
 from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
 from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction

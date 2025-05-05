@@ -1325,3 +1325,4 @@ class NodeVariable:
             if s.series_id == series_id:
                 return s
         raise KeyError("Series with series_id %i not found in %s" % (series_id, series_type))
+    

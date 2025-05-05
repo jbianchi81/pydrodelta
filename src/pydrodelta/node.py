@@ -612,7 +612,7 @@ class Node:
             If true, extrapolate data up to a distance of limit
         """
         for variable in self.variables.values():
-                variable.interpolate(limit=limit,extrapolate=extrapolate)
+            variable.interpolate(limit=limit,extrapolate=extrapolate)
     
     def plot(self) -> None:
         """

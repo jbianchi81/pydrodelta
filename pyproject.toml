@@ -20,7 +20,8 @@ dependencies = [
     "scikit-learn",
     "minio",
     "colour",
-    "statsmodels"
+    "statsmodels",
+    "click"
 ]
 
 [project.scripts]
