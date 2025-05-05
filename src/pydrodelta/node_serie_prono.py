@@ -185,8 +185,9 @@ class NodeSerieProno(NodeSerie):
                     self.cal_id,
                     self.series_id,
                     forecast_timestart = previous_runs_timestart,
-                    qualifier = self.qualifier,
-                    tipo = self.type)
+                    qualifier = self.qualifier if self.qualifier is not None and self.qualifier != "all" else None,
+                    tipo = self.type,
+                    group_by_qualifier=True if self.qualifier is not None and self.qualifier== "all" else False)
             else:
                 metadata = crud.readSerieProno(
                     self.series_id,

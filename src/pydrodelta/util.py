@@ -751,7 +751,7 @@ def plot_prono(
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1)
     if title is not None:
-        ax.title(title)
+        ax.title = title
     prono_fmt = prono_fmt if prono_fmt is not None else 'b-'
     ax.plot(sim_df.index, sim_df['valor'], prono_fmt,label=prono_label,linewidth=3,markersize=markersize) # ,color='b'
     if not isinstance(obs_df, type(None)):
