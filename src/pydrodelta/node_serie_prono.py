@@ -4,6 +4,7 @@ from a5client import Crud, observacionesListToDataFrame, createEmptyObsDataFrame
 from .node_serie_prono_metadata import NodeSeriePronoMetadata
 from .config import config
 from datetime import datetime
+import pytz
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.int_descriptor import IntDescriptor
@@ -177,6 +178,22 @@ class NodeSerieProno(NodeSerie):
             # self.data = observacionesListToDataFrame(self.observations, tag = "sim")
             self.metadata["cal_id"] = self.cal_id
             return
+        elif self.cal_id == 0:
+            # Lee observaciones
+            logging.debug("Load prono data from observaciones, series_id: %i, tipo: %s" % (self.series_id, self.type))
+            crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud
+            metadata = crud.readSerie(
+                series_id=self.series_id, 
+                timestart=timestart,
+                timeend=timeend,
+                tipo=self.type)
+            if len(metadata["observaciones"]):
+                self.data = observacionesListToDataFrame(metadata["observaciones"], tag="prono")
+            else:
+                logging.warning("No data found for series_id=%i, tipo=%s" % (self.series_id, self.type))
+                self.data = createEmptyObsDataFrame()
+            del metadata["observaciones"]
+            self.metadata = { "series_id": metadata["id"], "cal_id": 0 , "series_table": "series_areal" if metadata["tipo"] == "areal" else "series", "forecast_date": datetime.now(pytz.timezone("America/Argentina/Buenos_Aires")) }
         else:
             logging.debug("Load prono data for series_id: %i, tipo: %s, cal_id: %i, cor_id: %s" % (self.series_id, self.type, self.cal_id, str(self.cor_id) if self.cor_id is not None else "last"))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else input_crud

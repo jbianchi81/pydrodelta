@@ -111,6 +111,9 @@ class NodeVariable:
     derived = BoolDescriptor()
     """Indicates wether the variable is derived"""
 
+    use_filled_truth = BoolDescriptor()
+    """When adjusting series_prono, use filled series as truth (instead of first series)"""
+
     @property
     def node_id(self) -> Union[int,str]:
         self._node.id if self._node is not None else "unknown"
@@ -145,7 +148,8 @@ class NodeVariable:
         timestart : datetime = None,
         timeend : datetime = None,
         time_offset : relativedelta = None,
-        forecast_timeend : datetime = None
+        forecast_timeend : datetime = None,
+        use_filled_truth : bool = False
         ):
         """
         Parameters:
@@ -205,6 +209,11 @@ class NodeVariable:
         forecast_timeend : datetime = None
 
             Forecast end date
+
+        use_filled_truth : bool = False
+        
+            When adjusting series_prono, use filled series as truth (instead of first series)
+        
         """
         self.id = id
         self._node = node
@@ -236,6 +245,7 @@ class NodeVariable:
         self.timeend = timeend if timeend is not None else self._node.timeend if self._node is not None else None
         self.time_offset = time_offset if time_offset is not None else self._node.time_offset if self._node is not None else None
         self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
+        self.use_filled_truth = use_filled_truth
     
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
@@ -572,7 +582,8 @@ class NodeVariable:
         warmup : int = None,
         tail : int = None,
         sim_range : Tuple[float,float] = None,
-        method : str = "lfit"
+        method : str = "lfit",
+        use_filled_truth : bool = None
         ) -> None:
         """For each serie in series_prono where adjust is True, perform adjustment against observed data (series[0].data). series_prono[x].data are updated with the results of the adjustment
         
@@ -591,10 +602,14 @@ class NodeVariable:
             options:
             - lfit: Linear regression
             - arima: ARIMA
+        
+        use_filled_truth : bool = None
+            When adjusting series_prono, use filled series as truth (instead of first series)
         """
+        use_filled_truth = use_filled_truth if use_filled_truth is not None else self.use_filled_truth
         if not self.series_prono or not len(self.series_prono) or self.series is None or len(self.series) == 0 or self.series[0].data is None:
             return
-        truth_data = self.series[0].data
+        truth_data = self.data if use_filled_truth else self.series[0].data
         for serie_prono in [x for x in self.series_prono if x.adjust]:
             sim_data = serie_prono.data[serie_prono.data["tag"]=="prono"]
             # serie_prono.original_data = sim_data.copy(deep=True)
@@ -610,9 +625,9 @@ class NodeVariable:
                     tail = coalesce(tail, serie_prono.tail),
                     sim_range = coalesce(sim_range, serie_prono.sim_range)
                 )
-            except ValueError:
-                logging.debug("No observations found to estimate coefficients. Skipping adjust")
-                return
+            except ValueError as e:
+                logging.debug("No observations found to estimate coefficients. Skipping adjust. %s" % str(e))
+                continue
             # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
             serie_prono.data.loc[:,"valor"] = adj_serie
             serie_prono.data.loc[:,"tag"] = tags

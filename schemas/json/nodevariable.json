@@ -149,6 +149,10 @@
     },
     "extrapolate": {
       "type": "boolean"
+    },
+    "use_filled_truth": {
+      "type": "boolean",
+      "description": "When adjusting series_prono, use filled series as truth (instead of first series)"
     }
   },
   "required": [

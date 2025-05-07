@@ -9,7 +9,7 @@
         "number",
         "null"
       ],
-      "description": "id de calibrado, para utilizar salida de pronóstico"
+      "description": "id de calibrado, para utilizar salida de pronóstico. Si es cero (0) lee observaciones."
     },
     "qualifier": {
       "type": "string"
