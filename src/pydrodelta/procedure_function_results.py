@@ -160,10 +160,14 @@ class ProcedureFunctionResults:
     @property
     def adjust_results_dict(self) -> dict:
         if self.adjust_results is not None:
-            quant_err =  self.adjust_results["quant_Err"].to_list() if "quant_Err" in self.adjust_results else None
             return {
-                **self.adjust_results,
-                "quant_Err": quant_err
+                "method": self.adjust_results["method"] if "method" in self.adjust_results else None,
+                "r2": self.adjust_results["r2"] if "r2" in self.adjust_results else None,
+                "coef": self.adjust_results["coef"].tolist() if "coef" in self.adjust_results else None,
+                "quant_Err": self.adjust_results["quant_Err"].to_list() if "quant_Err" in self.adjust_results else None,
+                "intercept": self.adjust_results["intercept"] if "intercept" in self.adjust_results else None,
+                "train": [ [ r[0].isoformat(), *r[1:]] for r in self.adjust_results["train"].reset_index().values] if "train" in self.adjust_results else None,
+                "coefficients": self.adjust_results["coefficients"] if "coefficients" in self.adjust_results else None
             }
         else:
             return None
