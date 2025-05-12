@@ -1481,7 +1481,7 @@ class Topology(Base):
                         serie_report = {
                             "series_id": serie.metadata["series_id"],
                             "cal_id": serie.metadata["cal_id"],
-                            "forecast_date": serie.metadata["forecast_date"].isoformat(),
+                            "forecast_date": serie.metadata["forecast_date"].isoformat() if serie.metadata["forecast_date"] is not None else None,
                             "len": len(serie.data),
                             "outliers": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.outliers_data.itertuples(name=None))] if serie.outliers_data is not None else None,
                             "jumps": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.jumps_data.itertuples(name=None))] if serie.jumps_data is not None else None,
