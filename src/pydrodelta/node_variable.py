@@ -626,7 +626,7 @@ class NodeVariable:
                     sim_range = coalesce(sim_range, serie_prono.sim_range)
                 )
             except ValueError as e:
-                logging.debug("No observations found to estimate coefficients. Skipping adjust. %s" % str(e))
+                logging.warning("No observations found to estimate coefficients at topology[%i][%i].series_prono %i. Skipping adjust. %s" % (self._node.id, self.id, serie_prono.series_id, str(e)))
                 continue
             # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
             serie_prono.data.loc[:,"valor"] = adj_serie
