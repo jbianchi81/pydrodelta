@@ -1184,3 +1184,15 @@ def interpolate_or_copy_closest(data : Series,interpolation_limit : timedelta) -
         # else: leave as NaN (too far from both sides)
 
     return filled
+
+def getInputListFromDataFrame(df : DataFrame, allow_na : bool=False, procedure_id : int = None) -> List[float]:
+    data = df[["valor"]].rename(columns={"valor":"input"})
+    if not len(data.dropna().index):
+        if allow_na:
+            return []
+        raise Exception("Procedure %s: Missing input data: no valid values found" % procedure_id)
+    last_date = max(data.dropna().index)
+    input = data[data.index <= last_date]["input"].values
+    if True in np.isnan(input) and not allow_na:
+        raise Exception("Procedure %s: NaN values found in input before last date %s" % (procedure_id, last_date.isoformat()))
+    return input

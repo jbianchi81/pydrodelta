@@ -1,0 +1,160 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "lagandroutenetprocedurefunction.json",
+    "title": "LagAndRouteNetProcedureFunction",
+    "type": "object",
+    "description": "Lag and route net procedure function",
+    "allOf": [
+        {
+            "$ref": "procedurefunction.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LagAndRouteNet"
+            ]
+        },
+        "parameters": {
+            "type": "object",
+            "desciption": "Model parameters",
+            "properties": {
+                "lag_1": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_1": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_1": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_2": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_2": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_2": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_3": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_3": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_3": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_4": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_4": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_4": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_5": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_5": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_5": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_6": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_6": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_6": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_7": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_7": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_7": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_8": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_8": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_8": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_9": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_9": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_9": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "lag_10": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k_10": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_10": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
+            },
+            "required": ["lag_1", "k_1", "n_1"]
+        },
+        "extra_pars": {
+            "type": "object",
+            "properties": {
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                }
+            }
+        }
+    },
+    "required": [
+        "type",
+        "parameters"
+    ]
+}

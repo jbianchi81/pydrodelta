@@ -80,7 +80,7 @@ class LagAndRouteProcedureFunction(ProcedureFunction):
         self,
         input : List[List[float]]
         ) -> None:
-        """Instantiate GR4J procedure engine using input as Boundaries
+        """Instantiate procedure engine using input as Boundaries
         
         Args:
         input : List[float] - Boundary conditions: list of (pmad : float, etpd : float)"""

@@ -13,6 +13,7 @@ from datetime import datetime
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
+from .util import getInputListFromDataFrame
 # import logging
 
 class ProcedureFunction:
@@ -355,9 +356,9 @@ class ProcedureFunction:
     def extractListsFromInput(self, input : List[DataFrame], allow_na : List[bool]=[False]) -> List[List[float]]:
         while len(allow_na) < len(input):
             allow_na.append(False)
-        return [ self._procedure.getInputListFromDataFrame(df,allow_na[i]) for i, df in enumerate(input) ]
+        return [ getInputListFromDataFrame(df,allow_na[i], self._procedure.id if self._procedure is not None else None) for i, df in enumerate(input) ]
     
-    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame] = []) -> DataFrame:
+    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame] = [], other : dict = None) -> DataFrame:
         if not len(input):
             raise ValueError("input must be of length 1 or greater")
         result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})
@@ -368,4 +369,8 @@ class ProcedureFunction:
                 result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
             else:
                 result[self._outputs[i].name] = output[i]
+        if other is not None:
+            # must be a a dict where key is the column name and value is the list of values
+            for name, values in other.items():
+                result[name] = values
         return result
