@@ -6,7 +6,7 @@ from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame
 from dateutil.relativedelta import relativedelta
 from .config import config
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 from .types.tvp import TVP
 from .types.series_dict import SeriesDict
 from .types.series_prono_dict import SeriesPronoDict
@@ -136,6 +136,7 @@ class NodeSerie(Base):
         output_schema : str = "dict",
         required : bool = False,
         agg_func : str = None,
+        id : Optional[int] = None,
         **kwargs
         ):
         """
@@ -192,6 +193,9 @@ class NodeSerie(Base):
         agg_func : str = None
             Aggregate observations using this aggregate function. If set, interpolation is not performed
 
+        id : int = None
+            unique idenifier. If not set, copies series_id
+
         """
         super().__init__(**kwargs)
         self.series_id = series_id
@@ -223,6 +227,7 @@ class NodeSerie(Base):
         self.output_schema = output_schema
         self.required = required
         self.agg_func = agg_func
+        self.id = id if id is not None else series_id
     
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)

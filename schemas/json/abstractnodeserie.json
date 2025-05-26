@@ -4,6 +4,10 @@
   "title": "AbstractNodeSerie",
   "type": "object",
   "properties": {
+    "id": {
+      "type": "integer",
+      "description": "Unique identifier. If not set copies series_id"
+    },
     "series_id": {
       "type": "integer",
       "description": "Series identifier"

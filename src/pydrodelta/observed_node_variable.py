@@ -34,12 +34,12 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "series_id", node_variable = self) if series is not None else None
+        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "id", node_variable = self) if series is not None else None
     
     def __init__(
         self,
-        series : List[Union[dict,NodeSerie]] = None,
-        series_prono : List[Union[dict,NodeSerieProno]] = None,
+        series : Union[List[Union[dict,NodeSerie]],None] = None,
+        series_prono : Union[List[Union[dict,NodeSerieProno]],None] = None,
         **kwargs,
         ):
         """
