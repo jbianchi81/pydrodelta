@@ -51,7 +51,7 @@ class Topology(Base):
     """forecast horizon"""        
     time_offset_start = DurationDescriptor()
     """time of day where first timestep start"""
-    time_offset_end = DurationDescriptor()
+    time_offset_end = DurationDescriptorDefaultNone()
     """time of day where last timestep ends"""
     interpolation_limit = DurationDescriptorDefaultNone()
     """maximum duration between observations for interpolation"""
@@ -349,11 +349,11 @@ class Topology(Base):
         self.timeend = timeend
         self.forecast_timeend = forecast_timeend
         self.time_offset_start = time_offset_start if time_offset_start is not None else time_offset if time_offset is not None else {"hours":0}
-        self.time_offset_end = time_offset_end if time_offset_end is not None else time_offset if time_offset is not None else {"hours":self.timeend.hour}
+        self.time_offset_end = time_offset_end if time_offset_end is not None else time_offset if time_offset is not None else None
         # round down to day if timestart is relative 
         self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(timestart) == dict else self.timestart
         # round down to day if timeend is relative 
-        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(timeend) == dict else self.timeend
+        self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(timeend) == dict and self.time_offset_end is not None else self.timeend
         if self.timestart >= self.timeend:
             raise("Bad timestart, timeend parameters. timestart must be before timeend")
         self.interpolation_limit = interpolation_limit
