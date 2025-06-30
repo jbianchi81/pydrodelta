@@ -58,6 +58,10 @@ class AnalogyProcedureFunction(ProcedureFunction):
         return self.parameters["time_window"] if "time_window" in self.parameters else "month"
 
     @property
+    def n_dom(self) -> int:
+        return self.parameters["n_dom"] if "n_dom" in self.parameters else None
+
+    @property
     def parameters_with_defaults(self) -> dict:
         return {
             "search_length": self.search_length,
@@ -187,7 +191,7 @@ class AnalogyProcedureFunction(ProcedureFunction):
 
         inici_0 = time.time()
 
-        if forecast_date.day > 27:
+        if self.n_dom is not None and forecast_date.day > self.n_dom:
             mes_select = forecast_date.month
             yr_select = forecast_date.year
         else:

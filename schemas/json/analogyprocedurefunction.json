@@ -85,6 +85,10 @@
                 "error_forecast_date_window": {
                     "type": "number",
                     "description": "Perform hindcast for forecast dates within this window (current forecast date plus/minus this value; i.e. if current is april, set to 1 to use march to may)"
+                },
+                "n_dom": {
+                    "type": "number",
+                    "description": "If forecast date day of month if greater than n_dom, set end date to forecast date month. Else set previous month. Default None"
                 }
             }
         }
