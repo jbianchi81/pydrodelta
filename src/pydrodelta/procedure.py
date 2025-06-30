@@ -143,7 +143,10 @@ class Procedure():
         """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
-        self.save_results : str = save_results
+        self.save_results : str = os.path.join(
+            config["PYDRODELTA_DIR"],
+            save_results
+        ) if save_results is not None else None
         """Save procedure results into this file (csv pivoted table)"""
         self.initial_states : list = initial_states
         """List of procedure initial states"""
