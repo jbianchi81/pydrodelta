@@ -1,9 +1,9 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sacramentosimplifiedprocedurefunction.json",
-    "title": "SacramentoSimplifiedProcedureFunction",
+    "$id": "sacramentosimplifiedfixedparsprocedurefunction.json",
+    "title": "SacramentoSimplifiedFixedParsProcedureFunction",
     "type": "object",
-    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation",
+    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation with fixed soil parameters",
     "allOf": [
         {
             "$ref": "procedurefunction.json"
@@ -12,7 +12,7 @@
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["SacramentoSimplified", "SacEnKF"]
+            "enum": ["SacramentoSimplifiedFixedPars"]
         },
         "initial_states": {
             "type": "array",
@@ -24,10 +24,13 @@
             }
         },
         "parameters": {
-            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/Parameters"
+        },
+        "fixed_parameters": {
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/FixedParameters"
         },
         "extra_pars": {
-            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/ExtraPars"
         }
     },
     "required": [
@@ -40,6 +43,54 @@
         "Parameters": {
             "type": "object",
             "description": "Model parameters object",
+            "properties": {
+                "x1_0": {
+                    "type": "number",
+                    "description": "top soil layer storage capacity [L]"
+                },
+                "x2_0": {
+                    "type": "number",
+                    "description": "bottom soil layer storage capacity [L]"
+                },
+                "m1": {
+                    "type": "number",
+                    "description": "runoff function exponent [-]"
+                },
+                "c1": {
+                    "type": "number",
+                    "description": "interflow function coefficient [1/T]"
+                },
+                "c2": {
+                    "type": "number",
+                    "description": "percolation function coefficient [-]"
+                },                                
+                "c3": {
+                    "type": "number",
+                    "description": "base flow recession rate [1/T]"
+                },
+                "mu": {
+                    "type": "number",
+                    "description": "base flow/deep percolation partition parameter [-]"
+                },
+                "alfa": {
+                    "type": "number",
+                    "description": "linear reservoir coefficient [1/T]"
+                },
+                "m2": {
+                    "type": "number",
+                    "description": "percolation function exponent [-]"
+                },
+                "m3": {
+                    "type": "number",
+                    "description": "evapotranspiration function exponent [-]"
+                }     
+            },
+            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "additionalProperties": false
+        },
+        "FixedParameters": {
+            "type": "object",
+            "description": "Overrides parameters. The parameters declared here will skip calibration.",
             "properties": {
                 "x1_0": {
                     "type": "number",
@@ -80,9 +131,8 @@
                 "m3": {
                     "type": "number",
                     "description": "evapotranspiration function exponent [-]"
-                }     
+                }
             },
-            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
             "additionalProperties": false
         },
         "ExtraPars": {

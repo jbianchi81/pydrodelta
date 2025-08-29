@@ -85,7 +85,8 @@ class Test_SacramentoSimplified(TestCase):
                 "fill_nulls": False,
                 "no_check1": False,
                 "no_check2": False,
-                "mock_run": False
+                "mock_run": False,
+                "compute_mass_balance": True
             },
             boundaries = [
                 {

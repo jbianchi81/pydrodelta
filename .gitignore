@@ -25,3 +25,4 @@ data_
 results
 tests/__pycache__
 jupyter_env
+.venv

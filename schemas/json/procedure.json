@@ -40,6 +40,9 @@
             "$ref": "sacramentosimplifiedprocedurefunction.json"
           },
           {
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json"
+          },
+          {
             "$ref": "pqprocedurefunction.json"
           },
           {

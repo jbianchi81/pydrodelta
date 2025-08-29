@@ -217,6 +217,11 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
     def rk2(self) -> bool:
         """Use Runge-Kutta-2 instead of Runge-Kutta-4"""
         return self.extra_pars["rk2"] if "rk2" in self.extra_pars else False
+    
+    @property
+    def compute_mass_balance(self) -> bool:
+        """compute mass balance"""
+        return self.extra_pars["compute_mass_balance"] if "compute_mass_balance" in self.extra_pars else False
 
     volume = FloatDescriptor()
     """Water balance"""    
@@ -417,8 +422,9 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             X[rk].append(pc - et2 - gw)
             X[rk].append(sr + bf - x_[2] * self.alfa)
             X[rk].append(x_[2] * self.alfa - x_[3] * self.alfa)
-            deep_perc = self.c3 * x_[1] * (1 - (1 + self.mu)**(-1) )
-            flows.append((rk, p, sr, et1, int, pc, et2, gw, bf, x_[2] * self.alfa, x_[3] * self.alfa, deep_perc))
+            if self.compute_mass_balance:
+                deep_perc = self.c3 * x_[1] * (1 - (1 + self.mu)**(-1) )
+                flows.append((rk, p, sr, et1, int, pc, et2, gw, bf, x_[2] * self.alfa, x_[3] * self.alfa, deep_perc))
             # rk = rk + 1
             # sr = p * (x_[0] / self.x1_0) ** self.m1
             # et1 = pet * (x_[0] / self.x1_0)
@@ -448,7 +454,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2), *x_n, *Xw]
+                    if self.compute_mass_balance:
+                        self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2), *x_n, *Xw]
                     #~ @x = @out;
                     return [out[0], out[1], out[2], out[3]]
                 #~ last;
@@ -466,7 +473,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4), *x_n, *Xw]
+                    if self.compute_mass_balance:
+                        self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4), *x_n, *Xw]
                     return [out[0], out[1], out[2], out[3]]
 
 
@@ -525,7 +533,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         # initialize states
         self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
         step = 0
-        self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc", "x1", "x2", "x3", "x4", "X1", "X2", "X3", "X4"])
+        if self.compute_mass_balance:
+            self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc", "x1", "x2", "x3", "x4", "X1", "X2", "X3", "X4"])
 
         # series: pma*, etp*, q_obs, smc_obs [*: required]
         if len(input) < 2:
@@ -636,8 +645,9 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     def setParameters(
         self, 
-        parameters: Union[list,tuple] = ...) -> None:
-        super().setParameters(parameters)
+        parameters: Union[list,tuple] = ...,
+        reset: bool = True) -> None:
+        super().setParameters(parameters, reset)
     
     def setInitialStates(
         self, 

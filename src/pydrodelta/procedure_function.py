@@ -314,7 +314,8 @@ class ProcedureFunction:
 
     def setParameters(
         self,
-        parameters : Union[list,tuple] = []
+        parameters : Union[list,tuple] = [],
+        reset : bool = True
         ) -> None:
         """
         Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.parameters as a dict. Else will set a list
@@ -323,9 +324,12 @@ class ProcedureFunction:
         -----------
         parameters : list or tuple
             Procedure function parameters to set
+        reset : bool = True
+            Start new parameter set from empty dict
         """
         if len(self._parameters):
-            self.parameters = {}
+            if reset:
+                self.parameters = {}
             for i, p in enumerate(self._parameters):
                 if len(parameters) - 1 < i:
                     raise ValueError("parameters list is too short: %i item is missing" % i)

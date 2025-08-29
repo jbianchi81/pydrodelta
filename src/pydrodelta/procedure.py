@@ -852,6 +852,7 @@ from pydrodelta.procedures.grp import GRPProcedureFunction
 from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
 from pydrodelta.procedures.expression import ExpressionProcedureFunction
 from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedureFunction
 from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
 from pydrodelta.procedures.junction import JunctionProcedureFunction
 from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
@@ -893,6 +894,7 @@ procedureFunctionDict = {
     "LinearCombination4B": LinearCombination4BProcedureFunction,
     "Expression": ExpressionProcedureFunction,
     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
+    "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedureFunction,
     "SacEnKF": SacEnkfProcedureFunction,
     "Junction": JunctionProcedureFunction,
     "LinearChannel": LinearChannelProcedureFunction,
