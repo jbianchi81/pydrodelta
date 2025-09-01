@@ -299,7 +299,7 @@ class DownhillSimplexCalibration(Calibration):
             max_stagnations=max_stagnations, 
             max_iter=max_iter,
             limit = limit,
-            limits = self._procedure.function.limits
+            limits = ranges if ranges is not None else self._procedure.function.limits
         )
         if inplace:
             self._downhill_simplex = downhill_simplex
