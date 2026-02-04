@@ -57,8 +57,11 @@ class NodeSerie(Base):
     """Time offset applied to the timestamps of the input data on import"""
     
     y_offset = FloatDescriptor()
-    """Offset applied to the values of the input data on import"""
+    """Offset applied (added) to the values of the input data on import"""
     
+    scale = FloatDescriptor()
+    """Scale applied (multiplied) to the values of the input data on import"""
+
     moving_average = DurationDescriptorDefaultNone()
     """Size of the time window used to compute a moving average to the input data"""
     
@@ -137,6 +140,7 @@ class NodeSerie(Base):
         required : bool = False,
         agg_func : str = None,
         id : Optional[int] = None,
+        scale : float = 1,
         **kwargs
         ):
         """
@@ -159,6 +163,9 @@ class NodeSerie(Base):
 
         y_offset : float = 0
             Apply this offset to the values of the input data
+
+        scale : float = 1
+            Apply this scale factor to the values of the input data
 
         moving_average : relativedelta = None
             Compute a moving average using a time window of this size to the input data
@@ -204,6 +211,7 @@ class NodeSerie(Base):
         self.lim_jump = lim_jump
         self.x_offset = x_offset # util.interval2timedelta(x_offset) if isinstance(x_offset,dict) else x_offset # shift_by
         self.y_offset = y_offset # bias
+        self.scale = scale
         self.moving_average = util.interval2timedelta(moving_average) if moving_average is not None else None
         self.data = None
         self.metadata = None
@@ -457,6 +465,8 @@ class NodeSerie(Base):
         elif self.x_offset != 0:
             self.data["valor"] = self.data["valor"].shift(self.x_offset, axis = 0) 
             self.data["tag"] = self.data["tag"].shift(self.x_offset, axis = 0) 
+        if self.scale != 1:
+            self.data["valor"] = self.data["valor"] * self.scale
         if self.y_offset != 0:
             self.data["valor"] = self.data["valor"] + self.y_offset
     

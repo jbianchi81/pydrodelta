@@ -40,8 +40,12 @@
     },
     "y_offset": {
       "type": "number",
-      "description": "Offset applied to the values of the input data on import",
+      "description": "Offset applied (added) to the values of the input data on import",
       "default": 0
+    },
+    "scale": {
+      "type": "number",
+      "description": "Scale applied (multiplied) to the values of the input data on import"
     },
     "comment": {
       "type": "string",

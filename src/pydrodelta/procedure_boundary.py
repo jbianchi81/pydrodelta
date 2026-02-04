@@ -189,16 +189,17 @@ class ProcedureBoundary():
             data = self._variable.data
         if warmup_only:
             if warmup_steps is not None:
-                na_count = data[data.index <= self._plan.forecast_date]["valor"].tail(warmup_steps).isna().sum()
+                data_filtered = data[data.index <= self._plan.forecast_date]["valor"].tail(warmup_steps)
             else:
-                na_count = data[data.index <= self._plan.forecast_date]["valor"].isna().sum()
+                data_filtered = data[data.index <= self._plan.forecast_date]["valor"]
         else:
             if warmup_steps is not None:
-                na_count = data["valor"].tail(warmup_steps).isna().sum()
+                data_filtered = data["valor"].tail(warmup_steps)
             else:
-                na_count = data["valor"].isna().sum()
+                data_filtered = data["valor"]
 
+        na_count = data_filtered.isna().sum()
         if na_count > 0:
-            first_na_datetime = data[data["valor"].isna()].iloc[0].name.isoformat()
+            first_na_datetime = data_filtered[data_filtered["valor"].isna()].iloc[0].name.isoformat()
             raise AssertionError("procedure boundary variable %s has NaN values starting at position %s" % ( ("sim data at index %i" % sim_index) if read_sim else "data", first_na_datetime))
         return
