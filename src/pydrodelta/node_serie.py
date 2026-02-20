@@ -256,18 +256,27 @@ class NodeSerie(Base):
             "jumps_data": self.jumps_data,
             "required": self.required
         }
-
-    def assertNotEmpty(self) -> None:
+    
+    def raiseValueError(self, message : str) -> None:
+        if self._variable is not None:
+            if self._variable._node is not None:
+                raise ValueError("node %s, variable %i, serie %s %i: %s" % (self._variable._node.id, self._variable.id, self.type, self.series_id, message))
+            else:
+                raise ValueError("variable %i, serie %s %i: %s" % (self._variable.id, self.type, self.series_id, message))
+        else:
+            raise ValueError("serie %s %i: %s" % (self.type, self.series_id, message))
+    
+    def assertNotEmpty(self) -> None:    
         if self.data is None:
-            raise ValueError("data is not defined")
+            self.raiseValueError("data is not defined")
         elif not isinstance(self.data,DataFrame):
-            raise ValueError("data is not an instance of DataFrame")
+            self.raiseValueError("data is not an instance of DataFrame")
         elif "valor" not in self.data.columns.to_list():
-            raise ValueError("valor column missing from data")
+            self.raiseValueError("valor column missing from data")
         elif not len(self.data["valor"]):
-            raise ValueError("valor column of data is of null length")
+            self.raiseValueError("valor column of data is of null length")
         elif not len(self.data["valor"].dropna()):
-            raise ValueError("valor column of data has no non-null values")
+            self.raiseValueError("valor column of data has no non-null values")
 
     def loadData(
         self,
