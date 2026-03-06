@@ -2,11 +2,14 @@ from pydrodelta.plan import Plan
 from unittest import TestCase
 from pydrodelta.config import config
 from pandas import isnull
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_PQ(TestCase):
 
     def test_fill_nulls(self):
-        plan = Plan.load("%s/sample_data/plans/dummy_grp_from_csv_one_node_with_nulls.yml" % config["PYDRODELTA_DIR"])
+        plan = Plan.load(data_dir / "plans/dummy_grp_from_csv_one_node_with_nulls.yml")
         self.assertTrue(plan.procedures[0].function.boundaries.getById("pma").optional)
         plan.execute(upload=False)
         self.assertTrue(isnull(plan.procedures[0].input.loc["2023-05-02 00:00:00-03:00","pma"]))

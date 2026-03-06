@@ -106,24 +106,14 @@ class ProcedureFunctionResults:
             logging.warning("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
-            with open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"],
-                    output
-                ),
-                'w') as f:
+            with open(output,'w') as f:
                 self.data.to_csv(f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.error(f"Couldn't write to file (%s)" % str(e))
     def saveDict(self, output : str):
         try:
-            with open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"],
-                    output
-                ),
-                'w') as f:
+            with open(output,'w') as f:
                 json.dump(self.toDict(), f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:

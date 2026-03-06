@@ -14,6 +14,9 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 import numpy as np
 import pandas as pd
+from pathlib import Path, PosixPath
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_Topology(TestCase):
 
@@ -152,7 +155,7 @@ class Test_Topology(TestCase):
         topology.nodes[0].variables[4].plot()
         topology.plotVariable(
             var_id = 4,
-            output = "%s/results/h_plot.pdf" % config["PYDRODELTA_DIR"]
+            output = data_dir / "results/h_plot.pdf"
         )
 
     def test_interpolate_regularize(self):
@@ -226,7 +229,7 @@ class Test_Topology(TestCase):
         topology = Topology(**dummy_topology)
         topology.batchProcessInput(include_prono=True)
         topology.saveData(
-            file = "%s/results/h_data.csv" % config["PYDRODELTA_DIR"],
+            file = data_dir / "results/h_data.csv",
             format = "csv",
             pivot = True,
             variables = [4]
@@ -238,7 +241,7 @@ class Test_Topology(TestCase):
             save_variable=[
                 {
                     "var_id": 4,
-                    "output": "%s/results/h_data.csv" % config["PYDRODELTA_DIR"],
+                    "output": data_dir / "results/h_data.csv",
                     "format": "csv",
                     "pivot": True
                 }
@@ -246,27 +249,36 @@ class Test_Topology(TestCase):
         topology.batchProcessInput(include_prono=True)
 
     def test_plot_prono(self):
-        topology_config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**topology_config)
+        topology = Topology.load(data_dir / "topologies/plot_prono_dummy.yml")
         topology.batchProcessInput(include_prono=False)
         self.assertIsNotNone(topology.nodes[0].variables[39].series_prono[0].plot_params)
         self.assertTrue("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
-        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"]))
+        # output_file path must be a PosixPath:
+        self.assertTrue(isinstance(topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"], PosixPath))
+        # output_file path must be resolved to absolute:
+        self.assertTrue(topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"].is_absolute())
+        file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"])
         self.assertTrue(file_mtime  > time.time() - 10)
 
     def test_plot_bad_qualifier(self):
-        topology_config = yaml.load(open("%s/sample_data/topologies/plot_prono_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**topology_config)
+        topology = Topology.load(data_dir / "topologies/plot_prono_dummy.yml")
         topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
         self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
 
     def test_series_save_csv_batch(self):
-        topology_config = yaml.load(open("%s/sample_data/topologies/save_series_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
-        topology = Topology(**topology_config)
+        topology = Topology.load(data_dir / "topologies/save_series_dummy.yml")
         topology.batchProcessInput(include_prono=False)
-        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series[0].output_file))
+        # output_file path must be a PosixPath:
+        self.assertTrue(isinstance(topology.nodes[0].variables[39].series[0].output_file, PosixPath))
+        # output_file path must be resolved to absolute:
+        self.assertTrue(topology.nodes[0].variables[39].series[0].output_file.is_absolute())
+        file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series[0].output_file)
         self.assertTrue(file_mtime  > time.time() - 10)
-        file_mtime = os.path.getmtime("%s/%s" % (config["PYDRODELTA_DIR"], topology.nodes[0].variables[39].series_prono[0].output_file))
+        # output_file path must be a PosixPath:
+        self.assertTrue(isinstance(topology.nodes[0].variables[39].series_prono[0].output_file, PosixPath))
+        # output_file path must be resolved to absolute:
+        self.assertTrue(topology.nodes[0].variables[39].series_prono[0].output_file.is_absolute())
+        file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series_prono[0].output_file)
         self.assertTrue(file_mtime  > time.time() - 10)
     
     def test_node_inherited_properties(self):

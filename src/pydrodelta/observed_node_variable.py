@@ -23,7 +23,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self) if series is not None else None
+        self._series = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self, base_path=self.base_path) if series is not None else None
     
     @property
     def series_prono(self) -> List[NodeSerieProno]:
@@ -34,7 +34,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "id", node_variable = self) if series is not None else None
+        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "id", node_variable = self, base_path=self.base_path) if series is not None else None
     
     def __init__(
         self,
@@ -363,23 +363,4 @@ class ObservedNodeVariable(NodeVariable):
             tb = traceback.extract_tb(e.__traceback__)
             filename, lineno, func, text = tb[-1]
             raise ValueError("Plot prono failed at variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, filename, lineno, func, str(e)))
-        # if(self.report_file is not None):
-        #     report = self.printReport()
-        #     f = open(
-        #         os.path.join(
-        #             config["PYDRODELTA_DIR"],
-        #             self.report_file
-        #         ),
-        #         "w"
-        #     )
-        #     json.dump(report,f,indent=2)
-        #     f.close()
         self.saveSeriesSeparately()
-        # if self.output_csv is not None:
-        #     self.saveData(self.output_csv,pivot=self.pivot,format="csv")
-        # if self.output_json is not None:
-        #     self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
-        # if self.upload_prono:
-        #     self.uploadDataAsProno(False, True)
-        # if self.output_graph:
-        #     self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"],self.output_graph))

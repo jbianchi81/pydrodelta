@@ -7,11 +7,14 @@ from pydrodelta.types.typed_list import TypedList
 from pydrodelta.procedure import Procedure
 from pydrodelta.procedures.abstract import AbstractProcedureFunction
 from pydrodelta.config import config
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_Plan(TestCase):
 
     def test_init(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         self.assertEqual(plan.name,"linear_channel_dummy")
         self.assertEqual(plan.id, 505)
@@ -20,7 +23,7 @@ class Test_Plan(TestCase):
         self.assertEqual(len(plan.procedures),1)
 
     def test_analysis(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.topology.batchProcessInput()
         for n in plan.topology.nodes:
@@ -31,7 +34,7 @@ class Test_Plan(TestCase):
                 self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
 
     def test_exec(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload=False)
         for p in plan.procedures:
@@ -56,7 +59,7 @@ class Test_Plan(TestCase):
                 places = 1)
     
     def test_api(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_polynomial.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.topology.batchProcessInput(
             input_api_config = {
@@ -71,7 +74,7 @@ class Test_Plan(TestCase):
                 self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2022-07-17T00:00:00-03:00")
 
     def test_api_basin_pars(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac_basin_pars_from_api.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac_basin_pars_from_api.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         self.assertTrue("area" in plan.procedures[0].function.extra_pars)
         self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
@@ -81,7 +84,7 @@ class Test_Plan(TestCase):
         )
         
     def test_api_exec(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_polynomial.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_polynomial.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(
             upload = False,
@@ -91,7 +94,7 @@ class Test_Plan(TestCase):
             })
 
     def test_calibration(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload = False)
         stats = plan.procedures[0].read_statistics()
@@ -107,7 +110,7 @@ class Test_Plan(TestCase):
         self.assertEqual(len(calibration["limits"]),10)
 
     def test_stats_df(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.procedures[0].calibration.calibrate = False
         plan.execute(upload = False)
@@ -115,13 +118,13 @@ class Test_Plan(TestCase):
         self.assertTrue(isinstance(stats_df, DataFrame))
 
     def test_stats_df_score(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload = False)
         self.assertTrue(isinstance(plan.procedures[0].calibration.scores, DataFrame))
 
     def test_calibration_save_result_raise_exception(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         self.assertRaises(
             Exception, 
@@ -381,11 +384,11 @@ class Test_Plan(TestCase):
         # )
 
     def test_save_variable(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan_config["topology"]["save_variable"] = [
             {
                 "var_id": 40,
-                "output": "%s/results/q_data.csv" % config["PYDRODELTA_DIR"],
+                "output": data_dir / "results/q_data.csv",
                 "format": "csv",
                 "pivot": True
             }

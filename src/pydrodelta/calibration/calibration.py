@@ -1,7 +1,7 @@
 from numpy import array
 import logging
 import json
-from ..util import tryParseAndLocalizeDate
+from ..util import tryParseAndLocalizeDate, resolve_path
 from typing import Optional, List, Union, Tuple
 from datetime import datetime
 from ..descriptors.bool_descriptor import BoolDescriptor
@@ -11,6 +11,7 @@ from ..descriptors.dataframe_descriptor import DataFrameDescriptor
 from ..config import config
 import os
 import yaml
+from pathlib import Path
 
 class Calibration:
     """Calibration base/abstract class"""
@@ -65,7 +66,8 @@ class Calibration:
             result_index : int = 0,
             objective_function : str = 'rmse',
             save_result : str = None,
-            calibration_period : list = None
+            calibration_period : list = None,
+            base_path : str | Path | None = None
             ):
         """
         Parameters:
@@ -100,9 +102,13 @@ class Calibration:
         if self.objective_function not in self._valid_objective_function:
             raise ValueError("objective_function must be one of %s" % ",".join(self._valid_objective_function))
         self._calibration_result = None
-        self.save_result = save_result
+        self.base_path = base_path
+        self.save_result = self.resolve_path(save_result)
         self.calibration_period = calibration_period
         self.scores = None
+
+    def resolve_path(self, path : str | Path | None) -> Path | None:
+        return resolve_path(path, self.base_path) if path is not None else None
 
     def toDict(self) -> dict:
         cal_dict = {
@@ -203,12 +209,7 @@ class Calibration:
     def saveResult(self, file : str, format : str ="json") -> None:
         if self.calibration_result is None:
             raise Exception("calibration_result is not set")
-        with open(
-            os.path.join(
-                config["PYDRODELTA_DIR"],
-                file
-            ),
-            "w") as f:
+        with open(file,"w") as f:
             if format.lower() == "json":
                 json.dump(self.result, f)
             elif format.lower() == "yml" or format.lower() == "yaml":

@@ -24,5 +24,6 @@ data_a5
 data_
 results
 tests/__pycache__
+tests/data/results
 jupyter_env
 .venv

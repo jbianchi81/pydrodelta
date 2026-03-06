@@ -89,7 +89,7 @@ class NodeSerieProno(NodeSerie):
 
     warmup = IntDescriptor()
 
-    tial = IntDescriptor()
+    tail = IntDescriptor()
 
     sim_range = ListDescriptor()
 
@@ -126,6 +126,8 @@ class NodeSerieProno(NodeSerie):
         """Name of the forecasted series"""
         self.plot_params : dict = plot_params
         """Plot configuration parameters"""
+        if self.plot_params is not None and "output_file" in self.plot_params:
+            self.plot_params["output_file"] = self.resolve_path(self.plot_params["output_file"])
         self.metadata : dict = None
         """Forecasted series metadata"""
         self.upload : bool = bool(upload)

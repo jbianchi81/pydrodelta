@@ -2,11 +2,14 @@ from pydrodelta.plan import Plan
 from unittest import TestCase
 import yaml
 from pydrodelta.config import config
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_Simplex(TestCase):
 
     def test_make_simplex(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         simplex = plan.procedures[0].function.makeSimplex()
         self.assertTrue(isinstance(simplex,list))

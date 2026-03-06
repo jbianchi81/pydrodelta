@@ -217,20 +217,14 @@ class NodeSerie(Base):
         self.metadata = None
         self.outliers_data = None
         self.jumps_data = None
-        self.csv_file = os.path.join(
-            config["PYDRODELTA_DIR"],
-            csv_file
-            ) if csv_file is not None else None
+        self.csv_file = self.resolve_path(csv_file)
         self.observations = observations
-        self.save_post = save_post
+        self.save_post = self.resolve_path(save_post)
         self.comment = comment
         self.name = name
         self._variable = node_variable
-        self.json_file = os.path.join(
-            config["PYDRODELTA_DIR"],
-            json_file
-            ) if json_file is not None else None
-        self.output_file = output_file
+        self.json_file = self.resolve_path(json_file)
+        self.output_file = self.resolve_path(output_file)
         self.output_format = output_format
         self.output_schema = output_schema
         self.required = required
@@ -369,7 +363,7 @@ class NodeSerie(Base):
         """Print data into file 
 
         Args:
-            output_file (_type_): path of output file relative to config["PYDRODELTA_DIR"]. Defaults to self.output_file
+            output_file (_type_): path of output file. Defaults to self.output_file
             format (str, optional): File format (json, yaml, csv). Defaults to "json".
             schema (str, optional): schema of json object (dict, list). Defaults to "dict".
         """
@@ -379,13 +373,7 @@ class NodeSerie(Base):
             else:
                 output_file = self.output_file
         try:
-            f = open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"], 
-                    output_file
-                ),
-                "w"
-            )
+            f = open(output_file,"w")
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
         format = format if format is not None else self.output_format if self.output_format is not None else "json"

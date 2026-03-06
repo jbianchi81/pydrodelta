@@ -5,6 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pydrodelta"
 version = "0.0.1"
+requires-python = ">=3.8"
+
 dependencies = [
     "requests",
     "datetime",
@@ -16,7 +18,7 @@ dependencies = [
     "pyyaml",
     "isodate",
     "networkx",
-    "a5_client",
+    "a5-client",
     "scikit-learn",
     "minio",
     "colour",
@@ -34,5 +36,5 @@ include-package-data = true
 where = ["src"]
 include = ["pydrodelta*"]
 
-# [tool.setuptools.package-data]
-# pydrodelta = ["config/config_empty.json", "schemas/*.json", "data/topologies/*.json","data/notebooks/*.ipynb"]
+[tool.setuptools.package-data]
+pydrodelta = ["schemas/yaml/*.yml","schemas/json/*.json"]

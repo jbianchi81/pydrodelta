@@ -8,10 +8,14 @@ from pydrodelta.procedure import Procedure
 from pydrodelta.types.enhanced_typed_list import EnhancedTypedList
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.config import config
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
+
 class Test_ExponentialFit(TestCase):
 
     def test_run(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_exponential_fit.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_exponential_fit.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload=False)
         self.assertEqual(len(plan.procedures[0].output),1)

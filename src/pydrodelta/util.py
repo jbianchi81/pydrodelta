@@ -1,4 +1,3 @@
-from pydrodelta.config import config
 from pydrodelta.arima import adjustSeriesArima
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
@@ -23,6 +22,18 @@ DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
 import numpy as np
+from pathlib import Path
+
+def resolve_path(path_str, base=None):
+    p = Path(path_str)
+
+    if p.is_absolute():
+        return p
+
+    if base is not None:
+        return (Path(base) / p).resolve()
+
+    return p.resolve()
 
 def interval2timedelta(interval : Union[dict,float,relativedelta]):
     """Parses duration dict or number of days into dateutil.relativedelta object
@@ -898,13 +909,7 @@ def plot_prono(
     while i < len(list0hrs):
         ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
-    plt.savefig(
-        os.path.join(
-            config["PYDRODELTA_DIR"],
-            output_file
-        ), 
-        format = format
-    )
+    plt.savefig(output_file,format = format)
     plt.close()
 
 def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):

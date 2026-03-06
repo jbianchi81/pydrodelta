@@ -1,7 +1,7 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce
+from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce, resolve_path
 from pathlib import Path
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta
@@ -63,7 +63,7 @@ class Topology(Base):
         return self._nodes
     @nodes.setter
     def nodes(self,nodes : List[Union[dict, Node]]):
-        self._nodes : List[Node] = TypedList(Node, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start)
+        self._nodes : List[Node] = TypedList(Node, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
         for i, node in enumerate(nodes):
             if "id" not in node:
                 raise ValueError("Missing node.id at index %i of topology.nodes" % i)
@@ -114,7 +114,7 @@ class Topology(Base):
                 raise ValueError("Missing output from PlotVariableParamsDict at index %i of plot_variable" %i)
             d = {
                 "var_id": int(item["var_id"]),
-                "output": item["output"]
+                "output": self.resolve_path(item["output"])
             }
             if "timestart" in item:
                 d["timestart"] = tryParseAndLocalizeDate(item["timestart"])
@@ -142,7 +142,7 @@ class Topology(Base):
                 raise ValueError("Missing output from SaveVariableParamsDict at index %i of save_variable" %i)
             d = {
                 "var_id": int(item["var_id"]),
-                "output": item["output"]
+                "output": self.resolve_path(item["output"])
             }
             if "format" in item:
                 d["format"] = item["format"]
@@ -158,10 +158,10 @@ class Topology(Base):
     """While executing .batchProcessInput, use series_prono to fill nulls of series"""
 
     output_csv = StringDescriptor()
-    """Save analysis results as csv into this path (relative to PYDRODELTA_DIR)"""
+    """Save analysis results as csv into this path"""
 
     output_json = StringDescriptor()
-    """Save analysis results as json into this path (relative to PYDRODELTA_DIR)""" 
+    """Save analysis results as json into this path""" 
 
     pivot = BoolDescriptor()
     """If output_csv is set, pivot series into columns of the table (default True)"""
@@ -186,6 +186,9 @@ class Topology(Base):
 
     var_map = DictDescriptor()
     """Variable metadata is stored in this dict"""
+
+    base_path : Path | None
+    """Base path. Used to resolve input/output relative paths"""
 
     def __init__(
         self,
@@ -216,6 +219,7 @@ class Topology(Base):
         save_post_data : str = None,
         prono_ignore_warmup : bool = True,
         output_graph : str = None,
+        base_path : str | Path | None = None,
         **kwargs
         ):
         """Initiate topology
@@ -286,10 +290,10 @@ class Topology(Base):
             While executing .batchProcessInput, use series_prono to fill nulls of series 
         
         output_csv : str = None
-            Save analysis results as csv into this path (relative to PYDRODELTA_DIR)
+            Save analysis results as csv into this path
 
         output_json : str = None
-            Save analysis results as json into this path (relative to PYDRODELTA_DIR)
+            Save analysis results as json into this path
 
         pivot : bool = True
             If output_csv is set, pivot series into columns of the table
@@ -314,6 +318,9 @@ class Topology(Base):
 
         output_graph : str
         Print graph representation of the topology into this file (png) 
+
+        base_path : Path | None
+        Base path. Used to resolve input/output relative paths
         """
         super().__init__(**kwargs)
         params = {
@@ -363,22 +370,22 @@ class Topology(Base):
         self.nodes = nodes
         self.cal_id = cal_id
         self.plot_params = plot_params
-        self.report_file = report_file
+        self.report_file = self.resolve_path(report_file)
         self._graph = self.toGraph()
         self.no_metadata = no_metadata
         self.plot_variable = plot_variable
         self.save_variable = save_variable
         self.include_prono = include_prono
-        self.output_csv = "%s/%s" % (config["PYDRODELTA_DIR"],output_csv) if output_csv is not None else None
-        self.output_json = "%s/%s" % (config["PYDRODELTA_DIR"],output_json) if output_json is not None else None
+        self.output_csv = self.resolve_path(output_csv)
+        self.output_json = self.resolve_path(output_json)
         self.pivot = pivot
         self.pretty = pretty
         self.upload_prono = upload_prono
         self.qualifiers = qualifiers
-        self.save_response = save_response
-        self.save_post_data = save_post_data
+        self.save_response = self.resolve_path(save_response)
+        self.save_post_data = self.resolve_path(save_post_data)
         self.prono_ignore_warmup = prono_ignore_warmup
-        self.output_graph = output_graph
+        self.output_graph = self.resolve_path(output_graph)
     
     def __repr__(self):
         nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
@@ -482,13 +489,7 @@ class Topology(Base):
         self.plotProno()
         if(self.report_file is not None):
             report = self.printReport()
-            f = open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"],
-                    self.report_file
-                ),
-                "w"
-            )
+            f = open(self.report_file,"w")
             json.dump(report,f,indent=2)
             f.close()
         self.saveSeries()
@@ -499,7 +500,7 @@ class Topology(Base):
         if self.upload_prono:
             self.uploadDataAsProno(False, True)
         if self.output_graph:
-            self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"],self.output_graph))
+            self.printGraph(output_file=self.output_graph)
 
     def loadData(
         self,
@@ -984,11 +985,11 @@ class Topology(Base):
         prono = self.dataAsProno(include_obs=include_obs, include_prono=include_prono)
         
         if save_post_data:
-            json.dump(prono, open("%s/%s" % (config["PYDRODELTA_DIR"], save_post_data), "w"), indent=4)
+            json.dump(prono, open(save_post_data, "w"), indent=4)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
         response = api_client.createCorrida(prono)
         if save_response:
-            json.dump(response, open("%s/%s" % (config["PYDRODELTA_DIR"], save_response), "w"), indent=4)
+            json.dump(response, open(save_response, "w"), indent=4)
         return response
 
     def pivotData(
@@ -1140,12 +1141,7 @@ class Topology(Base):
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
         if output is not None:
             matplotlib.use('pdf')
-            pdf = matplotlib.backends.backend_pdf.PdfPages(
-                os.path.join(
-                    config["PYDRODELTA_DIR"],
-                    output
-                )
-            )
+            pdf = matplotlib.backends.backend_pdf.PdfPages(output)
         else:
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         for node in self.nodes:

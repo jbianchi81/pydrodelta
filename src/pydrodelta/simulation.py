@@ -6,7 +6,8 @@ import sys
 from .plan import Plan
 from .config import config
 from json import dump as json_dump 
-from .util import ParseApiConfig
+from .util import ParseApiConfig, resolve_path
+from pathlib import Path
 
 logging.basicConfig(
     filename = os.path.join(
@@ -109,13 +110,16 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         # root.addHandler(handler)
     elif quiet:
         str_handler.setLevel(logging.ERROR)
-    t_config = yaml.load(open(config_file),yaml.CLoader)
+    config_path = Path(config_file).resolve()
+    with open(config_path) as f:
+        t_config = yaml.safe_load(f)
+    # t_config = yaml.load(open(config_file),yaml.CLoader)
     if output_stats is not None:
-        t_config["output_stats"] = output_stats
+        t_config["output_stats"] = resolve_path(output_stats, base=Path.cwd())
     if output_results is not None:
-        t_config["output_results"] = output_results
+        t_config["output_results"] = resolve_path(output_results, base=Path.cwd())
     if output_analysis is not None:
-        t_config["output_analysis"] = output_analysis
+        t_config["output_analysis"] = resolve_path(output_analysis, base=Path.cwd())
     if pivot is not None:
         t_config["pivot"] = pivot
     try:
@@ -126,7 +130,7 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         output_api_config = ParseApiConfig(output_api)
     except ValueError as e:
         raise ValueError("Invalid parameter --output-api: %s" % str(e))   
-    plan = Plan(**t_config)
+    plan = Plan(**t_config, base_path=config_path.parent)
     plan.execute(
         include_prono = include_prono,
         upload = upload_prono,

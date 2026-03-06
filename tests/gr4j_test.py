@@ -6,11 +6,14 @@ from pydrodelta.config import config
 import numpy as np
 from pydrodelta.procedures.gr4j import GR4JProcedureFunction
 from pydrodelta.pydrology import GR4J
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_GR4J(TestCase):
 
     def test_prodstore_runoff(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_gr4j.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_gr4j.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
 
         plan.topology.batchProcessInput()

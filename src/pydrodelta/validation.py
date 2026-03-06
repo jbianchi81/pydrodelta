@@ -5,44 +5,32 @@ import yaml
 from typing import Tuple
 from .config import config
 import logging
+import importlib.resources
 
 def getSchema(
-        name : str,
-        rel_base_path : str = "schemas/json"
+        name : str
     ) -> Tuple[dict,jsonschema.validators.RefResolver]:
     """
-    Reads schema from json or yaml, returns dict of schemas and jsonschema resolver
+    Reads schema from json or yaml, returns dict of schemas and jsonschema resolver. Schemas are in pydrodelta.schemas.json
 
     Parameters:
     -----------
     name : str
         Schema name
-    
-    rel_base_path : str = "schemas/json"
-        Relative base path of the schemas files
 
     Returns:
     --------
     (dict of parsed schemas, resolver) : Tuple[dict,jsonschema.validators.RefResolver]
     """
     schemas = {}
-    plan_schema = open(
-        os.path.join(
-            config["PYDRODELTA_DIR"],
-            rel_base_path,
-            "%s.json" % name.lower()
+    with importlib.resources.path("pydrodelta.schemas.json", "") as base_path:
+        logging.debug("base path as uri: %s/" % base_path.as_uri())
+        resolver = jsonschema.validators.RefResolver(
+            base_uri=f"{base_path.as_uri()}/",
+            referrer=True,
         )
-    )
-    schemas[name] = yaml.load(plan_schema,yaml.CLoader)
-    base_path = Path(
-        config["PYDRODELTA_DIR"], 
-        rel_base_path
-    )
-    logging.debug("base path as uri: %s/" %base_path.as_uri())
-    resolver = jsonschema.validators.RefResolver(
-        base_uri=f"{base_path.as_uri()}/",
-        referrer=True,
-    )
+    with importlib.resources.open_text("pydrodelta.schemas.json", "%s.json" % name.lower()) as f:
+        schemas[name] = yaml.safe_load(f)
     return schemas, resolver
 
 def validate(
@@ -89,11 +77,10 @@ def validate(
 
 def getSchemaAndValidate(
         params : dict,
-        name : str,
-        rel_base_path : str = "schemas/json"
+        name : str
     ):
     """
-    Validate dict against json schema
+    Validate dict against json schema. Schemas are in pydrodelta.schemas.json
     
     Parameters:
     -----------
@@ -104,11 +91,7 @@ def getSchemaAndValidate(
     name : str
 
         Name of the schema. Used to find the jsonschema file in rel_base_path
-    
-    rel_base_path : str = "schemas/json"
-    
-        Path where to find jsonschema files
-    
+        
     Raises:
     -------
     jsonschema.exceptions.ValidationError:
@@ -119,6 +102,6 @@ def getSchemaAndValidate(
 
         if the schema itself is invalid
     """
-    schemas, resolver = getSchema(name, rel_base_path)
+    schemas, resolver = getSchema(name)
     # print("Base URI:", resolver.base_uri)
     return validate(params, schemas[name], resolver)

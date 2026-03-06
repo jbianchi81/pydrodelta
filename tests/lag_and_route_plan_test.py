@@ -4,11 +4,14 @@ import yaml
 import os
 from pydrodelta.config import config
 from pandas import DataFrame
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_LagAndRouteProcedure(TestCase):
 
     def test_run(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/lar_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/lar_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         self.assertEqual(plan.procedures[0].function.pars_list[0], 3)
         self.assertTrue(plan.procedures[0].function.pars_list[1], 0.5)
@@ -21,7 +24,7 @@ class Test_LagAndRouteProcedure(TestCase):
         self.assertEqual(len(plan.procedures[0].procedure_function_results.data["output"].dropna()), 31)
 
     def test_run_no_output(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/lar_dummy_no_output.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/lar_dummy_no_output.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload=False)
         self.assertGreaterEqual(len(plan.procedures[0].output[0]),31)

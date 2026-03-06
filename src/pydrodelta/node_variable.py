@@ -2,7 +2,7 @@ from a5client import Crud, Serie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta, resolve_path
 import pandas
 import logging
 import json
@@ -24,6 +24,7 @@ from .descriptors.string_descriptor import StringDescriptor
 from .types.adjust_from_dict import AdjustFromDict
 from .types.linear_combination_dict import LinearCombinationDict
 from .types.typed_list import TypedList
+from pathlib import Path
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
@@ -130,6 +131,8 @@ class NodeVariable:
     forecast_timeend = DatetimeDescriptor()
     """Forecast end date"""
 
+    base_path : Path | None
+
     def __init__(
         self,
         id : int,
@@ -149,7 +152,8 @@ class NodeVariable:
         timeend : datetime = None,
         time_offset : relativedelta = None,
         forecast_timeend : datetime = None,
-        use_filled_truth : bool = False
+        use_filled_truth : bool = False,
+        base_path : Path | None = None
         ):
         """
         Parameters:
@@ -213,10 +217,14 @@ class NodeVariable:
         use_filled_truth : bool = False
         
             When adjusting series_prono, use filled series as truth (instead of first series)
+
+        base_path : Path | None = None
+            Base path. Used to resolve input/output relative paths
         
         """
         self.id = id
         self._node = node
+        self.base_path = base_path
         self.metadata = self._node.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
         self.fill_value = fill_value
         self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
@@ -247,6 +255,9 @@ class NodeVariable:
         self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
         self.use_filled_truth = use_filled_truth
     
+    def resolve_path(self, path : str | Path | None) -> Path | None:
+        return resolve_path(path, self.base_path) if path is not None else None
+
     def __repr__(self):
         series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
         return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
@@ -678,13 +689,7 @@ class NodeVariable:
                 if serie.save_post is not None:
                     json.dump(
                         obs_list,
-                        open(
-                            os.path.join(
-                                config["PYDRODELTA_DIR"], 
-                                serie.save_post
-                            ),
-                            "w"
-                        )
+                        open(serie.save_post,"w")
                     )
                     logging.info("Wrote output of node %s, variable %i, serie %i to %s" % (self.node_id,self.id, serie.series_id, serie.save_post))
                 try:
@@ -1227,6 +1232,7 @@ class NodeVariable:
             if output_file is None:
                 logging.debug("Missing output_dir or output_file, skipping serie")
                 continue
+            # output_file = self.resolve_path(output_file)
             defaults = {
                 "output_file": output_file
             }

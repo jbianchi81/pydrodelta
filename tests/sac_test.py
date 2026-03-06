@@ -8,11 +8,14 @@ from pydrodelta.config import config
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_SacramentoSimplified(TestCase):
 
     def test_calibration_save_result(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/dummy_sac.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload=False)
         
@@ -43,7 +46,7 @@ class Test_SacramentoSimplified(TestCase):
             else:
                 self.assertTrue(isinstance(plan.procedures[0].calibration.result["scores"][0][key], float))
 
-        saved_result = yaml.load(open("%s/results/dummy_sac_cal_result.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        saved_result = yaml.load(open(data_dir / "results/dummy_sac_cal_result.yml"),yaml.CLoader)
         self.assertTrue("parameters" in saved_result)
         self.assertTrue(isinstance(saved_result["parameters"],list))
         self.assertEqual(

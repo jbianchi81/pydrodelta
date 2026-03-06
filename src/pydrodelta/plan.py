@@ -9,6 +9,7 @@ from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
 from typing import Union, List
 from pandas import DataFrame
+from pathlib import Path
 
 from a5client import Crud, createEmptyObsDataFrame
 from .topology import Topology
@@ -53,13 +54,13 @@ class Plan(Base):
     @topology.setter
     def topology(self,value : Union[dict,Topology,str,None]):
         if isinstance(value, dict):
-            self._topology = Topology(**value,plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config)
+            self._topology = Topology(**value,plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config, base_path=self.base_path)
         elif isinstance(value, Topology):
             self._topology = value
         elif isinstance(value, str):
-            topology_file_path = os.path.join(config["PYDRODELTA_DIR"],value)
+            topology_file_path = self.resolve_path(value)
             f = open(topology_file_path)
-            self._topology = Topology(**yaml.load(f,yaml.CLoader),plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config)
+            self._topology = Topology(**yaml.load(f,yaml.CLoader),plan=self,input_api_config=self.input_api_config,output_api_config=self.output_api_config,s3_config=self.s3_config, base_path=topology_file_path)
             f.close()
         elif isinstance(value,None):
             self._topology = None
@@ -72,7 +73,7 @@ class Plan(Base):
         return self._procedures
     @procedures.setter
     def procedures(self,values : list):
-        self._procedures = TypedList(Procedure, *values, unique_id_property = "id", plan = self) # [x if isinstance(x,Procedure) else Procedure(**x,plan=self) for x in values]
+        self._procedures = TypedList(Procedure, *values, unique_id_property = "id", plan = self, base_path=self.base_path) # [x if isinstance(x,Procedure) else Procedure(**x,plan=self) for x in values]
     
     @property
     def forecast_date(self):
@@ -92,17 +93,17 @@ class Plan(Base):
         self._time_interval = util.interval2timedelta(value) if value is not None else None
         if self.time_interval is not None and self.forecast_date is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
-    output_stats_file = FilepathDescriptor()
+    output_stats_file : Path | None # FilepathDescriptor()
     """file path where to save result statistics"""
-    output_analysis = FilepathDescriptor()
+    output_analysis : Path | None # = FilepathDescriptor()
     """file path where to save analysis results"""
     pivot = BoolDescriptor()
     """option to pivot the results table (set one column per variable). Default False"""
-    save_post = FilepathDescriptor()
+    save_post : Path | None # = FilepathDescriptor()
     """file path where to save the post data sent to the output api"""
-    save_response = FilepathDescriptor()
+    save_response : Path | None # = FilepathDescriptor()
     """file path where to save the output api response"""
-    output_sim_csv = FilepathDescriptor()
+    output_sim_csv : Path | None # = FilepathDescriptor()
     """Print simulated series into csv"""
     qualifiers = ListDescriptor()
     """Include this forecast members into the simulation output"""
@@ -123,7 +124,7 @@ class Plan(Base):
                 raise ValueError("Missing output from SaveVariableSimDict at index %i of save_variable_sim" %i)
             d = {
                 "var_id": int(item["var_id"]),
-                "output": item["output"]
+                "output": self.resolve_path(item["output"])
             }
             self._save_variable_sim.append(d)
         if not len(self._save_variable_sim):
@@ -135,7 +136,10 @@ class Plan(Base):
         return [p.id for p in self.procedures]
 
     """File path where to save graph representation of the plan"""
-    output_graph = FilepathDescriptor()
+    output_graph : Path | None # = FilepathDescriptor()
+
+    """Base path. Used to resolve input/output relative paths"""
+    base_path : Path | None = None
         
     def __init__(
             self,
@@ -155,6 +159,7 @@ class Plan(Base):
             qualifiers : List[str] = None,
             save_variable_sim : List[SaveVariableSimDict] = None,
             output_graph : str = None,
+            base_path : Path | None = None,
             **kwargs
             ):
         """
@@ -211,6 +216,9 @@ class Plan(Base):
         output_graph : str or None
             File path where to save graph representation of the plan
 
+        base_path : Path | None = None
+            Base path. Used to resolve input/output relative paths
+        
         """
         super().__init__(**kwargs)
         params = {
@@ -240,18 +248,18 @@ class Plan(Base):
         self._time_interval : timedelta = None
         self.forecast_date = forecast_date
         self.time_interval = time_interval
-        self.output_stats_file = output_stats
-        self.output_results_file = output_results
-        self.output_analysis = output_analysis
+        self.output_stats_file = self.resolve_path(output_stats)
+        self.output_results_file = self.resolve_path(output_results)
+        self.output_analysis = self.resolve_path(output_analysis)
         self.pivot = pivot
-        self.save_post = save_post
-        self.save_response = save_response
-        self.output_sim_csv = output_sim_csv
+        self.save_post = self.resolve_path(save_post)
+        self.save_response = self.resolve_path(save_response)
+        self.output_sim_csv = self.resolve_path(output_sim_csv)
         self.qualifiers = qualifiers
         self.save_variable_sim = save_variable_sim
-        self.output_graph = output_graph
+        self.output_graph = self.resolve_path(output_graph)
         self.procedures = procedures
-    
+
     def getProcedure(self,id : Union[str,int]) -> Procedure:
         """get procedure by id"""
         for p in self.procedures:
@@ -323,34 +331,34 @@ class Plan(Base):
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_results_file is not None:
-            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_results_file),"w",encoding='utf-8') as outfile:
+            with open(self.output_results_file,"w",encoding='utf-8') as outfile:
                 json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
-            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_stats_file),"w",encoding='utf-8') as outfile:
+            with open(self.output_stats_file,"w",encoding='utf-8') as outfile:
                 json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
         if self.topology.plot_variable is not None:
             for i, item in enumerate(self.topology.plot_variable):
                 self.topology.plotVariable(**item)
         if self.topology.save_variable is not None:
             for i, item in enumerate(self.topology.save_variable):
-                item["file"] = os.path.join(config["PYDRODELTA_DIR"],item["output"])
+                item["file"] = item["output"]
                 del item["output"]
                 item["variables"] = [item["var_id"]]
                 del item["var_id"]
                 self.topology.saveData(**item)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
-            with open(os.path.join(config["PYDRODELTA_DIR"], self.output_sim_csv),"w",encoding='utf-8') as outfile:
+            with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
                 sim_data.to_csv(outfile)
         if self.save_variable_sim is not None:
             for v in self.save_variable_sim:
                 sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
                 sim_data = sim_data if sim_data is not None else createEmptyObsDataFrame()
-                with open(os.path.join(config["PYDRODELTA_DIR"], v["output"]),"w",encoding='utf-8') as outfile:
+                with open(v["output"],"w",encoding='utf-8') as outfile:
                     sim_data.to_csv(outfile)
         self.saveSimData()
         if self.output_graph:
-            self.printGraph(output_file=os.path.join(config["PYDRODELTA_DIR"], self.output_graph))
+            self.printGraph(output_file=self.output_graph)
     
     def saveSimData(self):
         for node in self.topology.nodes:
@@ -409,19 +417,13 @@ class Plan(Base):
         """
         corrida = self.toCorrida(strict_properties=True)
         if self.save_post is not None:
-            save_path = os.path.join(
-                config["PYDRODELTA_DIR"], 
-                self.save_post
-            )
+            save_path = self.save_post
             json.dump(corrida,open(save_path,"w"))
             logging.info("Saved simulation post data to %s" % save_path)
         api_client = Crud(**api_config) if api_config is not None else output_crud
         response = api_client.createCorrida(corrida)
         if self.save_response:
-            save_path = os.path.join(
-                config["PYDRODELTA_DIR"], 
-                self.save_response
-            )
+            save_path = self.save_response
             json.dump(corrida,open(save_path,"w"))
             logging.info("Saved simulation post response to %s" % save_path)
         return response

@@ -30,7 +30,8 @@ class DerivedNodeVariable(NodeVariable):
                 DerivedNodeSerie(
                     series_id = serie.series_id, 
                     derived_from = self.derived_from,
-                    topology = self._node._topology
+                    topology = self._node._topology,
+                    base_path=self.base_path
                 )
             )
     
@@ -43,7 +44,8 @@ class DerivedNodeVariable(NodeVariable):
                 DerivedNodeSerie(
                     series_id = serie.series_id, 
                     interpolated_from = self.interpolated_from,
-                    topology = self._node._topology
+                    topology = self._node._topology,
+                    base_path=self.base_path
                 )
             )
     
@@ -57,7 +59,7 @@ class DerivedNodeVariable(NodeVariable):
         self,
         series : List[Union[dict,NodeSerieProno]] = None
         ) -> None:
-            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x) for x in series] if series is not None else None
+            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x, base_path=self.base_path) for x in series] if series is not None else None
     def __init__(
         self,
         derived_from : DerivedOriginDict = None,
@@ -98,7 +100,7 @@ class DerivedNodeVariable(NodeVariable):
         else:
             self._series = []
         if series is not None:
-            self._series.extend([x if isinstance(x, NodeSerie) else NodeSerie(x) for x in series])
+            self._series.extend([x if isinstance(x, NodeSerie) else NodeSerie(**x, base_path=self.base_path) for x in series])
         self.series_prono = series_prono
     def derive(self) -> None:
         """Derive observations of .series[0] from associated node-variables"""

@@ -6,32 +6,35 @@ import os
 from pandas import DataFrame
 from networkx import DiGraph
 from pydrodelta.config import config
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_Plan_Graph(TestCase):
 
     def test_to_graph(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         graph = plan.toGraph(nodes=plan.topology.nodes)
         self.assertTrue(isinstance(graph, DiGraph))
 
     def test_to_graph_after_execute(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
         plan.execute(upload=False)
         graph = plan.toGraph(nodes=plan.topology.nodes)
         self.assertTrue(isinstance(graph, DiGraph))
 
     def test_print_graph(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
-        plan.printGraph(nodes=plan.topology.nodes, output_file="results/linear_channel_dummy.png")
+        plan.printGraph(nodes=plan.topology.nodes, output_file= data_dir / "results/linear_channel_dummy.png")
         
     def test_export_graph(self):
-        plan_config = yaml.load(open("%s/sample_data/plans/linear_channel_dummy.yml" % config["PYDRODELTA_DIR"]),yaml.CLoader)
+        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
-        plan.exportGraph(nodes=plan.topology.nodes, output_file="%s/results/linear_channel_dummy.json" % config["PYDRODELTA_DIR"])
-        graph = json.load(open("%s/results/linear_channel_dummy.json" % config["PYDRODELTA_DIR"]))
+        plan.exportGraph(nodes=plan.topology.nodes, output_file= data_dir / "results/linear_channel_dummy.json")
+        graph = json.load(open(data_dir / "results/linear_channel_dummy.json"))
         for key in ['directed', 'multigraph', 'graph', 'nodes', 'links']:
             self.assertTrue(key in graph)
         self.assertEqual(

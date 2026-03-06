@@ -19,6 +19,7 @@ from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.bool_or_none_descriptor import BoolOrNoneDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.string_descriptor import StringDescriptor
+from pathlib import Path
 
 class Procedure():
     """
@@ -84,7 +85,7 @@ class Procedure():
                 raise ValueError("Calibration method '%s' not defined" % calibration["method"])
             kwargs = calibration.copy()
             del kwargs["method"]
-            self._calibration = self._available_calibration_methods[calibration["method"]](procedure=self, **kwargs)
+            self._calibration = self._available_calibration_methods[calibration["method"]](procedure=self, **kwargs, base_path=self.base_path)
             """Configuration for calibration"""
         else:
             self._calibration = None
@@ -137,16 +138,15 @@ class Procedure():
         read_sim : bool = False,
         sim_index : int = 0,
         save_dict : str = None,
-        drop_warmup : bool = False
+        drop_warmup : bool = False,
+        base_path : str | Path | None = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
-        self.save_results : str = os.path.join(
-            config["PYDRODELTA_DIR"],
-            save_results
-        ) if save_results is not None else None
+        self.base_path = base_path
+        self.save_results : Path = self.resolve_path(save_results)
         """Save procedure results into this file (csv pivoted table)"""
         self.initial_states : list = initial_states
         """List of procedure initial states"""
@@ -208,9 +208,12 @@ class Procedure():
         self.read_sim = read_sim
         self.sim_index = sim_index
         self.adjust_method = adjust_method
-        self.save_dict = save_dict
+        self.save_dict = self.resolve_path(save_dict)
         self.drop_warmup = drop_warmup
     
+    def resolve_path(self, path : str | Path | None) -> Path | None:
+        return util.resolve_path(path, self.base_path) if path is not None else None
+
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -523,12 +526,7 @@ class Procedure():
 
     def saveDict(self, output : str):
         try:
-            with open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"],
-                    output
-                ),
-                'w') as f:
+            with open(output,'w') as f:
                 json.dump(self.read_results(), f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:

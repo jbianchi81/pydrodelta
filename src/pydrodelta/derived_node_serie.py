@@ -3,7 +3,7 @@ from .interpolated_origin import InterpolatedOrigin
 import logging
 from datetime import timedelta
 from a5client import createEmptyObsDataFrame
-from .util import applyTimeOffsetToIndex
+from .util import applyTimeOffsetToIndex, resolve_path
 from .types.derived_origin_dict import DerivedOriginDict
 from .types.interpolated_origin_dict import InterpolatedOriginDict
 from .types.tvp import TVP
@@ -15,6 +15,7 @@ from pandas import Series
 import os
 import json
 import yaml
+from pathlib import Path
 
 class DerivedNodeSerie:
     """
@@ -63,7 +64,8 @@ class DerivedNodeSerie:
         interpolated_from : Union[InterpolatedOrigin,InterpolatedOriginDict] = None,
         output_file : str = None,
         output_format : str = "json",
-        output_schema : str = "dict"
+        output_schema : str = "dict",
+        base_path : str | Path | None = None
         ):
         """
         Parameters:
@@ -88,9 +90,13 @@ class DerivedNodeSerie:
         self.derived_from = derived_from
         self.interpolated_from = interpolated_from
         self.data = None
-        self.output_file = output_file
+        self.base_path = base_path
+        self.output_file = self.resolve_path(output_file)
         self.output_format = output_format
         self.output_schema = output_schema
+
+    def resolve_path(self, path : str | Path | None) -> Path | None:
+        return resolve_path(path, self.base_path) if path is not None else None
     
     def deriveTag(
         self,
@@ -221,7 +227,7 @@ class DerivedNodeSerie:
         """Print data into file 
 
         Args:
-            output_file (_type_): path of output file relative to config["PYDRODELTA_DIR"]. Defaults to self.output_file
+            output_file (_type_): path of output file. Defaults to self.output_file
             format (str, optional): File format (json, yaml, csv). Defaults to "json".
             schema (str, optional): schema of json object (dict, list). Defaults to "dict".
         """
@@ -231,13 +237,7 @@ class DerivedNodeSerie:
             else:
                 output_file = self.output_file
         try:
-            f = open(
-                os.path.join(
-                    config["PYDRODELTA_DIR"], 
-                    output_file
-                ), 
-                "w"
-            )
+            f = open(output_file,"w")
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
         format = format if format is not None else self.output_format if self.output_format is not None else "json"
