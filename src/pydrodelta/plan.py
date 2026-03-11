@@ -159,7 +159,6 @@ class Plan(Base):
             qualifiers : List[str] = None,
             save_variable_sim : List[SaveVariableSimDict] = None,
             output_graph : str = None,
-            base_path : Path | None = None,
             **kwargs
             ):
         """

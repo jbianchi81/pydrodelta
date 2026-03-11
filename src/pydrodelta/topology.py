@@ -322,7 +322,7 @@ class Topology(Base):
         base_path : Path | None
         Base path. Used to resolve input/output relative paths
         """
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, base_path=base_path)
         params = {
             "timestart": timestart, 
             "timeend":  timeend, 

@@ -5,10 +5,14 @@ from unittest import TestCase
 from pandas import DataFrame
 from pydrodelta.util import createDatetimeSequence, tryParseAndLocalizeDate
 import numpy as np
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
+
 class Test_LinearFit(TestCase):
 
     def test_run(self):
-        plan = Plan.load("sample_data/plans/dummy_linear_fit_2_boundaries.yml")
+        plan = Plan.load(data_dir / "plans/dummy_linear_fit_2_boundaries.yml")
         plan.execute(upload=False)
 
     def test_drop_warmup(self):

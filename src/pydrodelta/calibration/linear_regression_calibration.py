@@ -7,6 +7,7 @@ import json
 from pandas import DataFrame
 import os
 from datetime import datetime
+from pathlib import Path
 
 class LinearRegressionCalibration(Calibration):
     """Calibration procedure using linear regression - least squares"""
@@ -34,7 +35,8 @@ class LinearRegressionCalibration(Calibration):
             result_index : int = 0,
             objective_function : str = 'rmse',
             save_result : str = None,
-            calibration_period : list = None
+            calibration_period : list = None,
+            base_path : str | Path | None = None
             ):
         """
         Parameters:
@@ -68,7 +70,8 @@ class LinearRegressionCalibration(Calibration):
             save_result = save_result,
             calibration_period = calibration_period,
             objective_function = "rmse",
-            result_index = 0)
+            result_index = 0,
+            base_path = base_path)
         self._linearRegression = getattr(self._procedure.function, "linearRegression", None)
         if not callable(self._linearRegression):
             raise Exception("linear regression not available for this procedure function")

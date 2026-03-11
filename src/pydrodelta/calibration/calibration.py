@@ -58,6 +58,7 @@ class Calibration:
             "scores": self.scores.to_dict(orient="records") if self.scores is not None else None
         }
 
+    base_path : str | Path | None = None
 
     def __init__(
             self,

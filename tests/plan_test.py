@@ -14,8 +14,7 @@ data_dir = Path(__file__).parent / "data"
 class Test_Plan(TestCase):
 
     def test_init(self):
-        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/linear_channel_dummy.yml")
         self.assertEqual(plan.name,"linear_channel_dummy")
         self.assertEqual(plan.id, 505)
         self.assertEqual(plan.forecast_date.isoformat(), "2024-01-03T00:00:00-03:00")
@@ -23,8 +22,7 @@ class Test_Plan(TestCase):
         self.assertEqual(len(plan.procedures),1)
 
     def test_analysis(self):
-        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/linear_channel_dummy.yml")
         plan.topology.batchProcessInput()
         for n in plan.topology.nodes:
             for v in n.variables:
@@ -34,8 +32,7 @@ class Test_Plan(TestCase):
                 self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
 
     def test_exec(self):
-        plan_config = yaml.load(open(data_dir / "plans/linear_channel_dummy.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/linear_channel_dummy.yml")
         plan.execute(upload=False)
         for p in plan.procedures:
             for i in p.input:
@@ -59,8 +56,7 @@ class Test_Plan(TestCase):
                 places = 1)
     
     def test_api(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_polynomial.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_polynomial.yml")
         plan.topology.batchProcessInput(
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/test",
@@ -74,8 +70,7 @@ class Test_Plan(TestCase):
                 self.assertEqual(max(n.variables[v].data.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2022-07-17T00:00:00-03:00")
 
     def test_api_basin_pars(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac_basin_pars_from_api.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac_basin_pars_from_api.yml")
         self.assertTrue("area" in plan.procedures[0].function.extra_pars)
         self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
         self.assertAlmostEqual(plan.procedures[0].function.extra_pars["area"], 140273473.449287,1)
@@ -84,8 +79,7 @@ class Test_Plan(TestCase):
         )
         
     def test_api_exec(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_polynomial.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_polynomial.yml")
         plan.execute(
             upload = False,
             input_api_config = {
@@ -94,8 +88,7 @@ class Test_Plan(TestCase):
             })
 
     def test_calibration(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload = False)
         stats = plan.procedures[0].read_statistics()
         self.assertEqual(stats["results"][0]["n"], 3)
@@ -110,22 +103,19 @@ class Test_Plan(TestCase):
         self.assertEqual(len(calibration["limits"]),10)
 
     def test_stats_df(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.procedures[0].calibration.calibrate = False
         plan.execute(upload = False)
         stats_df = plan.procedures[0].read_statistics(as_dataframe=True)
         self.assertTrue(isinstance(stats_df, DataFrame))
 
     def test_stats_df_score(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload = False)
         self.assertTrue(isinstance(plan.procedures[0].calibration.scores, DataFrame))
 
     def test_calibration_save_result_raise_exception(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         self.assertRaises(
             Exception, 
             plan.procedures[0].calibration.saveResult,

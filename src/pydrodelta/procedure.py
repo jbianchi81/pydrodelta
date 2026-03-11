@@ -64,6 +64,8 @@ class Procedure():
     calibration : dict
         Configuration for calibration procedure (see Calibration)
 
+    base_path : str | Path | None
+
     """
 
     _available_calibration_methods : dict = {
@@ -116,6 +118,8 @@ class Procedure():
 
     drop_warmup = BoolDescriptor()
     """Eliminate warmup steps of adjusted output"""
+
+    base_path : str | Path | None = None
 
     def __init__(
         self,
@@ -241,7 +245,7 @@ class Procedure():
             'output_obs': [x.to_dict(orient="records")  if isinstance(x, DataFrame) else x for x in self.output_obs] if self.output_obs is not None else None, 
             'states': self.states.to_dict(orient="records") if isinstance(self.states,DataFrame) else self.states,
             'procedure_function_results': self.procedure_function_results.toDict() if self.procedure_function_results is not None else None, 
-            'save_results': self.save_results, 
+            'save_results': str(self.save_results) if self.save_results is not None else None, 
             'overwrite': self.overwrite, 
             'overwrite_original': self.overwrite_original, 
             'calibration': self.calibration.toDict() if self.calibration is not None else None

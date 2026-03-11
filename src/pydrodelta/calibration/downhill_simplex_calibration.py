@@ -9,6 +9,7 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.float_descriptor import FloatDescriptor
 from .calibration import Calibration
 from ..config import config
+from pathlib import Path
 
 class DownhillSimplexCalibration(Calibration):
     """Calibration procedure using Nelder Mead Downhill Simplex"""
@@ -74,7 +75,8 @@ class DownhillSimplexCalibration(Calibration):
             max_stagnations : int = 10,
             max_iter : int = 5000,
             save_result : str = None,
-            calibration_period : list = None
+            calibration_period : list = None,
+            base_path : str | Path | None = None
             ):
         """
         Parameters:
@@ -132,7 +134,8 @@ class DownhillSimplexCalibration(Calibration):
             save_result = save_result,
             calibration_period = calibration_period,
             objective_function = objective_function,
-            result_index = result_index)
+            result_index = result_index,
+            base_path = base_path)
         self.limit = limit
         self.sigma = sigma
         self.ranges = ranges

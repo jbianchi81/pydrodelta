@@ -17,7 +17,7 @@ src/pydrodelta.egg-info
 pydrodelta.egg-info
 log/analysis.log
 config/config.yml
-data
+data/
 setup_.py
 dist
 data_a5
@@ -25,5 +25,6 @@ data_
 results
 tests/__pycache__
 tests/data/results
+!tests/data/
 jupyter_env
 .venv

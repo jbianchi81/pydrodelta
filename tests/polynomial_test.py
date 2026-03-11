@@ -1,11 +1,14 @@
 from unittest import TestCase
 from pydrodelta.plan import Plan
 from numpy import isnan
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_Polynomial(TestCase):
 
     def test_init(self):
-        plan = Plan.load("sample_data/plans/dummy_polynomial_with_nulls.yml")
+        plan = Plan.load(data_dir / "plans/dummy_polynomial_with_nulls.yml")
         plan.topology.batchProcessInput()
         plan.procedures[0].run()
         self.assertEqual(len(plan.procedures[0].output),1)

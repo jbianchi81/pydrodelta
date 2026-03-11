@@ -1,6 +1,9 @@
 from pydrodelta.node_serie import NodeSerie
 import unittest
 from pandas import DataFrame, DatetimeIndex
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_NodeSerie(unittest.TestCase):
     
@@ -76,7 +79,7 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")   
         self.assertEqual(len(node_serie.data),24)
@@ -130,7 +133,7 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/json/series_sample.json"
+            json_file = data_dir / "json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
@@ -139,7 +142,7 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/yaml/series_sample.yaml"
+            json_file = data_dir / "yaml/series_sample.yaml"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
@@ -148,15 +151,15 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_sample.json"
+        output_file = data_dir / "results/series_sample.json"
         node_serie.saveData(output_file)
         node_serie_2 = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            json_file = "results/series_sample.json"
+            json_file = data_dir / "results/series_sample.json"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
@@ -165,15 +168,15 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_sample.yaml"
+        output_file = data_dir / "results/series_sample.yaml"
         node_serie.saveData(output_file, format="yaml")
         node_serie_2 = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            json_file = "results/series_sample.yaml"
+            json_file = data_dir / "results/series_sample.yaml"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
@@ -182,15 +185,15 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_sample_list.json"
+        output_file= data_dir / "results/series_sample_list.json"
         node_serie.saveData(output_file, schema = "list")
         node_serie_2 = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            json_file = "results/series_sample_list.json"
+            json_file= data_dir / "results/series_sample_list.json"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
@@ -199,15 +202,15 @@ class Test_NodeSerie(unittest.TestCase):
         node_serie = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_sample.csv"
+        output_file= data_dir / "results/series_sample.csv"
         node_serie.saveData(output_file,format = "csv")
         node_serie_2 = NodeSerie(
             series_id = 1,
             tipo = "puntual",
-            csv_file = "results/series_sample.csv"
+            csv_file= data_dir / "results/series_sample.csv"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))

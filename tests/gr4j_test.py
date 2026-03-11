@@ -13,8 +13,7 @@ data_dir = Path(__file__).parent / "data"
 class Test_GR4J(TestCase):
 
     def test_prodstore_runoff(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_gr4j.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_gr4j.yml")
 
         plan.topology.batchProcessInput()
         plan.execute(upload=False)

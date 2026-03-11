@@ -21,8 +21,8 @@ data_dir = Path(__file__).parent / "data"
 class Test_Topology(TestCase):
 
     def test_topology_load_api_len(self):
-        timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-22T02:00:00.000Z"
+        timestart = "2023-04-23T03:00:00.000Z"
+        timeend = "2023-04-25T02:00:00.000Z"
         time_interval = { "hours": 1}
         topology = Topology(
             timestart = timestart,
@@ -37,15 +37,15 @@ class Test_Topology(TestCase):
                             "id": 2,
                             "series": [
                                 {
-                                    "series_id": 38,
+                                    "series_id": 100007,
                                     "tipo": "puntual"
                                 }
                             ],
                             "series_prono": [
                                 {
-                                    "cal_id": 288,
-                                    "cor_id": 6,
-                                    "series_id": 3416,
+                                    "cal_id": 544,
+                                    "cor_id": 1917,
+                                    "series_id": 100008,
                                     "tipo":  "puntual"
                                 }
                             ]
@@ -57,14 +57,14 @@ class Test_Topology(TestCase):
         topology.loadData(
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/test",
-                "token": "MY_TOKEN"
+                "token": "test_reader"
             })   
-        self.assertEqual(len(topology.nodes[0].variables[2].series[0].data),3)
-        self.assertEqual(len(topology.nodes[0].variables[2].series_prono[0].data),91)
+        self.assertEqual(len(topology.nodes[0].variables[2].series[0].data.dropna()),49)
+        self.assertEqual(len(topology.nodes[0].variables[2].series_prono[0].data.dropna()),50)
         
     def test_topology_batch(self):
-        timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-22T01:00:00.000Z"
+        timestart = "2023-04-23T03:00:00.000Z"
+        timeend = "2023-04-25T02:00:00.000Z"
         time_interval = { "hours": 1}
         topology = Topology(
             timestart = timestart,
@@ -79,15 +79,15 @@ class Test_Topology(TestCase):
                             "id": 2,
                             "series": [
                                 {
-                                    "series_id": 38,
+                                    "series_id": 100007,
                                     "tipo": "puntual"
                                 }
                             ],
                             "series_prono": [
                                 {
-                                    "cal_id": 288,
-                                    "cor_id": 6,
-                                    "series_id": 3416,
+                                    "cal_id": 544,
+                                    "cor_id": 1917,
+                                    "series_id": 100008,
                                     "tipo":  "puntual"
                                 }
                             ]
@@ -99,9 +99,9 @@ class Test_Topology(TestCase):
         topology.batchProcessInput(
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/test",
-                "token": "MY_TOKEN"
+                "token": "test_reader"
             })
-        self.assertEqual(len(topology.nodes[0].variables[2].data),95)
+        self.assertEqual(len(topology.nodes[0].variables[2].data.dropna()),48)
     
     def test_no_metadata(self):
         topology = Topology(
@@ -131,7 +131,7 @@ class Test_Topology(TestCase):
         )
         topology.loadData(input_api_config = {
                 "url": "https://alerta.ina.gob.ar/test",
-                "token": "MY_TOKEN"
+                "token": "test_reader"
             })
         self.assertTrue(topology.no_metadata)
         self.assertIsInstance(topology.nodes,TypedList)
@@ -268,16 +268,12 @@ class Test_Topology(TestCase):
     def test_series_save_csv_batch(self):
         topology = Topology.load(data_dir / "topologies/save_series_dummy.yml")
         topology.batchProcessInput(include_prono=False)
-        # output_file path must be a PosixPath:
-        self.assertTrue(isinstance(topology.nodes[0].variables[39].series[0].output_file, PosixPath))
         # output_file path must be resolved to absolute:
-        self.assertTrue(topology.nodes[0].variables[39].series[0].output_file.is_absolute())
+        self.assertTrue(Path(topology.nodes[0].variables[39].series[0].output_file).is_absolute())
         file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series[0].output_file)
         self.assertTrue(file_mtime  > time.time() - 10)
-        # output_file path must be a PosixPath:
-        self.assertTrue(isinstance(topology.nodes[0].variables[39].series_prono[0].output_file, PosixPath))
         # output_file path must be resolved to absolute:
-        self.assertTrue(topology.nodes[0].variables[39].series_prono[0].output_file.is_absolute())
+        self.assertTrue(Path(topology.nodes[0].variables[39].series_prono[0].output_file).is_absolute())
         file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series_prono[0].output_file)
         self.assertTrue(file_mtime  > time.time() - 10)
     

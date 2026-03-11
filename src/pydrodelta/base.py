@@ -51,7 +51,7 @@ class Base():
             Plan: an object of this class according to the provided configuration
         """
         t_config = yaml.load(open(file),yaml.CLoader)
-        kwargs["base_path"] = Path(file).parent
+        kwargs["base_path"] = Path(file).resolve().parent
         return cls(**t_config,**kwargs)
     
     def resolve_path(self, path : str | Path | None) -> Path | None:

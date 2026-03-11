@@ -15,8 +15,7 @@ data_dir = Path(__file__).parent / "data"
 class Test_SacramentoSimplified(TestCase):
 
     def test_calibration_save_result(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload=False)
         
         self.assertTrue(isinstance(plan.procedures[0].calibration.calibration_result[0],list))
@@ -29,7 +28,7 @@ class Test_SacramentoSimplified(TestCase):
             self.assertTrue(value >= plan.procedures[0].function._parameters[i].min)
             self.assertTrue(value <= plan.procedures[0].function._parameters[i].max)
         plan.procedures[0].calibration.saveResult(
-            "results/dummy_sac_cal_result.yml",
+            data_dir / "results/dummy_sac_cal_result.yml",
             format = "yaml"
         )
 

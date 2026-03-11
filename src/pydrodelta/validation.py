@@ -6,6 +6,23 @@ from typing import Tuple
 from .config import config
 import logging
 import importlib.resources
+from datetime import datetime, date
+from collections.abc import Mapping
+
+def to_json_types(obj):
+    if isinstance(obj, Path):
+        return str(obj)
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+
+    if isinstance(obj, Mapping):
+        return {k: to_json_types(v) for k, v in obj.items()}
+
+    if isinstance(obj, (list, tuple, set)):
+        return [to_json_types(v) for v in obj]
+
+    return obj
 
 def getSchema(
         name : str
@@ -71,7 +88,7 @@ def validate(
         if instancedict[key] is None:
             del instancedict[key]
     return jsonschema.validate(
-        instance=instancedict,
+        instance=to_json_types(instancedict),
         schema=schema,
         resolver=resolver)
 

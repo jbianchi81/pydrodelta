@@ -2,6 +2,9 @@ from pydrodelta.node_serie_prono import NodeSerieProno
 import unittest
 from pandas import DatetimeIndex, DataFrame
 from datetime import timedelta
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"
 
 class Test_NodeSerieProno(unittest.TestCase):
 
@@ -47,7 +50,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             series_id = 1,
             cal_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/json/series_sample.json"
+            json_file = data_dir / "json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
@@ -59,7 +62,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             series_id = 1,
             cal_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/yaml/series_sample.yaml"
+            json_file = data_dir / "yaml/series_sample.yaml"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
@@ -71,7 +74,7 @@ class Test_NodeSerieProno(unittest.TestCase):
             series_id = 1,
             cal_id = 1,
             tipo = "puntual",
-            csv_file = "sample_data/csv/csv_file_sample.csv"
+            csv_file = data_dir / "csv/csv_file_sample.csv"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
@@ -83,10 +86,10 @@ class Test_NodeSerieProno(unittest.TestCase):
             series_id = 1,
             cal_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/json/series_sample.json"
+            json_file = data_dir / "json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_prono.json"
+        output_file = data_dir / "results/series_prono.json"
         node_serie.saveData(output_file)
         node_serie_2 = NodeSerieProno(
             series_id = 1,
@@ -102,10 +105,10 @@ class Test_NodeSerieProno(unittest.TestCase):
             series_id = 1,
             cal_id = 1,
             tipo = "puntual",
-            json_file = "sample_data/json/series_sample.json"
+            json_file = data_dir / "json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
-        output_file = "results/series_prono.csv"
+        output_file = data_dir / "results/series_prono.csv"
         node_serie.saveData(output_file, format = "csv")
         node_serie_2 = NodeSerieProno(
             series_id = 1,

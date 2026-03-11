@@ -11,8 +11,7 @@ data_dir = Path(__file__).parent / "data"
 class Test_LagAndRouteProcedure(TestCase):
 
     def test_run(self):
-        plan_config = yaml.load(open(data_dir / "plans/lar_dummy.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/lar_dummy.yml")
         self.assertEqual(plan.procedures[0].function.pars_list[0], 3)
         self.assertTrue(plan.procedures[0].function.pars_list[1], 0.5)
         self.assertTrue(plan.procedures[0].function.pars_list[2], 2)
@@ -24,8 +23,7 @@ class Test_LagAndRouteProcedure(TestCase):
         self.assertEqual(len(plan.procedures[0].procedure_function_results.data["output"].dropna()), 31)
 
     def test_run_no_output(self):
-        plan_config = yaml.load(open(data_dir / "plans/lar_dummy_no_output.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/lar_dummy_no_output.yml")
         plan.execute(upload=False)
         self.assertGreaterEqual(len(plan.procedures[0].output[0]),31)
         self.assertEqual(type(plan.procedures[0].procedure_function_results.data),DataFrame)

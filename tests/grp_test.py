@@ -10,8 +10,7 @@ data_dir = Path(__file__).parent / "data"
 class Test_GRP(TestCase):
 
     def test_run(self):
-        plan_config = yaml.load(open(data_dir / "plans/dummy_grp_from_csv_one_node.yml"),yaml.CLoader)
-        plan = Plan(**plan_config)
+        plan = Plan.load(data_dir / "plans/dummy_grp_from_csv_one_node.yml")
         plan.topology.batchProcessInput()
         plan.execute(upload=False)
         self.assertEqual(len(plan.procedures[0].output[0]),11)
