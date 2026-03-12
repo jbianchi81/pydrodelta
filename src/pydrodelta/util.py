@@ -24,7 +24,7 @@ Series = pandas.Series
 import numpy as np
 from pathlib import Path
 
-def createParent(filepath : str | Path):
+def createParent(filepath : Union[str,Path]):
     parent = Path(filepath).parent
 
     if not parent.exists():
