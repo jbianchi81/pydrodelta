@@ -6,7 +6,7 @@ import logging
 from typing import Optional, Union, List
 import os
 import json
-from util import createParent
+from .util import createParent
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
