@@ -24,6 +24,14 @@ Series = pandas.Series
 import numpy as np
 from pathlib import Path
 
+def createParent(filepath : str | Path):
+    parent = Path(filepath).parent
+
+    if not parent.exists():
+        parent.mkdir(parents=True)
+        logging.info(f"Created directory: {parent}")
+
+
 def resolve_path(path_str, base=None):
     p = Path(path_str)
 
@@ -909,6 +917,7 @@ def plot_prono(
     while i < len(list0hrs):
         ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
+    createParent(output_file)
     plt.savefig(output_file,format = format)
     plt.close()
 

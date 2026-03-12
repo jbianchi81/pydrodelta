@@ -1,7 +1,7 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce, resolve_path
+from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce, resolve_path, createParent
 from pathlib import Path
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta
@@ -489,6 +489,7 @@ class Topology(Base):
         self.plotProno()
         if(self.report_file is not None):
             report = self.printReport()
+            createParent(self.report_file)
             f = open(self.report_file,"w")
             json.dump(report,f,indent=2)
             f.close()
@@ -825,6 +826,7 @@ class Topology(Base):
         variables : list or None = None
 
         """
+        createParent(file)
         f = open(file,"w")
         if format == "json":
             if pretty:
