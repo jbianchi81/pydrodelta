@@ -7,6 +7,7 @@ from .persistence import S3Client
 from .types.api_config_dict import ApiConfigDict
 from .types.s3_config_dict import s3ConfigDict
 from pathlib import Path
+from typing import Optional
 
 class Base():
     """An abstract class"""
@@ -23,7 +24,7 @@ class Base():
         
     s3_client : S3Client
 
-    base_path : Path | None
+    base_path : Optional[Path]
 
     def __init__(self,
         input_api_config : ApiConfigDict = None, 
