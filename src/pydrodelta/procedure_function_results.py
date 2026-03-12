@@ -6,6 +6,7 @@ import logging
 from typing import Optional, Union, List
 import os
 import json
+from util import createParent
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -106,6 +107,7 @@ class ProcedureFunctionResults:
             logging.warning("Procedure function produced no result to save. File %s not saved" % output)
             return
         try:
+            createParent(output)
             with open(output,'w') as f:
                 self.data.to_csv(f)
             logging.info("Procedure function results saved into %s" % output)
@@ -113,6 +115,7 @@ class ProcedureFunctionResults:
             logging.error(f"Couldn't write to file (%s)" % str(e))
     def saveDict(self, output : str):
         try:
+            createParent(output)
             with open(output,'w') as f:
                 json.dump(self.toDict(), f)
             logging.info("Procedure function results saved into %s" % output)
