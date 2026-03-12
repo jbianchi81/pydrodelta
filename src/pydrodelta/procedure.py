@@ -64,7 +64,7 @@ class Procedure():
     calibration : dict
         Configuration for calibration procedure (see Calibration)
 
-    base_path : str | Path | None
+    base_path : Union[str,Path,None]
 
     """
 
@@ -119,7 +119,7 @@ class Procedure():
     drop_warmup = BoolDescriptor()
     """Eliminate warmup steps of adjusted output"""
 
-    base_path : str | Path | None = None
+    base_path : Union[str,Path,None] = None
 
     def __init__(
         self,
@@ -143,7 +143,7 @@ class Procedure():
         sim_index : int = 0,
         save_dict : str = None,
         drop_warmup : bool = False,
-        base_path : str | Path | None = None
+        base_path : Union[str,Path,None] = None
         ):
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
@@ -215,7 +215,7 @@ class Procedure():
         self.save_dict = self.resolve_path(save_dict)
         self.drop_warmup = drop_warmup
     
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return util.resolve_path(path, self.base_path) if path is not None else None
 
     def getCalibrationPeriod(self) -> Union[tuple,None]:

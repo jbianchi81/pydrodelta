@@ -36,7 +36,7 @@ class LinearRegressionCalibration(Calibration):
             objective_function : str = 'rmse',
             save_result : str = None,
             calibration_period : list = None,
-            base_path : str | Path | None = None
+            base_path : Union[str,Path,None] = None
             ):
         """
         Parameters:

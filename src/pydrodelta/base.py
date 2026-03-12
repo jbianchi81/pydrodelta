@@ -7,7 +7,7 @@ from .persistence import S3Client
 from .types.api_config_dict import ApiConfigDict
 from .types.s3_config_dict import s3ConfigDict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 class Base():
     """An abstract class"""
@@ -30,7 +30,7 @@ class Base():
         input_api_config : ApiConfigDict = None, 
         output_api_config : ApiConfigDict = None, 
         s3_config : s3ConfigDict = None,
-        base_path : Path | None = None
+        base_path : Optional[Path] = None
         ):
         self.input_api_config = coalesce(input_api_config,config["input_api"] if "input_api" in config else None)
         self.output_api_config = coalesce(output_api_config,config["output_api"] if "output_api" in config else None)
@@ -55,5 +55,5 @@ class Base():
         kwargs["base_path"] = Path(file).resolve().parent
         return cls(**t_config,**kwargs)
     
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Union[Path,None]:
         return resolve_path(path, self.base_path) if path is not None else None

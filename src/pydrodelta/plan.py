@@ -7,7 +7,7 @@ from pandas import concat
 import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
-from typing import Union, List
+from typing import Union, List, Optional
 from pandas import DataFrame
 from pathlib import Path
 
@@ -93,17 +93,17 @@ class Plan(Base):
         self._time_interval = util.interval2timedelta(value) if value is not None else None
         if self.time_interval is not None and self.forecast_date is not None:
             self.forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
-    output_stats_file : Path | None # FilepathDescriptor()
+    output_stats_file : Optional[Path]# FilepathDescriptor()
     """file path where to save result statistics"""
-    output_analysis : Path | None # = FilepathDescriptor()
+    output_analysis : Optional[Path]# = FilepathDescriptor()
     """file path where to save analysis results"""
     pivot = BoolDescriptor()
     """option to pivot the results table (set one column per variable). Default False"""
-    save_post : Path | None # = FilepathDescriptor()
+    save_post : Optional[Path]# = FilepathDescriptor()
     """file path where to save the post data sent to the output api"""
-    save_response : Path | None # = FilepathDescriptor()
+    save_response : Optional[Path]# = FilepathDescriptor()
     """file path where to save the output api response"""
-    output_sim_csv : Path | None # = FilepathDescriptor()
+    output_sim_csv : Optional[Path]# = FilepathDescriptor()
     """Print simulated series into csv"""
     qualifiers = ListDescriptor()
     """Include this forecast members into the simulation output"""
@@ -136,10 +136,10 @@ class Plan(Base):
         return [p.id for p in self.procedures]
 
     """File path where to save graph representation of the plan"""
-    output_graph : Path | None # = FilepathDescriptor()
+    output_graph : Optional[Path]# = FilepathDescriptor()
 
     """Base path. Used to resolve input/output relative paths"""
-    base_path : Path | None = None
+    base_path : Optional[Path]= None
         
     def __init__(
             self,
@@ -215,7 +215,7 @@ class Plan(Base):
         output_graph : str or None
             File path where to save graph representation of the plan
 
-        base_path : Path | None = None
+        base_path Optional[Path]= None
             Base path. Used to resolve input/output relative paths
         
         """

@@ -65,7 +65,7 @@ class DerivedNodeSerie:
         output_file : str = None,
         output_format : str = "json",
         output_schema : str = "dict",
-        base_path : str | Path | None = None
+        base_path : Union[str,Path,None] = None
         ):
         """
         Parameters:
@@ -95,7 +95,7 @@ class DerivedNodeSerie:
         self.output_format = output_format
         self.output_schema = output_schema
 
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Union[str,None]:
         return resolve_path(path, self.base_path) if path is not None else None
     
     def deriveTag(

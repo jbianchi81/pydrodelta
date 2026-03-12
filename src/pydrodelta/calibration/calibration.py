@@ -58,7 +58,7 @@ class Calibration:
             "scores": self.scores.to_dict(orient="records") if self.scores is not None else None
         }
 
-    base_path : str | Path | None = None
+    base_path : Union[str,Path,None] = None
 
     def __init__(
             self,
@@ -68,7 +68,7 @@ class Calibration:
             objective_function : str = 'rmse',
             save_result : str = None,
             calibration_period : list = None,
-            base_path : str | Path | None = None
+            base_path : Union[str,Path,None] = None
             ):
         """
         Parameters:
@@ -108,7 +108,7 @@ class Calibration:
         self.calibration_period = calibration_period
         self.scores = None
 
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
 
     def toDict(self) -> dict:

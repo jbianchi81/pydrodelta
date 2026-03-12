@@ -13,7 +13,7 @@ import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import isodate
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Optional
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
@@ -83,7 +83,7 @@ class Node:
     _crud : Crud
     """Input api client"""
 
-    base_path : Path | None
+    base_path : Optional[Path]
     """Base path. Used to resolve input/output relative paths"""
 
     def __init__(
@@ -104,7 +104,7 @@ class Node:
             description : str = None,
             basin_pars : dict = None,
             api_config : dict = None,
-            base_path : str | Path | None = None
+            base_path : Union[str,Path,None] = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
         
@@ -158,7 +158,7 @@ class Node:
             - url : str
             - token : str
 
-        base_path : Path | None
+        base_path : Optional[Path]
         Base path. Used to resolve input/output relative paths
         """
         # if "id" not in params:
@@ -201,7 +201,7 @@ class Node:
                         continue
                     self.basin_pars[key] = area[key]     
     
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
     
     def __repr__(self):

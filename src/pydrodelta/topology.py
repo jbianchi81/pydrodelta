@@ -20,7 +20,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -187,7 +187,7 @@ class Topology(Base):
     var_map = DictDescriptor()
     """Variable metadata is stored in this dict"""
 
-    base_path : Path | None
+    base_path : Optional[Path]
     """Base path. Used to resolve input/output relative paths"""
 
     def __init__(
@@ -219,7 +219,7 @@ class Topology(Base):
         save_post_data : str = None,
         prono_ignore_warmup : bool = True,
         output_graph : str = None,
-        base_path : str | Path | None = None,
+        base_path : Union[str,Path,None] = None,
         **kwargs
         ):
         """Initiate topology
@@ -319,7 +319,7 @@ class Topology(Base):
         output_graph : str
         Print graph representation of the topology into this file (png) 
 
-        base_path : Path | None
+        base_path : Optional[Path]
         Base path. Used to resolve input/output relative paths
         """
         super().__init__(**kwargs, base_path=base_path)

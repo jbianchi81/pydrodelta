@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -131,7 +131,7 @@ class NodeVariable:
     forecast_timeend = DatetimeDescriptor()
     """Forecast end date"""
 
-    base_path : Path | None
+    base_path : Optional[Path]
 
     def __init__(
         self,
@@ -153,7 +153,7 @@ class NodeVariable:
         time_offset : relativedelta = None,
         forecast_timeend : datetime = None,
         use_filled_truth : bool = False,
-        base_path : Path | None = None
+        base_path : Optional[Path] = None
         ):
         """
         Parameters:
@@ -218,7 +218,7 @@ class NodeVariable:
         
             When adjusting series_prono, use filled series as truth (instead of first series)
 
-        base_path : Path | None = None
+        base_path : Optional[Path] = None
             Base path. Used to resolve input/output relative paths
         
         """
@@ -255,7 +255,7 @@ class NodeVariable:
         self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
         self.use_filled_truth = use_filled_truth
     
-    def resolve_path(self, path : str | Path | None) -> Path | None:
+    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
 
     def __repr__(self):

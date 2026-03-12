@@ -76,7 +76,7 @@ class DownhillSimplexCalibration(Calibration):
             max_iter : int = 5000,
             save_result : str = None,
             calibration_period : list = None,
-            base_path : str | Path | None = None
+            base_path : Union[str,Path,None] = None
             ):
         """
         Parameters:
