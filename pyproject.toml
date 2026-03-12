@@ -12,7 +12,7 @@ dependencies = [
     "datetime",
     "numpy",
     "matplotlib",
-    "pandas",
+    "pandas==2.2.3",
     "pytz",
     "jsonschema",
     "pyyaml",
