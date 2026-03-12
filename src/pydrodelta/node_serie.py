@@ -373,6 +373,7 @@ class NodeSerie(Base):
             else:
                 output_file = self.output_file
         try:
+            util.createParent(output_file)
             f = open(output_file,"w")
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))

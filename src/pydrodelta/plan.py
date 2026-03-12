@@ -330,9 +330,11 @@ class Plan(Base):
             except Exception as e:
                 logging.error("Failed to create corrida at database API: upload failed: %s" % str(e))
         if self.output_results_file is not None:
+            util.createParent(self.output_results_file)
             with open(self.output_results_file,"w",encoding='utf-8') as outfile:
                 json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
+            util.createParent(self.output_stats_file)
             with open(self.output_stats_file,"w",encoding='utf-8') as outfile:
                 json.dump([p.read_statistics(short=True) for p in self.procedures], outfile, indent=4)
         if self.topology.plot_variable is not None:
@@ -347,12 +349,14 @@ class Plan(Base):
                 self.topology.saveData(**item)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
+            util.createParent(self.output_sim_csv)
             with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
                 sim_data.to_csv(outfile)
         if self.save_variable_sim is not None:
             for v in self.save_variable_sim:
                 sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
                 sim_data = sim_data if sim_data is not None else createEmptyObsDataFrame()
+                util.createParent(v["output"])
                 with open(v["output"],"w",encoding='utf-8') as outfile:
                     sim_data.to_csv(outfile)
         self.saveSimData()
@@ -589,6 +593,7 @@ class Plan(Base):
         plt.figure(figsize=(config["graph"]["width"],config["graph"]["height"]))
         nx.draw_networkx(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors, node_size=100, font_size=9)
         if output_file is not None:
+            util.createParent(output_file)
             plt.savefig(output_file, format='png')
             plt.close()
 

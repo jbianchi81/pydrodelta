@@ -1143,6 +1143,7 @@ class Topology(Base):
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
         if output is not None:
             matplotlib.use('pdf')
+            createParent(output)
             pdf = matplotlib.backends.backend_pdf.PdfPages(output)
         else:
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
