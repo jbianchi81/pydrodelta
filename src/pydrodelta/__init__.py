@@ -4,6 +4,7 @@ __version__ = '0.1.dev0'
 
 from pydrodelta.analysis import run_analysis
 from pydrodelta.simulation import run_plan
+from pydrodelta.config import edit_config
 
 @click.group()
 @click.version_option(version=__version__)
@@ -13,3 +14,4 @@ def cli():
 
 cli.add_command(run_analysis)
 cli.add_command(run_plan)
+cli.add_command(edit_config, "config")

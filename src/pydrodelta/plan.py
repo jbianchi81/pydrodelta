@@ -561,7 +561,9 @@ class Plan(Base):
     def printGraph(
             self,
             nodes : Union[list,None]=None,
-            output_file : Union[str,None]=None
+            output_file : Union[str,None]=None,
+            width : float=None,
+            height : float=None
         ) -> None:
         """Print directioned graph from the plan. Topology nodes are linked to procedures according to the mapping provided at procedure.function.boundaries (node to procedure) and procedure.function.outputs (procedure to node)
         
@@ -586,11 +588,13 @@ class Plan(Base):
         attrs = nx.get_node_attributes(DG, 'object') 
         labels = {}
         colors = []
+        width = width if width is not None else config["graph"]["width"] if "graph" in config and "width" in config["graph"] else 6
+        height = height if height is not None else config["graph"]["height"] if "graph" in config and "height" in config["graph"] else 6
         for key in attrs:
             labels[key] = attrs[key]["name"] if "name" in attrs[key] else attrs[key]["id"] if "id" in attrs[key] else "N"
             colors.append("blue" if attrs[key]["node_type"] == "basin" else "yellow" if attrs[key]["node_type"] == "procedure" else "red")
         logging.debug("nodes: %i, attrs: %s, labels: %s, colors: %s" % (DG.number_of_nodes(), str(attrs.keys()), str(labels.keys()), str(colors)))
-        plt.figure(figsize=(config["graph"]["width"],config["graph"]["height"]))
+        plt.figure(figsize=(width,height))
         nx.draw_networkx(DG, with_labels=True, font_weight='bold', labels=labels, node_color=colors, node_size=100, font_size=9)
         if output_file is not None:
             util.createParent(output_file)

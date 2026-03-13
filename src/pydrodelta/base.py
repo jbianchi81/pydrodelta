@@ -51,7 +51,8 @@ class Base():
         Returns:
             Plan: an object of this class according to the provided configuration
         """
-        t_config = yaml.load(open(file),yaml.CLoader)
+        with open(file) as f:
+            t_config = yaml.safe_load(f)
         kwargs["base_path"] = Path(file).resolve().parent
         return cls(**t_config,**kwargs)
     

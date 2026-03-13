@@ -80,7 +80,10 @@ class ExpressionProcedureFunction(ProcedureFunction):
         output  = []
         for in_df in input:
             out_df = in_df.copy()
-            out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).applymap(lambda value: eval(self.expression))
+            if hasattr(out_df, "map"):
+                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).map(lambda value: eval(self.expression))
+            else:
+                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).applymap(lambda value: eval(self.expression))
             output.append(out_df)
         return (
             output, 

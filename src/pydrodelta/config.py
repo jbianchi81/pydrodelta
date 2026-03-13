@@ -1,29 +1,85 @@
 import yaml
-import os
+from pathlib import Path
+import click
+from dataclasses import dataclass
+
+@dataclass
+class AppState:
+    run_create: bool = False
+
+state = AppState()
+
+CONFIG_PATH = Path.home() / ".pydrodelta.yml"
+
+DEFAULT_CONFIG = {
+    "input_api": {
+        "url": "https://alerta.ina.gob.ar/a5",
+        "token": "my_token",
+    },
+    "output_api": {
+        "url": "http://localhost:3005",
+        "token": "my_token",
+    },
+    "log": {
+        "filename": str(Path.home() / "pydrodelta.log")
+    }
+}
+
+def deep_fill(data: dict, defaults: dict) -> dict:
+    for k, v in defaults.items():
+        if k not in data or data[k] is None:
+            data[k] = v
+        elif isinstance(v, dict) and isinstance(data[k], dict):
+            deep_fill(data[k], v)
+    return data
+
+def prompt(field, default):
+    value = input(f"{field} [{default}]: ").strip()
+    return value if value else default
+
+
+def create_config(defaults : dict=DEFAULT_CONFIG):
+    print("Please enter configuration values.\n")
+
+    defaults = deep_fill(defaults, DEFAULT_CONFIG)
+
+    cfg = {
+        "input_api": {
+            "url": prompt("Input API URL", defaults["input_api"]["url"]),
+            "token": prompt("Input API token", defaults["input_api"]["token"]),
+        },
+        "output_api": {
+            "url": prompt("Output API URL", defaults["output_api"]["url"]),
+            "token": prompt("Output API token", defaults["output_api"]["token"]),
+        },
+        "log": {
+            "filename": prompt("Log file path", defaults["log"]["filename"])
+        }
+    }
+
+    with open(CONFIG_PATH, "w") as f:
+        yaml.safe_dump(cfg, f, sort_keys=False)
+
+    print(f"\nConfig saved to {CONFIG_PATH}")
+    return cfg
 
 def loadConfig():
-    config_file = open(
-        os.path.join(
-            os.environ["HOME"],
-            ".pydrodelta.yml"
-        )
-    ) # "src/pydrodelta/config/config.json")
-    config = yaml.load(config_file,yaml.CLoader)
-    config_file.close()
+    if not CONFIG_PATH.exists():
+        print("Config file not found.")
+        state.run_create = True
+        return create_config()
 
-    defaults_file = open(
-        os.path.join(
-            os.environ["HOME"],
-            ".pydrodelta_defaults.yml"
-        )
-    ) # "src/pydrodelta/config/config.json")
-    defaults = yaml.load(defaults_file,yaml.CLoader)
-    defaults_file.close()
+    with open(CONFIG_PATH) as f:
+        return yaml.safe_load(f)
 
-    for key, value in defaults.items():
-        if key not in config:
-            config[key] = value
-    
-    return config
+def editConfig():
+    cfg = loadConfig()
+    return create_config(cfg)
 
 config = loadConfig()
+
+@click.command()
+@click.pass_context
+def edit_config(self):
+    if not state.run_create:
+        editConfig()
