@@ -8,6 +8,7 @@ from pandas import DataFrame
 import os
 from datetime import datetime
 from pathlib import Path
+from ..util import createParent
 
 class LinearRegressionCalibration(Calibration):
     """Calibration procedure using linear regression - least squares"""
@@ -125,6 +126,7 @@ class LinearRegressionCalibration(Calibration):
         fitted_parameters, results, stats_all = self.linearRegression(calibration_period=calibration_period)
         save_result = save_result if save_result is not None else self.save_result
         if save_result:
+            createParent(save_result)
             json.dump(
                 {
                     "parameters": fitted_parameters,
