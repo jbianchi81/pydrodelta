@@ -200,6 +200,6 @@ class ProcedureBoundary():
 
         na_count = data_filtered.isna().sum()
         if na_count > 0:
-            first_na_datetime = data_filtered[data_filtered["valor"].isna()].iloc[0].name.isoformat()
+            first_na_datetime = data_filtered.index[data_filtered.isna()][0].isoformat()
             raise AssertionError("procedure boundary variable %s has NaN values starting at position %s" % ( ("sim data at index %i" % sim_index) if read_sim else "data", first_na_datetime))
         return
