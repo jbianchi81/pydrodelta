@@ -1148,7 +1148,6 @@ class Topology(Base):
         else:
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         for node in self.nodes:
-            # if hasattr(node.series[0],"data"):
             if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
                 data = node.variables[var_id].data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
                 data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
@@ -1156,13 +1155,10 @@ class Topology(Base):
                     data = data[data["timestart"] >= timestart]
                 if timeend is not None:
                     data = data[data["timestart"] <= timeend]
-                # data = node.series[0].data.reset_index() # .plot(y="valor")
-                # data.plot(kind="scatter",x="timestart",y="valor",title=node.name, figsize=(20,8),grid=True)
                 fig, ax = plt.subplots(ncols=2,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1]})
                 grouped = data.groupby('tag')
                 for key, group in grouped:
                     group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
-                # data.plot.line(x="timestart",y="valor",ax=ax)
                 original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
                 original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
                 data_table = data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
@@ -1172,14 +1168,12 @@ class Topology(Base):
                         original_data = original_data[original_data["timestart"] >= timestart]
                     if timeend is not None:
                         original_data = original_data[original_data["timestart"] <= timeend]
-                    # original_data.plot(ax=ax[0],kind='line', x='timestart', y='valor', label="analysis",title=node.name, figsize=(20,8),grid=True, color=color_map["analysis"])
                     ax[0].plot(
                         original_data["timestart"],
                         original_data["valor"],
                         label="analysis",
                         color=color_map["analysis"]
                     )
-                    # data_table = original_data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
                     data_table["analysis"] = original_data.set_index("timestart")["valor"].combine_first(data_table["analysis"])
                 else:
                     logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
@@ -1196,7 +1190,6 @@ class Topology(Base):
                             if timeend is not None:
                                 data_sim = data_sim[data_sim["timestart"] <= timeend]
                             label = "sim_%i" % serie_sim.series_id
-                            # data_sim.plot(ax=ax[0],kind='line', x='timestart', y='valor', label=label,title=node.name, figsize=(20,8),grid=True, color=sim_colors[i].get_hex())
                             ax[0].plot(
                                 data_sim["timestart"],
                                 data_sim["valor"],
@@ -1211,18 +1204,6 @@ class Topology(Base):
                                     data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
                                     label = "sim_%i_%s" % (serie_sim.series_id, c)
                                     logging.debug("Add series sim column %s, label %s" % (c,label))
-                                    # data_sim.plot(
-                                        # ax=ax[0],
-                                        # kind='line', 
-                                        # x='timestart', 
-                                        # y=c, 
-                                        # label=label,
-                                        # title=node.name, 
-                                        # figsize=(20,8),
-                                        # grid=True, 
-                                        # color=getRandColor(),
-                                        # linestyle="--",
-                                        # alpha=0.5)
                                     ax[0].plot(
                                         data_sim["timestart"],
                                         data_sim[c],
@@ -1446,6 +1427,15 @@ class Topology(Base):
                 # forecast_table=forecast_table,
                 # footnote_height=footnote_height
             )
+
+    def plotAll(self, node_ids: List[int]=None,var_ids : List[int]=None,**kwargs):
+        for node in self.nodes:
+            if node_ids is not None and node.id not in node_ids:
+                continue
+            node.plotAll(var_ids=var_ids, **kwargs)
+
+
+
     def printReport(self) -> dict:
         """
         Print topology report

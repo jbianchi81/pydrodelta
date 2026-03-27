@@ -1210,3 +1210,9 @@ def getInputListFromDataFrame(df : DataFrame, allow_na : bool=False, procedure_i
     if True in np.isnan(input) and not allow_na:
         raise Exception("Procedure %s: NaN values found in input before last date %s" % (procedure_id, last_date.isoformat()))
     return input
+
+def ensure_local(dt : datetime) -> datetime:
+    local_tz = datetime.now().astimezone().tzinfo
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=local_tz)
+    return dt

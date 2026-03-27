@@ -2,7 +2,7 @@ from a5client import Crud, Serie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta, resolve_path
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta, resolve_path, ensure_local
 import pandas
 import logging
 import json
@@ -804,6 +804,86 @@ class NodeVariable:
                     data = data.append(other_data,ignore_index=True)
         return data
     
+    def pivotAll(self, timestart : datetime=None, timeend : datetime=None, precision : int=None, extra_sim_columns : bool=False, date_as_string : bool=False, time_interval : timedelta=None, separate_original : bool=True) -> pandas.DataFrame:
+        """Generates dataframe containing analysis and simulated series
+
+        Args:
+            timestart (datetime, optional): begin date. Defaults to None.
+            timeend (datetime, optional): end date. Defaults to None.
+            precision (int, optional): Round values to this number of decimals. Defaults to None.
+            extra_sim_columns (bool, optional): Add sim columns other than 'valor'. i.e. qualifiers. Defaults to False.
+            date_as_string (bool, optional): Convert date index to string. Defaults to False.
+            time_interval (timedelta, optional): time interval of the topology. Used only to set date string format. Defaults to None.
+            separate_original (bool, optional): add column for original data analysis (before any procedure execution). Defaults to True
+
+        Returns:
+            pandas.DataFrame: A dataframe containing analysis (first column) and simulated series. The latter are labeled "sim_$id" being $id the id of the simulated series
+        """
+        data = self.data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
+        data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
+        if timestart is not None:
+            timestart = ensure_local(timestart)
+            data = data[data["timestart"] >= timestart]
+        if timeend is not None:
+            timeend = ensure_local(timeend)
+            data = data[data["timestart"] <= timeend]
+        original_data = self.original_data.reset_index().rename(columns={"index":"timestart"})
+        original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
+        data_table = data.set_index("timestart")[["valor"]]
+        if len(original_data.dropna()["valor"]):
+            if separate_original:
+                data_table.rename(columns={"valor": "result"}, inplace=True)
+                data_table["analysis"] = original_data.set_index("timestart")["valor"]
+            else:
+                data_table = data_table.rename(columns={"valor":"analysis"})
+                data_table["analysis"] = original_data.set_index("timestart")["valor"].combine_first(data_table["analysis"])
+        else:
+            if separate_original:
+                data_table = data_table.rename(columns={"valor":"result"})
+            else:
+                data_table = data_table.rename(columns={"valor":"analysis"})
+        if self.series_sim is not None and len(self.series_sim):
+            for i, serie_sim in enumerate(self.series_sim):
+                if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
+                    data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
+                    data_sim["valor"] = pandas.to_numeric(data_sim["valor"], errors="coerce")
+                    if timestart is not None:
+                        data_sim = data_sim[data_sim["timestart"] >= timestart]
+                    if timeend is not None:
+                        data_sim = data_sim[data_sim["timestart"] <= timeend]
+                    label = "sim_%i" % serie_sim.series_id
+                    data_table = data_table.join(data_sim.set_index("timestart")[["valor"]].rename(columns={"valor":label}))
+                    data_table[label] = data_table[label].round(2)
+                    if extra_sim_columns:
+                        for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
+                            data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
+                            label = "sim_%i_%s" % (serie_sim.series_id, c)
+                            data_table = data_table.join(data_sim.set_index("timestart")[[c]].rename(columns={c:label}))
+        if precision is not None:
+            data_table = data_table.round(precision)
+        if date_as_string:
+            data_table = data_table.reset_index()
+            data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if time_interval is not None and datetime(2000, 1, 1) + time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
+        return data_table
+
+    def plotAll(self, figsize=[12,6],**kwargs):
+        """Plot analysis, sim and result in same plot
+
+        Args:
+            figsize (list, optional): _description_. Defaults to [12,6].
+        """
+        data_table = self.pivotAll(**kwargs)
+        data_sim = data_table.filter(regex=r"^sim_\d+$")
+        title = "%s [node %i] - %s [var %i]" % (self._node.name, self._node.id, self.name if self.name is not None else "", self.id) if self._node is not None else "%s [var %i]" % (self.name if self.name is not None else "", self.id)
+        if len(data_sim.columns):
+            ax = data_sim.plot(figsize=figsize, title=title)
+            data_table[["result"]].plot(ax=ax, style="--",color="black",figsize=figsize)
+        else:
+            ax = data_table[["result"]].plot(figsize=[12,6],style="--",color="black",title=title)
+        if "analysis" in data_table.columns:
+            data_table[["analysis"]].plot(ax=ax, style="+",linestyle="None",color="red")
+        plt.show()
+
     def saveSeries(
         self,
         output : str,

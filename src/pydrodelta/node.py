@@ -815,7 +815,12 @@ class Node:
                 filename, lineno, func, text = tb[-1]
                 raise ValueError("Plot prono failed at node %i variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, variable.id, filename, lineno, func, str(e)))
 
-    
+    def plotAll(self, var_ids : List[int]=None,**kwargs):
+        for i, var in self.variables.items():
+            if var_ids is not None and var.id not in var_ids:
+                continue
+            var.plotAll(**kwargs)
+
     def loadData(
         self,
         timestart : Union[datetime,str,dict],
