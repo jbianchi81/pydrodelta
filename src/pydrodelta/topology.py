@@ -1434,7 +1434,42 @@ class Topology(Base):
                 continue
             node.plotAll(var_ids=var_ids, **kwargs)
 
+    def dataAll(self, node_ids: List[int]=None,var_ids : List[int]=None, timestart : datetime=None, timeend : datetime=None):
+        series_dict = {}
 
+        for node in self.nodes:
+            if node_ids is not None and node.id not in node_ids:
+                continue
+
+            node_id = node.id
+
+            for var_id, var in node.variables.items():
+                if var_ids is not None and var_id not in var_ids:
+                    continue
+
+                s = var.data["valor"]
+
+                # ensure it's a Series with datetime index
+                s = s.rename((node_id, var_id))
+
+                series_dict[(node_id, var_id)] = s
+
+        df = pandas.concat(series_dict.values(), axis=1)
+
+        # enforce MultiIndex columns with names
+        df.columns = pandas.MultiIndex.from_tuples(
+            series_dict.keys(),
+            names=["node", "variable"]
+        )
+
+        if timestart is not None:
+                timestart = ensure_local(timestart)
+                df = df[df.index >= timestart]
+        if timeend is not None:
+            timeend = ensure_local(timeend)
+            df = df[df.index <= timeend]
+
+        return df.sort_index()
 
     def printReport(self) -> dict:
         """
