@@ -394,7 +394,9 @@ class Procedure():
         obs : Optional[list] = None, 
         sim : Optional[list] = None,
         calibration_period : Optional[tuple]=None,
-        result_index : int = 0
+        result_index : int = 0,
+        tail : Optional[int] = None,
+        warmup : Optional[int] = None
         ) -> Tuple[List[ResultStatistics]]:
         """Compute statistics over procedure results.
         
@@ -416,6 +418,8 @@ class Procedure():
         """
         obs = obs if obs is not None else self.output_obs
         sim = sim if sim is not None else self.output
+        tail = tail if tail is not None else self.tail_steps
+        warmup = warmup if warmup is not None else self.warmup_steps
         result = list()
         result_val = list()
         # if len(obs) < len(sim):
@@ -425,7 +429,11 @@ class Procedure():
                 raise Exception("List of sim outputs is shorter than function.outputs (%i < %i" % (len(sim), len(self.function.outputs)))
             if len(obs) < i + 1:
                 raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
-            inner_join = sim[i][["valor"]].rename(columns={"valor":"sim"}).join(obs[i][["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
+            df_obs = obs[i].iloc[warmup:].copy() if warmup is not None else obs[i]
+            df_obs = df_obs.tail(tail) if tail is not None else df_obs
+            df_sim = sim[i].iloc[warmup:].copy() if warmup is not None else sim[i]
+            df_sim = df_sim.tail(tail) if tail is not None else df_sim
+            inner_join = df_sim[["valor"]].rename(columns={"valor":"sim"}).join(df_obs[["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
             if calibration_period is not None:
                 inner_join_cal, inner_join_val = util.groupByCalibrationPeriod(inner_join,calibration_period)
                 if i == result_index and (inner_join_cal is None or not len(inner_join_cal)):
