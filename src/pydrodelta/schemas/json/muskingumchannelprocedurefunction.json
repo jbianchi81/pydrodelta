@@ -26,10 +26,13 @@
                 },
                 "X": {
                     "type": "number",
-                    "description": "Factor de forma"
+                    "minimum": 0,
+                    "maximum": 0.5,
+                    "description": "Factor de forma. 0 <= X <= 0.5"
                 }        
             },
-            "required": ["K","X"]
+            "required": ["K","X"],
+            "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
@@ -52,6 +55,42 @@
                     "type": "number"
                 }
             ]
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

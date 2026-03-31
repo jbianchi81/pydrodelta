@@ -141,7 +141,8 @@
                     "description": "number of reservoirs"
                 }
             },
-            "required": ["lag_1", "k_1", "n_1"]
+            "required": ["lag_1", "k_1", "n_1"],
+            "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
@@ -151,6 +152,42 @@
                     "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
                 }
             }
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input_1", "input_2","input_3", "input_4","input_5", "input_6","input_7", "input_8","input_9", "input_10"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 2,
+            "maxItems": 10
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

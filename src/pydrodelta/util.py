@@ -1216,3 +1216,14 @@ def ensure_local(dt : datetime) -> datetime:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=local_tz)
     return dt
+
+def abs_relativedelta(rd : relativedelta):
+    return relativedelta(
+        years=abs(rd.years),
+        months=abs(rd.months),
+        days=abs(rd.days),
+        hours=abs(rd.hours),
+        minutes=abs(rd.minutes),
+        seconds=abs(rd.seconds),
+        microseconds=abs(rd.microseconds)
+    )

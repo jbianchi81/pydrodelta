@@ -30,6 +30,8 @@ class EnhancedTypedList(collections.abc.MutableSequence):
     
     def assert_missing_ids(self):
         for v in self._valid_items_list:
+            if "optional" in v and v["optional"]:
+                continue
             if v[self._unique_id_property] not in [getattr(x, self._unique_id_property) for x in self.list]:
                 raise ValueError("Missing required element with id='%s' in list" % v[self._unique_id_property])
 

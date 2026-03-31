@@ -37,26 +37,35 @@
                         "type": "object",
                         "properties": {
                             "intercept": {
-                                "type": "number"
+                                "type": "number",
+                                "description": "Intercept of the linear regression for this forecast timestep"
                             },
                             "boundaries": {
                                 "type": "array",
+                                "description": "Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
                                 "items": {
                                     "type": "object",
                                     "properties": {
                                         "name": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "Boundary identifier. Examples: input_1, input_2"
                                         },
                                         "values": {
-                                            "type": "array"
+                                            "type": "array",
+                                            "description": "The coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
+                                            "items": {
+                                                "type": "number"
+                                            }
                                         }
-                                    }
+                                    },
+                                    "required": ["name", "values"]
                                 }
                             },
                             "step" : {
                                 "type": "integer"
                             }
                         },
+                        "required": ["intercept", "boundaries"],
                         "additionalProperties": false
                     },
                     "description": "List of objects where each item represents a forecast time step (index 0 is first step). Each object has 'intercept' <number> and 'boundaries' <array>. Each item of boundaries contains a name <string> and values <array> which are the coefficients starting from the one corresponding to the value at the forecast_date, the second corresponding to the value at the forecast_date minus one time step, and so on",
@@ -77,6 +86,42 @@
                     "description": "Confidence level multiplier (e.g., Z = 1.96 for 95% confidence)"
                 }
             }
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input_1","input_2","input_3","input_4","input_5","input_6","input_7","input_8","input_9","input_10","input_11","input_12","input_13","input_14","input_15","input_16"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 16
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

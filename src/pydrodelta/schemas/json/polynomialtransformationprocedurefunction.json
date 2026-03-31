@@ -33,7 +33,8 @@
                     "description": "intercept of the linear transformation. Defaults to 0"
                 }        
             },
-            "required": ["coefficients"]
+            "required": ["coefficients"],
+            "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
@@ -44,7 +45,44 @@
                     "description": "allow for null values in input",
                     "default": false
                 }
-            }
+            },
+            "additionalProperties": false
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

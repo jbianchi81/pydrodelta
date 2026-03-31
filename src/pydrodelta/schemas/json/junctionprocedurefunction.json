@@ -25,6 +25,42 @@
                     "description": "Option to replace negative values with zero"
                 }
             }
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "pattern": "^input_[0-9]+$"
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 2
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

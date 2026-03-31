@@ -26,10 +26,11 @@
                     "items": {
                         "type": "number"
                     },
-                    "description": "distribution function that represent the apportionment of the unit pulse"
+                    "description": "distribution function that represent the apportionment of the unit pulse. Array of numbers"
                 }
             },
-            "required": ["u"]
+            "required": ["u"],
+            "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
@@ -40,6 +41,42 @@
                     "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
                 }       
             }
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
     },
     "required": [

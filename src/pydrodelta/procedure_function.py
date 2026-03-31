@@ -367,8 +367,12 @@ class ProcedureFunction:
             raise ValueError("input must be of length 1 or greater")
         result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})
         for i in range(1,len(self._boundaries)):
+            if self._boundaries[i].optional and len(input) < i + 1:
+                continue
             result = result.join(input[i][["valor"]].rename(columns={"valor": self._boundaries[i].name}))
         for i in range(0,len(self._outputs)):
+            if self._outputs[i].optional and len(output) < i + 1:
+                continue
             if type(output[i]) == DataFrame:
                 result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
             else:

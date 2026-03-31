@@ -61,6 +61,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
             self.drop_warmup = self.extra_pars["drop_warmup"] if "drop_warmup" in self.extra_pars else False
         else:
             self.warmup_steps = None
+            self.drop_warmup = False
         if "tail_steps" in self.extra_pars:
             self.tail_steps = self.extra_pars["tail_steps"]
         else:
@@ -145,7 +146,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
             ProcedureFunctionResults(
                 border_conditions = input,
                 data = input[0][["valor"]].rename(columns={"valor":"input"}).join(output_obs[0][["valor"]].rename(columns={"valor": "output_obs"})).join(output_data[["valor"]].rename(columns={"valor":"output"})),
-                extra_pars = self.extra_pars
+                extra_pars = self.extra_pars,
+                adjust_results = self.linear_model
             )
         )
 

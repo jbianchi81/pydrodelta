@@ -3,7 +3,7 @@ from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 from a5client import createEmptyObsDataFrame
 import logging
-from .util import serieFillNulls, serieRegular, createDatetimeSequence, coalesce
+from .util import serieFillNulls, serieRegular, createDatetimeSequence, coalesce, abs_relativedelta
 import numpy as np
 from typing import List, Union
 from datetime import datetime
@@ -34,7 +34,7 @@ class ObservedNodeVariable(NodeVariable):
         self,
         series
         ) -> None:
-        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = "id", node_variable = self, base_path=self.base_path) if series is not None else None
+        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = ("id","cal_id"), node_variable = self, base_path=self.base_path) if series is not None else None
     
     def __init__(
         self,
@@ -99,9 +99,15 @@ class ObservedNodeVariable(NodeVariable):
         logging.debug("Load data for observed node: %i" % (self.id))
         if self.series is not None:
             for serie in self.series:
+                if serie.x_offset is not None:
+                    ts = timestart - abs_relativedelta(serie.x_offset)
+                    te = timeend + abs_relativedelta(serie.x_offset)
+                else:
+                    ts = timestart
+                    te = timeend
                 serie.loadData(
-                    timestart,
-                    timeend,
+                    ts,
+                    te,
                     input_api_config,
                     no_metadata=no_metadata)
                 if serie.required:
@@ -113,11 +119,20 @@ class ObservedNodeVariable(NodeVariable):
         if include_prono and self.series_prono is not None and len(self.series_prono):
             forecast_timeend = forecast_timeend if forecast_timeend is not None else self.forecast_timeend
             for serie in self.series_prono:
+                if serie.x_offset is not None:
+                    ts = timestart - abs_relativedelta(serie.x_offset)
+                    te = timeend + abs_relativedelta(serie.x_offset)
+                    if forecast_timeend is not None:
+                        fte = forecast_timeend + abs_relativedelta(serie.x_offset)
+                else:
+                    ts = timestart
+                    te = timeend
+                    fte = forecast_timeend
                 try:
                     if forecast_timeend is not None:
-                        serie.loadData(timestart,forecast_timeend,input_api_config)
+                        serie.loadData(ts,fte,input_api_config)
                     else:
-                        serie.loadData(timestart,timeend,input_api_config)
+                        serie.loadData(ts,te,input_api_config)
                     if serie.required:
                         serie.assertNotEmpty()
                 except Exception as e:
@@ -173,6 +188,9 @@ class ObservedNodeVariable(NodeVariable):
         """For each serie in .series, apply offset where .x_offset and/or .y_offset is set"""
         for serie in self.series:
             serie.applyOffset()
+        if self.series_prono is not None:
+            for serie in self.series_prono:
+                serie.applyOffset()
     
     def regularize(
         self,

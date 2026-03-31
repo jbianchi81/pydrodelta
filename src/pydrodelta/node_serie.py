@@ -457,7 +457,7 @@ class NodeSerie(Base):
         if not len(self.data):
             logging.debug("applyOffset: self.data is empty")
             return
-        if isinstance(self.x_offset,timedelta):
+        if isinstance(self.x_offset,relativedelta):
             self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
             self.data.index.rename("timestart",inplace=True)
         elif self.x_offset != 0:

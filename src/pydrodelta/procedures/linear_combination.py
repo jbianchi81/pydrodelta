@@ -84,7 +84,7 @@ class ForecastStep():
         self._boundaries = list()
         for boundary in boundaries:
             if str(boundary["name"]) not in [b.name for b in self._procedure_function.boundaries]:
-                raise Exception("Boundary %s not found in procedure.boundaries: " % (str(boundary["name"]), str([b.name for b in self._procedure_function.boundaries])))
+                raise Exception("Boundary %s not found in procedure.boundaries: %s" % (str(boundary["name"]), str([b.name for b in self._procedure_function.boundaries])))
             self.boundaries.append(BoundaryCoefficients(**boundary, procedure_function = self._procedure_function))
     
     def __init__(
@@ -148,8 +148,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             logging.warning("Coefficients not set")
             return None
         return [
-            ForecastStep(**step, procedure_function = self)
-            for step in self.parameters["coefficients"]
+            ForecastStep(
+                coefficients["intercept"], 
+                coefficients["boundaries"],
+                procedure_function = self, 
+                step=step)
+            for step, coefficients in enumerate(self.parameters["coefficients"])
         ]
 
     _no_sim = True
