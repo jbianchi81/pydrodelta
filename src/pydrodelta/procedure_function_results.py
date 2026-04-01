@@ -6,7 +6,7 @@ import logging
 from typing import Optional, Union, List
 import os
 import json
-from .util import createParent
+from .util import createParent, make_serializable
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -143,7 +143,7 @@ class ProcedureFunctionResults:
             "extra_pars": self.extra_pars,
             "statistics": [x.toDict() for x in self.statistics] if self.statistics is not None else None,
             "statistics_val": [x.toDict() for x in self.statistics_val] if self.statistics_val is not None else None,
-            "data": self.data.replace({np.nan:None}).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [df.replace({np.nan:None}).to_dict("records") for df in self.data] if self.data is not None else None,
+            "data": make_serializable(self.data).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [make_serializable(df).to_dict("records") for df in self.data] if self.data is not None else None,
             "adjust_results": self.adjust_results_dict
         }
 

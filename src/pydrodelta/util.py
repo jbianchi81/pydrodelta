@@ -202,6 +202,23 @@ def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relative
     else:
         return date_0 - timeInterval
 
+from dateutil.relativedelta import relativedelta
+
+def relativedelta_to_freq(rd: relativedelta) -> str:
+    if rd.years:
+        return f"{rd.years}Y"
+    if rd.months:
+        return f"{rd.months}M"
+    if rd.days:
+        return f"{rd.days}D"
+    if rd.hours:
+        return f"{rd.hours}H"
+    if rd.minutes:
+        return f"{rd.minutes}T"
+    if rd.seconds:
+        return f"{rd.seconds}S"
+    raise ValueError("Unsupported relativedelta")
+
 def createDatetimeSequence(
     datetime_index : pandas.DatetimeIndex=None, 
     timeInterval : Union[relativedelta,dict,int,timedelta] = relativedelta(days=1), 
@@ -229,6 +246,8 @@ def createDatetimeSequence(
             freq = "%iYS" % timeInterval.years 
         elif timeInterval.days > 0:
             freq = "%iD" % timeInterval.days
+        else:
+            freq = relativedelta_to_freq(timeInterval)
         dts_utc = pandas.date_range(
             start=timestart.astimezone(tz.UTC), 
             end=timeend.astimezone(tz.UTC), 
@@ -1227,3 +1246,11 @@ def abs_relativedelta(rd : relativedelta):
         seconds=abs(rd.seconds),
         microseconds=abs(rd.microseconds)
     )
+
+def make_serializable(df: DataFrame) -> DataFrame:
+    df = df.copy()
+    df = df.replace({np.nan:None})
+    for col in df.select_dtypes(include=["datetime64[ns]", "datetimetz"]):
+        df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+    return df
+    

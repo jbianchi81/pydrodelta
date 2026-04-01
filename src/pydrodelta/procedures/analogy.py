@@ -406,7 +406,12 @@ def CalcIndicXFecha(df,year_obj,mes_obj,longBusqueda):
     # Busca la fecha seleccionada
     fecha_Obj = df.query("year=="+str(year_obj)+" and month=="+str(mes_obj))
     # Toma el id de la fecha seleccionada
-    idx_select = fecha_Obj.index[0].to_pydatetime()
+    if not len(fecha_Obj):
+        raise IndexError("Requested date year: %i, month: %s is outside of data range" % (year_obj, mes_obj))
+    try:
+        idx_select = fecha_Obj.index[0].to_pydatetime()
+    except IndexError as e:
+        raise e
 
     # Arma el Df de datos Obs para la fecha seleccionada
     idx_fecha_fin = idx_select # + relativedelta(months=1)
@@ -526,7 +531,8 @@ def MetodoAnalogia_errores_v2(
         connBBDD=None,
         skip_first_years:int=10, 
         only_last_years:int=None,
-        vent_resamp_range:Tuple[int,int]=None
+        vent_resamp_range:Tuple[int,int]=None,
+        tz = pytz.timezone("America/Argentina/Buenos_Aires")
         ) -> DataFrame:
     longBusqueda = ParamMetodo['search_length']
     longProno = ParamMetodo['forecast_length']
@@ -623,26 +629,25 @@ def MetodoAnalogia_errores_v2(
             # Arma el Df para comparar con el seleccionado.
             fecha_sim = df_pasado.query("year=="+str(yr_sim)+" and month=="+str(mes_select))
             idx_sim = fecha_sim.index[0].to_pydatetime() # + 1
-            idx_sim_f = idx_sim + relativedelta(months=longProno - 1)
+            idx_sim_f = tz.localize(idx_sim.replace(tzinfo=None) + relativedelta(months=longProno - 1))
             dfSim = df_pasado[idx_sim:idx_sim_f].copy().dropna()
-            if len(dfSim) < 3:
+            if len(dfSim) < longProno:
                 logging.warning('%i con Faltantes.' % yr_sim)
                 continue
-            else:
-                par_comp.iloc[n_sim_sin_nan] = df_indicadores.iloc[index]
-                dfSim = dfSim[['month',]+ cols_var]
-                dfSim = dfSim.rename(columns={cols_var[0]:int(yr_sim),cols_var[1]:str(int(yr_sim))+'_Transf'})
-                df_merged = df_union.merge(dfSim, on='month', how='left')
-                if len(df_merged) != len(df_union):
-                    logging.error("Row count changed after merge")
-                    # assert len(df_merged) == len(df_union), "Row count changed after merge"
-                df_union = df_merged
-                n_sim_sin_nan += 1
-                if n_sim_sin_nan == 5: break
+            par_comp.iloc[n_sim_sin_nan] = df_indicadores.iloc[index]
+            dfSim = dfSim[['month',]+ cols_var]
+            dfSim = dfSim.rename(columns={cols_var[0]:int(yr_sim),cols_var[1]:str(int(yr_sim))+'_Transf'})
+            df_merged = df_union.merge(dfSim, on='month', how='left')
+            if len(df_merged) != len(df_union):
+                logging.error("Row count changed after merge")
+                # assert len(df_merged) == len(df_union), "Row count changed after merge"
+            df_union = df_merged
+            n_sim_sin_nan += 1
+            if n_sim_sin_nan == 5: break
 
         # controla cantidad
         if len(par_comp[["RMSE"]].dropna()) < cantidad:
-            raise ValueError("History too short: need at least %i observations before %i-%i" % (cantidad, yr_sim, mes_select))
+            raise ValueError("History too short: need at least %i observations before %i-%i" % (cantidad, fecha_prono.year, fecha_prono.month))
         
         # Calculo de los pesos
         par_comp['wi'] = 1/par_comp['RMSE']

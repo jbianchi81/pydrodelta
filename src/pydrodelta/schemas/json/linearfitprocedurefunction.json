@@ -15,44 +15,8 @@
             "enum": [
                 "LinearFit"
             ]
-        },
-        "boundaries": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["input"]
-                            }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 1
-        },
-        "outputs": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["output"]
-                            }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 1
         }
-   },
+    },
     "required": [
         "type"
     ]

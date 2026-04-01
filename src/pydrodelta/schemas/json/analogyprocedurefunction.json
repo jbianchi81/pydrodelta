@@ -38,7 +38,7 @@
                 "ascending": {
                     "description": "Sort ascending",
                     "type": "boolean",
-                    "desfault": true
+                    "default": true
                 },
                 "number_of_analogs": {
                     "description": "Cantidad de series que toma",
@@ -63,10 +63,11 @@
                 },
                 "skip_first_years": {
                     "type": "number",
-                    "default": 10
+                    "description": "Skip first n years while running hindcast"
                 },
                 "only_last_years": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "Run hindcast on only the last n years"
                 },
                 "vent_resamp_range": {
                     "type": "array",
@@ -91,6 +92,42 @@
                     "description": "If forecast date day of month if greater than n_dom, set end date to forecast date month. Else set previous month. Default None"
                 }
             }
+        },
+        "boundaries": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["input"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 0,
+            "maxItems": 1
+        },
+        "outputs": {
+            "type": "array",
+            "items": {
+                "allOf": [
+                    { "$ref": "procedureboundary.json"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "enum": ["output"]
+                            }
+                        }
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 1
         }
    },
     "required": [
