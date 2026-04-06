@@ -101,7 +101,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
     H = ListDescriptor()
     """The states transformation matrix"""
 
-    _pivot_input : bool = True
+    _pivot_input : bool = False
     """Set to True if the run method requires a pivoted input"""
 
     def __init__(
@@ -306,7 +306,8 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         self,
         x : list,
         pma : float,
-        etp : float
+        etp : float,
+        step : int
         ) -> Tuple[list,int]:
         """Advance model step and (where self.xpert is set) add noise
         
@@ -329,7 +330,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         npasos : int
             The number of substeps used for computation
         """
-        x, npasos = self.advance_step(x,pma,etp)
+        x, npasos = self.advance_step(x,pma,etp,step)
         # self.xsinpert = list(x)
         if self.xpert:
             x = self.pertX(x)
@@ -777,10 +778,10 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             for j in range(self.replicates):
                 p_alt = max(pma + np.random.normal(0,self.p_stddev * pma),0)
                 pet_alt = max(etp + np.random.normal(0,self.pet_stddev),0)
-                self.ens[j], npasos = self.advance_step(list(self.ens[j]),p_alt,pet_alt)
-                self.ens1[j], npasos = self.advance_step(list(self.ens1[j]),p_alt,pet_alt)
-                self.ens2[j], npasos = self.advance_step(list(self.ens2[j]),p_alt,pet_alt)
-            x_al, npasos = self.advance_step_and_pert(list(x_al),pma,etp)
+                self.ens[j], npasos = self.advance_step(list(self.ens[j]),p_alt,pet_alt, k)
+                self.ens1[j], npasos = self.advance_step(list(self.ens1[j]),p_alt,pet_alt, k)
+                self.ens2[j], npasos = self.advance_step(list(self.ens2[j]),p_alt,pet_alt, k)
+            x_al, npasos = self.advance_step_and_pert(list(x_al),pma,etp, k)
             # $json_al .= ",\"n_pasos\":$npasos},"; #print $salida_al "$npasos\n";
             # $json_plus .= ",\"n_pasos\":$npasos,\"qobs\":" . ((defined $q) ? $q : "null") . ",\"smcobs\":" . ((defined $smc) ? $smc : "null") . "},";
             
