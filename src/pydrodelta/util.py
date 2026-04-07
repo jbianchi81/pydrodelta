@@ -5,7 +5,7 @@ import pytz
 from dateutil import tz
 localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date as datetime_date
 # from zoneinfo import ZoneInfo
 import numpy as np
 from sklearn import linear_model
@@ -123,7 +123,7 @@ def interval2epoch(interval):
     return seconds
 
 def tryParseAndLocalizeDate(
-        date_string : Union[str,float,datetime,tuple],
+        date_string : Union[str,float,datetime,tuple,datetime_date],
         timezone : str='America/Argentina/Buenos_Aires'
     ) -> datetime:
     """
@@ -164,6 +164,8 @@ def tryParseAndLocalizeDate(
         if len(date) < 3:
             raise ValueError("Invalid date tuple: missing items (3 required)")
         date = datetime(*date)
+    elif isinstance(date, datetime_date):
+        date = datetime(date.year, date.month, date.day)
     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
         try:
             tz = pytz.timezone(timezone)
