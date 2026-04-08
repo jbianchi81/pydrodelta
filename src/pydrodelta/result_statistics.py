@@ -1,7 +1,7 @@
 import logging
-from pandas import DataFrame
+from pandas import DataFrame, Timestamp
 import math
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from datetime import datetime
 
 class ResultStatistics:
@@ -10,14 +10,14 @@ class ResultStatistics:
         self,
         obs : list = list(),
         sim : list = list(),
-        metadata: dict = None,
-        calibration_period : list = None,
+        metadata: Optional[dict] = None,
+        calibration_period : Optional[Tuple[Timestamp, Timestamp]] = None,
         group : str = "cal",
         compute : bool = False,
         procedure = None,
         output = None,
-        k : int = None
-        ):
+        k : Optional[int] = None
+        ) -> None:
         """Initiate collection of statistic analysis for the procedure
         
         Parameters:
@@ -47,49 +47,49 @@ class ResultStatistics:
         """List of observed values"""
         self.sim : List[float] = list(sim) if sim is not None else list()
         """List of simulated values. Must be of the same length as obs"""
-        self.metadata : dict = metadata
+        self.metadata : Optional[dict] = metadata
         """Metadata of the node and the variable (dict)"""
-        self.calibration_period : Tuple[datetime,datetime] = [x.isoformat() for x in calibration_period] if calibration_period is not None else None
+        self.calibration_period : Optional[Tuple[str,str]] = (calibration_period[0].isoformat(), calibration_period[1].isoformat()) if calibration_period is not None else None
         """start and end date for splitting the data into calibration and validation periods"""
         self.group : str = group
         """cal or val"""
         self._procedure = procedure
         self._output = output
-        self.errors : List[float] = None
+        self.errors : Optional[List[float]] = None
         """List of errors (difference between sim and obs)"""
-        self.n : int = None
+        self.n : Optional[int] = None
         """Number of observations"""
-        self.mse : float = None
+        self.mse : Optional[float] = None
         """Mean squared error"""
-        self.rmse : float = None
+        self.rmse : Optional[float] = None
         """Root mean squared error"""
-        self.bias : float =  None
+        self.bias : Optional[float] =  None
         """Bias (mean error)"""
-        self.mean_obs : float = None
+        self.mean_obs : Optional[float] = None
         """Mean of obs"""
-        self.mean_sim : float = None
+        self.mean_sim : Optional[float] = None
         """Mean of sim"""
-        self.stdev_obs : float = None
+        self.stdev_obs : Optional[float] = None
         """Standard deviation of obs"""
-        self.stdev_sim : float = None
+        self.stdev_sim : Optional[float] = None
         """Standard deviation of sim"""
-        self.stdev_diff : float = None
+        self.stdev_diff : Optional[float] = None
         """Difference of standard deviations"""
-        self.nse : float = None
+        self.nse : Optional[float] = None
         """Nash-Sutcliffe efficiency coefficient"""
-        self.var_obs : float = None
+        self.var_obs : Optional[float] = None
         """Observed variance"""
-        self.var_sim : float = None
+        self.var_sim : Optional[float] = None
         """Simulated variance"""
-        self.cov : float = None
+        self.cov : Optional[float] = None
         """Covariance of obs and sim"""
-        self.r : float = None
+        self.r : Optional[float] = None
         """Pearson's r correlation coefficient"""
-        self.oneminusr : float = None
+        self.oneminusr : Optional[float] = None
         """One minus Pearson's r correlation coefficient"""
-        self.rse : float = None
+        self.rse : Optional[float] = None
         """residual standard error"""
-        self.k : int = k
+        self.k : Optional[int] = k
         """number of independent variables"""
 
         if compute:
@@ -128,7 +128,7 @@ class ResultStatistics:
         self.sim = [v for v in df["sim"]]
         self.nse = 1 - self.mse / self.stdev_obs if self.stdev_obs != 0 else None
         self.cov = sum([ (self.obs[i] - self.mean_obs) * (self.sim[i] - self.mean_sim) for i in range(len(self.obs))]) / self.n
-        self.r = self.cov / self.var_obs / self.var_sim if self.var_obs != 0 and self.var_sim != 0 else None
+        self.r = self.cov / self.var_obs / self.var_sim if self.var_obs is not None and self.var_obs != 0 and self.var_sim is not None and self.var_sim != 0 else None
         self.oneminusr = 1 - self.r if self.r is not None else None
         if self.k is not None:
             self.rse = ( sum([ e ** 2 for e in self.errors]) / ( self.n - self.k - 1 )) ** 0.5

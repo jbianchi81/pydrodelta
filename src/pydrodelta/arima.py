@@ -1,10 +1,11 @@
 import pandas
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
+from typing import Tuple, Dict, Any
 
 def adjustSeriesArima(
     data : pandas.DataFrame,
-    k = 1.68):
+    k = 1.68) -> Tuple[Dict[str, Any], pandas.DataFrame]:
     """Adjust Arima model to residues
 
     Args:

@@ -1,6 +1,6 @@
 from .procedure_boundary import ProcedureBoundary
 from .procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, cast
 from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
@@ -150,8 +150,8 @@ class ProcedureFunction:
         boundaries : list = [],
         outputs : list = [],
         extra_pars : dict = dict(),
-        forecast_date : datetime = None,
-        save_results : str = None,
+        forecast_date : Optional[datetime] = None,
+        save_results : Optional[str] = None,
         **kwargs
         ):
         """Initiate a procedure function
@@ -223,10 +223,10 @@ class ProcedureFunction:
 
     def rerun(
         self,
-        input : list = None,
-        parameters : Union[list,tuple] = None, 
-        initial_states : Union[list,tuple] = None
-        ) -> Tuple[list, dict]:
+        input : Optional[Union[DataFrame,List[DataFrame]]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None
+        ) -> Tuple[Union[DataFrame,List[DataFrame]], ProcedureFunctionResults]:
         """Execute the procedure function with the given parameters and initial_states
         
         Parameters:
@@ -251,8 +251,8 @@ class ProcedureFunction:
 
     def run(
         self,
-        input : list = None
-        ) -> Tuple[list, dict]:
+        input : Optional[Union[List[DataFrame],DataFrame]] = None
+        ) -> Tuple[Union[DataFrame,List[DataFrame]], ProcedureFunctionResults]:
         """
         Placeholder procedure function execution. To be overwritten in subclasses
 
@@ -266,9 +266,11 @@ class ProcedureFunction:
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False)
+            if self._procedure is None:
+                raise Exception("Procedure is not set")
+            input = cast(List[DataFrame],self._procedure.loadInput(inplace=False))
         # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
-        return input, ProcedureFunctionResults(initial_states = input)
+        return input, ProcedureFunctionResults()
     
     def makeSimplex(
         self,
@@ -314,7 +316,7 @@ class ProcedureFunction:
 
     def setParameters(
         self,
-        parameters : Union[list,tuple] = [],
+        parameters : Union[List,Tuple] = [],
         reset : bool = True
         ) -> None:
         """
@@ -362,7 +364,11 @@ class ProcedureFunction:
             allow_na.append(False)
         return [ getInputListFromDataFrame(df,allow_na[i], self._procedure.id if self._procedure is not None else None) for i, df in enumerate(input) ]
     
-    def pivotInputOutput(self, input : List[DataFrame], output : List[DataFrame] = [], other : dict = None) -> DataFrame:
+    def pivotInputOutput(
+            self, 
+            input : List[DataFrame], 
+            output : List[DataFrame] = [], 
+            other : Optional[dict] = None) -> DataFrame:
         if not len(input):
             raise ValueError("input must be of length 1 or greater")
         result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})

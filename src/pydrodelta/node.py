@@ -1,4 +1,4 @@
-from .util import interval2timedelta, createDatetimeSequence, resolve_path
+from .util import interval2timedelta, createDatetimeSequence, resolve_path, IntervalDict
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
 from .node_variable import NodeVariable
@@ -35,9 +35,9 @@ class Node:
     """End time of the observations"""
     forecast_timeend = DatetimeDescriptor()
     """Time end of the forecast"""
-    time_interval = DurationDescriptor()
+    time_interval : relativedelta
     """Intended time step of the observations/forecasts"""
-    time_offset = DurationDescriptor()
+    time_offset : Optional[relativedelta]
     """Start time of the observations/forecasts relative to zero local time"""
     hec_node = DictDescriptor()
     """Mapping of this node to HECRAS geometry"""
@@ -90,20 +90,20 @@ class Node:
             self,
             id : int,
             name : str,
-            time_interval : Union[dict,int],
+            time_interval : Union[relativedelta,IntervalDict,int],
             tipo : str="puntual",
-            timestart : datetime = None,
-            timeend : datetime = None,
-            forecast_timeend : datetime = None,
+            timestart : Optional[datetime] = None,
+            timeend : Optional[datetime] = None,
+            forecast_timeend : Optional[datetime] = None,
             plan = None,
-            time_offset : Union[dict,int] = None,
+            time_offset : Optional[Union[relativedelta,IntervalDict,int]] = None,
             topology = None,
-            hec_node : dict = None,
+            hec_node : Optional[dict] = None,
             variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
             node_type : str = "station",
-            description : str = None,
-            basin_pars : dict = None,
-            api_config : dict = None,
+            description : Optional[str] = None,
+            basin_pars : Optional[dict] = None,
+            api_config : Optional[dict] = None,
             base_path : Union[str,Path,None] = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
@@ -173,10 +173,10 @@ class Node:
         self.forecast_timeend = forecast_timeend
         # if "time_interval" not in params:
         #     raise ValueError("time_interval of node must be defined")
-        self.time_interval = time_interval
+        self.time_interval = interval2timedelta(time_interval)
         if datetime(2000,1,1) - self.time_interval == datetime(2000,1,1):
             raise ValueError("Invalid time_interval")
-        self.time_offset = time_offset # if time_offset is not None else interval2timedelta(params["time_offset"]) if "time_offset" in params and params["time_offset"] is not None else None
+        self.time_offset = interval2timedelta(time_offset) if time_offset is not None else None
         self.hec_node = hec_node
         self._plan = plan
         self._topology = topology

@@ -7,71 +7,86 @@
     "allOf": [
         {
             "$ref": "procedurefunction.json"
+        },
+        {
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "SacEnKF"
+                    ]
+                },
+                "initial_states": {
+                    "type": "array",
+                    "description": "Initial storages: [x1,x2,x3,x4]",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "parameters": {
+                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+                },
+                "extra_pars": {
+                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+                },
+                "asim_pars": {
+                    "$ref": "sacenkfprocedurefunction.json#/$defs/AsimPars"
+                }
+            },
+            "required": [
+                "type",
+                "parameters",
+                "extra_pars",
+                "initial_states"
+            ]
         }
-    ],
-    "properties": {
-        "type": {
-            "type": "string",
-            "enum": ["SacEnKF"]
-        },
-        "initial_states": {
-            "type": "array",
-            "description": "Initial storages: [x1,x2,x3,x4]",
-            "minItems": 4,
-            "maxItems": 4,
-            "items": {
-                "type": "number"
-            }
-        },
-        "parameters": {
-            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
-        },
-        "extra_pars": {
-            "$ref": "sacenkfprocedurefunction.json#/$defs/ExtraPars"
-        }
-    },
-    "required": [
-        "type",
-        "parameters",
-        "extra_pars",
-        "initial_states"
     ],
     "$defs": {
-        "ExtraPars": {
-            "type": "object",
-            "allOf": [
-                {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
-                }
-            ],
+        "AsimPars": {
             "properties": {
-               "stddev_forzantes": {
+                "stddev_forzantes": {
                     "type": "array",
                     "minItems": 2,
                     "maxItems": 2,
                     "items": {
                         "type": "number"
-                    }
-               },
+                    },
+                    "description": "standard deviation of forcings (p, pet)"
+                },
                 "stddev_estados": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "standard devation of model states"
                 },
                 "var_innov": {
                     "type": "array",
                     "minItems": 2,
                     "maxItems": 2,
                     "items": {
-                        "type": "string",
-                        "enum": ["reg", "rule"]
-                    }
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "reg",
+                                    "rule"
+                                ]
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "description": "variance of innovations for smc and q. With 'reg' informed variance of the observation is used. With 'rule', rule defined in parameter 'rule' is used"
                 },
-                "trim_sm":{
+                "trim_sm": {
                     "type": "array",
                     "minItems": 2,
                     "maxItems": 2,
                     "items": {
                         "type": "boolean"
-                    }
+                    },
+                    "description": "Limit soil moisture observations to the valid range. First element is for lower limit, second is for upper limit"
                 },
                 "rule": {
                     "type": "array",
@@ -83,32 +98,46 @@
                         "items": {
                             "type": "number"
                         }
-                    }
+                    },
+                    "description": "Apply this rule to determine observation variance. Each item is defined as: [value_greater_than, variance, bias]."
                 },
                 "asim": {
                     "type": "array",
                     "minItems": 2,
                     "maxItems": 2,
                     "items": {
-                        "type": ["string", "null"]
+                        "enum": [
+                            "smc",
+                            "q",
+                            null
+                        ]
                     },
-                    "update": {
-                        "type": "array",
-                        "minLength": 4,
-                        "maxLength": 4,
-                        "items": {
-                            "type": ["string", null]
-                        }
+                    "description": "Which variables to assimilate"
+                },
+                "update": {
+                    "type": "array",
+                    "minLength": 4,
+                    "maxLength": 4,
+                    "items": {
+                        "enum": [
+                            "x1",
+                            "x2",
+                            "x3",
+                            "x4",
+                            null
+                        ]
                     },
-                    "xpert": {
-                        "type": "boolean"
-                    },
-                    "replicates": {
-                        "type": "integer"
-                    }
+                    "description": "Which states to update"
+                },
+                "xpert": {
+                    "type": "boolean",
+                    "description": "Add random noise to states at each step"
+                },
+                "replicates": {
+                    "type": "integer",
+                    "description": "Number of replicates (members of the ensamble)"
                 }
-            },
-            "required": ["area"]
+            }
         }
     }
 }

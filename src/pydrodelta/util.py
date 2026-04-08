@@ -2,10 +2,10 @@ from pydrodelta.arima import adjustSeriesArima
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 import pytz
+from pytz.exceptions import NonExistentTimeError
 from dateutil import tz
-localtz = pytz.timezone('America/Argentina/Buenos_Aires')
 import pandas
-from datetime import timedelta, datetime, date as datetime_date
+from datetime import timedelta, datetime, date as datetime_date, tzinfo
 # from zoneinfo import ZoneInfo
 import numpy as np
 from sklearn import linear_model
@@ -14,15 +14,36 @@ import matplotlib.pyplot as plt
 import logging
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
+from matplotlib.transforms import Bbox
 import csv
 import os.path
-from typing import Union, Tuple, List, Literal
+from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict
 import random
 DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
 import numpy as np
 from pathlib import Path
+
+localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
+
+class IntervalDict(TypedDict):
+    day: int
+    second : int
+    microsecond : int
+    minute : int
+    hour : int
+    week : int
+    month: int
+    millisecond : int
+    days: int
+    seconds : int
+    microseconds : int
+    minutes : int
+    hours : int
+    weeks : int
+    months: int
+    milliseconds : int
 
 def createParent(filepath : Union[str,Path]):
     parent = Path(filepath).parent
@@ -43,7 +64,7 @@ def resolve_path(path_str, base=None):
 
     return p.resolve()
 
-def interval2timedelta(interval : Union[dict,float,relativedelta]):
+def interval2timedelta(interval : Union[IntervalDict,float,relativedelta]) -> relativedelta:
     """Parses duration dict or number of days into dateutil.relativedelta object
     
     Parameters:
@@ -71,7 +92,7 @@ def interval2timedelta(interval : Union[dict,float,relativedelta]):
     if isinstance(interval, relativedelta):
         return interval
     if isinstance(interval,(float,int)):
-        return relativedelta(days=interval)
+        return relativedelta(days=int(interval))
     if isinstance(interval, dict):
         days = 0
         seconds = 0
@@ -125,7 +146,7 @@ def interval2epoch(interval):
 def tryParseAndLocalizeDate(
         date_string : Union[str,float,datetime,tuple,datetime_date],
         timezone : str='America/Argentina/Buenos_Aires'
-    ) -> datetime:
+    ) -> Union[datetime, None]:
     """
     Datetime parser. If duration is provided, computes date relative to now.
 
@@ -158,7 +179,7 @@ def tryParseAndLocalizeDate(
         date = datetime.now() + relativedelta(**date)
         is_from_interval = True
     elif isinstance(date,(int,float)):
-        date = datetime.now() + relativedelta(days=date)
+        date = datetime.now() + relativedelta(days=int(date))
         is_from_interval = True
     elif isinstance(date, tuple):
         if len(date) < 3:
@@ -171,14 +192,14 @@ def tryParseAndLocalizeDate(
             tz = pytz.timezone(timezone)
             date = tz.localize(date)
             # date = date.replace(tzinfo = pytz.timezone(timezone)) # ZoneInfo(timezone))
-        except pytz.exceptions.NonExistentTimeError:
+        except NonExistentTimeError:
             logging.warning("NonexistentTimeError: %s" % str(date))
             return None
     else:
         date = date.astimezone(pytz.timezone(timezone)) # ZoneInfo(timezone))
     return date # , is_from_interval
 
-def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None) -> datetime:
+def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : Optional[relativedelta]=None) -> datetime:
     if timeInterval.microseconds == 0:
         date = date.replace(microsecond=0)
     if timeInterval.seconds % 60 == 0:
@@ -191,8 +212,10 @@ def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : rela
             date = date + timeOffset
     return date
 
-def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : relativedelta=None, to="up") -> datetime:
+def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : Optional[relativedelta]=None, to="up") -> datetime:
     date_0 = tryParseAndLocalizeDate(datetime.combine(date.date(),datetime.min.time()))
+    if date_0 is None:
+        raise NonExistentTimeError("Nonexistent time")
     if timeOffset is not None:
         date_0 = date_0 + timeOffset 
     while date_0 < date:
@@ -222,22 +245,34 @@ def relativedelta_to_freq(rd: relativedelta) -> str:
     raise ValueError("Unsupported relativedelta")
 
 def createDatetimeSequence(
-    datetime_index : pandas.DatetimeIndex=None, 
+    datetime_index : Optional[pandas.DatetimeIndex]=None, 
     timeInterval : Union[relativedelta,dict,int,timedelta] = relativedelta(days=1), 
-    timestart : Union[datetime,tuple,str] = None, 
-    timeend : Union[datetime,tuple,str] = None, 
-    timeOffset : Union[relativedelta,dict] = None
+    timestart : Union[datetime,tuple,str,None] = None, 
+    timeend : Union[datetime,tuple,str,None] = None, 
+    timeOffset : Union[relativedelta,dict,None] = None
     ) -> pandas.DatetimeIndex:
     #Fechas desde timestart a timeend con un paso de timeInterval
     #data: dataframe con index tipo datetime64[ns, America/Argentina/Buenos_Aires]
     #timeOffset sólo para timeInterval n days
-    if datetime_index is None and (timestart is None or timeend is None):
-        raise Exception("Missing datetime_index or timestart+timeend")
-    timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else datetime_index.min()
-    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else timeInterval
+    if timestart is None:
+        if datetime_index is None:
+            raise Exception("Missing datetime_index or timestart+timeend")
+        timestart = datetime_index.min()
+    else:
+        timestart = tryParseAndLocalizeDate(timestart)
+    if timestart is None:
+        raise NonExistentTimeError("Nonexistent timestart")
+    if timeend is None:
+        if datetime_index is None:
+            raise Exception("Missing datetime_index or timestart+timeend")
+        timeend = datetime_index.max()
+    else:
+        timeend = tryParseAndLocalizeDate(timeend)
+    if timeend is None:
+        raise NonExistentTimeError("Nonexistent timeend")
+    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else relativedelta(days=timeInterval) if isinstance(timeInterval, int) else timeInterval
     timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
-    timeend = tryParseAndLocalizeDate(timeend) if timeend  is not None else datetime_index.max()
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
     timezone = pytz.timezone("America/Argentina/Buenos_Aires")
     is_subdaily = timeInterval.hours > 0 or timeInterval.minutes > 0 or timeInterval.seconds > 0 or timeInterval.microseconds > 0
@@ -276,7 +311,7 @@ def createDatetimeSequence(
             freq=freq
         ) # .tz_convert(timestart.tzinfo)
 
-def f1(row,column="valor",timedelta_threshold : timedelta=None):
+def f1(row,column="valor",timedelta_threshold : timedelta=timedelta(days=1)):
     now = datetime.now()
     a = now - row["diff_with_next"]
     b = now + timedelta_threshold
@@ -285,7 +320,7 @@ def f1(row,column="valor",timedelta_threshold : timedelta=None):
     else:
         return row["interpolated_backward"]
 
-def f2(row,column="valor",timedelta_threshold : timedelta=None):
+def f2(row,column="valor",timedelta_threshold : timedelta=timedelta(days=1)):
     now = datetime.now()
     a = now + row["diff_with_previous"]
     b = now + timedelta_threshold
@@ -294,7 +329,7 @@ def f2(row,column="valor",timedelta_threshold : timedelta=None):
     else:
         return row["interpolated_forward"]
 
-def f3(row,column="valor",timedelta_threshold : timedelta=None):
+def f3(row):
     if pandas.isna(row["interpolated_forward_filtered"]):
         return row["interpolated_backward_filtered"]
     else:
@@ -308,18 +343,22 @@ def f4(row,column="valor",tag_column="tag"):
     else:
         return row[tag_column]
 
+def getNSteps(timestep : relativedelta, td : timedelta) -> int:
+    timestep_seconds = relativedeltaToSeconds(timestep)
+    return int(td.total_seconds() / timestep_seconds)
+
 def serieRegular(
     data : pandas.DataFrame, 
     time_interval : relativedelta, 
-    timestart : datetime  = None, 
-    timeend : datetime = None, 
-    time_offset : relativedelta = None, 
+    timestart : Optional[datetime]  = None, 
+    timeend : Optional[datetime] = None, 
+    time_offset : Optional[relativedelta] = None, 
     column : str = "valor", 
     interpolate : bool = True, 
     interpolation_limit : Union[int,timedelta] = 1,
-    tag_column : str = None, 
+    tag_column : Optional[str] = None, 
     extrapolate : bool = False,
-    agg_func : str = None,
+    agg_func : Optional[str] = None,
     extrapolate_function : "str" = "linear",
     extrapolate_train_length : int = 5
     ) -> pandas.DataFrame:
@@ -346,12 +385,12 @@ def serieRegular(
     Returns:
       DataFrame - time step regularized data (either interpolated or aggregated) 
     """
-    df_regular = DataFrame(index = createDatetimeSequence(data.index, time_interval, timestart, timeend, time_offset))
+    df_regular = DataFrame(index = createDatetimeSequence(cast(pandas.DatetimeIndex, data.index), time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
     if agg_func is not None:
         agg_serie = aggregateByTimestep(
             data,
-            df_regular.index,
+            cast(pandas.DatetimeIndex, df_regular.index),
             time_interval,
             column = column,
             agg_func = agg_func
@@ -370,6 +409,7 @@ def serieRegular(
     if interpolate:
         # Interpola
         min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
+        extrapolated = None
         if isinstance(interpolation_limit, timedelta):
             df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
         else:
@@ -377,7 +417,7 @@ def serieRegular(
             if extrapolate and extrapolate_function == "linear":
                 extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
             df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
-        if extrapolate and extrapolate_function == "linear":
+        if extrapolate and extrapolate_function == "linear" and extrapolated is not None:
             # fill interpolated nans with extrapolated
             df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
         if tag_column is not None:
@@ -390,7 +430,7 @@ def serieRegular(
                 continue
             if tag_column is not None and c == tag_column:
                 continue
-            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit if isinstance(interpolation_limit, int) else getNSteps(time_interval, interpolation_limit),limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
         df_regular = df_regular.join(df_join, how = 'left')
     else:
         timedelta_threshold = relativedelta_to_timedelta(time_interval) * 0.5 # takes half time interval as maximum time distance for interpolation
@@ -408,7 +448,7 @@ def regularizeColumn(
     df_join : pandas.DataFrame, 
     timedelta_threshold : timedelta, 
     column : str = "valor",
-    tag_column : str = None
+    tag_column : Optional[str] = None
     ) -> pandas.DataFrame:
     # if column == "tag":
     #     logging.warning("interpolating tag")
@@ -443,7 +483,7 @@ def f5(row,column="valor",tag_column="tag",min_obs_date=None,max_obs_date=None):
 def interpolateData(
         data : pandas.DataFrame,
         column : str = "valor",
-        tag_column : str = None,
+        tag_column : Optional[str] = None,
         interpolation_limit : int = 1,
         extrapolate : bool = False
         ) -> pandas.DataFrame:
@@ -455,7 +495,16 @@ def interpolateData(
     del data["interpolated"]
     return data
 
-def serieFillNulls(data : pandas.DataFrame, other_data : pandas.DataFrame, column : str="valor", other_column : str="valor", fill_value : float=None, shift_by : int=0, bias : float=0, extend=False, tag_column=None):
+def serieFillNulls(
+        data : pandas.DataFrame, 
+        other_data : pandas.DataFrame, 
+        column : str="valor", 
+        other_column : str="valor", 
+        fill_value : Optional[float]=None, 
+        shift_by : int=0, 
+        bias : float=0, 
+        extend : bool=False, 
+        tag_column : Optional[str]=None) -> pandas.DataFrame:
     """
     rellena nulos de data con valores de other_data donde coincide el index. Opcionalmente aplica traslado rígido en x (shift_by: n registros) y en y (bias: float)
 
@@ -488,9 +537,9 @@ def serieMovingAverage(
     obs_df : pandas.DataFrame,
     offset : relativedelta,
     column : str = "valor",
-    tag_column : str = None
+    tag_column : Optional[str] = None
     ) -> pandas.DataFrame:
-    data = pandas.DataFrame(obs_df[column].rolling(offset, min_periods=1).mean())
+    data = pandas.DataFrame(obs_df[column].rolling(relativedelta_to_timedelta(offset), min_periods=1).mean())
     if tag_column is not None:
         data.insert(1,'tag', [x if not pandas.isna(x) else "moving_average" for x in obs_df[tag_column]], True)
     return data
@@ -528,7 +577,7 @@ def detectJumps(data : pandas.DataFrame,lim_jump,column="valor"):
     '''
     # print('Detecta Saltos:')	
     data_ = data[[column,]].copy()
-    VecDif = abs(np.diff(data_[column].values))
+    VecDif = abs(np.diff(np.asarray(data_[column].values)))
     VecDif = np.append([0,],VecDif)
     coldiff = 'Diff_Valor'
     data_[coldiff] = VecDif
@@ -544,15 +593,15 @@ def adjustSeries(
         method : str = "lfit",
         plot : bool = True,
         return_adjusted_series : bool = True,
-        tag_column : str = None,
-        title : str = None,
-        warmup : int = None,
-        tail : int = None,
-        sim_range : Tuple[float,float] = None,
+        tag_column : Optional[str] = None,
+        title : Optional[str] = None,
+        warmup : Optional[int] = None,
+        tail : Optional[int] = None,
+        sim_range : Optional[Tuple[float,float]] = None,
         covariables : List[str] = ["valor"],
         return_df : bool = False,
         drop_warmup : bool = False
-        )  -> Union[dict,Tuple[pandas.Series, pandas.Series, dict]]:
+        )  -> Union[dict,Tuple[Union[pandas.DataFrame,pandas.Series], Union[pandas.Series,None], dict]]:
     """Adjust sim_df with truth_df by means of a linear regression
 
     Args:
@@ -630,18 +679,23 @@ def adjustSeries(
             plt.title(title)
         plt.figtext(0.5, 0.01, figtext)
     if return_adjusted_series:
-        return_value_0 = aux_df[result_columns] if return_df else aux_df["adj"]
+        return_value_0 = aux_df.loc[:,result_columns] if return_df else aux_df["adj"]
         if drop_warmup:
             return_value_0 = return_value_0[warmup:]
         if tag_column is not None:
             aux_df["tag_adj"] = [None if pandas.isna(x) else "%s,adjusted" % x for x in aux_df["tag_sim"]]
-            return (return_value_0, aux_df["tag_adj"],fitted_model)
+            return (return_value_0, aux_df.loc[:,"tag_adj"],fitted_model)
         else:
             return (return_value_0, None, fitted_model)
     else:
         return fitted_model
 
-def linearCombination(sim_df : pandas.DataFrame,params : dict,plot=True,tag_column=None) -> pandas.Series:
+def linearCombination(
+        sim_df : pandas.DataFrame,
+        params : dict,
+        plot=True,
+        tag_column=None
+        ) -> Union[pandas.Series, Tuple[pandas.Series, pandas.Series]]:
     '''
         sim_df: DataFrame con las covariables
         params: { intercept: float, coefficients: [float,...]
@@ -692,9 +746,9 @@ def ModelRL(data : pandas.DataFrame, varObj : str, covariables : list):
     rse = np.sqrt(np.sum(residuals**2) / (len(Y_test) - 2))
     # The coefficients
     # The mean squared error
-    mse = mean_squared_error(Y_test, Y_predictions)
+    mse = mean_squared_error(np.asarray(Y_test), Y_predictions)
     # The coefficient of determination: 1 is perfect prediction
-    coefDet = r2_score(Y_test, Y_predictions)
+    coefDet = r2_score(np.asarray(Y_test), Y_predictions)
     logging.debug('Coefficients B0: %.5f, coefficients: %s, Mean squared error: %.5f, r2_score: %.5f' % (lr.intercept_, ", ".join(["%.5f" % c for c in lr.coef_]), mse, coefDet))
     train['Error_pred'] =  train['Y_predictions']  - train[var_obj]
     quant_Err = train['Error_pred'].quantile([.001,.05,.95,.999])
@@ -725,7 +779,7 @@ def plot_prono(
     obs_df:pandas.DataFrame,
     sim_df:pandas.DataFrame,
     output_file:str,
-    title:str=None,
+    title:Optional[str]=None,
     ydisplay:float=1,
     xytext:tuple=(-300,-200),
     ylim:tuple=(0,2.5),
@@ -733,15 +787,15 @@ def plot_prono(
     text_xoffset:tuple=(-8,-8),
     prono_label:str='forecasted',
     obs_label:str='observed',
-    extraObs:pandas.DataFrame=None,
+    extraObs:Optional[pandas.DataFrame]=None,
     extraObsLabel:str='observed 2', 
-    forecast_date:datetime=None,
-    errorBand:tuple=None,
+    forecast_date:Optional[datetime]=None,
+    errorBand:Optional[tuple]=None,
     obsLine:bool=False,
     station_name:str="Station",
     thresholds:dict={}, 
-    datum:float=None,
-    footnote:str=None,
+    datum:Optional[float]=None,
+    footnote:Optional[str]=None,
     tz:str="America/Argentina/Buenos_Aires",
     figsize:tuple=(14,12),
     errorBandLabel:str='error band',
@@ -750,9 +804,9 @@ def plot_prono(
     forecast_date_annotation:str='forecast date',
     x_label:str='date',
     y_label:str='value',
-    datum_template_string:str=None,
+    datum_template_string:Optional[str]=None,
     title_template_string:str="forecast at %s",
-    xlim:tuple=None,
+    xlim:Optional[List[Union[datetime,None]]]=None,
     prono_fmt='b-',
     annotate : bool = True,
     table_columns : list = ['Fecha','Nivel'],
@@ -763,7 +817,7 @@ def plot_prono(
     footnote_height : float = 0.2,
     prono_annotation_color : str = "black",
     format : str = "png",
-    adjust_results_string : str = None
+    adjust_results_string : Optional[str] = None
     ):
     ydisplay = 1 if ydisplay is None else ydisplay
     markersize = 20 if markersize is None else markersize
@@ -781,17 +835,17 @@ def plot_prono(
     title_template_string="forecast at %s" if title_template_string is None else title_template_string
     x_label='date' if x_label is None else x_label
     y_label = 'value' if y_label is None else y_label
-    sim_df.index = sim_df.index.tz_convert(tz=tz)
+    sim_df.index = DatetimeIndex(sim_df.index).tz_convert(tz=tz)
     text_xoffset = (-8,-8) if text_xoffset is None else text_xoffset
     ylim = (0,2.5) if ylim is None else ylim
     thresholds = {} if thresholds is None else thresholds
     if not isinstance(obs_df,type(None)):
-        obs_df.index = obs_df.index.tz_convert(tz=tz)
+        obs_df.index = DatetimeIndex(obs_df.index).tz_convert(tz=tz)
         # print(df_obs.index)
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1)
     if title is not None:
-        ax.title = title
+        ax.set_title(title)
     prono_fmt = prono_fmt if prono_fmt is not None else 'b-'
     ax.plot(sim_df.index, sim_df['valor'], prono_fmt,label=prono_label,linewidth=3,markersize=markersize) # ,color='b'
     if not isinstance(obs_df, type(None)):
@@ -799,7 +853,7 @@ def plot_prono(
         if obsLine:
             ax.plot(obs_df.index, obs_df['valor'],'-',color='k',linewidth=1,markersize=markersize)
     if not isinstance(extraObs,type(None)):
-        extraObs.index = extraObs.index.tz_convert(tz)
+        extraObs.index = DatetimeIndex(extraObs.index).tz_convert(tz)
         ax.plot(extraObs.index, extraObs['valor'],'o',color='grey',label=extraObsLabel,linewidth=3,alpha=0.5)
         ax.plot(extraObs.index, extraObs['valor'],'-',color='grey',linewidth=1,alpha=0.5)
     if errorBand is not None:
@@ -821,16 +875,16 @@ def plot_prono(
             ax.plot(sim_df.index, sim_df[errorBand[1]],up_fmt,linewidth=0.5,alpha=0.75,label='_nolegend_',markersize=markersize)
             ax.fill_between(sim_df.index,sim_df[errorBand[0]], sim_df[errorBand[1]],alpha=0.1,label=errorBandLabel)
     # Lineas: 1 , 1.5 y 2 mts
-    xmin=sim_df.index.min()
-    xmax=sim_df.index.max()
+    xmin=DatetimeIndex(sim_df.index).min()
+    xmax=DatetimeIndex(sim_df.index).max()
     # Niveles alerta
     if thresholds.get("nivel_aguas_bajas"):
         logging.debug("Add threshold nivel_aguas_bajas: %.02f, xmin %s, xmax %s" % (thresholds["nivel_aguas_bajas"], xmin.isoformat(), xmax.isoformat()))
-        plt.hlines(thresholds["nivel_aguas_bajas"], xmin, xmax, colors='orange', linestyles='-.', label='Aguas Bajas',linewidth=1.5)
+        plt.hlines(thresholds["nivel_aguas_bajas"], np.array([xmin.to_datetime64()]), np.array([xmax.to_datetime64()]), colors=['orange'], linestyles='dashdot', label='Aguas Bajas',linewidth=1.5)
     if thresholds.get("nivel_alerta"):
-        plt.hlines(thresholds["nivel_alerta"], xmin, xmax, colors='y', linestyles='-.', label='Alerta',linewidth=1.5)
+        plt.hlines(thresholds["nivel_alerta"], np.array([xmin.to_datetime64()]), np.array([xmax.to_datetime64()]), colors=['y'], linestyles='dashdot', label='Alerta',linewidth=1.5)
     if thresholds.get("nivel_evacuacion"):
-        plt.hlines(thresholds["nivel_evacuacion"], xmin, xmax, colors='r', linestyles='-.', label='Evacuación',linewidth=1.5)
+        plt.hlines(thresholds["nivel_evacuacion"], np.array([xmin.to_datetime64()]), np.array([xmax.to_datetime64()]), colors=['r'], linestyles='dashdot', label='Evacuación',linewidth=1.5)
     # fecha emision
     if forecast_date is not None:
         if forecast_date.tzinfo is not None and forecast_date.tzinfo.utcoffset(forecast_date) is not None:
@@ -841,7 +895,7 @@ def plot_prono(
         ahora = obs_df.index.max()
     else: 
         ahora = localtz.localize(datetime.now())
-    plt.axvline(x=ahora,color="black", linestyle="--",linewidth=2)#,label='Fecha de emisión')
+    plt.axvline(x=cast(float,ahora),color="black", linestyle="--",linewidth=2)#,label='Fecha de emisión')
     bbox = dict(boxstyle="round", fc="0.7")
     arrowprops = dict(
         arrowstyle="->",
@@ -849,7 +903,7 @@ def plot_prono(
     offset = 10
     #xycoords='figure pixels',
     if annotate:
-        xdisplay = ahora + relativedelta(days=1.0)
+        xdisplay = ahora + relativedelta(days=1)
         ax.annotate(prono_annotation,
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18,
@@ -859,7 +913,7 @@ def plot_prono(
             xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
-            xy=(ahora, ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(days=0.3), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+            xy=(cast(float, ahora), ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(hours=7), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
     if adjust_results_string is not None:
         plt.gcf().text(0.6, 0.85, adjust_results_string, fontsize=10)
     if footnote is not None:
@@ -870,23 +924,30 @@ def plot_prono(
         plt.figtext(0,0,datum_template_string % (station_name, str(round(datum+0.53,2)), str(round(datum,2))),fontsize=12,ha="left")
     if ylim:
         ax.set_ylim(ylim[0],ylim[1])
+    xlim_0 : datetime
+    xlim_1 : datetime
     if xlim is not None:
         xlim = list(xlim)
         if len(xlim) < 2:
-            raise ValueError("xlim must be a 2-tuple")
+            raise ValueError("xlim must be a 2-list")
         if xlim[0] is not None:
             xlim[0] = tryParseAndLocalizeDate(xlim[0])
+            if xlim[0] is None:
+                raise NonExistentTimeError("Nonexistent time at xlim[0]")
+            xlim_0 = roundDownDate(xlim[0],relativedelta(days=1))
         else:
-            xlim[0] = xmin
+            xlim_0 = xmin
         if xlim[1] is not None:
             xlim[1] = tryParseAndLocalizeDate(xlim[1])
+            if xlim[1] is None:
+                raise NonExistentTimeError("Nonexistent time at xlim[1]")
+            xlim_1 = roundDownDate(xlim[1],relativedelta(days=1))
         else:
-            xlim[1] = xmax
+            xlim_1 = xmax
     else:
-        xlim = [xmin,xmax]
-    xlim[0] = roundDownDate(xlim[0],relativedelta(days=1))
-    xlim[1] = roundDownDate(xlim[1],relativedelta(days=1))
-    ax.set_xlim(xlim[0],xlim[1])
+        xlim_0 =roundDownDate(xmin,relativedelta(days=1))
+        xlim_1 = roundDownDate(xmax,relativedelta(days=1))
+    ax.set_xlim(np.datetime64(xlim_0),np.datetime64(xlim_1))
     ax.tick_params(labeltop=False, labelright=True)
     plt.grid(True, which='both', color='0.75', linestyle='-.',linewidth=0.5)
     plt.tick_params(axis='both', labelsize=16)
@@ -898,9 +959,9 @@ def plot_prono(
     if forecast_table:
         fig.subplots_adjust(right=0.8)
         h_resumen = [0,6,12,18]
-        df_prono = sim_df[sim_df.index > ahora ].copy()
-        df_prono['Hora'] = df_prono.index.hour
-        df_prono['Dia'] = df_prono.index.day
+        df_prono = sim_df[sim_df.index > pandas.Timestamp(ahora) ].copy()
+        df_prono['Hora'] = DatetimeIndex(df_prono.index).hour
+        df_prono['Dia'] = DatetimeIndex(df_prono.index).day
         df_prono = df_prono[df_prono['Hora'].isin(h_resumen)].copy()
         df_prono = df_prono[df_prono['valor'].notnull()].copy()
         #print(df_prono)
@@ -910,7 +971,7 @@ def plot_prono(
         df_prono['Hora'] = df_prono['Hora'].replace('6', '06')
         df_prono['Dia'] = df_prono['Dia'].astype(str)
         df_prono['Fechap'] = df_prono['Dia']+' '+df_prono['Hora']+'hrs'
-        df_prono['Mes'] = df_prono.index.month.map('{:02d}'.format)
+        df_prono['Mes'] = DatetimeIndex(df_prono.index).month.map('{:02d}'.format)
         df_prono["dd/mm hh"] = df_prono['Dia'] + "/" + df_prono['Mes'] + " " + df_prono['Hora']
         df_prono = df_prono.rename(columns={'Fechap':'Fecha','Y_predic':"Nivel"}) # df_prono[['Fechap','Y_predic',]]
         #print(df_prono)
@@ -922,13 +983,16 @@ def plot_prono(
         if len(cell_text):
             table = plt.table(cellText=cell_text,
                             colLabels=table_columns,
-                            bbox = (1.08, 0, 0.2, 0.5))
+                            bbox = Bbox.from_bounds(1.08, 0, 0.2, 0.5))
             table.set_fontsize(12)
         else:
-            logging.warn("No rows found for forecast table")
+            logging.warning("No rows found for forecast table")
     #table.scale(2.5, 2.5)  # may help
-    date_form = DateFormatter(date_form,tz=sim_df.index.tz) # "%H hrs \n %d-%b"
-    ax.xaxis.set_major_formatter(date_form)
+    index_tz = DatetimeIndex(sim_df.index).tz
+    if index_tz is None:
+        raise ValueError("Index is missing timezone info")
+    date_formatter = DateFormatter(date_form,tz=index_tz) # "%H hrs \n %d-%b"
+    ax.xaxis.set_major_formatter(date_formatter)
     ax.xaxis.set_minor_locator(mdates.HourLocator(xaxis_minor_tick_hours)) # (3,9,15,21,)
     ## FRANJAS VERTICALES
     start_0hrs = sim_df.index.min().date()
@@ -1030,7 +1094,7 @@ def ParseApiConfig(api_config = None):
 def groupByCalibrationPeriod(
     data : pandas.DataFrame,
     calibration_period : Tuple[datetime, datetime]
-) -> Tuple[pandas.DataFrame, pandas.DataFrame]:
+) -> Tuple[Union[pandas.DataFrame, None], Union[pandas.DataFrame, None]]:
     """Split data between calibration and validation periods
     
     Args:
@@ -1058,21 +1122,23 @@ colormap = plt.colormaps["hsv"]
 def getRandColor():
     return colormap(random.randrange(colormap.N))
 
-def first(l : list) -> any:
+def first(l : list) -> Any:
     return l[0] if len(l) else np.nan
 
-def last(l : list) -> any:
+def last(l : list) -> Any:
     return l[len(l)-1] if len(l) else np.nan
 
 def mad(l : list) -> float:
     mean = np.mean(l)
-    return np.mean([abs(x - mean) for x in l])
+    return float(np.mean([abs(x - mean) for x in l]))
 
-def filter_func(ind, base : datetime, dt: relativedelta):
+def filter_func(ind, base : datetime, dt: relativedelta) -> bool:
     return ind >= base and ind < base + dt
 
 def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta) -> DataFrame:
-    return data.loc[map(filter_func, data.index, [base for x in data.index], [dt for x in data.index])]
+    dti = DatetimeIndex(data.index)
+    mask = list(map(filter_func, dti, [base for x in dti], [dt for x in dti]))
+    return data.loc[mask]
 
 def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
     valid_agg_func = {
@@ -1123,7 +1189,7 @@ def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativede
     """
     return Series([aggregateValuesWithinTimestep(data, i, dt, column, pass_nan, agg_func) for i in index], index)
 
-def relativedeltaToSeconds(rd : relativedelta):
+def relativedeltaToSeconds(rd : relativedelta) -> int:
     if not isinstance(rd, relativedelta):
         raise TypeError("Value must be of type relativedelta")
     now = datetime.now()
@@ -1220,7 +1286,7 @@ def interpolate_or_copy_closest(data : Series,interpolation_limit : timedelta) -
 
     return filled
 
-def getInputListFromDataFrame(df : DataFrame, allow_na : bool=False, procedure_id : int = None) -> List[float]:
+def getInputListFromDataFrame(df : DataFrame, allow_na : bool=False, procedure_id : Optional[Union[str,int]] = None) -> List[float]:
     data = df[["valor"]].rename(columns={"valor":"input"})
     if not len(data.dropna().index):
         if allow_na:
@@ -1238,7 +1304,7 @@ def ensure_local(dt : datetime) -> datetime:
         dt = dt.replace(tzinfo=local_tz)
     return dt
 
-def abs_relativedelta(rd : relativedelta):
+def abs_relativedelta(rd : relativedelta) -> relativedelta:
     return relativedelta(
         years=abs(rd.years),
         months=abs(rd.months),
@@ -1247,6 +1313,11 @@ def abs_relativedelta(rd : relativedelta):
         minutes=abs(rd.minutes),
         seconds=abs(rd.seconds),
         microseconds=abs(rd.microseconds)
+    )
+
+def decimal_days_to_relativedelta(days : Union[int, float]) -> relativedelta:
+    return relativedelta(
+        seconds= int(days * 3600 * 24)
     )
 
 def make_serializable(df: DataFrame) -> DataFrame:

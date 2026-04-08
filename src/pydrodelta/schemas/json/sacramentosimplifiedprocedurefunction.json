@@ -7,34 +7,38 @@
     "allOf": [
         {
             "$ref": "procedurefunction.json"
+        },
+        {
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "SacramentoSimplified"
+                    ]
+                },
+                "initial_states": {
+                    "type": "array",
+                    "description": "Initial storages: [x1,x2,x3,x4]",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "parameters": {
+                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+                },
+                "extra_pars": {
+                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+                }
+            },
+            "required": [
+                "type",
+                "parameters",
+                "extra_pars",
+                "initial_states"
+            ]
         }
-    ],
-    "properties": {
-        "type": {
-            "type": "string",
-            "enum": ["SacramentoSimplified", "SacEnKF"]
-        },
-        "initial_states": {
-            "type": "array",
-            "description": "Initial storages: [x1,x2,x3,x4]",
-            "minItems": 4,
-            "maxItems": 4,
-            "items": {
-                "type": "number"
-            }
-        },
-        "parameters": {
-            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
-        },
-        "extra_pars": {
-            "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
-        }
-    },
-    "required": [
-        "type",
-        "parameters",
-        "extra_pars",
-        "initial_states"
     ],
     "$defs": {
         "Parameters": {
@@ -80,9 +84,20 @@
                 "m3": {
                     "type": "number",
                     "description": "evapotranspiration function exponent [-]"
-                }     
+                }
             },
-            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "required": [
+                "x1_0",
+                "x2_0",
+                "m1",
+                "c1",
+                "c2",
+                "c3",
+                "mu",
+                "alfa",
+                "m2",
+                "m3"
+            ],
             "additionalProperties": false
         },
         "ExtraPars": {
@@ -94,7 +109,7 @@
                 "dt": {
                     "$ref": "timeinterval.json"
                 },
-                "rho":  {
+                "rho": {
                     "type": "number",
                     "description": "soil porosity (0-1)"
                 },
@@ -104,7 +119,7 @@
                 },
                 "ae": {
                     "type": "number",
-                    "description": "effective area (0-1)"
+                    "description": "effective area   (00-1)"
                 },
                 "wp": {
                     "type": "number",
@@ -167,7 +182,12 @@
                     "description": "bankfull discharge"
                 }
             },
-            "required": ["CN2", "hp1dia", "hp2dias", "Qbanca"],
+            "required": [
+                "CN2",
+                "hp1dia",
+                "hp2dias",
+                "Qbanca"
+            ],
             "additionalProperties": false
         }
     }

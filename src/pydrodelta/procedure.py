@@ -11,7 +11,7 @@ from .procedure_function_results import ProcedureFunctionResults
 from .pydrology import testPlot
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from .calibration.linear_regression_calibration import LinearRegressionCalibration
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, Mapping, cast
 from datetime import timedelta
 from pandas import DataFrame
 from .descriptors.int_descriptor import IntDescriptor
@@ -20,6 +20,14 @@ from .descriptors.bool_or_none_descriptor import BoolOrNoneDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from pathlib import Path
+from dateutil.relativedelta import relativedelta
+from .observed_node_variable import ObservedNodeVariable
+
+class StatsDict(TypedDict):
+    procedure_id : Union[str,int]
+    function_type : str
+    results : Optional[List[Union[ProcedureFunctionResults, None]]] 
+    results_val : Optional[List[Union[ProcedureFunctionResults, None]]] 
 
 class Procedure():
     """
@@ -73,13 +81,13 @@ class Procedure():
         "linear-regression": LinearRegressionCalibration
     }
 
-    _calibration = None
+    _calibration : Union[DownhillSimplexCalibration, LinearRegressionCalibration,None] = None
 
     @property
-    def calibration(self) -> Union[DownhillSimplexCalibration, LinearRegressionCalibration]:
+    def calibration(self) -> Union[DownhillSimplexCalibration, LinearRegressionCalibration,None]:
         return self._calibration
     @calibration.setter
-    def calibration(self,calibration : dict) -> None:
+    def calibration(self,calibration : Optional[dict]) -> None:
         if calibration is not None:
             if "method" not in calibration:
                 raise KeyError("Required key 'method' missing from calibration argument")
@@ -128,20 +136,20 @@ class Procedure():
         plan = None,
         initial_states : list = [],
         parameters : list = [],
-        time_interval : Union[str,dict] = None,
-        time_offset : Union[str,dict] = None,
-        save_results : str = None,
+        time_interval : Optional[Union[float,util.IntervalDict]] = None,
+        time_offset : Optional[Union[float,util.IntervalDict]] = None,
+        save_results : Optional[str] = None,
         overwrite : bool = False,
         overwrite_original : bool = False,
-        calibration : dict = None,
+        calibration : Optional[dict] = None,
         adjust : bool = False,
         adjust_method : str = "lfit",
-        warmup_steps : int = None,
-        tail_steps : int = None,
-        error_band : bool = None,
+        warmup_steps : Optional[int] = None,
+        tail_steps : Optional[int] = None,
+        error_band : Optional[bool] = None,
         read_sim : bool = False,
         sim_index : int = 0,
-        save_dict : str = None,
+        save_dict : Optional[str] = None,
         drop_warmup : bool = False,
         base_path : Union[str,Path,None] = None
         ):
@@ -150,7 +158,7 @@ class Procedure():
         self._plan = plan
         """Plan containing this procedure"""
         self.base_path = base_path
-        self.save_results : Path = self.resolve_path(save_results)
+        self.save_results : Optional[Path] = self.resolve_path(save_results)
         """Save procedure results into this file (csv pivoted table)"""
         self.initial_states : list = initial_states
         """List of procedure initial states"""
@@ -183,19 +191,19 @@ class Procedure():
         # self.procedure_type = params["procedure_type"]
         self.parameters : list = parameters
         """List of procedure parameters"""
-        self.time_interval : timedelta = util.interval2timedelta(time_interval) if time_interval is not None else None
+        self.time_interval : Optional[relativedelta] = util.interval2timedelta(time_interval) if time_interval is not None else None
         """Time step duration of the procedure"""
-        self.time_offset : timedelta = util.interval2timedelta(time_offset) if time_offset is not None else None
+        self.time_offset : Optional[relativedelta] = util.interval2timedelta(time_offset) if time_offset is not None else None
         """Time offset duration of the procedure"""
-        self.input : List[DataFrame] = None # <- boundary conditions
+        self.input : Optional[Union[DataFrame,List[DataFrame]]] = None # <- boundary conditions
         """Ordered list of input DataFrames of the procedure (the boundary conditions). Run .loadInput(inplace=True) to populate"""
-        self.output : List[DataFrame] = None # <- outputs
+        self.output : Optional[Union[List[DataFrame],DataFrame]] = None # <- outputs
         """Ordered list of output DataFrames of the procedure. Run .run(inplace=True) to populate"""
-        self.output_obs : List[DataFrame] = None # <- observed values for error calculation
+        self.output_obs : Optional[Union[DataFrame,List[DataFrame]]] = None # <- observed values for error calculation
         """List of DataFrames of observed values for error calculation. Same order than .output. Run .loadOutputObs(inplace=True) to populate"""
-        self.states : DataFrame = None
+        self.states : Optional[Union[DataFrame,list]] = None
         """Pivot DataFrame of procedure states. Byproduct of .run(inplace=True) execution"""
-        self.procedure_function_results : ProcedureFunctionResults = None
+        self.procedure_function_results : Optional[ProcedureFunctionResults] = None
         """Results of the procedure function execution"""
         self.overwrite : bool = bool(overwrite)
         """When exporting procedure results into the topology, overwrite observations in NodeVariable.data"""
@@ -263,15 +271,35 @@ class Procedure():
         else:
             self.loadInput()
 
+    @overload
+    def loadInput(
+        self,
+        inplace : Literal[True],
+        pivot : bool = False,
+        use_boundary_name : bool = False,
+        tag_column : bool = True,
+        read_sim : Optional[bool] = None,
+        sim_index : Optional[int] = None
+        ) -> None: ...
+    @overload
+    def loadInput(
+        self,
+        inplace : Literal[False]=False,
+        pivot : bool = False,
+        use_boundary_name : bool = False,
+        tag_column : bool = True,
+        read_sim : Optional[bool] = None,
+        sim_index : Optional[int] = None
+        ) -> Union[List[DataFrame],DataFrame]: ...
     def loadInput(
         self,
         inplace : bool = True,
         pivot : bool = False,
         use_boundary_name : bool = False,
         tag_column : bool = True,
-        read_sim : bool = None,
-        sim_index : int = None
-        ) -> Union[List[DataFrame],DataFrame]:
+        read_sim : Optional[bool] = None,
+        sim_index : Optional[int] = None
+        ) -> Union[List[DataFrame],DataFrame,None]:
         """
         Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
 
@@ -299,9 +327,11 @@ class Procedure():
         read_sim = read_sim if read_sim is not None else self.read_sim
         sim_index = sim_index if sim_index is not None else self.sim_index
         if pivot:
-            data = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
+            data : DataFrame = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
             columns = ["valor","tag"] if tag_column else ["valor"] 
             for boundary in self.function.boundaries:
+                if boundary._variable is None:
+                    raise Exception("variable not set")
                 if read_sim and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
                     boundary_data = boundary._variable.series_sim[sim_index].data
                 elif boundary._variable.data is not None and len(boundary._variable.data):
@@ -329,10 +359,16 @@ class Procedure():
             for column in columns:
                 del data[column]
             # data = data.replace({np.nan:None})
+            if inplace:
+                self.input = data
+            else:
+                return data
         else:
-            data = []
+            data_ : List[DataFrame]= []
             for boundary in self.function.boundaries:
                 logging.debug("loading boundary: %s: node %i, variable %i, optional: %s, warmup_only: %s" % (boundary.name, boundary.node_id,boundary.var_id, str(boundary.optional), str(boundary.warmup_only)))
+                if boundary._variable is None:
+                    raise Exception("variable not set")
                 if not boundary.optional:
                     try:
                         warmup_only = boundary.warmup_only if boundary.warmup_only else False
@@ -342,22 +378,46 @@ class Procedure():
                 if read_sim:
                     if boundary._variable.series_sim[sim_index].data is None:
                         raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
-                    data.append(boundary._variable.series_sim[sim_index].data.copy())
+                    data_.append(boundary._variable.series_sim[sim_index].data.copy())
                 else:
-                    data.append(boundary._variable.data.copy())
-        if inplace:
-            self.input = data
-        else:
-            return data
+                    data_.append(boundary._variable.data.copy())
+            if inplace:
+                self.input = data_
+            else:
+                return data_
         
     def getInputListFromDataFrame(self, df : DataFrame, allow_na : bool=False) -> List[float]:
         return util.getInputListFromDataFrame(df, allow_na, self.id)  
 
+    @overload
+    def loadOutputObs(
+        self,
+        inplace : Literal[False],
+        pivot : Literal[True]
+    ) -> DataFrame: ...
+    @overload
+    def loadOutputObs(
+        self,
+        inplace : Literal[True],
+        pivot : Literal[False] = False
+    ) -> None: ...
+    @overload
+    def loadOutputObs(
+        self,
+        inplace : Literal[False] = False,
+        pivot : Literal[False] = False
+    ) -> List[DataFrame]: ...
+    @overload
+    def loadOutputObs(
+        self,
+        inplace : Literal[True],
+        pivot : Literal[True]
+    ) -> None: ...
     def loadOutputObs(
         self,
         inplace : bool = True,
         pivot : bool = False
-        ):
+        ) -> Union[DataFrame,List[DataFrame],None]:
         """
         Load observed values of output variables defined in self.function.outputs. Used in error calculation.
 
@@ -371,33 +431,41 @@ class Procedure():
             If true, joins all variables into a single DataFrame
         """
         if pivot:
-            data = createEmptyObsDataFrame()
+            data : DataFrame = createEmptyObsDataFrame()
             for i, output in enumerate(self.function.outputs):
+                if output._variable is None:
+                    raise Exception("Variable is not set")
                 if output._variable.data is not None and len(output._variable.data):
                     colname = "valor_%i" % (i + 1) 
                     data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
-                    logging.warn("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
+                    logging.warning("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
             # logging.debug("loadOutputObs: columns: %s" % (data.columns))
             if "valor" in data.columns:
                 data.drop(columns="valor",inplace=True)
+            if inplace:
+                self.output_obs = data
+            else:
+                return data
         else:
-            data = []
+            data_ : List[DataFrame] = []
             for output in self.function.outputs:
-                data.append(output._variable.data[["valor"]].dropna())
-        if inplace:
-            self.output_obs = data
-        else:
-            return data
+                if output._variable is None:
+                    raise Exception("Variable is not set")
+                data_.append(output._variable.data[["valor"]].dropna())
+            if inplace:
+                self.output_obs = data_
+            else:
+                return data_
     def computeStatistics(
         self, 
-        obs : Optional[list] = None, 
-        sim : Optional[list] = None,
+        obs : Optional[Union[List[DataFrame],DataFrame]] = None, 
+        sim : Optional[Union[List[DataFrame],DataFrame]] = None,
         calibration_period : Optional[tuple]=None,
         result_index : int = 0,
         tail : Optional[int] = None,
         warmup : Optional[int] = None
-        ) -> Tuple[List[ResultStatistics]]:
+        ) -> Tuple[List[ResultStatistics],List[ResultStatistics]]:
         """Compute statistics over procedure results.
         
         Parameters:
@@ -416,8 +484,12 @@ class Procedure():
         -------
         (calibration_results, validation_results) : 2-length tuple of lists of ResultStatistics. The length of the lists equals that of obs 
         """
-        obs = obs if obs is not None else self.output_obs
+        obs = obs if obs is not None else [self.output_obs] if isinstance(self.output_obs, DataFrame) else self.output_obs
+        if obs is None:
+            raise Exception("obs (self.output_obs) is not set") 
         sim = sim if sim is not None else self.output
+        if sim is None:
+            raise Exception("Sim (self.output) is not set") 
         tail = tail if tail is not None else self.tail_steps
         warmup = warmup if warmup is not None else self.warmup_steps
         result = list()
@@ -430,17 +502,17 @@ class Procedure():
             if len(obs) < i + 1:
                 raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
             df_obs = obs[i].iloc[warmup:].copy() if warmup is not None else obs[i]
-            df_obs = df_obs.tail(tail) if tail is not None else df_obs
+            df_obs = cast(DataFrame,df_obs.tail(tail)) if tail is not None else cast(DataFrame,df_obs)
             df_sim = sim[i].iloc[warmup:].copy() if warmup is not None else sim[i]
-            df_sim = df_sim.tail(tail) if tail is not None else df_sim
-            inner_join = df_sim[["valor"]].rename(columns={"valor":"sim"}).join(df_obs[["valor"]].rename(columns={"valor":"obs"}),how="inner").dropna()
+            df_sim = cast(DataFrame,df_sim.tail(tail)) if tail is not None else cast(DataFrame,df_sim)
+            inner_join = df_sim[["valor"]].rename(mapper={"valor":"sim"},axis=1).join(df_obs[["valor"]].rename(mapper={"valor":"obs"},axis=1),how="inner").dropna()
             if calibration_period is not None:
                 inner_join_cal, inner_join_val = util.groupByCalibrationPeriod(inner_join,calibration_period)
                 if i == result_index and (inner_join_cal is None or not len(inner_join_cal)):
                     raise Exception("Invalid calibration period: no data found")
                 result.append(ResultStatistics(
-                    obs = inner_join_cal["obs"].values if inner_join_cal is not None else [], 
-                    sim = inner_join_cal["sim"].values if inner_join_cal is not None else [], 
+                    obs = inner_join_cal["obs"].values.tolist() if inner_join_cal is not None else [], 
+                    sim = inner_join_cal["sim"].values.tolist() if inner_join_cal is not None else [], 
                     compute = o.compute_statistics, 
                     metadata = o.toDict(),
                     calibration_period = calibration_period,
@@ -448,19 +520,19 @@ class Procedure():
                 ))
                 if inner_join_val is not None and len(inner_join_val):
                     result_val.append(ResultStatistics(
-                        obs = inner_join_val["obs"].values, 
-                        sim = inner_join_val["sim"].values, 
+                        obs = inner_join_val["obs"].values.tolist(), 
+                        sim = inner_join_val["sim"].values.tolist(), 
                         compute = o.compute_statistics, 
                         metadata = o.toDict(),
                         calibration_period = calibration_period,
                         group = "val"
                     ))
                 else:
-                    logging.warn("No data found for validation")
+                    logging.warning("No data found for validation")
             else:
                 result.append(ResultStatistics(
-                    obs = inner_join["obs"].values, 
-                    sim = inner_join["sim"].values, 
+                    obs = inner_join["obs"].values.tolist(), 
+                    sim = inner_join["sim"].values.tolist(), 
                     compute = o.compute_statistics, 
                     metadata = o.toDict()
                 ))
@@ -470,11 +542,25 @@ class Procedure():
                 self.procedure_function_results.setStatisticsVal(result_val)
         return result, result_val
     
+    @overload
     def read_statistics(
         self, 
         short : bool = False,
-        as_dataframe = False
-        ) -> dict:
+        *,
+        as_dataframe : Literal[True]
+        ) -> DataFrame: ...
+    @overload
+    def read_statistics(
+        self, 
+        short : bool = False,
+        *,
+        as_dataframe : Literal[False]
+        ) -> StatsDict: ...
+    def read_statistics(
+        self, 
+        short : bool = False,
+        as_dataframe : bool = False
+        ) -> Union[DataFrame,StatsDict]:
         """Get result statistics as a dict or DataFrame
         
         Args:
@@ -495,10 +581,10 @@ class Procedure():
         Or DataFrame with columns: n, rmse, r, nse, n_val, rmse_val, r_val, nse_val 
         """
         if as_dataframe:
-            if not len(self.procedure_function_results.statistics) or self.procedure_function_results.statistics[0] is None:
+            if self.procedure_function_results is None or self.procedure_function_results.statistics is None or not len(self.procedure_function_results.statistics) or self.procedure_function_results.statistics[0] is None:
                 raise Exception("Statistics not found for procedure function")
             stats = self.procedure_function_results.statistics[0].toShortDict()
-            stats_val = self.procedure_function_results.statistics_val[0].toShortDict() if len(self.procedure_function_results.statistics_val) and self.procedure_function_results.statistics_val[0] is not None else None
+            stats_val = self.procedure_function_results.statistics_val[0].toShortDict() if self.procedure_function_results is not None and self.procedure_function_results.statistics_val is not None and len(self.procedure_function_results.statistics_val) and self.procedure_function_results.statistics_val[0] is not None else None
             return DataFrame([[
                 stats["n"],
                 stats["rmse"],
@@ -512,8 +598,8 @@ class Procedure():
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,
-            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics] if self.procedure_function_results.statistics is not None else None,
-            "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results.statistics_val is not None else None
+            "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics] if self.procedure_function_results is not None and self.procedure_function_results.statistics is not None else None,
+            "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results is not None and self.procedure_function_results.statistics_val is not None else None
         }
     def read_results(self) -> dict:
         """Get results as a dict
@@ -547,19 +633,19 @@ class Procedure():
     def run(
         self,
         inplace : bool = True,
-        save_results : Optional[str] = None,
-        parameters : Union[list,tuple] = None, 
-        initial_states : Union[list,tuple] = None, 
+        save_results : Optional[Union[str,Path]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None, 
         load_input : bool = True, 
         load_output_obs : bool = True,
-        adjust : bool = None,
-        adjust_method : str = None,
-        warmup_steps : int = None,
-        tail_steps : int = None,
-        error_band : bool = None,
-        save_dict : str = None,
-        drop_warmup : bool = None
-        ) -> Union[List[DataFrame], None]:
+        adjust : Optional[bool] = None,
+        adjust_method : Optional[str] = None,
+        warmup_steps : Optional[int] = None,
+        tail_steps : Optional[int] = None,
+        error_band : Optional[bool] = None,
+        save_dict : Optional[Union[str,Path]] = None,
+        drop_warmup : Optional[bool] = None
+        ) -> Union[List[DataFrame], DataFrame, None]:
         """
         Run self.function.run()
 
@@ -652,12 +738,15 @@ class Procedure():
         if adjust:
             if self.output_obs is None:
                 raise Exception("Can't adjust: missing observed outputs at procedure %s" % str(self.id))
+            if self.output is None:
+                raise Exception("Can't adjust: missing simulated outputs at procedure %s" % str(self.id))
             for i, o in enumerate(self.output):
+                o = cast(DataFrame, o)
                 if len(self.output_obs) < i + 1:
                     raise Exception("Can't adjust: missing observed output at index %i of procedure %s" % (i, str(self.id)))
                 (adjusted, adjusted_tag, lm_stats) = util.adjustSeries(
                     o,
-                    self.output_obs[i],
+                    cast(DataFrame, self.output_obs[i]),
                     warmup = warmup_steps,
                     tail = tail_steps,
                     method = adjust_method,
@@ -675,7 +764,7 @@ class Procedure():
                 if error_band:
                     o["inferior"] = o["valor"] - self.linear_model["quant_Err"][0.950]
                     o["superior"] = o["valor"] + self.linear_model["quant_Err"][0.950]
-            self.procedure_function_results.setAdjustResults(lm_stats)
+                self.procedure_function_results.setAdjustResults(lm_stats)
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
@@ -691,7 +780,7 @@ class Procedure():
         node_id : int,
         var_id : int,
         tag=None
-        ) -> None:
+        ) -> DataFrame:
         """
         Extracts single series from output using node id and variable id
 
@@ -708,22 +797,21 @@ class Procedure():
         timeseries dataframe : DataFrame
         """
         index = 0
-        for o in self.outputs:
+        for o in self.function.outputs:
             if o.var_id == var_id and o.node_id == node_id:
-                if self.output is not None and len(self.output) <= index + 1:
-                    return self.output[index]
+                if self.output is not None:
+                    if isinstance(self.output,DataFrame):
+                        return self.output
+                    else:
+                        if len(self.output) <= index + 1:
+                            return self.output[index]
             index = index + 1
-        raise("Procedure.getOutputNodeData error: node with id: %s , var %i not found in output" % (str(node_id), var_id))
-        # col_rename = {}
-        # col_rename[node_id] = "valor"
-        # data = self.output[[node_id]].rename(columns = col_rename)
-        # if tag is not None:
-        #     data["tag"] = tag
-        # return data
+        raise Exception("Procedure.getOutputNodeData error: node with id: %s , var %i not found in output" % (str(node_id), var_id))
+
     def outputToNodes(
         self,
-        overwrite : bool = None,
-        overwrite_original : bool = None
+        overwrite : Optional[bool] = None,
+        overwrite_original : Optional[bool] = None
         ) -> None:
         """Saves procedure output into the topology. Each element of self.output is concatenated into the .data property of the corresponding NodeVariable in self.plan.topology.nodes according the mapping defined in self.function.outputs. 
         
@@ -743,13 +831,15 @@ class Procedure():
         # output_columns = self.output.columns
         index = 0
         for o in self.function.outputs:
+            if o._variable is None:
+                raise Exception("variable is not set")
             if o._variable.series_sim is None:
                 logging.warning("series_sim not defined for output %s" % o.name)
                 continue
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
-            output_data = self.setIndexOfDataFrame(self.output[index],time_interval = o.node.time_interval)
+            output_data = self.setIndexOfDataFrame(self.output if isinstance(self.output, DataFrame) else self.output[index],time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
                 o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
@@ -765,12 +855,14 @@ class Procedure():
     def setIndexOfDataFrame(
         self,
         data : DataFrame,
-        time_interval : timedelta,
+        time_interval : relativedelta,
     ) -> DataFrame:
         """Set index of data frame from topology begin and end dates and time_interval"""
+        if self._plan is None:
+            raise Exception("Plan is not set")
         data = util.serieRegular(
             data = data,
-            time_interval  = time_interval if time_interval is not None else self._plan.time_interval,
+            time_interval  = time_interval if time_interval is not None else util.decimal_days_to_relativedelta(self._plan.time_interval) if isinstance(self._plan.time_interval,int) else self._plan.time_interval,
             timestart = self._plan.topology.timestart,
             timeend = self._plan.topology.forecast_timeend if self._plan.topology.forecast_timeend is not None else self._plan.topology.timeend,
             time_offset = self._plan.topology.time_offset_start,
@@ -796,10 +888,12 @@ class Procedure():
             raise Exception("Procedure input has not been generated. Execute loadInput()")
         if index > len(self.output) - 1:
             raise IndexError("testPlot index out of range at procedure %s " % str(self.id))
-        testPlot(self.output[index]["valor"],self.output_obs[index]["valor"])
+        testPlot(self.output[index]["valor"].tolist(),self.output_obs[index]["valor"].tolist())
     
-    def pivotInOut(self) -> DataFrame:
+    def pivotInOut(self) -> Optional[DataFrame]:
         df = None
+        if self.input is None:
+            raise Exception("Input is not set")
         if isinstance(self.input, DataFrame):
             df = self.input.copy()
         else:
@@ -810,8 +904,14 @@ class Procedure():
                 else:
                     df = df.join(data_renamed)
         for i, boundary in enumerate(self.function.outputs):
-            data_renamed = self.output[i][["valor"]].rename(columns={"valor":boundary.name})
-            data_obs_renamed = self.output_obs[i][["valor"]].rename(columns={"valor":"%s_obs" % boundary.name})
+            if self.output is None:
+                raise Exception("output is not set")
+            df_sim = self.output if isinstance(self.output,DataFrame) else self.output[i]
+            data_renamed = df_sim[["valor"]].rename(mapper={"valor":boundary.name}, axis=1)
+            if self.output_obs is None:
+                raise Exception("output_obs is not set")
+            df_obs = self.output_obs if isinstance(self.output_obs,DataFrame) else self.output_obs[i]
+            data_obs_renamed = df_obs[["valor"]].rename(mapper={"valor":"%s_obs" % boundary.name}, axis=1)
             if df is None:
                 df = data_renamed
             else:
@@ -839,6 +939,8 @@ class Procedure():
             Tuple where first element is the list of resulting parameters and the second is the resulting objective function
 
         """
+        if self.calibration is None:
+            raise Exception("Calibration is not set")
         calibration_result = self.calibration.run(inplace=inplace)
         if inplace:
             # updates params
@@ -850,9 +952,11 @@ class Procedure():
     
     def batchProcessInput(self, **kwargs):
         for boundary in self.function.boundaries:
-            boundary.variable.batchProcessInput(**kwargs)
+            if isinstance(boundary.variable,ObservedNodeVariable):
+                boundary.variable.batchProcessInput(**kwargs)
         for boundary in self.function.outputs:
-            boundary.variable.batchProcessInput(**kwargs)
+            if isinstance(boundary.variable,ObservedNodeVariable):
+                boundary.variable.batchProcessInput(**kwargs)
 
     
 from pydrodelta.procedures.hecras import HecRasProcedureFunction

@@ -7,46 +7,58 @@
     "allOf": [
         {
             "$ref": "procedurefunction.json"
+        },
+        {
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "PQ",
+                        "PQProcedureFunction",
+                        "GRP",
+                        "GRPProcedureFunction",
+                        "GR4J",
+                        "GR4J_",
+                        "GR4JProcedureFunction",
+                        "SacramentoSimplified",
+                        "SacramentoSimplifiedProcedureFunction",
+                        "SacEnKGProcedureFunction",
+                        "SacEnKF",
+                        "HOSH4P1L",
+                        "HOSH4P2L",
+                        "HOSH4P1LNash",
+                        "HOSH4P1LUH",
+                        "HIDROSAT"
+                    ]
+                },
+                "initial_states": {
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "array"
+                        }
+                    ],
+                    "description": "Initial states"
+                },
+                "parameters": {
+                    "type": "object",
+                    "description": "Model parameters"
+                },
+                "extra_pars": {
+                    "$ref": "pqprocedurefunction.json#/$defs/ExtraPars"
+                }
+            },
+            "required": [
+                "type",
+                "parameters",
+                "extra_pars"
+            ]
         }
     ],
-    "properties": {
-        "type": {
-            "type": "string",
-            "enum": [
-                "PQ",
-                "PQProcedureFunction",
-                "GRP",
-                "GRPProcedureFunction",
-                "GR4J",
-                "GR4J_",
-                "GR4JProcedureFunction",
-                "SacramentoSimplified",
-                "SacramentoSimplifiedProcedureFunction",
-                "SacEnKGProcedureFunction",
-                "SacEnKF",
-                "HOSH4P1L",
-                "HOSH4P2L",
-                "HOSH4P1LNash",
-                "HOSH4P1LUH",
-                "HIDROSAT"
-            ]
-        },
-        "initial_states": {
-            "oneOf": [
-                {
-                    "type": "object"
-                },
-                {
-                    "type": "array"
-                }
-            ],
-            "description": "Initial states"
-        },
-        "parameters": {
-            "type": "object",
-            "description": "Model parameters"
-        },
-        "extra_pars": {
+    "$defs": {
+        "ExtraPars": {
             "type": "object",
             "description": "additional parameters, for example basin parameters. If a particular basin parameter is not set and required by the procedure function, it will try to retrieve it from the boundary node metadata available at the input api",
             "properties": {
@@ -58,7 +70,7 @@
                     "type": "boolean",
                     "description": "If missing PMAD values, fill up with zeros"
                 },
-                "rho":  {
+                "rho": {
                     "type": "number",
                     "description": "soil porosity (0-1)"
                 },
@@ -72,10 +84,5 @@
                 }
             }
         }
-    },
-    "required": [
-        "type",
-        "parameters",
-        "extra_pars"
-    ]
+    }
 }

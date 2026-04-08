@@ -1,14 +1,14 @@
 import logging
 from typing import Optional, List
 from pydrodelta.series_data import SeriesData
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Timestamp
 from math import sqrt
-from typing import Union, Tuple
+from typing import Union, Tuple, NamedTuple, Dict, TypedDict, cast, Literal
 import numpy as np
 
 from ..procedure_function import ProcedureFunctionResults
 from ..procedures.pq import PQProcedureFunction
-from ..util import interval2timedelta
+from ..util import interval2timedelta, relativedeltaToSeconds, IntervalDict
 from ..validation import getSchemaAndValidate
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
@@ -16,12 +16,40 @@ from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
 from ..descriptors.dataframe_descriptor import DataFrameDescriptor
 
+class ParFgDict(TypedDict):
+      CN2: float
+      hp1dia: float
+      hp2dias: float
+      Qbanca: float
+
+class ExtraParsDict(TypedDict, total=False):
+    area: float
+    ae: float
+    rho: float
+    wp: float
+    windowsize: int
+    dt: IntervalDict
+    sm_transform: List[float]
+    par_fg: ParFgDict
+    max_npasos: int
+    no_check1: bool
+    no_check2: bool
+    rk2: bool
+    mock_run: bool
+
+
+class States(NamedTuple):
+    x1 : float
+    x2 : float
+    x3: float
+    x4: float
+
 class ParFg():
     """Flood guidance parameters"""
     def __init__(
         self,
-        parameters : dict,
-        area : float = None
+        parameters : ParFgDict,
+        area : Optional[float] = None
         ):
         """
         parameters : dict
@@ -105,6 +133,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         #  38 |       27 | x4     |         0 |  Infinity |       0 |     4
     ]
 
+    parameters : Dict[str, float]
+
     @property
     def x1_0(self) -> float:
         """top soil layer storage capacity [L]"""
@@ -155,15 +185,17 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         """evapotranspiration function exponent [-]"""
         return self.parameters["m3"]
 
+    extra_pars : ExtraParsDict
+
     @property
-    def windowsize(self) -> int:
+    def windowsize(self) -> Union[int, None]:
         """Window size for soil moisture adjustment"""
         return self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
     
     @property
     def dt_sec(self) -> int:
         """Time step in seconds"""
-        return interval2timedelta(self.extra_pars["dt"]).total_seconds() if "dt" in self.extra_pars else 24*60*60
+        return relativedeltaToSeconds(interval2timedelta(self.extra_pars["dt"])) if "dt" in self.extra_pars else 24*60*60
     
     @property
     def rho(self) -> float:
@@ -185,15 +217,15 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         """soil moisture rescaling parameters (scale, bias)"""
         return SmTransform(self.extra_pars["sm_transform"]) if "sm_transform" in self.extra_pars else SmTransform([1,0])
 
-    x = ListDescriptor()
+    x : States
     
     @property
-    def par_fg(self) -> dict:
+    def par_fg(self) -> Union[ParFg, None]:
         """Flood guidance parameters"""
         return ParFg(self.extra_pars["par_fg"],self.area) if "par_fg" in self.extra_pars else None
     
     @property
-    def max_npasos(self) -> int:
+    def max_npasos(self) -> Union[int, None]:
         """Maximum substeps for model computations"""
         return self.extra_pars["max_npasos"] if "max_npasos" in self.extra_pars else None
 
@@ -330,23 +362,23 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self.volume = 0
         self.sm_obs = []
         self.sm_sim = []
-        self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
+        self.x = States(*[self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)])
         self.X = []
         self.Xw = []
         self.flows = None
     
     def constraint(self,value,name):
         if name == 'x1':
-            limsup = self.x1_0
-            flag = True
-        elif name == 'x2':
-            limsup = self.x2_0
-            flag = True
-        else:
-            flag = False
-        return max(0,min(value,limsup) if flag else value)
+            return max(0,min(value,self.x1_0))
 
-    def computeFloodGuidance(self,x,Qcurrent):
+        elif name == 'x2':
+            return max(0,min(value,self.x2_0))
+        else:
+            return max(0,value)
+
+    def computeFloodGuidance(self,x : States,Qcurrent) -> Tuple[Union[float,None],Union[float,None]]:
+        if self.par_fg is None:
+            return None, None
         if Qcurrent < self.par_fg.Qbanca:
             Th_R1 = (self.par_fg.Qbanca - Qcurrent) / self.par_fg.hp1dia * 3.6
             Th_R2 = (self.par_fg.Qbanca - Qcurrent) / self.par_fg.hp2dias * 3.6
@@ -406,10 +438,11 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             rk = rk + 1
         return (n1, n2)
 
-    def advance_substep(self, x_n, p, pet, npasos, step, substep : int):
-        x_ = x_n.copy()            # @x_n: estados iniciales @x_: estados intermedios
+    def advance_substep(self, x_n : States, p : float, pet : float, npasos : int, step : Union[Timestamp,int], substep : int) -> States:
+        x_ = list(x_n)            # @x_n: estados iniciales @x_: estados intermedios
         X = [list() for i in range(4)]                   # @X: derivadas
         flows = []
+        out : List[float] = []
         for rk in range(4):
             sr = p * (x_[0] / self.x1_0)**self.m1
             et1 = pet * (x_[0] / self.x1_0)
@@ -425,21 +458,6 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             if self.compute_mass_balance:
                 deep_perc = self.c3 * x_[1] * (1 - (1 + self.mu)**(-1) )
                 flows.append((rk, p, sr, et1, int, pc, et2, gw, bf, x_[2] * self.alfa, x_[3] * self.alfa, deep_perc))
-            # rk = rk + 1
-            # sr = p * (x_[0] / self.x1_0) ** self.m1
-            # et1 = pet * (x_[0] / self.x1_0)
-            # int = self.c1 * x_[0]
-            # pc = self.c3 * self.x2_0 * (1 + self.c2 * ( 1 - x_[1] / self.x2_0) ** self.m2) * (x_[0] / self.x1_0)
-            # #~ $pc = ($pc/$_[6] > $x_[0] + ($p + $sr - $et1 - $int)/$_[6]) ? $x_[0] + ($p + $sr - $et1 - $int)/$_[6] : $pc;
-            # ### min($c3*$x2_0*(1+$c2*(1-$x_[1]/$x2_0)**$m2)*($x_[0]/$x1_0),$x_[0]+$p/$npasos-$sr/$npasos-$et1/$npasos-$int/$npasos);
-            # et2 = (pet - et1) * (x_[1] / self.x2_0) ** self.m3
-            # gw = self.c3 * x_[1]
-            # bf = (1 + self.mu) ** (-1) * gw + int
-            # X[rk][0] = p - sr - pc - et1 - int
-            # X[rk][1] = pc - et2 - gw
-            # X[rk][2] = sr + bf - x_[2] * self.alfa
-            # X[rk][3] = x_[2] * self.alfa - x_[3] * self.alfa
-            # printf $rk_out "%s    %.2f    %d    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n",  $gl_date, $gl_mjd, $rk, $p, $pet, $x_[0], $x_[1], $x_[2], $x_[3], $sr, $et1, $int, $pc, $et2, $gw, $bf, $X[$rk][0],  $X[$rk][1],  $X[$rk][2],  $X[$rk][3];
             ### if rk2
             if self.rk2:
                 if rk == 0:
@@ -454,10 +472,10 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    if self.compute_mass_balance:
+                    if self.compute_mass_balance and self.flows is not None:
                         self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 2), *x_n, *Xw]
                     #~ @x = @out;
-                    return [out[0], out[1], out[2], out[3]]
+                    break
                 #~ last;
             else:    #### rk4
                 if rk < 3:
@@ -473,65 +491,49 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
                         Xw.append(Xw_)
                     self.X.append(X)
                     self.Xw.append(Xw)
-                    if self.compute_mass_balance:
+                    if self.compute_mass_balance and self.flows is not None:
                         self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4), *x_n, *Xw]
-                    return [out[0], out[1], out[2], out[3]]
+                    break
+        return States(out[0], out[1], out[2], out[3])
 
 
-    def advance_step(self,x : List[float],pma,etp, step):
-        x_ = x.copy()
+    def advance_step(self,x : States, pma : float, etp : float, step : Union[Timestamp,int]) -> Tuple[States, int]:
+        x_ = States(*x)
         if not self.no_check1:
             npasos = max(1,int(pma/2))
         else:
             npasos = 1
         n1 = 1
         n2 = 1
-        maxn = self.max_npasos if self.max_npasos is not None else 24
         if not self.no_check2:
-            (n1, n2) = self.check(x_[0],x_[1],pma,etp)
+            (n1, n2) = self.check(x.x1,x.x2,pma,etp)
         npasos = max(n2, max(npasos, min(24, n1)))
         npasos = npasos if self.max_npasos is None else min(self.max_npasos, npasos)
         l = 1
         while(l <= npasos):
-            # gl_mjd += 1/npasos
             x_ = self.advance_substep(x_, pma, etp, npasos, step, l - 1)
-            # printf $super_out "%s    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f    %.2f\n", $gl_date, $gl_mjd, $_[4]/$npasos, $_[5]/$npasos, @x;
             l = l + 1
 
         return x_, npasos
 
-    def run(self,input: Optional[DataFrame]=None) -> Tuple[List[SeriesData], ProcedureFunctionResults]:
+    def run(self,input: Optional[Union[List[DataFrame],DataFrame]]=None) -> Tuple[List[DataFrame], ProcedureFunctionResults]:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(
+            if self._procedure is None:
+                raise ValueError("procedure not defined")
+            input = cast(DataFrame, self._procedure.loadInput(
                 inplace=False,
                 pivot=True,
                 use_boundary_name=True,
-                tag_column=False)
-        # results = DataFrame({
-        #     "timestart": Series(dtype='datetime64[ns]'),
-        #     "pma": Series(dtype='float'),
-        #     "etp": Series(dtype='float'),
-        #     "q_obs": Series(dtype='float'),
-        #     "smc_obs": Series(dtype='float'),
-        #     "x0": Series(dtype='float'),
-        #     "x1": Series(dtype='float'),
-        #     "x2": Series(dtype='float'),
-        #     "x3": Series(dtype='float'),
-        #     "q3": Series(dtype='float'),
-        #     "q4": Series(dtype='float'),
-        #     "smc": Series(dtype='float'),
-        #     "k": Series(dtype='int'),
-        #     "fg1": Series(dtype='float'),
-        #     "fg2": Series(dtype='float'),
-        #     "substeps": Series(dtype='int')
-        # })
-        # results.set_index("timestart", inplace=True)
+                tag_column=False))
+        elif isinstance(input, list):
+            input = input[0]
+        
         # initialize states
-        self.x = [self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)]
+        self.x = States(*[self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)])
         step = 0
         if self.compute_mass_balance:
             self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc", "x1", "x2", "x3", "x4", "X1", "X2", "X3", "X4"])
@@ -598,8 +600,8 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, x[0], x[1], x[2], x[3], q3, q4, smcsim, k, fg1, fg2, None]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "x0", "x1", "x2", "x3", "q3", "q4", "smc", "k", "fg1", "fg2","substeps"])
             
             #advance step
-            x_0 = self.x.copy()
-            (self.x, npasos) = self.advance_step(self.x,pma,etp, i)
+            x_0 = States(*self.x)
+            (self.x, npasos) = self.advance_step(self.x,pma,etp, cast(Timestamp, i))
             # new_row.loc[[0],'substeps'] = npasos
             
             # write row
@@ -645,13 +647,13 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     def setParameters(
         self, 
-        parameters: Union[list,tuple] = ...,
+        parameters: Union[List,Tuple] = [],
         reset: bool = True) -> None:
         super().setParameters(parameters, reset)
     
     def setInitialStates(
         self, 
-        states: Union[list,tuple] = ...) -> None:
+        states: Union[List,Tuple] = []) -> None:
         super().setInitialStates(states)
     
     def massBalance(self) -> dict:

@@ -3,24 +3,34 @@ from pydrodelta.config import config
 from pandas import DataFrame
 import numpy as np
 import logging
-from typing import Optional, Union, List
+from typing import Optional, Union, List, TypedDict
 import os
 import json
 from .util import createParent, make_serializable
+from pathlib import Path
+
+class AdjustResultsDict(TypedDict):
+    method : Optional[str]
+    r2 : Optional[float]
+    coef : Optional[List[float]]
+    quant_Err : Optional[List[float]]
+    intercept : Optional[float]
+    train : Optional[List[List[Union[str, float]]]]
+    coefficients : Optional[List[float]]
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
     def __init__(
         self,
-        border_conditions : Union[List[DataFrame],DataFrame] = None,
-        initial_states : Union[list,dict] = None,
-        states : Union[list,DataFrame] = None,
-        parameters : Union[list,dict] = None,
-        statistics : Union[list,dict] = None,
-        statistics_val : list = None,
-        data : DataFrame = None,
-        extra_pars : dict = None,
-        adjust_results :dict = None
+        border_conditions : Optional[Union[List[DataFrame],DataFrame]] = None,
+        initial_states : Optional[Union[list,dict]] = None,
+        states : Optional[Union[list,DataFrame]] = None,
+        parameters : Optional[Union[list,dict]] = None,
+        statistics : Optional[Union[list,dict]] = None,
+        statistics_val : Optional[list] = None,
+        data : Optional[DataFrame] = None,
+        extra_pars : Optional[dict] = None,
+        adjust_results : Optional[dict] = None
         ):
         """
         border_conditions : Union[List[DataFrame],DataFrame] = None
@@ -66,13 +76,13 @@ class ProcedureFunctionResults:
         """Initial states"""
         self.states = states
         """State timeseries"""
-        self.parameters : Union[list,dict] = parameters
+        self.parameters : Optional[Union[list,dict]] = parameters
         """Procedure function calibratable  parameters"""
         self.statistics : Optional[list] = [ResultStatistics(**x) for x in statistics] if isinstance(statistics,(list,tuple)) else [ResultStatistics(**statistics)] if statistics is not None else None
         """Result statistics"""
         self.statistics_val : Optional[list] = [ResultStatistics(**x) for x in statistics_val] if isinstance(statistics_val,(list,tuple)) else [ResultStatistics(**statistics_val)] if statistics_val is not None else None
         """Validation results statistics"""
-        self.data : Optional[DataFrame] = DataFrame(data) if data is not None else None
+        self.data : Optional[Union[List[DataFrame],DataFrame]] = DataFrame(data) if data is not None else None
         """Procedure function pivoted table including boundaries, states and outputs"""
         self.extra_pars : Optional[dict] = extra_pars
         """Additional, non-calibratable parameters"""
@@ -94,7 +104,7 @@ class ProcedureFunctionResults:
         self.statistics_val = [ ResultStatistics(**x) if type(x) == dict else x  for x in result_statistics] if result_statistics is not None else None
     def save(
         self,
-        output : str
+        output : Union[str, Path]
         ) -> None:
         """Save procedure function data as csv file
         
@@ -109,11 +119,11 @@ class ProcedureFunctionResults:
         try:
             createParent(output)
             with open(output,'w') as f:
-                self.data.to_csv(f)
+                self.data[0].to_csv(f) if isinstance(self.data, list) else self.data.to_csv(f)
             logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             logging.error(f"Couldn't write to file (%s)" % str(e))
-    def saveDict(self, output : str):
+    def saveDict(self, output : Union[str, Path]):
         try:
             createParent(output)
             with open(output,'w') as f:
@@ -139,11 +149,11 @@ class ProcedureFunctionResults:
             "border_conditions": self.border_conditions.replace({np.nan:None}).to_dict("records") if self.border_conditions is not None and type(self.border_conditions) == DataFrame else [df.replace({np.nan:None}).to_dict("records") if type(df) == DataFrame else df for df in self.border_conditions] if self.border_conditions is not None and type(self.border_conditions) == list else self.border_conditions,
             "initial_states": self.initial_states,
             "states": self.states.replace({np.nan:None}).to_dict("records") if self.states is not None and type(self.states) == DataFrame else self.states,
-            "parameters": self.parameters if type(self.parameters) == dict or type(self.parameters) == list else self.parameters.toDict() if self.parameters is not None else None,
+            "parameters": self.parameters, # if type(self.parameters) == dict or type(self.parameters) == list else self.parameters.toDict() if self.parameters is not None else None,
             "extra_pars": self.extra_pars,
             "statistics": [x.toDict() for x in self.statistics] if self.statistics is not None else None,
             "statistics_val": [x.toDict() for x in self.statistics_val] if self.statistics_val is not None else None,
-            "data": make_serializable(self.data).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [make_serializable(df).to_dict("records") for df in self.data] if self.data is not None else None,
+            "data": make_serializable(self.data).to_dict("records") if type(self.data) == DataFrame else [make_serializable(df).to_dict("records") for df in self.data] if isinstance(self.data, list) else [make_serializable(self.data).to_dict("records")] if self.data is not None else None,
             "adjust_results": self.adjust_results_dict
         }
 
@@ -151,7 +161,7 @@ class ProcedureFunctionResults:
         self.adjust_results = adjust_results
 
     @property
-    def adjust_results_dict(self) -> dict:
+    def adjust_results_dict(self) -> Optional[AdjustResultsDict]:
         if self.adjust_results is not None:
             return {
                 "method": self.adjust_results["method"] if "method" in self.adjust_results else None,
