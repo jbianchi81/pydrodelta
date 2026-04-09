@@ -24,6 +24,7 @@ DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
 import numpy as np
 from pathlib import Path
+import statistics
 
 localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
 
@@ -1195,7 +1196,7 @@ def relativedeltaToSeconds(rd : relativedelta) -> int:
     now = datetime.now()
     future = now + rd
     delta = future - now
-    return delta.total_seconds()
+    return int(delta.total_seconds())
 
 def compare_durations(d1 : Union[relativedelta,timedelta], d2 : Union[relativedelta,timedelta],operation:Literal["gt","lt","ge","le","e"]="gt"):
     d1_seconds = relativedeltaToSeconds(d1) if isinstance(d1,relativedelta) else d1.total_seconds()
@@ -1326,4 +1327,27 @@ def make_serializable(df: DataFrame) -> DataFrame:
     for col in df.select_dtypes(include=["datetime64[ns]", "datetimetz"]):
         df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
     return df
-    
+
+class StatsDict(TypedDict):
+    min : float
+    max : float
+    mean : float
+    p10 : float
+    p90 : float  
+    n : int
+
+def get_stats(data : List[float]) -> StatsDict:
+    data_sorted = sorted(data)
+
+    n = len(data)
+    p10 = data_sorted[int(0.10 * (n - 1))]
+    p90 = data_sorted[int(0.90 * (n - 1))]
+
+    return {
+        "min": min(data),
+        "max": max(data),
+        "mean": statistics.mean(data),
+        "p10": p10,
+        "p90": p90,
+        "n": n
+    }

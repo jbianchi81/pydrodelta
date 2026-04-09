@@ -4,6 +4,7 @@ from ..series_data import SeriesData
 import numpy as np 
 from pandas import DataFrame, Series, concat, Timestamp
 from datetime import datetime
+from ..util import get_stats, StatsDict
 
 from ..procedure_function import ProcedureFunctionResults
 import pydrodelta.procedures.sacramento_simplified as sac
@@ -249,11 +250,11 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         else:
             return value
 
-    def media(
+    def get_ens_stats(
         self,
         index : int
-        ) -> Tuple[float,float,float]:
-        """Get the ensemble mean of the model state variable of the selected index for each ensemble (self.ens, self.ens1, self.ens2)
+        ) -> Tuple[StatsDict,StatsDict,StatsDict]:
+        """Get the ensemble stats (mean, min, max, p10, p90) of the model state variable of the selected index for each ensemble (self.ens, self.ens1, self.ens2)
         
         Parameters:
         -----------
@@ -261,18 +262,13 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         
         Returns:
         --------
-        mean of ensemble 0 (self.ens) : float
-        mean of ensemble 1 (self.ens1) : float
-        mean of ensemble 2 (self.ens2) : float"""
-        sum = 0
-        sum1 = 0
-        sum2 = 0
-        for i in range(self.replicates):
-            # logging.debug("sum: %s, self.ens[i][index]: %s" % (str(sum),str(self.ens[i][index])))
-            sum += self.ens[i][index]
-            sum1 += self.ens1[i][index]
-            sum2 += self.ens2[i][index]
-        return (sum / self.replicates, sum1 / self.replicates, sum2 / self.replicates)
+        stats of ensemble 0 (self.ens) : StatsDict
+        stats of ensemble 1 (self.ens1) : StatsDict
+        stats of ensemble 2 (self.ens2) : StatsDict"""
+        ens0_stats = get_stats([self.ens[i][index] for i in range(self.replicates)])
+        ens1_stats = get_stats([self.ens1[i][index] for i in range(self.replicates)])
+        ens2_stats = get_stats([self.ens2[i][index] for i in range(self.replicates)])
+        return ens0_stats, ens1_stats, ens2_stats
 
     def media1(
         self,
@@ -714,7 +710,15 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             "fg2": Series(dtype='float'),
             "q4_min": Series(dtype="float"),
             "q4_h1": Series(dtype="float"),
-            "q4_h2": Series(dtype="float")
+            "q4_h2": Series(dtype="float"),
+            "smc_min": Series(dtype="float"),
+            "smc_p10": Series(dtype="float"),
+            "smc_p90": Series(dtype="float"),
+            "smc_max": Series(dtype="float"),
+            "q_min": Series(dtype="float"),
+            "q_p10": Series(dtype="float"),
+            "q_p90": Series(dtype="float"),
+            "q_max": Series(dtype="float")
         })
         results.set_index("timestart", inplace=True)
         results_al = DataFrame({
@@ -777,47 +781,40 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             sm_ = smc_obs+self.wp if smc_obs is not None and smc_obs != -1 else None
             if pma is None or etp is None:
                 raise Exception("pma and/or etp value missing in step %s" % str(row["timestart"]))
-            # $json_al .= sprintf "{\"fecha_julian\":%.4f,\"fecha\":\"%s\",\"precip\":%.2f,\"pet\":%.2f,\"q_obs\":%s,\"smc_obs\":%s,\"x1\":%.4f,\"x2\":%.4f,\"x3\":%.4f,\"x4\":%.4f,\"caudal\":%.4f,\"smc\":%.4f", $jdate,@{$reg}[$paso]->{'fecha'},$p,$pet,($q_ ne "")?$q_:"null",($sm_ ne "")?$sm_:"null",$x_al[0],$x_al[1],$x_al[2],$x_al[3],$q_al,$sm_al;
+            
             self.sm_obs.append(sm_)
-            #	$sm_=($sm_ ne "") ? &linfit($paso,$sm_) : "";
-            #~ print $salida_Q "$jdate,$q_,";
-            #~ print $salida_sm "$jdate,$sm_,";
-            #~ printf $salida "%.3f,%.3f,%.3f,%.3f,%.3f,", $jd,$p,$pet,$q,$smc;
-            # sm_f = list()
-            # q_f = list()
+            
             q_minx = list()
             j = 0
             new_row_min = self.newResultsRow(cast(Timestamp,timestart))
             new_row_h1 = self.newResultsRow(cast(Timestamp,timestart))
             new_row_h2 = self.newResultsRow(cast(Timestamp,timestart))
             self.mediassinpert = list()
+            
+            # get stats of each state
             for i in range(4):
-                media_f = self.media(i)
+                ens_stats, ens1_stats, ens2_stats = self.get_ens_stats(i)
                 if self.update[i]:
-                    self.mediassinpert.append(media_f[0])
+                    self.mediassinpert.append(ens_stats["mean"])
                     j = j + 1
-                new_row_min.loc[[0],self._statenames[i]] = media_f[0] # $json_min .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[0];
-                new_row_h1.loc[[0],self._statenames[i]] = media_f[1] # $json_h1 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[1];
-                new_row_h1.loc[[0],self._statenames[i]] = media_f[2] # $json_h2 .= sprintf "\"x%d\":%.3f,",$i+1, $media_f[2];
+                new_row_min.loc[[0],self._statenames[i]] = ens_stats["mean"] 
+                new_row_h1.loc[[0],self._statenames[i]] = ens1_stats["mean"] 
+                new_row_h1.loc[[0],self._statenames[i]] = ens2_stats["mean"] 
                 
                 if i == 0:
-                    sm_f = list()
-                    for k in range(3):
-                        sm_f.append(media_f[k] * (self.rho - self.wp) / self.x1_0 + self.wp)
-                    new_row_min.loc[[0],"smc"] = sm_f[0]
-                    new_row_h1.loc[[0],"smc"] = sm_f[1] # $json_h1 .= sprintf "\"smc\":%.4f," , $sm_f[1];
-                    new_row_h2.loc[[0],"smc"] = sm_f[2] # $json_h2 .= sprintf "\"smc\":%.4f," , $sm_f[2];
+                    new_row_min.loc[[0],"smc"] = ens_stats["mean"] * (self.rho - self.wp) / self.x1_0 + self.wp
+                    new_row_h1.loc[[0],"smc"] = ens1_stats["mean"] * (self.rho - self.wp) / self.x1_0 + self.wp 
+                    new_row_h2.loc[[0],"smc"] = ens2_stats["mean"] * (self.rho - self.wp) / self.x1_0 + self.wp 
                 elif i == 3:
-                    q_f = list()
-                    for k in range(3):
-                        q_f.append(media_f[k] * self.alfa * self.area / 1000 / 24 / 60 / 60)
-                    new_row_min.loc[[0],"q4"] = q_f[0] # $json_min .= sprintf "\"caudal\":%.4f," , $q_f[0];
-                    new_row_h1.loc[[0],"q4"] = q_f[1] # $json_h1 .= sprintf "\"caudal\":%.4f," , $q_f[1];
-                    new_row_h2.loc[[0],"q4"] = q_f[2] # $json_h2 .= sprintf "\"caudal\":%.4f," , $q_f[2];
+                    q_f = [
+                        ens_stats["mean"] * self.alfa * self.area / 1000 / 24 / 60 / 60,
+                        ens1_stats["mean"] * self.alfa * self.area / 1000 / 24 / 60 / 60,
+                        ens2_stats["mean"] * self.alfa * self.area / 1000 / 24 / 60 / 60
+                    ]
+                    new_row_min.loc[[0],"q4"] = q_f[0]
+                    new_row_h1.loc[[0],"q4"] = q_f[1]
+                    new_row_h2.loc[[0],"q4"] = q_f[2]
                     q_minx = list(q_f)
-            # chop $json_min; $json_min .= "},";
-            # chop $json_h1; $json_h1 .= "},";
-            # chop $json_h2; $json_h2 .= "},";
             C = self.getC()
             R, H_j = self.getR(Asim(innov["sm"], innov["q"]),qvar,smc_var) # if qvar is not None else ([], None)
             if len(R) > 0:
@@ -832,21 +829,27 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
             })
             
             ######CALCULA SMC Y Q SIMULADOS (PROMEDIO DEL ENSAMBLE)  ###############
-            estados_prom = list()
+            estados_stats : List[StatsDict] = list()
             sim = list()
             errors = list()
-            # my $kgstr = (@KG_j>0) ? encode_json(\@KG_j) : "\"null\"";
-            # $json_plus .= sprintf "{\"fecha_julian\":%.4f,\"fecha\":\"%s\",\"kalman_gain\":$kgstr,\"estados\":[", $jdate, @{$reg}[$paso]->{'fecha'}; #print $salida_plus "$jdate\t";		
+            
             for j in range(len(self.ens[0])):
-                estados_prom.append(self.media1(j))
-                # $json_plus .= sprintf "%.4f,", $estados_prom[$j];
-            # chop $json_plus;
-            # $json_plus .= "],";
-            Q_out_plus = estados_prom[-1] * self.alfa * self.area / 1000 / 24 / 60 / 60
-            Q3_plus = estados_prom[-2] * self.alfa * self.area / 1000 / 24 / 60 / 60
+                ens_stats = get_stats([self.ens[i][j] for i in range(self.replicates)])
+                estados_stats.append(ens_stats)
+            
+            estados_prom = [stats["mean"] for stats in estados_stats]
+            Q_out_plus = estados_prom[3] * self.alfa * self.area / 1000 / 24 / 60 / 60
+            Q3_plus = estados_prom[2] * self.alfa * self.area / 1000 / 24 / 60 / 60
             sm_out_plus = estados_prom[0] * (self.rho - self.wp) / self.x1_0 + self.wp
-            # $json_plus .= sprintf "\"caudal\":%.4f,\"smc\":%.4f", $Q_out_plus, $sm_out_plus; # print $salida_plus "\n";
-            # $table_out .= sprintf "%s	%s	%.4f	%.4f	%.4f	%.4f	%.4f\n",@{$reg}[$paso]->{'fecha'}, (($q_ ne "")?$q_:"\\N"), $Q_out_plus, $q_al, @q_minx;   #### modif 2017-10-12 Qoutplus primero!!!
+            sm_min = estados_stats[0]["min"] * (self.rho - self.wp) / self.x1_0 + self.wp
+            sm_p10 = estados_stats[0]["p10"] * (self.rho - self.wp) / self.x1_0 + self.wp
+            sm_p90 = estados_stats[0]["p90"] * (self.rho - self.wp) / self.x1_0 + self.wp
+            sm_max = estados_stats[0]["max"] * (self.rho - self.wp) / self.x1_0 + self.wp
+            q_min = estados_stats[3]["min"] * self.alfa * self.area / 1000 / 24 / 60 / 60
+            q_p10 = estados_stats[3]["p10"] * self.alfa * self.area / 1000 / 24 / 60 / 60
+            q_p90 = estados_stats[3]["p90"] * self.alfa * self.area / 1000 / 24 / 60 / 60
+            q_max = estados_stats[3]["max"] * self.alfa * self.area / 1000 / 24 / 60 / 60
+            
             ########## fg ##############
             if self.par_fg is not None:
                 Qcurrent = q_ if q_ is not None else Q_out_plus
@@ -857,7 +860,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
 
 
             # write row
-            new_row = DataFrame([[timestart, pma, etp, q_obs, smc_obs, smc_var, estados_prom[0], estados_prom[1], estados_prom[2], estados_prom[3], Q3_plus, Q_out_plus, sm_out_plus, k, fg1, fg2, q_minx[0], q_minx[1], q_minx[2]]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "smc_var", "x1", "x2", "x3", "x4", "q3", "q4", "smc", "k", "fg1", "fg2","q4_min","q4_h1","q4_h2"])
+            new_row = DataFrame([[timestart, pma, etp, q_obs, smc_obs, smc_var, estados_prom[0], estados_prom[1], estados_prom[2], estados_prom[3], Q3_plus, Q_out_plus, sm_out_plus, k, fg1, fg2, q_minx[0], q_minx[1], q_minx[2], sm_min, sm_p10, sm_p90, sm_max, q_min, q_p10, q_p90, q_max]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "smc_var", "x1", "x2", "x3", "x4", "q3", "q4", "smc", "k", "fg1", "fg2","q4_min","q4_h1","q4_h2", "smc_min", "smc_p10", "smc_p90", "smc_max", "q_min", "q_p10", "q_p90", "q_max"])
             new_row_al = DataFrame([[timestart, x_al[0], x_al[1], x_al[2], x_al[3], q_al, sm_al, None]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc","substeps"])
 
             ##################  CORRE PASO MODELO   #########################
@@ -909,8 +912,8 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         )
         return (
             [
-                results[["q4"]].rename(columns={"q4":"valor"}),
-                results[["smc"]].rename(columns={"smc":"valor"})
+                results[["q4","q_p10","q_p90"]].rename(columns={"q4":"valor", "q_p10": "inferior", "q_p90": "superior"}),
+                results[["smc","smc_p10", "smc_p90"]].rename(columns={"smc":"valor","smc_p10": "inferior", "smc_p90": "superior"})
             ],
             procedure_results
         )
