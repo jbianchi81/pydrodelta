@@ -18,18 +18,18 @@ class Base():
     
     a5_config = DictDescriptor()
 
-    input_crud : Crud
+    input_crud : Optional[Crud]
 
-    output_crud : Crud
+    output_crud : Optional[Crud]
         
-    s3_client : S3Client
+    s3_client : Optional[S3Client]
 
     base_path : Optional[Path]
 
     def __init__(self,
-        input_api_config : ApiConfigDict = None, 
-        output_api_config : ApiConfigDict = None, 
-        s3_config : s3ConfigDict = None,
+        input_api_config : Optional[ApiConfigDict] = None, 
+        output_api_config : Optional[ApiConfigDict] = None, 
+        s3_config : Optional[s3ConfigDict] = None,
         base_path : Optional[Path] = None
         ):
         self.input_api_config = coalesce(input_api_config,config["input_api"] if "input_api" in config else None)
@@ -41,7 +41,7 @@ class Base():
         self.base_path = base_path
 
     @classmethod
-    def load(cls, file : str, **kwargs):
+    def load(cls, file : Union[Path,str], **kwargs):
         """Load configuration from yaml file
 
         Args:

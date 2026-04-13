@@ -78,9 +78,9 @@ class ProcedureFunctionResults:
         """State timeseries"""
         self.parameters : Optional[Union[list,dict]] = parameters
         """Procedure function calibratable  parameters"""
-        self.statistics : Optional[list] = [ResultStatistics(**x) for x in statistics] if isinstance(statistics,(list,tuple)) else [ResultStatistics(**statistics)] if statistics is not None else None
+        self.statistics : Optional[List[ResultStatistics]] = [ResultStatistics(**x) for x in statistics] if isinstance(statistics,(list,tuple)) else [ResultStatistics(**statistics)] if statistics is not None else None
         """Result statistics"""
-        self.statistics_val : Optional[list] = [ResultStatistics(**x) for x in statistics_val] if isinstance(statistics_val,(list,tuple)) else [ResultStatistics(**statistics_val)] if statistics_val is not None else None
+        self.statistics_val : Optional[List[ResultStatistics]] = [ResultStatistics(**x) for x in statistics_val] if isinstance(statistics_val,(list,tuple)) else [ResultStatistics(**statistics_val)] if statistics_val is not None else None
         """Validation results statistics"""
         self.data : Optional[Union[List[DataFrame],DataFrame]] = DataFrame(data) if data is not None else None
         """Procedure function pivoted table including boundaries, states and outputs"""

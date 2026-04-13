@@ -5,7 +5,7 @@ from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .node import Node
 from .node_variable import NodeVariable
-from typing import Tuple
+from typing import Tuple, Optional
 
 class ProcedureBoundary():
     """
@@ -148,7 +148,7 @@ class ProcedureBoundary():
         warmup_only : bool = False,
         read_sim : bool = False,
         sim_index : int = 0,
-        warmup_steps : int = None
+        warmup_steps : Optional[int] = None
         ) -> None:
         """
         Assert if the are missing values in the boundary

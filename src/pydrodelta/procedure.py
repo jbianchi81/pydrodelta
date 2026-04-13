@@ -6,7 +6,7 @@ import numpy as np
 import os
 from . import util
 from a5client import createEmptyObsDataFrame
-from .result_statistics import ResultStatistics
+from .result_statistics import ResultStatistics, ResultStatisticsDict, ResultStatisticsShortDict
 from .procedure_function_results import ProcedureFunctionResults
 from .pydrology import testPlot
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
@@ -26,8 +26,8 @@ from .observed_node_variable import ObservedNodeVariable
 class StatsDict(TypedDict):
     procedure_id : Union[str,int]
     function_type : str
-    results : Optional[List[Union[ProcedureFunctionResults, None]]] 
-    results_val : Optional[List[Union[ProcedureFunctionResults, None]]] 
+    results : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
+    results_val : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
 
 class Procedure():
     """
@@ -554,7 +554,7 @@ class Procedure():
         self, 
         short : bool = False,
         *,
-        as_dataframe : Literal[False]
+        as_dataframe : Literal[False]=False
         ) -> StatsDict: ...
     def read_statistics(
         self, 

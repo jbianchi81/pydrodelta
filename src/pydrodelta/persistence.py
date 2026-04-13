@@ -2,17 +2,21 @@ from minio import Minio, S3Error
 
 from .config import config as g_config
 from io import BytesIO, StringIO
-from pandas import DataFrame, read_csv, to_datetime
+from pandas import DataFrame, read_csv, to_datetime, DatetimeIndex
 from .util import coalesce
+from typing import Optional
 
 default_config = g_config["minio"] if "minio" in g_config else None
 
 class S3Client:
 
-    def __init__(self,config : dict = None):
+    client : Optional[Minio]
+    bucket_name : Optional[str]
+
+    def __init__(self,config : Optional[dict] = None):
         config = coalesce(config, default_config)
         if config is None:
-            self.client = None
+            self.client : Optional[Minio] = None
             self.bucket_name = None
         else:
             if "url" not in config:
@@ -34,6 +38,8 @@ class S3Client:
             content : str,
             file_name : str
         ) -> None:
+        if self.client is None:
+            raise Exception("client is not set")            
         if not self.client.bucket_exists(bucket_name):
             self.client.make_bucket(bucket_name)
         byteobj = content.encode('utf-8')
@@ -50,6 +56,8 @@ class S3Client:
             bucket_name : str,
             file_name : str
         ) -> str:
+        if self.client is None:
+            raise Exception("client is not set")  
         response = self.client.get_object(
             bucket_name,
             file_name)
@@ -95,6 +103,8 @@ class S3Client:
             bucket_name : str,
             file_name : str
         ) -> DataFrame:
+        if self.client is None:
+            raise Exception("client is not set")  
         try:
             result = self.client.stat_object(bucket_name, file_name)
         except S3Error as e:
@@ -105,7 +115,7 @@ class S3Client:
         )
         data = data.set_index("timestart")
         data.index = to_datetime(data.index)
-        data.index = data.index.tz_convert('America/Argentina/Buenos_Aires')
+        data.index = DatetimeIndex(data.index).tz_convert('America/Argentina/Buenos_Aires')
         return data
 
     def assertClient(self):

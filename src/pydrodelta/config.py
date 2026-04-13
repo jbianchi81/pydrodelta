@@ -2,16 +2,29 @@ import yaml
 from pathlib import Path
 import click
 from dataclasses import dataclass
+from typing import TypedDict, cast, Any
 
 @dataclass
 class AppState:
     run_create: bool = False
 
+class ApiConfig(TypedDict):
+    url : str
+    token : str
+
+class LogConfig(TypedDict):
+    filename : str
+
+class ConfigDict(TypedDict):
+    input_api : ApiConfig
+    output_api: ApiConfig
+    log : LogConfig
+
 state = AppState()
 
 CONFIG_PATH = Path.home() / ".pydrodelta.yml"
 
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG : ConfigDict = {
     "input_api": {
         "url": "https://alerta.ina.gob.ar/a5",
         "token": "my_token",
@@ -38,12 +51,12 @@ def prompt(field, default):
     return value if value else default
 
 
-def create_config(defaults : dict=DEFAULT_CONFIG):
+def create_config(defaults = DEFAULT_CONFIG) -> ConfigDict:
     print("Please enter configuration values.\n")
 
-    defaults = deep_fill(defaults, DEFAULT_CONFIG)
+    defaults = deep_fill(cast(dict[str, Any], defaults), cast(dict[str, Any], DEFAULT_CONFIG))
 
-    cfg = {
+    cfg : ConfigDict = {
         "input_api": {
             "url": prompt("Input API URL", defaults["input_api"]["url"]),
             "token": prompt("Input API token", defaults["input_api"]["token"]),
@@ -63,7 +76,7 @@ def create_config(defaults : dict=DEFAULT_CONFIG):
     print(f"\nConfig saved to {CONFIG_PATH}")
     return cfg
 
-def loadConfig():
+def loadConfig() -> ConfigDict:
     if not CONFIG_PATH.exists():
         print("Config file not found.")
         state.run_create = True

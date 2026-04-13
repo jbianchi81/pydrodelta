@@ -1,8 +1,32 @@
 import logging
 from pandas import DataFrame, Timestamp
 import math
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, TypedDict, cast
 from datetime import datetime
+
+
+class ResultStatisticsShortDict(TypedDict):
+    n : Optional[int]
+    mse : Optional[float]
+    rmse : Optional[float]
+    bias  : Optional[float]
+    mean_obs  : Optional[float]
+    mean_sim  : Optional[float]
+    stdev_obs  : Optional[float]
+    stdev_sim  : Optional[float]
+    var_obs  : Optional[float]
+    var_sim  : Optional[float]
+    stdev_diff  : Optional[float]
+    nse : Optional[float]
+    cov : Optional[float]
+    r : Optional[float]
+    oneminusr : Optional[float]
+
+class ResultStatisticsDict(ResultStatisticsShortDict):
+    errors : Optional[List[float]]
+    obs : Optional[List[float]]
+    sim : Optional[List[float]]
+
 
 class ResultStatistics:
     """Collection of statistic analysis results for one output of the procedure"""
@@ -132,18 +156,18 @@ class ResultStatistics:
         self.oneminusr = 1 - self.r if self.r is not None else None
         if self.k is not None:
             self.rse = ( sum([ e ** 2 for e in self.errors]) / ( self.n - self.k - 1 )) ** 0.5
-    def toDict(self) -> dict:
+    def toDict(self) -> ResultStatisticsDict:
         """Convert result statistics into dict
         
         Returns:
         --------
         dict"""
-        dict = self.__dict__
+        dict = cast(ResultStatisticsDict, self.__dict__)
         # dict["obs"] = [v  if not math.isnan(v) else None for v in dict["obs"]]
         # dict["sim"] = [v  if not math.isnan(v) else None for v in dict["sim"]]
         return dict
 
-    def toShortDict(self) -> dict:
+    def toShortDict(self) -> ResultStatisticsShortDict:
         """Return Statistics summary
 
         Returns:

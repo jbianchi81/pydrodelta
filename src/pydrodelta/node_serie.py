@@ -6,7 +6,7 @@ from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame
 from dateutil.relativedelta import relativedelta
 from .config import config
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, Literal
 from .types.tvp import TVP
 from .types.series_dict import SeriesDict
 from .types.series_prono_dict import SeriesPronoDict
@@ -28,17 +28,17 @@ class NodeSerie(Base):
     series_id = IntDescriptor()
     """Identifier of the series. If csv_file is set, reads the column identified in the header with this id. Else, unless observations is set, retrieves the identified series from the input api"""
     
-    type = StringDescriptor()
+    type : Literal["puntual","areal","raster"]
     """Type of the series (only for retrieval from input api). One of 'puntual', 'areal', 'raster'"""
     
     @property
-    def lim_outliers(self) -> Tuple[float,float]:
+    def lim_outliers(self) -> Optional[Tuple[float,float]]:
         """Minimum and maximum values for outliers removal (2-tuple of float)"""
         return self._lim_outliers
     @lim_outliers.setter
     def lim_outliers(
         self,
-        values : Tuple[float,float]
+        values : Optional[Tuple[float,float]]
         ) -> None:
         if values is None:
             self._lim_outliers = None
@@ -84,13 +84,13 @@ class NodeSerie(Base):
     """Read data from this json or yaml file. The file must validate against a5 'series' schema, with 'observaciones' key containing a list of time value pairs"""
 
     @property
-    def observations(self) -> List[TVP]:
+    def observations(self) -> Optional[List[TVP]]:
         """Time-value pairs of data. List of dicts {'timestart':datetime, 'valor':float}, or list of 2-tuples (datetime,float)"""
         return self._observations
     @observations.setter
     def observations(
         self,
-        values : List[TVP]
+        values : Optional[Union[List[Tuple[datetime, float]], List[TVP]]]
         ) -> None:
         self._observations = util.parseObservations(values) if values is not None else None
     
@@ -121,24 +121,24 @@ class NodeSerie(Base):
     def __init__(
         self,
         series_id : int,
-        tipo : str = "puntual",
-        lim_outliers : Tuple[float,float] = None,
-        lim_jump : float = None,
+        tipo : Literal["puntual", "areal", "raster"] = "puntual",
+        lim_outliers : Optional[Tuple[float,float]] = None,
+        lim_jump : Optional[float] = None,
         x_offset : relativedelta = relativedelta(seconds=0),
         y_offset : float = 0,
-        moving_average : relativedelta = None,
-        csv_file : str = None,
-        observations : Union[List[TVP],List[Tuple[datetime,float]]] = None,
-        save_post : str = None,
-        comment : str = None,
-        name : str = None,
+        moving_average : Optional[relativedelta] = None,
+        csv_file : Optional[str] = None,
+        observations : Optional[Union[List[TVP],List[Tuple[datetime,float]]]] = None,
+        save_post : Optional[str] = None,
+        comment : Optional[str] = None,
+        name : Optional[str] = None,
         node_variable = None,
-        json_file : str = None,
-        output_file : str = None,
+        json_file : Optional[str] = None,
+        output_file : Optional[str] = None,
         output_format : str = "json",
         output_schema : str = "dict",
         required : bool = False,
-        agg_func : str = None,
+        agg_func : Optional[str] = None,
         id : Optional[int] = None,
         scale : float = 1,
         **kwargs
@@ -206,8 +206,8 @@ class NodeSerie(Base):
         """
         super().__init__(**kwargs)
         self.series_id = series_id
-        self.type = tipo
-        self.lim_outliers : Tuple[float,float] = lim_outliers
+        self.type = tipo if tipo is not None else "puntual"
+        self.lim_outliers = lim_outliers
         self.lim_jump = lim_jump
         self.x_offset = x_offset # util.interval2timedelta(x_offset) if isinstance(x_offset,dict) else x_offset # shift_by
         self.y_offset = y_offset # bias
@@ -234,23 +234,6 @@ class NodeSerie(Base):
     def __repr__(self):
         return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
     
-    def toDict(self) -> dict:
-        """Convert series to dict"""
-        return {
-            "series_id": self.series_id,
-            "type": self.type,
-            "lim_outliers": self.lim_outliers,
-            "lim_jump": self.lim_jump,
-            "x_offset": self.x_offset,
-            "y_offset": self.y_offset,
-            "moving_average": self.moving_average,
-            "data": self.data.reset_index().values.tolist() if self.data is not None else None,
-            "metadata": self.metadata,
-            "outliers_data": self.outliers_data,
-            "jumps_data": self.jumps_data,
-            "required": self.required
-        }
-    
     def raiseValueError(self, message : str) -> None:
         if self._variable is not None:
             if self._variable._node is not None:
@@ -276,7 +259,7 @@ class NodeSerie(Base):
         self,
         timestart : datetime,
         timeend : datetime,
-        input_api_config : dict = None,
+        input_api_config : Optional[dict] = None,
         no_metadata : bool = False,
         tag : str = "obs"
         ) -> None:
@@ -310,8 +293,8 @@ class NodeSerie(Base):
         tag : str = "obs"
             Tag observations with this string
         """
-        timestart = util.tryParseAndLocalizeDate(timestart)
-        timeend = util.tryParseAndLocalizeDate(timeend)
+        timestart = util.tryParseAndLocalizeDate(timestart, raise_if_nonexistent=True)
+        timeend = util.tryParseAndLocalizeDate(timeend, raise_if_nonexistent=True)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
             data = observacionesListToDataFrame(self.observations,tag=tag)
@@ -340,6 +323,8 @@ class NodeSerie(Base):
                 timeend = timeend + self._variable.time_support
             logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
+            if crud is None:
+                raise Exception("crud is not set")
             self.metadata = crud.readSerie(
                 self.series_id,
                 timestart,
@@ -357,8 +342,8 @@ class NodeSerie(Base):
     def saveData(
         self,
         output_file = None,
-        format : str = None,
-        schema : str = None
+        format : Optional[str] = None,
+        schema : Optional[str] = None
         ) -> None:
         """Print data into file 
 
@@ -399,10 +384,10 @@ class NodeSerie(Base):
             raise ValueError("Invalid format. Options: json, csv")
         f.close()
 
-    def getThresholds(self) -> dict:
+    def getThresholds(self) -> Optional[dict]:
         """Read level threshold information from .metadata"""
         if self.metadata is None:
-            logging.warn("Metadata missing at serie %i, unable to set thesholds" % self.series_id)
+            logging.warning("Metadata missing at serie %i, unable to set thesholds" % self.series_id)
             return None
         thresholds = {}
         if "estacion" not in self.metadata:
@@ -418,17 +403,24 @@ class NodeSerie(Base):
     
     def removeOutliers(self) -> bool:
         """If .lim_outliers is set, removes outilers and returns True if any outliers were removed. Removed data rows are saved into .outliers_data"""
+        if self.data is None:
+            raise Exception("data is not set")
         if self.lim_outliers is None:
             return False
         self.outliers_data = util.removeOutliers(self.data,self.lim_outliers)
         if len(self.outliers_data):
-            logging.warning("Se encontraron %d outliers en la serie %d, variable %d, nodo %s" % (len(self.outliers_data), self.series_id, self._variable.id, str(self._variable._node.id)))
+            if self._variable is not None and self._variable._node is not None:
+                logging.warning("Se encontraron %d outliers en la serie %d, variable %d, nodo %s" % (len(self.outliers_data), self.series_id, self._variable.id , str(self._variable._node.id)))
+            else:
+                logging.warning("Se encontraron %d outliers en la serie %d" % (len(self.outliers_data), self.series_id))
             return True
         else:
             return False
     
     def detectJumps(self) -> bool:
         """If lim_jump is set, detects jumps. Returns True if any jumps were found. Data rows containing jumps are saved into .jumps_data"""
+        if self.data is None:
+            raise Exception("data is not set")
         if self.lim_jump is None:
             return False
         self.jumps_data = util.detectJumps(self.data,self.lim_jump)
@@ -439,6 +431,8 @@ class NodeSerie(Base):
     
     def applyMovingAverage(self) -> None:
         """If .moving_average is set, apply a moving average with a time window size equal to .moving_average to the values of the series"""
+        if self.data is None:
+            raise Exception("data is not set")
         if self.moving_average is not None:
             # self.data["valor"] = util.serieMovingAverage(self.data,self.moving_average)
             self.data = util.serieMovingAverage(self.data,self.moving_average,tag_column = "tag")
@@ -472,12 +466,12 @@ class NodeSerie(Base):
         self,
         timestart : datetime,
         timeend : datetime,
-        time_interval : timedelta,
-        time_offset : timedelta,
-        interpolation_limit : Union[int,timedelta],
+        time_interval : relativedelta,
+        time_offset : relativedelta,
+        interpolation_limit : Union[int,relativedelta],
         inline : bool = True,
         interpolate : bool = False,
-        agg_func : str = None
+        agg_func : Optional[str] = None
         ) -> Union[None,DataFrame]:
         """Regularize the time step of the timeseries
         
@@ -508,6 +502,8 @@ class NodeSerie(Base):
             Aggregate observations of data using agg_func function. If set, interpolation is not performed"""
         agg_func = agg_func if agg_func is not None else self.agg_func
         # interpolation_limit = int(util.relativedeltaToSeconds(interpolation_limit) / util.relativedeltaToSeconds(time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit 
+        if self.data is None:
+            raise Exception("data is not set")
         data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func)
         if inline:
             self.data = data
@@ -517,7 +513,7 @@ class NodeSerie(Base):
     def fillNulls(
         self,
         other_data : DataFrame,
-        fill_value : float = None,
+        fill_value : Optional[float] = None,
         x_offset : int = 0,
         y_offset : float = 0,
         inline : bool = False
@@ -540,6 +536,8 @@ class NodeSerie(Base):
 
         inline : bool = False
             If True, save null-filled timeseries into .data. Else return null-filled timeseries"""
+        if self.data is None:
+            raise Exception("data is not set")
         data = util.serieFillNulls(self.data,other_data,fill_value=fill_value,shift_by=x_offset,bias=y_offset,tag_column="tag")
         if inline:
             self.data = data
@@ -571,10 +569,10 @@ class NodeSerie(Base):
     def toList(
         self,
         include_series_id : bool = False,
-        timeSupport : timedelta = None,
+        timeSupport : Optional[timedelta] = None,
         remove_nulls : bool = False,
-        max_obs_date : datetime = None,
-        qualifiers : List[str] = None,
+        max_obs_date : Optional[datetime] = None,
+        qualifiers : Optional[List[str]] = None,
         value_key : str = "valor",
         strict_properties : bool = False
         ) -> List[TVP]:
@@ -653,11 +651,11 @@ class NodeSerie(Base):
     
     def toDict(
         self,
-        timeSupport : timedelta = None,
+        timeSupport : Optional[timedelta] = None,
         as_prono : bool = False,
         remove_nulls : bool = False,
-        max_obs_date : datetime = None,
-        qualifiers : List[str] = None,
+        max_obs_date : Optional[datetime] = None,
+        qualifiers : Optional[List[str]] = None,
         value_key : str = "valor"
         ) -> Union[SeriesDict, SeriesPronoDict]:
         """Convert timeseries to series dict
@@ -689,10 +687,33 @@ class NodeSerie(Base):
         obs_list = self.toList(include_series_id=False,timeSupport=timeSupport,remove_nulls=remove_nulls,max_obs_date=max_obs_date, qualifiers = qualifiers, value_key = value_key)
         series_table = self.getSeriesTable()
         if as_prono:
-            return {"series_id": self.series_id, "series_table": series_table, "pronosticos": obs_list}
+            return {
+                "series_id": self.series_id, 
+                "series_table": series_table, 
+                "pronosticos": obs_list
+            }
         else:
-            return {"series_id": self.series_id, "series_table": series_table, "observaciones": obs_list}
-    
+            return {
+                "series_id": self.series_id, 
+                "series_table": series_table, 
+                "observaciones": obs_list
+        }
+        # return {
+        #     "series_id": self.series_id,
+        #     "type": self.type,
+        #     "lim_outliers": self.lim_outliers,
+        #     "lim_jump": self.lim_jump,
+        #     "x_offset": self.x_offset,
+        #     "y_offset": self.y_offset,
+        #     "moving_average": self.moving_average,
+        #     "data": self.data.reset_index().values.tolist() if self.data is not None else None,
+        #     "metadata": self.metadata,
+        #     "outliers_data": self.outliers_data,
+        #     "jumps_data": self.jumps_data,
+        #     "required": self.required
+        # }
+
+
     def getSeriesTable(self) -> str:
         """Retrieve series table name (of a5 schema) for this timeseries"""
         return "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"
