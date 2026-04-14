@@ -1,6 +1,6 @@
 from a5client import Observacion, Serie, Crud, observacionesListToDataFrame, observacionesDataFrameToList, createEmptyObsDataFrame
 import unittest
-from pydrodelta.util import tryParseAndLocalizeDate
+from a5client.util import tryParseAndLocalizeDate
 from pandas import DataFrame, DatetimeIndex
 from datetime import timedelta
 
@@ -70,16 +70,16 @@ class Test_a5Crud(unittest.TestCase):
     
     def test_constructor(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/test",
+            url = "https://alerta.ina.gob.ar/a5",
             token = "my_token"
         )
-        self.assertEqual(crud.url, "https://alerta.ina.gob.ar/test")
+        self.assertEqual(crud.url, "https://alerta.ina.gob.ar/a5")
         self.assertEqual(crud.token, "my_token")
         self.assertIsNone(crud.proxy_dict)
     
     def test_read_series(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/test",
+            url = "https://alerta.ina.gob.ar/a5",
             token = "my_token"
         )
         data = crud.readSeries(include_geom=False, no_metadata=True, var_id=2, proc_id=1)
@@ -92,7 +92,7 @@ class Test_a5Crud(unittest.TestCase):
 
     def test_read_serie(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/test",
+            url = "https://alerta.ina.gob.ar/a5",
             token = "my_token"
         )
         series_id = 8
@@ -115,7 +115,7 @@ class Test_a5Crud(unittest.TestCase):
     
     def test_read_calibrado(self):
         crud = Crud(
-            url = "https://alerta.ina.gob.ar/test",
+            url = "https://alerta.ina.gob.ar/a5",
             token = "my_token"
         )
         cal_id = 288
@@ -144,6 +144,7 @@ class Test_a5Crud(unittest.TestCase):
             289
         )
         self.assertEqual(type(data),dict)
+        assert "cal_id" in data
         self.assertEqual(data["cal_id"],289)
         self.assertEqual(data["series_id"],1540)
         self.assertTrue("pronosticos" in data)
@@ -250,4 +251,5 @@ class Test_a5Crud(unittest.TestCase):
             self.assertTrue("timestart" in pronostico)
             self.assertTrue("valor" in pronostico)
             self.assertTrue("cor_id" in pronostico)
+            assert "qualifier" in pronostico
             self.assertEqual(pronostico["qualifier"],"main")

@@ -39,6 +39,7 @@ class Test_Analogy(TestCase):
     def test_temp_vars(self):
 
         data = CreaVariablesTemporales(self.data, inplace=False)
+        assert data is not None
         self.assertTrue("year" in data.columns)
         self.assertTrue("month" in data.columns)
         self.assertTrue("day" in data.columns)
@@ -48,6 +49,7 @@ class Test_Analogy(TestCase):
     def test_transf_datos(self):
 
         data = CreaVariablesTemporales(self.data,inplace=False)
+        assert data is not None
         TransfDatos(data,"valor","month",PlotTransf=False, make_positive=True)
         self.assertTrue("LogVar" in data.columns)
         self.assertTrue("LogVar_Est" in data.columns)
@@ -57,6 +59,7 @@ class Test_Analogy(TestCase):
     def test_calc_indic(self):
 
         data = CreaVariablesTemporales(self.data,inplace=False)
+        assert data is not None
         TransfDatos(data,"valor","month",PlotTransf=False, make_positive=True)
         df_indicadores = CalcIndicXFecha(data,self.year_obj,self.mes_obj,self.longBusqueda)
         self.assertTrue(df_indicadores["YrSim"].dtype.kind == 'i')
@@ -132,13 +135,15 @@ class Test_Analogy(TestCase):
         self.assertIsInstance(output[0]["superior"].sum(),float)
         self.assertNotEqual(output[0]["superior"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
+        assert pf.error_stats is not None
         self.assertTrue(len(pf.error_stats) <= 4,"error stats horizon longer than expected")
         for i, row in output[0].iterrows():
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
-        for i, row in pf.error_stats.iterrows():
+        for i, (_,row) in enumerate(pf.error_stats.iterrows()):
             if i > 0:
                 self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+        assert pf.errores is not None
         distinct_months = set(pf.errores["month"])
         for month in distinct_months:
             self.assertTrue(month in [12,1,2,3,4,5])
@@ -187,10 +192,12 @@ class Test_Analogy(TestCase):
         for i, row in output[0].iterrows():
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
-        for i, row in pf.error_stats.iterrows():
+        assert pf.error_stats is not None
+        for i, (_,row) in enumerate(pf.error_stats.iterrows()):
             if i > 0 and i <= 3:
                 self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
                 self.assertTrue(row["count"] >= (only_last_years - 1) * 3 and row["count"] <= only_last_years * 3)
+        assert pf.errores is not None
         distinct_months = set(pf.errores["month"])
         for month in distinct_months:
             self.assertTrue(month in [12,1,2,3,4,5,6])

@@ -1,10 +1,10 @@
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
-from pydrodelta.util import tryParseAndLocalizeDate
+from pydrodelta.util import tryParseAndLocalizeDate, assertDict, PathOrBuf
 # from a5client import createEmptyObsDataFrame
-from typing import Union, List, Tuple
-from pandas import DataFrame, concat, DatetimeIndex
+from typing import Union, List, Tuple, Optional
+from pandas import DataFrame, concat, DatetimeIndex, Series
 from matplotlib import pyplot as plt
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -12,6 +12,7 @@ import time
 # from zoneinfo import ZoneInfo
 import pytz
 from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
+from a5client.util_types import Dateable
 
 import numpy as np
 import logging
@@ -30,36 +31,43 @@ class AnalogyProcedureFunction(ProcedureFunction):
     @property
     def search_length(self) -> int:
         """search_length : longitud de la serie para buscar Analogas"""
-        return int(self.parameters["search_length"])
+        p = assertDict(self.parameters)
+        return int(p["search_length"])
     
     @property
     def forecast_length(self) -> int:
         """forecast_length : longitud del pronostico"""
-        return int(self.parameters["forecast_length"])
+        p = assertDict(self.parameters)
+        return int(p["forecast_length"])
     
     @property
     def order_by(self) -> str:
         """Ordena por"""
-        return self.parameters["order_by"] if "order_by" in self.parameters else "RMSE"
+        p = assertDict(self.parameters)
+        return p["order_by"] if "order_by" in p else "RMSE"
 
     @property
-    def ascending(self) -> str:
+    def ascending(self) -> bool:
         """Ordena ascendente"""
-        return bool(self.parameters["ascending"]) if "ascending" in self.parameters else True
+        p = assertDict(self.parameters)
+        return bool(p["ascending"]) if "ascending" in p else True
 
     @property
     def number_of_analogs(self) -> int:
         """Cantidad de series que toma"""
-        return int(self.parameters["number_of_analogs"]) if "number_of_analogs" in self.parameters else 5
+        p = assertDict(self.parameters)
+        return int(p["number_of_analogs"]) if "number_of_analogs" in p else 5
 
     @property
-    def time_window(self) -> int:
+    def time_window(self) -> str:
         """Ventana temporal"""
-        return self.parameters["time_window"] if "time_window" in self.parameters else "month"
+        p = assertDict(self.parameters)
+        return p["time_window"] if "time_window" in p else "month"
 
     @property
-    def n_dom(self) -> int:
-        return self.parameters["n_dom"] if "n_dom" in self.parameters else None
+    def n_dom(self) -> Optional[int]:
+        p = assertDict(self.parameters)
+        return p["n_dom"] if "n_dom" in p else None
 
     @property
     def parameters_with_defaults(self) -> dict:
@@ -74,16 +82,21 @@ class AnalogyProcedureFunction(ProcedureFunction):
 
     @property
     def skip_first_years(self) -> int:
-        return self.extra_pars.get("skip_first_years") if "skip_first_years" in self.extra_pars else 10
+        p = assertDict(self.extra_pars)
+        sfy = p.get("skip_first_years")
+        return sfy if sfy is not None else 10
     @property
-    def only_last_years(self) -> int:
-        return self.extra_pars.get("only_last_years")
+    def only_last_years(self) -> Optional[int]:
+        p = assertDict(self.extra_pars)
+        return p.get("only_last_years")
     @property 
-    def vent_resamp_range(self) -> Tuple[int,int]:
-        return self.extra_pars.get("vent_resamp_range")
+    def vent_resamp_range(self) -> Optional[Tuple[int,int]]:
+        p = assertDict(self.extra_pars)
+        return p.get("vent_resamp_range")
     @property
-    def error_forecast_date_window(self) -> int:
-        return self.extra_pars.get("error_forecast_date_window")
+    def error_forecast_date_window(self) -> Optional[int]:
+        p = assertDict(self.extra_pars)
+        return p.get("error_forecast_date_window")
 
     errores = DataFrameDescriptor()
 
@@ -138,14 +151,14 @@ class AnalogyProcedureFunction(ProcedureFunction):
     
     def run(
         self,
-        input : List[DataFrame] = None,
-        forecast_date : datetime = None,
-        save_results : str = None,
-        add_error_band : bool = None,
-        skip_first_years : int = None, 
-        only_last_years : int = None, 
-        vent_resamp_range : Tuple[int,int] = None,
-        error_forecast_date_window : int = None
+        input : Optional[Union[DataFrame,List[DataFrame]]] = None,
+        forecast_date : Optional[Dateable] = None,
+        save_results : Optional[PathOrBuf] = None,
+        add_error_band : Optional[bool] = None,
+        skip_first_years : Optional[int] = None, 
+        only_last_years : Optional[int] = None, 
+        vent_resamp_range : Optional[Tuple[int,int]] = None,
+        error_forecast_date_window : Optional[int] = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -176,10 +189,15 @@ class AnalogyProcedureFunction(ProcedureFunction):
         error_forecast_date_window = error_forecast_date_window if error_forecast_date_window is not None else self.error_forecast_date_window
 
         if input is None:
+            if self._procedure is None:
+                raise Exception("_procedure not set")
             input = self._procedure.loadInput(inplace=False,pivot=False)
         
         if not isinstance(input,list):
-            raise ValueError("Input must be a list of DataFrame")
+            if isinstance(input, DataFrame):
+                input = [input]
+            else:
+                raise ValueError("Input must be a list of DataFrame")
         if not len(input):
             raise ValueError("Input is of null length. Must be of length 1 [DataFrame]")
         if not isinstance(input[0],DataFrame):
@@ -262,10 +280,12 @@ def TransfDatos(df : DataFrame, column : str = "valor", time_window : str = "mon
     # Normaliza los datos transformados
     df['LogVar_Est'] = np.nan
     for w in df[time_window].unique():
-        w_mean = df.loc[df[time_window] == w,'LogVar'].dropna().mean()
-        w_std = df.loc[df[time_window] == w,'LogVar'].dropna().std()
+        mask = df[time_window] == w
+        col : "Series[float]" = df.loc[mask,['LogVar']]['LogVar'] 
+        w_mean = col.dropna().mean()
+        w_std = col.dropna().std()
         # Normaliza los datos
-        df.loc[df[time_window]==w,'LogVar_Est'] = (df.loc[df[time_window]==w,'LogVar'] - w_mean)/w_std
+        df.loc[df[time_window]==w,'LogVar_Est'] = (col - w_mean)/w_std
     if PlotTransf:   # plots datos transformados
         fig, axs = plt.subplots(nrows=1, ncols=3)
         #create histograms
@@ -281,18 +301,20 @@ def TransfDatos(df : DataFrame, column : str = "valor", time_window : str = "mon
 
 def CreaVariablesTemporales(df : DataFrame, inplace=True):   # Variables Temporales
     if inplace:
-        df.insert(0, 'year', df.index.year)
-        df.insert(1, 'month', df.index.month)
-        df.insert(2, 'day', df.index.day)
-        df.insert(3, 'yrDay', df.index.dayofyear)
-        df.insert(4, 'wkDay', df.index.isocalendar().week)
+        dti = DatetimeIndex(df.index)
+        df.insert(0, 'year', dti.year)
+        df.insert(1, 'month', dti.month)
+        df.insert(2, 'day', dti.day)
+        df.insert(3, 'yrDay', dti.dayofyear)
+        df.insert(4, 'wkDay', dti.isocalendar().week)
     else:
         df_copy = df.copy()
-        df_copy.insert(0, 'year', df_copy.index.year)
-        df_copy.insert(1, 'month', df_copy.index.month)
-        df_copy.insert(2, 'day', df_copy.index.day)
-        df_copy.insert(3, 'yrDay', df_copy.index.dayofyear)
-        df_copy.insert(4, 'wkDay', df_copy.index.isocalendar().week)        
+        dti = DatetimeIndex(df_copy.index)
+        df_copy.insert(0, 'year', dti.year)
+        df_copy.insert(1, 'month', dti.month)
+        df_copy.insert(2, 'day', dti.day)
+        df_copy.insert(3, 'yrDay', dti.dayofyear)
+        df_copy.insert(4, 'wkDay', dti.isocalendar().week)        
         return df_copy
 
 def MetodoAnalogia(df,var,mes_obj,yr_obj,vent_resamp,search_length,forecast_length,order_by,ascending,number_of_analogs,make_positive=True):
@@ -333,7 +355,9 @@ def MetodoAnalogia(df,var,mes_obj,yr_obj,vent_resamp,search_length,forecast_leng
     dfObj[vent_resamp] = range(mes_obj+1, mes_obj+1+forecast_length, 1)
     ### Solo para vent_resamp='month' ####
     dfObj['year'] = yr_obj
-    dfObj.loc[dfObj[vent_resamp]  > 12, 'year'] = dfObj.loc[dfObj[vent_resamp]  > 12, 'year'] + 1
+    mask = dfObj[vent_resamp]  > 12
+    col = dfObj.loc[mask, ["year"]]["year"]
+    dfObj.loc[dfObj[vent_resamp]  > 12, 'year'] = col + 1
     dfObj.loc[dfObj[vent_resamp]  > 12, 'month'] = dfObj.loc[dfObj[vent_resamp]  > 12, vent_resamp] - 12
 
     df_union = dfObj.copy()
@@ -457,7 +481,7 @@ def CalcIndicXFecha(df,year_obj,mes_obj,longBusqueda):
     # return dfObj_0, Result_Indic
     return Result_Indic
 
-def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : str,mes_selct,n_var_obs=None,n_var_sim=None):
+def IndicadoresDeAjuste(df : DataFrame,VarObs : str,VarSim : Union[str,int],mes_selct,n_var_obs=None,n_var_sim=None):
     Vobs_media = round(np.mean(df[VarObs]),1)
     Vsim_media = round(np.mean(df[VarSim]),1)
 
@@ -523,15 +547,15 @@ def month2Date(y,x):
 
 def MetodoAnalogia_errores_v2(
         name_Est,
-        df,
+        df : DataFrame,
         var,
         vent_resamp,
         ParamMetodo,
-        outputfile : str=None,
+        outputfile : Optional[PathOrBuf]=None,
         connBBDD=None,
         skip_first_years:int=10, 
-        only_last_years:int=None,
-        vent_resamp_range:Tuple[int,int]=None,
+        only_last_years:Optional[int]=None,
+        vent_resamp_range:Optional[Tuple[int,int]]=None,
         tz = pytz.timezone("America/Argentina/Buenos_Aires")
         ) -> DataFrame:
     longBusqueda = ParamMetodo['search_length']
@@ -540,8 +564,8 @@ def MetodoAnalogia_errores_v2(
     orden_ascending = ParamMetodo['ascending']
     cantidad = ParamMetodo['number_of_analogs']
     
+    NombreTabla = 'Salidas_Analog'
     if connBBDD != None:
-        NombreTabla = 'Salidas_Analog'
         cur = connBBDD.cursor()
         cur.execute('DROP TABLE IF EXISTS '+NombreTabla+';')
     
@@ -591,17 +615,23 @@ def MetodoAnalogia_errores_v2(
         df_pasado['LogVar_Est'] = np.nan
 
         for mes in df_pasado['month'].unique():
-            mes_mean = df_pasado.loc[df_pasado[vent_resamp] == mes,'LogVar'].dropna().mean()
-            mes_std = df_pasado.loc[df_pasado[vent_resamp] == mes,'LogVar'].dropna().std()
+            mask = df_pasado[vent_resamp] == mes
+            col = df_pasado.loc[mask,['LogVar']]['LogVar']
+            mes_mean = col.dropna().mean()
+            mes_std = col.dropna().std()
 
             # Normaliza los datos
-            df_pasado.loc[df_pasado['month']==mes,'LogVar_Est'] = (df_pasado.loc[df_pasado['month']==mes,'LogVar'] - mes_mean)/mes_std
+            mask = df_pasado['month']==mes
+            col = df_pasado.loc[mask,['LogVar']]['LogVar']
+            df_pasado.loc[mask,'LogVar_Est'] = (col - mes_mean) / mes_std
         
         # Calclula Indicadores
         conNAN, df_indicadores, dfObj_0 = CalcIndic_Analog_error(df_pasado,yr_select,mes_select,longBusqueda,longProno)
         if conNAN: 
             logging.warning('Datos Faltantes: %i,%i' % (mes_select,yr_select))
             continue
+        if not isinstance(df_indicadores,DataFrame):
+            raise Exception("El procedimiento CalcIndic_Analog_error no produjo df_indicadores")
         
         # Ordena y filtra los primeros n
         df_indicadores =df_indicadores.sort_values(by=orden,ascending=orden_ascending).reset_index()
@@ -624,7 +654,7 @@ def MetodoAnalogia_errores_v2(
         cols_var = [var,'LogVar_Est']
         n_sim_sin_nan = 0
         par_comp = DataFrame(index=range(0,cantidad,1),columns=df_indicadores.columns)
-        for index, fecha_prono_ in df_indicadores.iterrows():
+        for index, (_,fecha_prono_) in enumerate(df_indicadores.iterrows()):
             yr_sim = int(fecha_prono_['YrSim'])
             # Arma el Df para comparar con el seleccionado.
             fecha_sim = df_pasado.query("year=="+str(yr_sim)+" and month=="+str(mes_select))

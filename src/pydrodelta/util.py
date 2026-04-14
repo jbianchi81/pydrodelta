@@ -17,7 +17,8 @@ from matplotlib.dates import DateFormatter
 from matplotlib.transforms import Bbox
 import csv
 import os.path
-from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict
+from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO
+
 import random
 DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
@@ -25,6 +26,8 @@ Series = pandas.Series
 import numpy as np
 from pathlib import Path
 import statistics
+from a5client.util import tryParseAndLocalizeDate
+from os import PathLike
 
 localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
 
@@ -144,61 +147,61 @@ def interval2epoch(interval):
             seconds = seconds + interval[k] * 86400 * 365
     return seconds
 
-def tryParseAndLocalizeDate(
-        date_string : Union[str,float,datetime,tuple,datetime_date],
-        timezone : str='America/Argentina/Buenos_Aires'
-    ) -> Union[datetime, None]:
-    """
-    Datetime parser. If duration is provided, computes date relative to now.
+# def tryParseAndLocalizeDate(
+#         date_string : Union[str,float,datetime,tuple,datetime_date],
+#         timezone : str='America/Argentina/Buenos_Aires'
+#     ) -> Union[datetime, None]:
+#     """
+#     Datetime parser. If duration is provided, computes date relative to now.
 
-    Parameters:
-    -----------
-    date_string : str or float or datetime.datetime
-        For absolute date: ISO-8601 datetime string or datetime.datetime or (year,month,date) tuple.
-        For relative date: dict (duration key-values) or float (decimal number of days)
+#     Parameters:
+#     -----------
+#     date_string : str or float or datetime.datetime
+#         For absolute date: ISO-8601 datetime string or datetime.datetime or (year,month,date) tuple.
+#         For relative date: dict (duration key-values) or float (decimal number of days)
     
-    timezone : str
-        Time zone string identifier. Default: America/Argentina/Buenos_Aires
+#     timezone : str
+#         Time zone string identifier. Default: America/Argentina/Buenos_Aires
     
-    Returns:
-    --------
-    datetime.datetime
+#     Returns:
+#     --------
+#     datetime.datetime
 
-    Examples:
-    ---------
-    ``` 
-    tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
-    tryParseAndLocalizeDate(1.5)
-    tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
-    tryParseAndLocalizeDate((2000,1,1))
-    ```
-    """
+#     Examples:
+#     ---------
+#     ``` 
+#     tryParseAndLocalizeDate("2024-01-01T03:00:00.000Z")
+#     tryParseAndLocalizeDate(1.5)
+#     tryParseAndLocalizeDate({"days":1, "hours": 12}, timezone = "Africa/Casablanca")
+#     tryParseAndLocalizeDate((2000,1,1))
+#     ```
+#     """
     
-    date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
-    is_from_interval = False
-    if isinstance(date,dict):
-        date = datetime.now() + relativedelta(**date)
-        is_from_interval = True
-    elif isinstance(date,(int,float)):
-        date = datetime.now() + relativedelta(days=int(date))
-        is_from_interval = True
-    elif isinstance(date, tuple):
-        if len(date) < 3:
-            raise ValueError("Invalid date tuple: missing items (3 required)")
-        date = datetime(*date)
-    elif isinstance(date, datetime_date):
-        date = datetime(date.year, date.month, date.day)
-    if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
-        try:
-            tz = pytz.timezone(timezone)
-            date = tz.localize(date)
-            # date = date.replace(tzinfo = pytz.timezone(timezone)) # ZoneInfo(timezone))
-        except NonExistentTimeError:
-            logging.warning("NonexistentTimeError: %s" % str(date))
-            return None
-    else:
-        date = date.astimezone(pytz.timezone(timezone)) # ZoneInfo(timezone))
-    return date # , is_from_interval
+#     date = dateutil.parser.isoparse(date_string) if isinstance(date_string,str) else date_string
+#     is_from_interval = False
+#     if isinstance(date,dict):
+#         date = datetime.now() + relativedelta(**date)
+#         is_from_interval = True
+#     elif isinstance(date,(int,float)):
+#         date = datetime.now() + relativedelta(days=int(date))
+#         is_from_interval = True
+#     elif isinstance(date, tuple):
+#         if len(date) < 3:
+#             raise ValueError("Invalid date tuple: missing items (3 required)")
+#         date = datetime(*date)
+#     elif isinstance(date, datetime_date):
+#         date = datetime(date.year, date.month, date.day)
+#     if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
+#         try:
+#             tz = pytz.timezone(timezone)
+#             date = tz.localize(date)
+#             # date = date.replace(tzinfo = pytz.timezone(timezone)) # ZoneInfo(timezone))
+#         except NonExistentTimeError:
+#             logging.warning("NonexistentTimeError: %s" % str(date))
+#             return None
+#     else:
+#         date = date.astimezone(pytz.timezone(timezone)) # ZoneInfo(timezone))
+#     return date # , is_from_interval
 
 def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : Optional[relativedelta]=None) -> datetime:
     if timeInterval.microseconds == 0:
@@ -1351,3 +1354,22 @@ def get_stats(data : List[float]) -> StatsDict:
         "p90": p90,
         "n": n
     }
+
+
+def assertDict(d : Any) -> dict:
+    if not isinstance(d, dict):
+        raise TypeError("invalid type, must be dict.")
+    return d
+
+# FileDescriptorOrPath = Union[
+#     int,                # file descriptor
+#     str,                # path
+#     bytes,              # path (low-level)
+#     PathLike[str],      # pathlib.Path
+#     PathLike[bytes]
+# ]
+
+FilePath = str | PathLike[str]
+WriteBuffer = IO[str]
+
+PathOrBuf = FilePath | WriteBuffer

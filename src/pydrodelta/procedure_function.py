@@ -14,6 +14,11 @@ from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
 from .util import getInputListFromDataFrame
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .procedure import Procedure
 # import logging
 
 class ProcedureFunction:
@@ -144,7 +149,7 @@ class ProcedureFunction:
 
     def __init__(
         self,
-        procedure = None,
+        procedure : Optional["Procedure"] = None,
         parameters : Union[list, dict] = [],
         initial_states : Union[list, dict] = [],
         boundaries : list = [],
