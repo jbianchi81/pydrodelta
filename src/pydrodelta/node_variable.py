@@ -1,4 +1,5 @@
 from a5client import Crud, Serie
+from a5client.util_types import TVP
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
@@ -11,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, Tuple, Optional
+from typing import List, Union, Tuple, Optional, cast
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -117,7 +118,7 @@ class NodeVariable:
 
     @property
     def node_id(self) -> Union[int,str]:
-        self._node.id if self._node is not None else "unknown"
+        return self._node.id if self._node is not None else "unknown"
     
     timestart = DatetimeDescriptor()
     """Begin date (overrides _node.timestart)"""
@@ -415,7 +416,7 @@ class NodeVariable:
         if use_node_id and self._node is None:
             raise Exception("Can't use_node_id: node is not set")
         observaciones = self.toList(include_series_id=include_series_id,use_node_id=use_node_id)
-        series_id = self.series_output[0].series_id if not use_node_id else self.node_id
+        series_id = self.series_output[0].series_id if not use_node_id else self.node_id if isinstance(self.node_id, int) else None 
         return Serie(
             tipo = self._node.tipo if self._node is not None else None,
             id = series_id,
@@ -426,7 +427,7 @@ class NodeVariable:
         self,
         include_series_id : bool = False,
         use_node_id : bool = False
-        ) -> List[dict]:
+        ) -> List[TVP]:
         """
         Convert .data to a json-serializable list of dicts
 
@@ -444,6 +445,8 @@ class NodeVariable:
         """
         if use_node_id and self._node is None:
             raise Exception("Can't use_node_id: node is not set")
+        if self.data is None:
+            raise Exception("data is not set")
         data = self.data[self.data.valor.notnull()].copy()
         # data.loc[:,"timestart"] = data.index
         data = data.reset_index()
@@ -454,7 +457,7 @@ class NodeVariable:
         data["timeend"] = data["timeend"].apply(lambda x: x.isoformat())
         if len(data) and include_series_id:
             data.loc[:,"series_id"] = self.node_id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
-        return data.to_dict(orient="records")
+        return cast(list[TVP], data.to_dict(orient="records"))
     
     def outputToList(
         self,

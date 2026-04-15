@@ -5,10 +5,11 @@ from a5client import createEmptyObsDataFrame
 import logging
 from .util import serieFillNulls, serieRegular, createDatetimeSequence, coalesce, abs_relativedelta
 import numpy as np
-from typing import List, Union
+from typing import List, Union, Optional
 from datetime import datetime
 from pandas import DataFrame
 from .types.typed_list import TypedList
+from .types.api_config_dict import ApiConfigDict
 import traceback
 
 class ObservedNodeVariable(NodeVariable):
@@ -64,8 +65,8 @@ class ObservedNodeVariable(NodeVariable):
         timestart : datetime,
         timeend : datetime,
         include_prono : bool = True,
-        forecast_timeend : datetime = None,
-        input_api_config : dict = None,
+        forecast_timeend : Optional[datetime] = None,
+        input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False
         ) -> None:
         """
@@ -112,7 +113,7 @@ class ObservedNodeVariable(NodeVariable):
                     no_metadata=no_metadata)
                 if serie.required:
                     serie.assertNotEmpty()
-        elif hasattr(self,"derived_from") and self.derived_from is not None:
+        elif hasattr(self,"derived_from"): # and self.derived_from is not None:
             self.series = []
         else:
             self.series = []
@@ -124,12 +125,14 @@ class ObservedNodeVariable(NodeVariable):
                     te = timeend + abs_relativedelta(serie.x_offset)
                     if forecast_timeend is not None:
                         fte = forecast_timeend + abs_relativedelta(serie.x_offset)
+                    else:
+                        fte = None
                 else:
                     ts = timestart
                     te = timeend
                     fte = forecast_timeend
                 try:
-                    if forecast_timeend is not None:
+                    if fte is not None:
                         serie.loadData(ts,fte,input_api_config)
                     else:
                         serie.loadData(ts,te,input_api_config)

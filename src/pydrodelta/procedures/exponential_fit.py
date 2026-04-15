@@ -8,7 +8,7 @@ class ExponentialFitProcedureFunction(LinearFitProcedureFunction):
         **kwargs):
         """
         
-        \**kwargs : keyword arguments (see LinearFitProcedureFunction)
+        **kwargs : keyword arguments (see LinearFitProcedureFunction)
         """
         super().__init__(**kwargs)
         self.type = "exponential"

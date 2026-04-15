@@ -3,13 +3,14 @@ import pydrodelta.util as util
 import os
 import logging
 from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
-from pandas import isna, DataFrame
+from pandas import isna, DataFrame, DatetimeIndex
 from dateutil.relativedelta import relativedelta
 from .config import config
 from typing import Union, List, Tuple, Optional, Literal
 from .types.tvp import TVP
 from .types.series_dict import SeriesDict
 from .types.series_prono_dict import SeriesPronoDict
+from .types.api_config_dict import ApiConfigDict
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -259,7 +260,7 @@ class NodeSerie(Base):
         self,
         timestart : datetime,
         timeend : datetime,
-        input_api_config : Optional[dict] = None,
+        input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False,
         tag : str = "obs"
         ) -> None:
@@ -293,8 +294,8 @@ class NodeSerie(Base):
         tag : str = "obs"
             Tag observations with this string
         """
-        timestart = util.tryParseAndLocalizeDate(timestart, raise_if_nonexistent=True)
-        timeend = util.tryParseAndLocalizeDate(timeend, raise_if_nonexistent=True)
+        timestart = util.tryParseAndLocalizeDate(timestart)
+        timeend = util.tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
             data = observacionesListToDataFrame(self.observations,tag=tag)
@@ -313,7 +314,9 @@ class NodeSerie(Base):
                 logging.debug("Parsed json is a list")
                 self.data = observacionesListToDataFrame(series,tag=tag)
                 self.metadata = {"id": self.series_id, "tipo": self.type}
-            elif "observaciones" in series:
+            elif isinstance(series, dict):
+                if not "observaciones" in series:
+                    raise ValueError("Missing 'observaciones' in series object")
                 self.data = observacionesListToDataFrame(series["observaciones"],tag=tag)
                 self.metadata = {"id": series["id"] if "id" in series else self.series_id, "tipo": series["tipo"] if "tipo" in series else self.type}
             else:
@@ -452,7 +455,7 @@ class NodeSerie(Base):
             logging.debug("applyOffset: self.data is empty")
             return
         if isinstance(self.x_offset,relativedelta):
-            self.data.index = self.data.apply(lambda row: row.name + self.x_offset, axis=1) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
+            self.data.index = DatetimeIndex(self.data.apply(lambda row: row.name + self.x_offset, axis=1)) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
             self.data.index.rename("timestart",inplace=True)
         elif self.x_offset != 0:
             self.data["valor"] = self.data["valor"].shift(self.x_offset, axis = 0) 

@@ -1,9 +1,9 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import tryParseAndLocalizeDate, interval2timedelta, getRandColor, coalesce, resolve_path, createParent
+from pydrodelta.util import getRandColor, coalesce, createParent
 from pathlib import Path
-from datetime import timedelta, datetime
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from .node import Node
 from .node_variable import NodeVariable
@@ -11,6 +11,7 @@ import logging
 import json
 from numpy import nan
 from a5client import createEmptyObsDataFrame, Crud
+from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo
@@ -20,7 +21,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING
 from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -37,189 +38,170 @@ from .types.node_dict import NodeDict
 from .types.plot_params_dict import PlotParamsDict
 from .base import Base
 from .types.typed_list import TypedList
-
-from pydrodelta.config import config
+from .types.plot_variable_params import PlotVariableParams
+from a5client.util_types import Dateable, Intervaleable
+from .types.save_variable_params import SaveVariableParams
+from .types.api_config_dict import ApiConfigDict
+if TYPE_CHECKING:
+    from .plan import Plan
     
 class Topology(Base):
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
 
-    timestart = DatetimeDescriptor()
+    timestart : datetime
     """start date of observations period"""
-    timeend = DatetimeDescriptor()
+    timeend  : datetime
     """end date of observations period"""
-    forecast_timeend = DatetimeDescriptor()
+    forecast_timeend : Optional[datetime]
     """forecast horizon"""        
-    time_offset_start = DurationDescriptor()
+    time_offset_start : relativedelta
     """time of day where first timestep start"""
-    time_offset_end = DurationDescriptorDefaultNone()
+    time_offset_end : Optional[relativedelta]
     """time of day where last timestep ends"""
-    interpolation_limit = DurationDescriptorDefaultNone()
+    interpolation_limit : Optional[relativedelta]
     """maximum duration between observations for interpolation"""
-    extrapolate = BoolDescriptor()
+    extrapolate : bool
     """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
     @property
-    def nodes(self) -> List[Node]:
+    def nodes(self) -> TypedList[Node]:
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
         return self._nodes
     @nodes.setter
-    def nodes(self,nodes : List[Union[dict, Node]]):
-        self._nodes : List[Node] = TypedList(Node, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
+    def nodes(self,nodes : List[NodeDict]):
+        self._nodes : TypedList[Node] = TypedList(Node, *nodes, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
         for i, node in enumerate(nodes):
             if "id" not in node:
                 raise ValueError("Missing node.id at index %i of topology.nodes" % i)
             if node["id"] in [n.id for n in self._nodes]:
                 raise ValueError("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
-            self._nodes.append(node)
-            # if isinstance(node, Node):
-            #     self._nodes.append(node)
-            # else:
-            #     self._nodes.append(
-            #         Node(
-            #             **node,
-            #             timestart=self.timestart,
-            #             timeend=self.timeend,
-            #             forecast_timeend=self.forecast_timeend,
-            #             plan=self._plan,
-            #             time_offset=self.time_offset_start,
-            #             topology=self
-            #         )
-            #     )
-    cal_id = IntDescriptor()
+            # self._nodes[i] = node
+    cal_id : Optional[int]
     """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
-    plot_params = DictDescriptor()
+    plot_params : Optional[PlotParamsDict]
     """Plotting configuration. See .plotProno"""
-    report_file = StringDescriptor()
+    report_file : Optional[Path]
     """Write analysis report into this file"""
     @property
     def graph(self) -> nx.DiGraph:
         """Directional graph representing this topology"""
         return self._graph
 
-    no_metadata = BoolDescriptor()
+    no_metadata : bool
     """Don't retrieve series metadata on load from api"""
 
     @property
-    def plot_variable(self) -> List[PlotVariableParamsDict]:
+    def plot_variable(self) -> Optional[List[PlotVariableParams]]:
         return self._plot_variable
     @plot_variable.setter
-    def plot_variable(self, params : List[PlotVariableParamsDict]) -> None:
+    def plot_variable(self, params : Optional[List[PlotVariableParamsDict]]) -> None:
         if params is None:
-            self._plot_variable = None
+            self._plot_variable : Optional[List[PlotVariableParams]] = None
             return
-        self._plot_variable = []
+        self._plot_variable : Optional[List[PlotVariableParams]]= []
         for i, item in enumerate(params):
             if "var_id" not in item:
                 raise ValueError("Missing var_id from PlotVariableParamsDict at index %i of plot_variable" %i)
             if "output" not in item:
                 raise ValueError("Missing output from PlotVariableParamsDict at index %i of plot_variable" %i)
-            d = {
+            d : PlotVariableParams = {
                 "var_id": int(item["var_id"]),
-                "output": self.resolve_path(item["output"])
+                "output": self.resolve_path(item["output"]),
+                "timestart": tryParseAndLocalizeDate(item["timestart"]) if "timestart" in item and item["timestart"] is not None else None,
+                "timeend": tryParseAndLocalizeDate(item["timeend"]) if "timeend" in item and item["timeend"] is not None else None,
+                "extra_sim_columns": bool(item["extra_sim_columns"]) if "extra_sim_columns" in item else False
             }
-            if "timestart" in item:
-                d["timestart"] = tryParseAndLocalizeDate(item["timestart"])
-            if "timeend" in item:
-                d["timeend"] = tryParseAndLocalizeDate(item["timeend"])
-            if "extra_sim_columns" in item:
-                d["extra_sim_columns"] = bool(item["extra_sim_columns"])
             self._plot_variable.append(d)
         if not len(self._plot_variable):
             self._plot_variable = None
 
     @property
-    def save_variable(self) -> List[SaveVariableParamsDict]:
+    def save_variable(self) -> Optional[List[SaveVariableParams]]:
         return self._save_variable
     @save_variable.setter
-    def save_variable(self, params : List[SaveVariableParamsDict]) -> None:
+    def save_variable(self, params : Optional[List[SaveVariableParamsDict]]) -> None:
         if params is None:
-            self._save_variable = None
+            self._save_variable : Optional[List[SaveVariableParams]] = None
             return
-        self._save_variable = []
+        self._save_variable : Optional[List[SaveVariableParams]] = []
         for i, item in enumerate(params):
             if "var_id" not in item:
                 raise ValueError("Missing var_id from SaveVariableParamsDict at index %i of save_variable" %i)
             if "output" not in item:
                 raise ValueError("Missing output from SaveVariableParamsDict at index %i of save_variable" %i)
-            d = {
+            d : SaveVariableParams = {
                 "var_id": int(item["var_id"]),
-                "output": self.resolve_path(item["output"])
+                "output": self.resolve_path(item["output"]),
+                "format": item["format"] if "format" in item else "json",
+                "pretty": item["pretty"] if "pretty" in item else False,
+                "pivot": item["pivot"] if "pivot" in item else False
             }
-            if "format" in item:
-                d["format"] = item["format"]
-            if "pretty" in item:
-                d["pretty"] = bool(item["pretty"])
-            if "pivot" in item:
-                d["pivot"] = bool(item["pivot"])
             self._save_variable.append(d)
         if not len(self._save_variable):
             self._save_variable = None
 
-    include_prono = BoolDescriptor()
+    include_prono : bool
     """While executing .batchProcessInput, use series_prono to fill nulls of series"""
 
-    output_csv = StringDescriptor()
+    output_csv : Optional[Path]
     """Save analysis results as csv into this path"""
 
-    output_json = StringDescriptor()
+    output_json : Optional[Path]
     """Save analysis results as json into this path""" 
 
-    pivot = BoolDescriptor()
+    pivot : bool
     """If output_csv is set, pivot series into columns of the table (default True)"""
 
-    pretty = BoolDescriptor()
+    pretty : bool
     """For output_json, prettify json"""
 
-    upload_prono = BoolDescriptor()
+    upload_prono : bool
     """Upload series_prono"""
 
-    qualifiers = ListDescriptor()
+    qualifiers : Optional[List[str]]
     """create additional observations using these keys from series_prono data"""
 
-    save_response = StringDescriptor()
+    save_response : Optional[Path]
     """Save prono creation response into this file"""
 
-    save_post_data = StringDescriptor()
+    save_post_data : Optional[Path]
     """Save prono creation request data into this file"""
 
-    prono_ignore_warmup = BoolDescriptor()
+    prono_ignore_warmup : bool
     """In concatenation, ignore warmup period of series_prono (default True)"""
 
-    var_map = DictDescriptor()
+    var_map : dict
     """Variable metadata is stored in this dict"""
-
-    base_path : Optional[Path]
-    """Base path. Used to resolve input/output relative paths"""
 
     def __init__(
         self,
-        timestart : Union[str,dict], 
-        timeend :  Union[str,dict], 
-        forecast_timeend :  Union[str,dict,None] = None,
-        time_offset :  Union[str,dict,None] = None, 
-        time_offset_start : Union[str,dict,None] = None, 
-        time_offset_end : Union[str,dict,None] = None, 
-        interpolation_limit : Union[dict,int] = None,
+        timestart : Dateable, 
+        timeend :  Dateable, 
+        forecast_timeend :  Optional[Dateable] = None,
+        time_offset :  Optional[Intervaleable] = None, 
+        time_offset_start : Optional[Intervaleable] = None, 
+        time_offset_end : Optional[Intervaleable] = None, 
+        interpolation_limit : Optional[Intervaleable] = None,
         extrapolate : bool = False,
-        nodes : List[Union[Node,NodeDict]] = list(),
+        nodes : List[NodeDict] = list(),
         cal_id : Union[int,None] = None,
         plot_params : Union[PlotParamsDict,None] = None,
         report_file : Union[str,None] = None,
-        plan = None,
+        plan : Optional["Plan"] = None,
         no_metadata : bool = False,
-        plot_variable : List[PlotVariableParamsDict] = None,
-        save_variable : List[SaveVariableParamsDict] = None,
+        plot_variable : Optional[List[PlotVariableParamsDict]] = None,
+        save_variable : Optional[List[SaveVariableParamsDict]] = None,
         include_prono : bool = False,
-        output_csv : str = None,
-        output_json : str = None,
+        output_csv : Optional[str] = None,
+        output_json : Optional[str] = None,
         pivot : bool = True,
         pretty : bool = True,
         upload_prono : bool = False,
-        qualifiers : List[str] = None,
-        save_response : str = None,
-        save_post_data : str = None,
+        qualifiers : Optional[List[str]] = None,
+        save_response : Optional[str] = None,
+        save_post_data : Optional[str] = None,
         prono_ignore_warmup : bool = True,
-        output_graph : str = None,
-        base_path : Union[str,Path,None] = None,
+        output_graph : Optional[str] = None,
+        base_path : Optional[Union[str,Path]] = None,
         **kwargs
         ):
         """Initiate topology
@@ -352,18 +334,18 @@ class Topology(Base):
         }
         getSchemaAndValidate(params=params, name="topology")
         self.var_map = {}
-        self.timestart = timestart
-        self.timeend = timeend
-        self.forecast_timeend = forecast_timeend
-        self.time_offset_start = time_offset_start if time_offset_start is not None else time_offset if time_offset is not None else {"hours":0}
-        self.time_offset_end = time_offset_end if time_offset_end is not None else time_offset if time_offset is not None else None
+        self.timestart = tryParseAndLocalizeDate(timestart)
+        self.timeend = tryParseAndLocalizeDate(timeend)
+        self.forecast_timeend = tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None
+        self.time_offset_start = interval2relativedelta(time_offset_start) if time_offset_start is not None else interval2relativedelta(time_offset) if time_offset is not None else relativedelta(hours=0)
+        self.time_offset_end = interval2relativedelta(time_offset_end) if time_offset_end is not None else interval2relativedelta(time_offset) if time_offset is not None else None
         # round down to day if timestart is relative 
         self.timestart = self.timestart.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_start if type(timestart) == dict else self.timestart
         # round down to day if timeend is relative 
         self.timeend = self.timeend.replace(hour=0,minute=0,second=0,microsecond=0) + self.time_offset_end if type(timeend) == dict and self.time_offset_end is not None else self.timeend
         if self.timestart >= self.timeend:
-            raise("Bad timestart, timeend parameters. timestart must be before timeend")
-        self.interpolation_limit = interpolation_limit
+            raise ValueError("Bad timestart, timeend parameters. timestart must be before timeend")
+        self.interpolation_limit = interval2relativedelta(interpolation_limit) if interpolation_limit is not None else None
         self.extrapolate = extrapolate
         self._plan = plan
         """Plan that contains this topology"""
@@ -423,8 +405,8 @@ class Topology(Base):
 
     def batchProcessInput(
         self,
-        include_prono : bool = None,
-        input_api_config : dict = None) -> None:
+        include_prono : bool = False,
+        input_api_config : Optional[dict] = None) -> None:
         """
         Run input processing sequence. This includes (in this order):
         
@@ -495,7 +477,7 @@ class Topology(Base):
             f.close()
         self.saveSeries()
         if self.output_csv is not None:
-            self.saveData(self.output_csv,pivot=self.pivot,format="csv")
+            self.saveData(self.output_csv,format="csv",pivot=self.pivot)
         if self.output_json is not None:
             self.saveData(self.output_json,pivot=self.pivot,format="json",pretty=self.pretty)
         if self.upload_prono:
@@ -506,8 +488,8 @@ class Topology(Base):
     def loadData(
         self,
         include_prono : bool = True,
-        input_api_config : dict = None,
-        no_metadata : bool = None) -> None:
+        input_api_config : Optional[ApiConfigDict] = None,
+        no_metadata : bool = False) -> None:
         """For each series of each variable of each node, load data from the source.
         
         Parameters:
@@ -531,7 +513,7 @@ class Topology(Base):
             # logging.debug("loadData timestart: %s, timeend: %s, time_interval: %s" % (self.timestart.isoformat(), self.timeend.isoformat(), str(node.time_interval)))
             timestart = self.timestart - node.time_interval if node.time_interval is not None else self.timeend
             timeend = self.timeend + node.time_interval if node.time_interval is not None else self.timeend
-            forecast_timeend = self.forecast_timeend+node.time_interval if self.forecast_timeend is not None and node.time_interval is not None else self.forecast_timeend
+            forecast_timeend = self.forecast_timeend + node.time_interval if self.forecast_timeend is not None and node.time_interval is not None else self.forecast_timeend
             if hasattr(node,"loadData"):
                 node.loadData(
                     timestart, 
@@ -643,8 +625,8 @@ class Topology(Base):
     def toCSV(
         self,
         pivot : bool=False,
-        nodes : list = None,
-        variables : list = None
+        nodes : Optional[List[int]] = None,
+        variables : Optional[List[int]] = None
         ) -> str:
         """Generates csv table from all variables of all nodes
         
@@ -656,7 +638,7 @@ class Topology(Base):
         nodes : list or None = None
             Print only the selected nodes
 
-        variables : list or None = None
+        variables : List[int] or None = None
             Print only the selected variables
         
         Returns:
@@ -715,14 +697,44 @@ class Topology(Base):
         list of Observations
         """
         return self.toList(use_node_id=use_node_id,flatten=False)
+    
+    @overload
+    def toList(
+        self,
+        pivot : Literal[False] = False,
+        use_node_id : bool = False,
+        *,
+        flatten : Literal[False],
+        nodes : Optional[list] = None,
+        variables : Optional[list] = None
+        ) -> List[List[dict]]: ...
+    @overload
+    def toList(
+        self,
+        pivot : Literal[False] = False,
+        use_node_id : bool = False,
+        *,
+        flatten : Literal[True],
+        nodes : Optional[list] = None,
+        variables : Optional[list] = None
+        ) -> List[dict]: ...
+    @overload
+    def toList(
+        self,
+        pivot : Literal[True],
+        use_node_id : bool = False,
+        flatten : Optional[bool] = ...,
+        nodes : Optional[list] = None,
+        variables : Optional[list] = None
+        ) -> List[dict]: ...
     def toList(
         self,
         pivot : bool = False,
         use_node_id : bool = False,
         flatten : bool = True,
-        nodes : list = None,
-        variables : list = None
-        ) -> list:
+        nodes : Optional[List[int]] = None,
+        variables : Optional[List[int]] = None
+        ) -> Union[List[List[dict]],List[dict]]:
         """
         returns list of data of selected variables of selected nodes
         
@@ -737,9 +749,9 @@ class Topology(Base):
         flatten : bool
             If set to False, return list of Series: [{"series_id":int,observaciones:[obs,obs,...]},...] (ignored if pivot=True). If True, return list of Observations: [{"timestart":str,"valor":float,"series_id":int},...]
         
-        nodes : list or None = None
+        nodes : List[int] or None = None
 
-        variables : list or None = None
+        variables : List[int] or None = None
         
         Returns:
         --------
@@ -796,14 +808,15 @@ class Topology(Base):
         for node in self.nodes:
             obs_list.extend(node.variablesOutputToList(flatten=flatten))
         return obs_list
+    
     def saveData(
         self,
-        file : str,
+        output : Union[Path,str],
         format : str = "csv",
         pivot : bool = False,
         pretty : bool = False,
-        nodes : list = None,
-        variables : list = None
+        nodes : Optional[list] = None,
+        variables : Optional[list] = None
         ) -> None:
         """Save data of selected variables of selected nodes to a file in the desired format
         
@@ -826,8 +839,8 @@ class Topology(Base):
         variables : list or None = None
 
         """
-        createParent(file)
-        f = open(file,"w")
+        createParent(output)
+        f = open(output,"w")
         if format == "json":
             if pretty:
                 obs_json = json.dumps(self.toList(pivot=pivot, nodes=nodes, variables=variables),ensure_ascii=False,indent=4)
@@ -840,6 +853,7 @@ class Topology(Base):
             f.write(self.toCSV(pivot,nodes=nodes, variables=variables))
             f.close()
             return
+    
     def saveOutputData(
         self,
         file : str,
@@ -999,8 +1013,8 @@ class Topology(Base):
         include_tag : bool = True,
         use_output_series_id : bool = True,
         use_node_id : bool = False,
-        nodes : list = None,
-        variables : list = None
+        nodes : Optional[List[int]] = None,
+        variables : Optional[List[int]] = None
         ) -> DataFrame:
         """Pivot variables of all nodes into columns of a single DataFrame
         
@@ -1015,22 +1029,24 @@ class Topology(Base):
         use_node_id : bool (default False)
             Use node.id + variable.id as column header
         
-        nodes : list or None
+        nodes : List[Node] or None
             Nodes of the topology to read. If None, reads all self.nodes
 
-        variables : list or None
-            Variables of the topology to read. If None, reads all variables
+        variables : List[int] or None
+            Variable ids of the topology to read. If None, reads all variables
         
         Returns:
         --------
         DataFrame
         """
         if nodes is None:
-            nodes = self.nodes
+            nodes__ : TypedList[Node] = self.nodes
+        else:
+            nodes__  : TypedList[Node] = self.nodes.filter(lambda n: n.id in nodes)
         columns = ["valor","tag"] if include_tag else ["valor"]
         #data = nodes[0].data[columns]
         data = createEmptyObsDataFrame(extra_columns={"tag":str})
-        for node in nodes:
+        for node in nodes__:
             for var_id, variable in node.variables.items():
                 if variables is not None and var_id not in variables:
                     # skip variable
@@ -1052,6 +1068,7 @@ class Topology(Base):
         del data["tag"]
         data = data.replace({nan:None})
         return data
+    
     def pivotOutputData(
         self,
         include_tag : bool = True
@@ -1111,9 +1128,9 @@ class Topology(Base):
     def plotVariable(
         self,
         var_id : int,
-        timestart : datetime = None,
-        timeend : datetime = None,
-        output : str = None,
+        timestart : Optional[datetime] = None,
+        timeend : Optional[datetime] = None,
+        output : Optional[Union[Path,str]] = None,
         extra_sim_columns : bool = True,
         table : bool = True,
         round_to : int = 2
@@ -1144,89 +1161,102 @@ class Topology(Base):
         if output is not None:
             matplotlib.use('pdf')
             createParent(output)
-            pdf = matplotlib.backends.backend_pdf.PdfPages(output)
+            pdf = matplotlib.backends.backend_pdf.PdfPages(str(output))
         else:
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         for node in self.nodes:
-            if var_id in node.variables and node.variables[var_id].data is not None and len(node.variables[var_id].data):
-                data = node.variables[var_id].data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
-                data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
+            if var_id not in node.variables:
+                logging.debug("topology.plotVariable: Skipping node %s. var_id not found" % str(node.id))
+                continue
+            nodevariable = node.variables[var_id]
+            if nodevariable.data is None:
+                logging.debug("topology.plotVariable: Skipping node %s. Data not found" % str(node.id))
+                continue
+            if not isinstance(nodevariable.data, DataFrame):
+                logging.debug("topology.plotVariable: Skipping node %s. Data is not DataFrame" % str(node.id))
+                continue
+            if not len(nodevariable.data):
+                logging.debug("topology.plotVariable: Skipping node %s. Data has no length" % str(node.id))
+                continue
+            data = nodevariable.data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
+            data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
+            if timestart is not None:
+                data = data[data["timestart"] >= timestart]
+            if timeend is not None:
+                data = data[data["timestart"] <= timeend]
+            fig, ax = plt.subplots(ncols=2,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1]})
+            grouped = data.groupby('tag')
+            for key, group in grouped:
+                group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[str(key)])
+            if not isinstance(nodevariable.original_data, DataFrame):
+                raise Exception("Missing original data")
+            original_data = nodevariable.original_data.reset_index().rename(columns={"index":"timestart"})
+            original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
+            data_table = data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
+            if len(original_data.dropna()["valor"]):
+                logging.debug("Add original data to plot at node %s" % str(node.name))
                 if timestart is not None:
-                    data = data[data["timestart"] >= timestart]
+                    original_data = original_data[original_data["timestart"] >= timestart]
                 if timeend is not None:
-                    data = data[data["timestart"] <= timeend]
-                fig, ax = plt.subplots(ncols=2,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1]})
-                grouped = data.groupby('tag')
-                for key, group in grouped:
-                    group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[key])
-                original_data = node.variables[var_id].original_data.reset_index().rename(columns={"index":"timestart"})
-                original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
-                data_table = data.set_index("timestart")[["valor"]].rename(columns={"valor":"analysis"})
-                if len(original_data.dropna()["valor"]):
-                    logging.debug("Add original data to plot at node %s" % str(node.name))
-                    if timestart is not None:
-                        original_data = original_data[original_data["timestart"] >= timestart]
-                    if timeend is not None:
-                        original_data = original_data[original_data["timestart"] <= timeend]
-                    ax[0].plot(
-                        original_data["timestart"],
-                        original_data["valor"],
-                        label="analysis",
-                        color=color_map["analysis"]
-                    )
-                    data_table["analysis"] = original_data.set_index("timestart")["valor"].combine_first(data_table["analysis"])
-                else:
-                    logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
-                data_table["analysis"] = data_table["analysis"].round(2)
-                if node.variables[var_id].series_sim is not None and len(node.variables[var_id].series_sim):
-                    sim_colors = list(Color("orange").range_to(Color("red"),len(node.variables[var_id].series_sim)))
-                    for i, serie_sim in enumerate(node.variables[var_id].series_sim):
-                        if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
-                            logging.debug("Add sim data to plot at node %s, series_sim %i" % (str(node.name),i))
-                            data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
-                            data_sim["valor"] = pandas.to_numeric(data_sim["valor"], errors="coerce")
-                            if timestart is not None:
-                                data_sim = data_sim[data_sim["timestart"] >= timestart]
-                            if timeend is not None:
-                                data_sim = data_sim[data_sim["timestart"] <= timeend]
-                            label = "sim_%i" % serie_sim.series_id
-                            ax[0].plot(
-                                data_sim["timestart"],
-                                data_sim["valor"],
-                                label=label,
-                                color=sim_colors[i].get_hex()
-                            )
-                            data_table = data_table.join(data_sim.set_index("timestart")[["valor"]].rename(columns={"valor":label}))
-                            data_table[label] = data_table[label].round(2)
-                            # plot extra sim columns
-                            if extra_sim_columns:
-                                for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
-                                    data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
-                                    label = "sim_%i_%s" % (serie_sim.series_id, c)
-                                    logging.debug("Add series sim column %s, label %s" % (c,label))
-                                    ax[0].plot(
-                                        data_sim["timestart"],
-                                        data_sim[c],
-                                        label=label,
-                                        color=getRandColor(),
-                                        linestyle="--",
-                                        alpha=0.5
-                                    )
-                                    data_table = data_table.join(data_sim.set_index("timestart")[[c]].rename(columns={c:label}))
-                                    data_table[label] = data_table[label].round(2)
-                if hasattr(node.variables[var_id],"max_obs_date") and node.variables[var_id].max_obs_date is not None:
-                    plt.axvline(node.variables[var_id].max_obs_date, color='k', linestyle='--')
-                if table:
-                    ax[1].axis('off')  # Hide axes
-                    data_table = data_table.reset_index()
-                    data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
-                    table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).round(round_to).values.tolist(), loc='center')
-                    table.auto_set_font_size(False)
-                if output is not None:
-                    pdf.savefig()
-                plt.close()
+                    original_data = original_data[original_data["timestart"] <= timeend]
+                ax[0].plot(
+                    original_data["timestart"],
+                    original_data["valor"],
+                    label="analysis",
+                    color=color_map["analysis"]
+                )
+                data_table["analysis"] = original_data.set_index("timestart")["valor"].combine_first(data_table["analysis"])
             else:
-                logging.debug("topology.plotVariable: Skipping node %s" % str(node.id))
+                logging.debug("Missing original data at node %s variable %i" % (node.name, var_id))
+            data_table["analysis"] = data_table["analysis"].round(2)
+            if nodevariable.series_sim is not None and len(nodevariable.series_sim):
+                sim_colors = list(Color("orange").range_to(Color("red"),len(nodevariable.series_sim)))
+                for i, serie_sim in enumerate(nodevariable.series_sim):
+                    if serie_sim.data is not None and len(serie_sim.data.dropna()["valor"]):
+                        logging.debug("Add sim data to plot at node %s, series_sim %i" % (str(node.name),i))
+                        data_sim = serie_sim.data.reset_index().rename(columns={"index":"timestart"})
+                        data_sim["valor"] = pandas.to_numeric(data_sim["valor"], errors="coerce")
+                        if timestart is not None:
+                            data_sim = data_sim[data_sim["timestart"] >= timestart]
+                        if timeend is not None:
+                            data_sim = data_sim[data_sim["timestart"] <= timeend]
+                        label = "sim_%i" % serie_sim.series_id
+                        ax[0].plot(
+                            data_sim["timestart"],
+                            data_sim["valor"],
+                            label=label,
+                            color=sim_colors[i].get_hex()
+                        )
+                        data_table = data_table.join(data_sim.set_index("timestart")[["valor"]].rename(columns={"valor":label}))
+                        data_table[label] = data_table[label].round(2)
+                        # plot extra sim columns
+                        if extra_sim_columns:
+                            for i, c in enumerate([c for c in data_sim.columns.to_list() if c not in [ "timestart", "valor", "tag"]]):
+                                data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
+                                label = "sim_%i_%s" % (serie_sim.series_id, c)
+                                logging.debug("Add series sim column %s, label %s" % (c,label))
+                                ax[0].plot(
+                                    data_sim["timestart"],
+                                    data_sim[c],
+                                    label=label,
+                                    color=getRandColor(),
+                                    linestyle="--",
+                                    alpha=0.5
+                                )
+                                data_table = data_table.join(data_sim.set_index("timestart")[[c]].rename(columns={c:label}))
+                                data_table[label] = data_table[label].round(2)
+            if hasattr(nodevariable,"max_obs_date") and nodevariable.max_obs_date is not None:
+                plt.axvline(nodevariable.max_obs_date, color='k', linestyle='--')
+            if table:
+                ax[1].axis('off')  # Hide axes
+                data_table = data_table.reset_index()
+                data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
+                table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).round(round_to).values.tolist(), loc='center')
+                table.auto_set_font_size(False)
+            if output is not None:
+                pdf.savefig()
+            plt.close()
+        
         if output is not None:
             pdf.close()
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
@@ -1551,8 +1581,8 @@ class Topology(Base):
         return report    
     def printGraph(
         self,
-        nodes : list = None,
-        output_file : str = None
+        nodes : Optional[TypedList[Node]] = None,
+        output_file : Optional[Union[Path,str]] = None
         ) -> None:
         """Print topology directioned graph
         
@@ -1580,7 +1610,8 @@ class Topology(Base):
         if output_file is not None:
             plt.savefig(output_file, format='png')
             plt.close()
-    def toGraph(self,nodes=None) -> nx.DiGraph:
+    
+    def toGraph(self,nodes : Optional[TypedList[Node]]=None) -> nx.DiGraph:
         """
         Generate directioned graph from the topology.
 
@@ -1618,6 +1649,7 @@ class Topology(Base):
         #         raise Exception("Topology error: missing downstream node %s at node %s" % (edge[1], edge[0]))
         #     DG.add_edge(edge[0],edge[1])
         return DG
+    
     def exportGraph(
         self,
         nodes : list = None,

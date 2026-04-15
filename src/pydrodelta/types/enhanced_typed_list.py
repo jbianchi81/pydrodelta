@@ -1,11 +1,13 @@
-import collections
-from typing import List
+from collections.abc import MutableSequence
+from typing import List, Optional, Generic, TypeVar
 
-class EnhancedTypedList(collections.abc.MutableSequence):
+T = TypeVar("T")
+
+class EnhancedTypedList(MutableSequence, Generic[T]):
     """
     A list of the specified type. On setting/appending/extending, tries to coerce the items to the given type by calling its constructor, optionally adding fixed_kwargs. If unique_id_property is set, it checks for duplicates using that property of the items. If valid_items_list is set together with the latter, it checks that the identifiers are present within the given list of dict, and any additional properties in the matched dict are set in the item.
     """
-    def __init__(self, oktype, *args, unique_id_property : str = None, valid_items_list : List[dict] = None, allow_additional_ids : bool = False, allow_missing : bool = True, **fixed_kwargs):
+    def __init__(self, oktype, *args, unique_id_property : Optional[str] = None, valid_items_list : Optional[List[dict]] = None, allow_additional_ids : bool = False, allow_missing : bool = True, **fixed_kwargs):
         """EnhancedTypedList class constructor
 
         Args:
@@ -29,6 +31,10 @@ class EnhancedTypedList(collections.abc.MutableSequence):
             self.assert_missing_ids()
     
     def assert_missing_ids(self):
+        if self._valid_items_list is None:
+            return
+        if self._unique_id_property is None:
+            raise Exception("unique_id_property not set for this class")
         for v in self._valid_items_list:
             if "optional" in v and v["optional"]:
                 continue
@@ -78,9 +84,9 @@ class EnhancedTypedList(collections.abc.MutableSequence):
         v = self.check_else_init(v)
         self.list[i] = v
 
-    def insert(self, i, v):
-        v = self.check_else_init(v)
-        self.list.insert(i, v)
+    def insert(self, index, value):
+        value = self.check_else_init(value)
+        self.list.insert(index, value)
 
     def __str__(self):
         return str(self.list)

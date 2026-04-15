@@ -17,7 +17,8 @@ from matplotlib.dates import DateFormatter
 from matplotlib.transforms import Bbox
 import csv
 import os.path
-from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO
+from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping
+
 
 import random
 DataFrame = pandas.DataFrame
@@ -30,6 +31,19 @@ from a5client.util import tryParseAndLocalizeDate
 from os import PathLike
 
 localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
+
+FilePath = str | PathLike[str]
+WriteBuffer = IO[str]
+
+PathOrBuf = FilePath | WriteBuffer
+
+FileDescriptorOrPath = Union[
+    int,                # file descriptor
+    str,                # path
+    bytes,              # path (low-level)
+    PathLike[str],      # pathlib.Path
+    PathLike[bytes]
+]
 
 class IntervalDict(TypedDict):
     day: int
@@ -57,7 +71,7 @@ def createParent(filepath : Union[str,Path]):
         logging.info(f"Created directory: {parent}")
 
 
-def resolve_path(path_str, base=None):
+def resolve_path(path_str : Union[Path, str], base=None):
     p = Path(path_str)
 
     if p.is_absolute():
@@ -218,8 +232,6 @@ def roundDownDate(date : datetime,timeInterval : relativedelta,timeOffset : Opti
 
 def roundDate(date : datetime,timeInterval : relativedelta,timeOffset : Optional[relativedelta]=None, to="up") -> datetime:
     date_0 = tryParseAndLocalizeDate(datetime.combine(date.date(),datetime.min.time()))
-    if date_0 is None:
-        raise NonExistentTimeError("Nonexistent time")
     if timeOffset is not None:
         date_0 = date_0 + timeOffset 
     while date_0 < date:
@@ -264,16 +276,12 @@ def createDatetimeSequence(
         timestart = datetime_index.min()
     else:
         timestart = tryParseAndLocalizeDate(timestart)
-    if timestart is None:
-        raise NonExistentTimeError("Nonexistent timestart")
     if timeend is None:
         if datetime_index is None:
             raise Exception("Missing datetime_index or timestart+timeend")
         timeend = datetime_index.max()
     else:
         timeend = tryParseAndLocalizeDate(timeend)
-    if timeend is None:
-        raise NonExistentTimeError("Nonexistent timeend")
     timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else relativedelta(days=timeInterval) if isinstance(timeInterval, int) else timeInterval
     timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
@@ -347,8 +355,10 @@ def f4(row,column="valor",tag_column="tag"):
     else:
         return row[tag_column]
 
-def getNSteps(timestep : relativedelta, td : timedelta) -> int:
+def getNSteps(timestep : relativedelta, td : Union[relativedelta,timedelta]) -> int:
     timestep_seconds = relativedeltaToSeconds(timestep)
+    if isinstance(td, relativedelta):
+        return int(relativedeltaToSeconds(td) / timestep_seconds)
     return int(td.total_seconds() / timestep_seconds)
 
 def serieRegular(
@@ -359,7 +369,7 @@ def serieRegular(
     time_offset : Optional[relativedelta] = None, 
     column : str = "valor", 
     interpolate : bool = True, 
-    interpolation_limit : Union[int,timedelta] = 1,
+    interpolation_limit : Union[int,timedelta,relativedelta] = 1,
     tag_column : Optional[str] = None, 
     extrapolate : bool = False,
     agg_func : Optional[str] = None,
@@ -415,6 +425,8 @@ def serieRegular(
         min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
         extrapolated = None
         if isinstance(interpolation_limit, timedelta):
+            df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+        elif isinstance(interpolation_limit, relativedelta):
             df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
         else:
             # extrapolate before so that only noninterpolated points are used in regression
@@ -936,15 +948,11 @@ def plot_prono(
             raise ValueError("xlim must be a 2-list")
         if xlim[0] is not None:
             xlim[0] = tryParseAndLocalizeDate(xlim[0])
-            if xlim[0] is None:
-                raise NonExistentTimeError("Nonexistent time at xlim[0]")
             xlim_0 = roundDownDate(xlim[0],relativedelta(days=1))
         else:
             xlim_0 = xmin
         if xlim[1] is not None:
             xlim[1] = tryParseAndLocalizeDate(xlim[1])
-            if xlim[1] is None:
-                raise NonExistentTimeError("Nonexistent time at xlim[1]")
             xlim_1 = roundDownDate(xlim[1],relativedelta(days=1))
         else:
             xlim_1 = xmax
@@ -1018,7 +1026,7 @@ def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):
     else:
         return default
 
-def readCsvFile(csv_file):
+def readCsvFile(csv_file : FileDescriptorOrPath):
     if not os.path.exists(csv_file):
         raise Exception("csv file %s not found" % csv_file)
     with open(csv_file, newline='') as csvfile:
@@ -1045,7 +1053,7 @@ def parseObservations(observations:list) -> list:
             })
     return result
 
-def readDataFromCsvFile(csv_file: str,series_id: int,timestart=None,timeend=None) -> list:
+def readDataFromCsvFile(csv_file: FileDescriptorOrPath,series_id: int,timestart=None,timeend=None) -> list:
     """reads from csv_file and returns list of observaciones (dicts). series_id must be in the header of the column containing the values of the corresponding series. timestart column must be in iso format. Other columns are ignored"""
     observaciones = readCsvFile(csv_file)
     data = []
@@ -1258,7 +1266,7 @@ def multiply_relativedelta(rd: relativedelta, n: int) -> relativedelta:
         weeks=rd.weeks * n
     )
 
-def interpolate_or_copy_closest(data : Series,interpolation_limit : timedelta) -> Series:
+def interpolate_or_copy_closest(data : Series,interpolation_limit : Union[timedelta, relativedelta]) -> Series:
 
     # Forward and backward fills
     ffill = data.ffill(limit=None)
@@ -1361,15 +1369,12 @@ def assertDict(d : Any) -> dict:
         raise TypeError("invalid type, must be dict.")
     return d
 
-# FileDescriptorOrPath = Union[
-#     int,                # file descriptor
-#     str,                # path
-#     bytes,              # path (low-level)
-#     PathLike[str],      # pathlib.Path
-#     PathLike[bytes]
-# ]
 
-FilePath = str | PathLike[str]
-WriteBuffer = IO[str]
+def toMapping(data : Any) -> Mapping[str, Any]:
+    if not isinstance(data, dict):
+        raise TypeError("Expected dict")
 
-PathOrBuf = FilePath | WriteBuffer
+    if not all(isinstance(k, str) for k in data):
+        raise TypeError("Keys must be str")
+
+    return cast(Mapping[str, Any], data)

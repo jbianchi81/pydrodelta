@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Optional
 from datetime import datetime
 
 class TVP(TypedDict):
@@ -13,4 +13,4 @@ class TVP(TypedDict):
     """
     timestart : datetime
     valor : float
-    series_id : int = None
+    series_id : Optional[int]

@@ -1,8 +1,11 @@
-from typing import TypedDict, Union
-from datetime import datetime
+from typing import TypedDict, Union, Optional, NotRequired
+from a5client.util_types import Dateable
+from pathlib import Path
 
 class PlotVariableParamsDict(TypedDict):
     var_id : int
-    timestart : Union[datetime,str,dict]
-    timeend : Union[datetime,str,dict]
-    extra_sim_columns : bool
+    output : Union[Path,str]
+    timestart : NotRequired[Optional[Dateable]]
+    timeend : NotRequired[Optional[Dateable]]
+    extra_sim_columns : NotRequired[Optional[bool]]
+    

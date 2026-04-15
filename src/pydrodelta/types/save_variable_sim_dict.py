@@ -1,5 +1,6 @@
-from typing import TypedDict
+from typing import TypedDict, Union
+from pathlib import Path
 
 class SaveVariableSimDict(TypedDict):
     var_id : int
-    output : str
+    output : Union[str,Path]

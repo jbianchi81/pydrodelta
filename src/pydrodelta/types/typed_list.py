@@ -1,9 +1,11 @@
 from collections.abc import MutableSequence
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Generic, TypeVar, Callable, overload, Iterable, Any
 
-class TypedList(MutableSequence):
+T = TypeVar("T")
 
-    def __init__(self, oktype, *args, unique_id_property : Optional[Union[str,Tuple[str]]] = None, **fixed_kwargs):
+class TypedList(MutableSequence[T], Generic[T]):
+
+    def __init__(self, oktype, *args, unique_id_property : Optional[Union[str,Tuple[str, ...]]] = None, **fixed_kwargs):
         self.oktype = oktype
         self.list = list()
         self._unique_id_property = unique_id_property
@@ -15,7 +17,14 @@ class TypedList(MutableSequence):
             raise TypeError("%s must be of type %s" % (str(v),str(self.oktype)))
 
     def getUniqueId(self, value) -> tuple:
-        keys = self._unique_id_property if type(self._unique_id_property) == tuple else tuple([self._unique_id_property])
+        if self._unique_id_property is None:
+            return ()
+
+        if isinstance(self._unique_id_property, str):
+            keys = (self._unique_id_property,)
+        else:
+            keys = self._unique_id_property
+        
         unique_id = []
         for key in keys:
             val = getattr(value, key)
@@ -54,22 +63,47 @@ class TypedList(MutableSequence):
         return value
 
 
-    def __len__(self): return len(self.list)
+    def __len__(self) -> int: return len(self.list)
 
-    def __getitem__(self, i): return self.list[i]
+    @overload
+    def __getitem__(self, i: int) -> T: ...
+    @overload
+    def __getitem__(self, i: slice) -> "TypedList[T]": ...
+    def __getitem__(self, i: Union[int, slice]) -> Union["TypedList[T]",T]:
+        return TypedList(
+            self.oktype,
+            *self.list[i],
+            unique_id_property=self._unique_id_property,
+            **self._fixed_kwargs
+        )
 
-    def __delitem__(self, i): del self.list[i]
+    def __delitem__(self, i : Union[int,slice]) -> None: del self.list[i]
 
-    def __setitem__(self, i, v):
-        v = self.check_else_init(v)
-        self.list[i] = v
+    @overload
+    def __setitem__(self, i : int, v: T) ->  None: ...
+    @overload
+    def __setitem__(self, i : slice, v: Iterable[T]) ->  None: ...
+    def __setitem__(self, i : Union[slice,int], v: Union[T,Iterable[T],Any]) ->  None:
+        if isinstance(i, slice):
+            assert isinstance(v, Iterable)
+            self.list[i] = [self.check_else_init(x) for x in v]
+        else:
+            self.list[i] = self.check_else_init(v)
 
-    def insert(self, i, v):
-        v = self.check_else_init(v)
-        self.list.insert(i, v)
+    def insert(self, index : int, value : T) -> None:
+        value = self.check_else_init(value)
+        self.list.insert(index, value)
 
     def __str__(self):
         return str(self.list)
 
     def __repr__(self):
         return self.list.__repr__()
+    
+    def filter(self, fn: Callable[[T], bool]) -> "TypedList[T]":
+        return TypedList(
+            self.oktype,
+            *[x for x in self if fn(x)],
+            unique_id_property=self._unique_id_property,
+            **self._fixed_kwargs
+        )

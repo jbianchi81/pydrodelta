@@ -88,6 +88,7 @@ class Test_ARIMA(TestCase):
         procedure.run(load_input = False, load_output_obs = False)
         
         # print(procedure.output[0])
+        assert procedure.output is not None
         self.assertEqual(len(procedure.output),1)
         self.assertEqual(len(procedure.output[0]["valor"]), 10)
         self.assertEqual(len(procedure.output[0]["valor"].dropna()), 10)
@@ -98,6 +99,7 @@ class Test_ARIMA(TestCase):
 
         # results to dict
         self.assertEqual(type(procedure.procedure_function_results.__dict__), dict)
+        assert procedure.procedure_function_results is not None
         self.assertEqual(type(procedure.procedure_function_results.adjust_results), dict)
         results_dict = procedure.procedure_function_results.toDict()
         self.assertEqual(type(results_dict), dict)

@@ -7,7 +7,8 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.dict_descriptor import DictDescriptor
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
-from typing import Tuple
+from typing import Tuple, Optional, List, Union
+from pandas import DataFrame
 from datetime import datetime
 import logging
 
@@ -15,7 +16,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
 
     _boundaries = [
-        FunctionBoundary({"name": "input", "optional":True})
+        FunctionBoundary({"name": "input", "optional":False})
     ]
     """input: independent (explanatory) variable"""
 
@@ -42,7 +43,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
     """Fit using only pairs where sim is within forecasted range of values"""
 
     @property
-    def sim_range(self) -> Tuple[float,float]:
+    def sim_range(self) -> Optional[Tuple[float,float]]:
         """Inmutable. Values range used for fit"""
         return self._sim_range
 
@@ -53,7 +54,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
         **kwargs):
         """
         
-        \**kwargs : keyword arguments (see ProcedureFunction)
+        **kwargs : keyword arguments (see ProcedureFunction)
         """
         super().__init__(**kwargs)
         if "warmup_steps" in self.extra_pars:
@@ -79,8 +80,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
 
     def run(
         self,
-        input : list = None,
-        output_obs : list = None
+        input : Optional[Union[DataFrame,List[DataFrame]]] = None,
+        output_obs : Optional[Union[DataFrame,List[DataFrame]]] = None
         ) -> tuple:
         """
         Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
@@ -99,17 +100,23 @@ class LinearFitProcedureFunction(ProcedureFunction):
             if self._procedure is None:
                 raise ValueError("If procedure is not set, input must be passed as an argument to run()")    
             input = self._procedure.loadInput(inplace=False,pivot=False)
+        elif isinstance(input, DataFrame):
+            input = [input]
         if output_obs is None:
             if self._procedure is None:
                 raise ValueError("If procedure is not set, output_obs must be passed as an argument to run()")
             output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
+            if isinstance(output_obs, DataFrame):
+                output_obs = [output_obs]
+        elif isinstance(output_obs, DataFrame):
+            output_obs = [output_obs]
         input_data = input[0][["valor"]].copy()
         self._sim_range = self.getSimRange(input_data, 0.1) if self.use_forecast_range else None
         covariables = ["valor"]
         if len(input) > 1:
             for i in range(1,len(input)):
                 b_name = "valor_%i" % i
-                input_data = input_data.join(input[i][["valor"]].rename(columns={"valor":b_name}))
+                input_data = input_data.join(DataFrame(input[i][["valor"]]).rename(columns={"valor":b_name}))
                 covariables.append(b_name)
         if self.type == "exponential":
             if self.sim_range is not None:
@@ -125,8 +132,8 @@ class LinearFitProcedureFunction(ProcedureFunction):
         response_data = output_obs[0].copy()
         try:
             (output_serie,output_tag_serie,stats) = adjustSeries(
-                input_data,
-                response_data,
+                DataFrame(input_data),
+                DataFrame(response_data),
                 warmup=self.warmup_steps,
                 tail=self.tail_steps,
                 sim_range=sim_range,
@@ -151,7 +158,12 @@ class LinearFitProcedureFunction(ProcedureFunction):
             )
         )
 
-    def getSimRange(self, data, expand : float = None, forecast_date : datetime = None) -> Tuple[float,float]:
+    def getSimRange(
+            self, 
+            data : DataFrame, 
+            expand : Optional[float] = None, 
+            forecast_date : Optional[datetime] = None
+            ) -> Tuple[float,float]:
         """Get values range of data in the forecasted period
 
         Args:

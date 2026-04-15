@@ -19,6 +19,7 @@ from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
+from .types.api_config_dict import ApiConfigDict
 import traceback
 from pathlib import Path
 
@@ -823,11 +824,11 @@ class Node:
 
     def loadData(
         self,
-        timestart : Union[datetime,str,dict],
-        timeend : Union[datetime,str,dict],
+        timestart : datetime,
+        timeend : datetime,
         include_prono : bool = True,
-        forecast_timeend : Union[datetime,str,dict] = None,
-        input_api_config : dict = None,
+        forecast_timeend : Optional[datetime] = None,
+        input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False,
         ) -> None:
         """
@@ -835,16 +836,16 @@ class Node:
         
         Parameters:
         -----------
-        timestart : Union[datetime,str,dict]
+        timestart : datetime
             Begin date
 
-        timeend : Union[datetime,str,dict]
+        timeend : datetime
             End date
 
         include_prono : bool = True
             For each variable, load forecast data for each series of .series_prono 
         
-        forecast_timeend : Union[datetime,str,dict] = None
+        forecast_timeend : Optional[datetime] = None
             End date of forecast retrieval. If None, uses timeend
         
         input_api_config : dict

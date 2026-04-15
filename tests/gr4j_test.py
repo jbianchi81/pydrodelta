@@ -15,6 +15,7 @@ class Test_GR4J(TestCase):
     def test_prodstore_runoff(self):
         plan = Plan.load(data_dir / "plans/dummy_gr4j.yml")
 
+        assert plan.topology is not None
         plan.topology.batchProcessInput()
         plan.execute(upload=False)
         self.assertIsInstance(plan.procedures[0].function, GR4JProcedureFunction)

@@ -285,12 +285,22 @@ class Procedure():
     def loadInput(
         self,
         inplace : Literal[False]=False,
-        pivot : bool = False,
+        pivot : Literal[False] = False,
         use_boundary_name : bool = False,
         tag_column : bool = True,
         read_sim : Optional[bool] = None,
         sim_index : Optional[int] = None
-        ) -> Union[List[DataFrame],DataFrame]: ...
+        ) -> List[DataFrame]: ...
+    @overload
+    def loadInput(
+        self,
+        inplace : Literal[False],
+        pivot : Literal[True],
+        use_boundary_name : bool = False,
+        tag_column : bool = True,
+        read_sim : Optional[bool] = None,
+        sim_index : Optional[int] = None
+        ) -> DataFrame: ...
     def loadInput(
         self,
         inplace : bool = True,
