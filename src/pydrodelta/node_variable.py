@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, Tuple, Optional, cast
+from typing import List, Union, Tuple, Optional, cast, Dict, TypedDict
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -25,11 +25,17 @@ from .descriptors.string_descriptor import StringDescriptor
 from .types.adjust_from_dict import AdjustFromDict
 from .types.linear_combination_dict import LinearCombinationDict
 from .types.typed_list import TypedList
+from .types.api_config_dict import ApiConfigDict
 from pathlib import Path
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
 
+class InterpolateArgsDict(TypedDict, total=False):
+    column : str
+    tag_column : str
+    interpolation_limit : int
+    extrapolate : bool
 
 class NodeVariable:
     """
@@ -491,7 +497,7 @@ class NodeVariable:
     def pronoToList(
         self,
         flatten : bool = True,
-        qualifiers : List[str] = None
+        qualifiers : Optional[List[str]] = None
         ) -> Union[List[dict],List[Serie]]:
         """
         Convert series_prono to list of records (dict)
@@ -660,7 +666,7 @@ class NodeVariable:
     def uploadData(
         self,
         include_prono : bool = False,
-        api_config : dict = None,
+        api_config : Optional[ApiConfigDict] = None,
         ) -> list:
         """
         Uploads series_output (analysis results) to output API. For each serie in series_output, it converts .data into a list of records, uploads the records using .series_id as the series identifier, then concatenates all responses into a single list which it returns
@@ -1046,8 +1052,8 @@ class NodeVariable:
 
     def interpolate(
         self,
-        limit : relativedelta = None,
-        extrapolate : bool = None
+        limit : Optional[relativedelta] = None,
+        extrapolate : Optional[bool] = None
         ) -> None:
         """Interpolate missing values in .data
         
@@ -1077,7 +1083,7 @@ class NodeVariable:
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:
                 return
-            kwargs = {
+            kwargs : InterpolateArgsDict = {
                 "column": "valor",
                 "tag_column": "tag"
             }

@@ -10,8 +10,9 @@ from .node_variable import NodeVariable
 import logging
 import json
 from numpy import nan
-from a5client import createEmptyObsDataFrame, Crud
+from a5client import createEmptyObsDataFrame, Crud, Serie
 from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
+from a5client.util_types import CorridaDict
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo
@@ -21,7 +22,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING
+from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING, cast
 from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -39,9 +40,10 @@ from .types.plot_params_dict import PlotParamsDict
 from .base import Base
 from .types.typed_list import TypedList
 from .types.plot_variable_params import PlotVariableParams
-from a5client.util_types import Dateable, Intervaleable
+from a5client.util_types import Dateable, Intervaleable, TVP, TVPProno
 from .types.save_variable_params import SaveVariableParams
 from .types.api_config_dict import ApiConfigDict
+
 if TYPE_CHECKING:
     from .plan import Plan
     
@@ -406,7 +408,7 @@ class Topology(Base):
     def batchProcessInput(
         self,
         include_prono : bool = False,
-        input_api_config : Optional[dict] = None) -> None:
+        input_api_config : Optional[ApiConfigDict] = None) -> None:
         """
         Run input processing sequence. This includes (in this order):
         
@@ -528,7 +530,7 @@ class Topology(Base):
         for node in self.nodes:
             node.setOriginalData()
 
-    def removeOutliers(self) -> None:
+    def removeOutliers(self) -> bool:
         """For each serie of each variable of each node, perform outlier removal (only in series where lim_outliers is not None)."""
         found_outliers = False
         for node in self.nodes:
@@ -536,7 +538,7 @@ class Topology(Base):
             found_outliers = found_outliers_ if found_outliers_ else found_outliers
         return found_outliers
 
-    def detectJumps(self) -> None:
+    def detectJumps(self) -> bool:
         """For each serie of each variable of each node, perform jumps detection (only in series where lim_jump is not None). Results are saved in jumps_data of the series object."""
         found_jumps = False
         for node in self.nodes:
@@ -591,7 +593,7 @@ class Topology(Base):
             node.apply_linear_combination()
             node.adjustProno()
 
-    def concatenateProno(self, ignore_warmup : bool = None) -> None:
+    def concatenateProno(self, ignore_warmup : Optional[bool] = None) -> None:
         """For each variable of each node, if series_prono are available, concatenate series_prono into variable.data"""
         ignore_warmup = ignore_warmup if ignore_warmup is not None else self.prono_ignore_warmup
         for node in self.nodes:
@@ -601,8 +603,8 @@ class Topology(Base):
 
     def interpolate(
         self,
-        limit : relativedelta = None,
-        extrapolate: bool = None
+        limit : Optional[relativedelta] = None,
+        extrapolate: Optional[bool] = None
         ) -> None:
         """For each variable of each node, fill nulls of data by interpolation
         
@@ -704,10 +706,10 @@ class Topology(Base):
         pivot : Literal[False] = False,
         use_node_id : bool = False,
         *,
-        flatten : Literal[False],
+        flatten : Literal[False] = False,
         nodes : Optional[list] = None,
         variables : Optional[list] = None
-        ) -> List[List[dict]]: ...
+        ) -> List[Serie]: ...
     @overload
     def toList(
         self,
@@ -717,7 +719,7 @@ class Topology(Base):
         flatten : Literal[True],
         nodes : Optional[list] = None,
         variables : Optional[list] = None
-        ) -> List[dict]: ...
+        ) -> List[TVP]: ...
     @overload
     def toList(
         self,
@@ -726,15 +728,15 @@ class Topology(Base):
         flatten : Optional[bool] = ...,
         nodes : Optional[list] = None,
         variables : Optional[list] = None
-        ) -> List[dict]: ...
+        ) -> List[TVP]: ...
     def toList(
         self,
         pivot : bool = False,
         use_node_id : bool = False,
-        flatten : bool = True,
+        flatten : Optional[bool] = True,
         nodes : Optional[List[int]] = None,
         variables : Optional[List[int]] = None
-        ) -> Union[List[List[dict]],List[dict]]:
+        ) -> Union[List[Serie],List[TVP]]:
         """
         returns list of data of selected variables of selected nodes
         
@@ -762,22 +764,32 @@ class Topology(Base):
             data["timestart"] = [x.isoformat() for x in data.index]
             data.reset_index
             data["timeend"] = data["timestart"]
-            return data.to_dict(orient="records")
+            return cast(List[TVP], data.to_dict(orient="records"))
         else:
-            obs_list = []
-            for node in self.nodes:
-                if nodes is not None and node.id not in nodes:
-                    # skip node
-                    continue
-                for var_id, variable in node.variables.items():
-                    if variables is not None and var_id not in variables:
-                        # skip variable
+            if flatten:
+                tvp_list : List[TVP] = []
+                for node in self.nodes:
+                    if nodes is not None and node.id not in nodes:
+                        # skip node
                         continue
-                    if flatten:
-                        obs_list.extend(variable.toList(True,use_node_id=use_node_id))
-                    else:
-                        obs_list.append(variable.toSerie(True,use_node_id=use_node_id))
-            return obs_list
+                    for var_id, variable in node.variables.items():
+                        if variables is not None and var_id not in variables:
+                            # skip variable
+                            continue
+                        tvp_list.extend(variable.toList(True,use_node_id=use_node_id))
+                return tvp_list
+            else:
+                series_list : List[Serie] = []
+                for node in self.nodes:
+                    if nodes is not None and node.id not in nodes:
+                        # skip node
+                        continue
+                    for var_id, variable in node.variables.items():
+                        if variables is not None and var_id not in variables:
+                            # skip variable
+                            continue
+                        series_list.append(variable.toSerie(True,use_node_id=use_node_id))
+                return series_list
     
     def outputToList(
         self,
@@ -892,7 +904,7 @@ class Topology(Base):
     def uploadData(
         self,
         include_prono : bool,
-        api_config : dict = None
+        api_config : Optional[ApiConfigDict] = None
         ) -> list:
         """
         Uploads analysis data (series_output) of all variables of all nodes as a5 observaciones (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/observacion.yml)
@@ -970,10 +982,10 @@ class Topology(Base):
         self,
         include_obs : bool = True,
         include_prono : bool = False,
-        api_config : dict = None,
-        save_response : str = None,
-        save_post_data : str = None
-        ) -> dict:
+        api_config : Optional[ApiConfigDict] = None,
+        save_response : Optional[str] = None,
+        save_post_data : Optional[str] = None
+        ) -> CorridaDict:
         """
         Uploads analysis data (series_output) of all variables of all nodes to output api as a5 pronosticos (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
 
@@ -1003,6 +1015,8 @@ class Topology(Base):
         if save_post_data:
             json.dump(prono, open(save_post_data, "w"), indent=4)
         api_client = Crud(**api_config) if api_config is not None else self.output_crud
+        if api_client is None:
+            raise Exception("Couldn't instantiate api client")
         response = api_client.createCorrida(prono)
         if save_response:
             json.dump(response, open(save_response, "w"), indent=4)
@@ -1084,20 +1098,23 @@ class Topology(Base):
         --------
         DataFrame
         """
+        if not len(self.nodes):
+            raise ValueError("nodes has no length")
         i = 0
         data = None
         for node in self.nodes:
             i = i+1
             node_data = node.pivotOutputData(include_tag=include_tag)
             data = node_data if i == 1 else pandas.concat([data,node_data],axis=1)
-        # data = data.replace({np.nan:None})
+        if data is None:
+            raise ValueError("nodes has no length")
         return data
     
     def pivotSimData(
         self,
-        nodes : List[int] = None,
-        variables : List[int] = None
-        ) -> DataFrame:
+        nodes : Optional[List[int]] = None,
+        variables : Optional[List[int]] = None
+        ) -> Optional[DataFrame]:
         """Pivot data of all series_sim of selected variables of selected nodes into columns of a single DataFrame
 
         nodes : List[int] = None
@@ -1458,13 +1475,22 @@ class Topology(Base):
                 # footnote_height=footnote_height
             )
 
-    def plotAll(self, node_ids: List[int]=None,var_ids : List[int]=None,**kwargs):
+    def plotAll(
+            self, 
+            node_ids: Optional[List[int]]=None,
+            var_ids : Optional[List[int]]=None,
+            **kwargs) -> None:
         for node in self.nodes:
             if node_ids is not None and node.id not in node_ids:
                 continue
             node.plotAll(var_ids=var_ids, **kwargs)
 
-    def dataAll(self, node_ids: List[int]=None,var_ids : List[int]=None, timestart : datetime=None, timeend : datetime=None):
+    def dataAll(
+            self, 
+            node_ids: Optional[List[int]]=None,
+            var_ids : Optional[List[int]]=None,
+            timestart : Optional[datetime]=None,
+            timeend : Optional[datetime]=None) -> DataFrame:
         series_dict = {}
 
         for node in self.nodes:
@@ -1475,6 +1501,8 @@ class Topology(Base):
 
             for var_id, var in node.variables.items():
                 if var_ids is not None and var_id not in var_ids:
+                    continue
+                if var.data is None:
                     continue
 
                 s = var.data["valor"]
@@ -1523,6 +1551,8 @@ class Topology(Base):
                     if len(variable.series):
                         variable_report["series_obs"] = []
                         for serie in variable.series:
+                            if serie.data is None:
+                                continue
                             serie_notnull = serie.data[serie.data["valor"].notnull()]
                             serie_report = {
                                 "series_id": serie.series_id,
@@ -1539,6 +1569,8 @@ class Topology(Base):
                     if len(variable.series):
                         variable_report["series_der"] = []
                         for serie in variable.series:
+                            if serie.data is None:
+                                continue
                             serie_notnull = serie.data[serie.data["valor"].notnull()]
                             serie_report = {
                                 "series_id": serie.series_id,
@@ -1553,10 +1585,11 @@ class Topology(Base):
                     variable_report["series_prono"] = []
                     for serie in variable.series_prono:
                         serie_notnull = serie.data[serie.data["valor"].notnull()]
+                        md = serie.metadata if serie.metadata is not None else {}
                         serie_report = {
-                            "series_id": serie.metadata["series_id"],
-                            "cal_id": serie.metadata["cal_id"],
-                            "forecast_date": serie.metadata["forecast_date"].isoformat() if serie.metadata["forecast_date"] is not None else None,
+                            "series_id": md["series_id"],
+                            "cal_id": md["cal_id"],
+                            "forecast_date": md["forecast_date"].isoformat() if md["forecast_date"] is not None else None,
                             "len": len(serie.data),
                             "outliers": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.outliers_data.itertuples(name=None))] if serie.outliers_data is not None else None,
                             "jumps": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.jumps_data.itertuples(name=None))] if serie.jumps_data is not None else None,
@@ -1650,11 +1683,24 @@ class Topology(Base):
         #     DG.add_edge(edge[0],edge[1])
         return DG
     
+    @overload
     def exportGraph(
         self,
-        nodes : list = None,
-        output_file : str = None
-        ) -> str:
+        nodes : Optional[TypedList[Node]] = None,
+        *,
+        output_file : str
+        ) -> None: ...
+    @overload
+    def exportGraph(
+        self,
+        nodes : Optional[TypedList[Node]] = None,
+        output_file : None = None
+        ) -> str: ...
+    def exportGraph(
+        self,
+        nodes : Optional[TypedList[Node]] = None,
+        output_file : Optional[str] = None
+        ) -> Optional[str]:
         """Creates directioned graph from the plan and converts it to JSON. 
         
         Parameters:
@@ -1695,6 +1741,8 @@ class Topology(Base):
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
+        if self.s3_client is None:
+            raise Exception("s3 client not set")
         self.s3_client.assertClient()
         if series is None:
             return
@@ -1706,7 +1754,12 @@ class Topology(Base):
             self.s3_client.saveSeriesData(bucket_name, serie.data, file_name)
 
 
-    def storeSeriesData(self,bucket_name : str = None) -> None:
+    def storeSeriesData(
+            self,
+            bucket_name : str
+            ) -> None:
+        if self.s3_client is None:
+            raise Exception("s3 client not set")
         self.s3_client.assertClient()
         if bucket_name is None:
             bucket_name = self.s3_client.bucket_name
@@ -1727,6 +1780,8 @@ class Topology(Base):
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
+        if self.s3_client is None:
+            raise Exception("s3 client not set")
         self.s3_client.assertClient()
         if series is None:
             return
@@ -1735,13 +1790,20 @@ class Topology(Base):
             try:
                 data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/%s/%i/data.csv" % (node_id, var_id,series_type,series_id))
             except ValueError as e:
-                logging.warn("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
+                logging.warning("node %i var %i, %s, %i: data not found in storage: %s" % (node_id, var_id, series_type, series_id, str(e)))
                 continue
             serie.data = data
 
-    def restoreSeriesData(self,bucket_name : str = None) -> None:
+    def restoreSeriesData(
+            self,
+            bucket_name : Optional[str] = None
+            ) -> None:
+        if self.s3_client is None:
+            raise Exception("s3 client not set")
         self.s3_client.assertClient()
         if bucket_name is None:
+            if self.s3_client.bucket_name is None:
+                raise ValueError("bucket name not set")
             bucket_name = self.s3_client.bucket_name
         for node in self.nodes:
             node_id = node.id
@@ -1749,7 +1811,7 @@ class Topology(Base):
                 try:
                     data = self.s3_client.loadSeriesData(bucket_name, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
                 except ValueError as e:
-                    logging.warn("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
+                    logging.warning("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
                     continue
                 variable.data = data
                 self.restoreSeries(bucket_name,variable.series,node_id,var_id, "series")
@@ -1759,6 +1821,8 @@ class Topology(Base):
 
     def readVar(self, id : int):
         if id not in self.var_map:
+            if self.input_crud is None:
+                raise Exception("input crud not set")
             self.var_map[id]  = self.input_crud.readVar(id)
         return self.var_map[id]
         

@@ -13,13 +13,13 @@ import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import isodate
-from typing import Union, List, Dict, Tuple, Optional
+from typing import Union, List, Dict, Tuple, Optional, cast
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
-from .types.api_config_dict import ApiConfigDict
+from a5client.util_types import ApiConfigDict
 import traceback
 from pathlib import Path
 
@@ -49,14 +49,23 @@ class Node:
         """Variables represent the hydrologic observed/simulated properties at the node (such as discharge, precipitation, etc.). They are stored as a dictionary where an integer, the variable identifier, is used as the key, and the values are dictionaries. They may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
         return self._variables
     @variables.setter
-    def variables(self,variables : List[Union[DerivedNodeVariable,ObservedNodeVariable,dict]] = None):
+    def variables(
+        self,
+        variables : Optional[List[Union[DerivedNodeVariable,ObservedNodeVariable,DerivedNodeVariableDict,ObservedNodeVariableDict]]] = None
+        ) -> None:
         self._variables = {}
         if variables is not None:
             for variable in variables:
                 if isinstance(variable, (DerivedNodeVariable,ObservedNodeVariable)):
                     self._variables[variable["id"]] = variable
                 else:
-                    self._variables[variable["id"]] = DerivedNodeVariable(node=self,**variable, base_path=self.base_path) if "derived" in variable and variable["derived"] == True else ObservedNodeVariable(node=self,**variable, base_path=self.base_path)
+                    if "derived" in variable and variable["derived"] == True:
+                        kwargs = cast(DerivedNodeVariableDict, {k: v for k, v in variable.items() if k != "node"})
+                        kwargs["node"] = self
+                        self._variables[variable["id"]] = DerivedNodeVariable(**kwargs, base_path=self.base_path) 
+                    else:
+                        kwargs = cast(ObservedNodeVariableDict, {k: v for k, v in variable.items() if k != "node"})
+                        self._variables[variable["id"]] = ObservedNodeVariable(node=self,**kwargs, base_path=self.base_path)
     
     node_type = StringDescriptor()
     """The type of node: either 'station' or 'basin'"""
@@ -104,7 +113,7 @@ class Node:
             node_type : str = "station",
             description : Optional[str] = None,
             basin_pars : Optional[dict] = None,
-            api_config : Optional[dict] = None,
+            api_config : Optional[ApiConfigDict] = None,
             base_path : Union[str,Path,None] = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
@@ -153,7 +162,7 @@ class Node:
         basin_pars : dict = None
             Basin parameters. For nodes of type = 'basin'
 
-        api_config : dict = None
+        api_config : ApiConfigDict = None
             Override global input api configuration
             
             - url : str
@@ -185,7 +194,7 @@ class Node:
         if self.api_config is None:
             self.api_config = config["input_api"]
         self._crud = Crud(**self.api_config)
-        self.base_path = base_path
+        self.base_path = resolve_path(base_path) if base_path is not None else None
         self.variables = variables
         self.node_type = node_type
         self.description = description
@@ -251,7 +260,7 @@ class Node:
             self,
             include_series_id : bool = True,
             include_header : bool = True,
-            variables : list = None
+            variables : Optional[List[int]] = None
             ) -> str:
         """
         returns self.variables.data as csv
@@ -348,7 +357,7 @@ class Node:
     def variablesPronoToList(
             self,
             flatten : bool = True,
-            qualifiers : List[str] = None
+            qualifiers : Optional[List[str]] = None
         ) -> list:
         """
         For each variable in .variables, returns series_prono as a list
@@ -430,7 +439,7 @@ class Node:
     def uploadData(
         self,
         include_prono : bool = False,
-        api_config : dict = None
+        api_config : Optional[ApiConfigDict] = None
         ) -> list:
         """For each variable in .variables run .uploadData()
         
@@ -502,8 +511,8 @@ class Node:
 
     def pivotSimData(
         self,
-        variables : List[int] = None
-        ) -> DataFrame:
+        variables : Optional[List[int]] = None
+        ) -> Optional[DataFrame]:
         """Join selected variables' sim data into a single pivoted DataFrame
         
         variables : List[int] = None
@@ -524,6 +533,8 @@ class Node:
                     data = var_data
                 else:
                     data = data.join(var_data,how="outer") # ,rsuffix="_%i_%i" % (self.id, variable.id)
+        if data is None:
+            logging.warning("No sim data found in node %i" % self.id)
         return data
 
     def seriesToDataFrame(
@@ -609,8 +620,8 @@ class Node:
     
     def interpolate(
         self,
-        limit : relativedelta = None,
-        extrapolate : bool = None
+        limit : Optional[relativedelta] = None,
+        extrapolate : Optional[bool] = None
         ) -> None:
         """Join every variable in .variables, run .interpolate().
         
@@ -816,7 +827,10 @@ class Node:
                 filename, lineno, func, text = tb[-1]
                 raise ValueError("Plot prono failed at node %i variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, variable.id, filename, lineno, func, str(e)))
 
-    def plotAll(self, var_ids : List[int]=None,**kwargs):
+    def plotAll(
+            self, 
+            var_ids : Optional[List[int]]=None,
+            **kwargs) -> None:
         for i, var in self.variables.items():
             if var_ids is not None and var.id not in var_ids:
                 continue

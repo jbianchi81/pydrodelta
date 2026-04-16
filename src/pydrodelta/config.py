@@ -3,21 +3,18 @@ from pathlib import Path
 import click
 from dataclasses import dataclass
 from typing import TypedDict, cast, Any
+from a5client.util_types import ApiConfigDict
 
 @dataclass
 class AppState:
     run_create: bool = False
 
-class ApiConfig(TypedDict):
-    url : str
-    token : str
-
 class LogConfig(TypedDict):
     filename : str
 
 class ConfigDict(TypedDict):
-    input_api : ApiConfig
-    output_api: ApiConfig
+    input_api : ApiConfigDict
+    output_api: ApiConfigDict
     log : LogConfig
 
 state = AppState()

@@ -1,9 +1,12 @@
-from typing import TypedDict, Union, List
+from typing import TypedDict, Union, List, Optional, TYPE_CHECKING, NotRequired
 from ..node_serie import NodeSerie
 from .series_dict import SeriesDict
 from datetime import datetime, timedelta
 from .adjust_from_dict import AdjustFromDict
 from .linear_combination_dict import LinearCombinationDict
+
+if TYPE_CHECKING:
+    from ..node import Node
 
 class NodeVariableDict(TypedDict):
     """
@@ -26,7 +29,7 @@ class NodeVariableDict(TypedDict):
         forecast_timeend : datetime = None
     """
     id : int
-    node : any
+    node : NotRequired[Optional["Node"]]
     fill_value : float
     series_output : List[Union[NodeSerie,SeriesDict]]
     output_series_id : int

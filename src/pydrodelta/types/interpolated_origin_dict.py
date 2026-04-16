@@ -1,5 +1,6 @@
-from typing import TypedDict, Union
+from typing import TypedDict, Union, Optional
 from datetime import datetime
+from a5client.util_types import Intervaleable
 
 class InterpolatedOriginDict(TypedDict):
     """
@@ -13,9 +14,9 @@ class InterpolatedOriginDict(TypedDict):
     
     var_id_2 : int
     
-    x_offset : Union[dict,datetime,float] = None
+    x_offset : Optional[Itervaleable] = None
     
-    y_offset : float = None
+    y_offset : Optional[float] = None
     
     interpolation_coefficient : float = 0.5
     """
@@ -23,7 +24,7 @@ class InterpolatedOriginDict(TypedDict):
     node_id_2 : int
     var_id_1 : int
     var_id_2 : int
-    x_offset : Union[dict,datetime,float]
+    x_offset : Optional[Intervaleable]
     y_offset : float
     interpolation_coefficient : float
 

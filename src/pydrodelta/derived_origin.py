@@ -1,9 +1,10 @@
-from .util import interval2timedelta
+from a5client.util import interval2relativedelta
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
-from typing import Union
-from datetime import timedelta
+from typing import Union, Optional
+from dateutil.relativedelta import relativedelta
 from .node_variable import NodeVariable
+from a5client.util_types import Intervaleable
 
 class DerivedOrigin:
     """Represents the origin node+variable of a derived node+variable"""
@@ -15,21 +16,21 @@ class DerivedOrigin:
     """Variable identifier of the origin"""
     
     @property
-    def x_offset(self) -> Union[timedelta,int]:
+    def x_offset(self) -> Optional[Union[relativedelta,int]]:
         """Offset of the time index"""
         return self._x_offset
     @x_offset.setter
     def x_offset(
         self,
-        x_offset : Union[dict,int]
+        x_offset : Optional[Intervaleable]
         )-> None:
-        self._x_offset = interval2timedelta(x_offset) if isinstance(x_offset,dict) else int(x_offset) if x_offset is not None else None
+        self._x_offset = x_offset if isinstance(x_offset, int) else interval2relativedelta(x_offset) if x_offset is not None else None
 
     y_offset = FloatDescriptor()
     """Offset of the values"""
     
     @property
-    def origin(self) -> NodeVariable:
+    def origin(self) -> Optional[NodeVariable]:
         """Origin NodeVariable"""
         return self._origin
     @origin.setter
@@ -51,8 +52,8 @@ class DerivedOrigin:
         self,
         node_id : int,
         var_id : int,
-        x_offset : Union[dict,int] = None,
-        y_offset : float = None,
+        x_offset : Optional[Intervaleable] = None,
+        y_offset : Optional[float] = None,
         topology = None
         ):
         """

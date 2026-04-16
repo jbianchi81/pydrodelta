@@ -1,9 +1,15 @@
 from .util import interval2timedelta
-from typing import Union
+from typing import Union, Optional, TYPE_CHECKING
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 from .node_variable import NodeVariable
+from a5client.util_types import Intervaleable
+from a5client.util import interval2relativedelta
+
+if TYPE_CHECKING:
+    from .topology import Topology
 
 class InterpolatedOrigin:
     """Represents the origin node+variable of an interpolated node+variable"""
@@ -21,15 +27,15 @@ class InterpolatedOrigin:
     """Second variable identifier"""
 
     @property
-    def x_offset(self) -> Union[timedelta,int]:
+    def x_offset(self) -> Union[relativedelta,int]:
         """Offset if the time axis"""
         return self._x_offset
     @x_offset.setter
     def x_offset(
         self,
-        x_offset : Union[timedelta,dict,int]
+        x_offset : Intervaleable
         ) -> None:
-        self._x_offset = interval2timedelta(x_offset) if isinstance(x_offset,(dict,timedelta)) else int(x_offset)
+        self._x_offset = x_offset if isinstance(x_offset, int) else interval2relativedelta(x_offset)
 
     y_offset = FloatDescriptor()
     """Offset of the values"""
@@ -38,12 +44,12 @@ class InterpolatedOrigin:
     """Interpolation weighting coefficient [0-1] (i.e., if 1, first node-variable gets all the weight)"""
 
     @property
-    def origin_1(self) -> NodeVariable:
+    def origin_1(self) -> Optional[NodeVariable]:
         """First node-variable origin for interpolation"""
         return self._origin_1
 
     @property
-    def origin_2(self) -> NodeVariable:
+    def origin_2(self) -> Optional[NodeVariable]:
         """Second node-variable origin for interpolation"""
         return self._origin_2
 
@@ -53,10 +59,10 @@ class InterpolatedOrigin:
         node_id_2 : int,
         var_id_1 : int,
         var_id_2 : int,
-        x_offset : Union[datetime,dict,float] = {"hours":0},
+        x_offset : Optional[Intervaleable] = None,
         y_offset : float = 0,
-        interpolation_coefficient : float = None,
-        topology = None
+        interpolation_coefficient : Optional[float] = None,
+        topology : Optional["Topology"] = None
         ):
         """
         node_id_1 : int
@@ -96,7 +102,7 @@ class InterpolatedOrigin:
         self.node_id_2 = node_id_2
         self.var_id_1 = var_id_1
         self.var_id_2 = var_id_2
-        self.x_offset = x_offset
+        self.x_offset = x_offset if x_offset is not None else relativedelta(hours=0)
         self.y_offset = y_offset
         self.interpolation_coefficient = interpolation_coefficient
         self._topology = topology

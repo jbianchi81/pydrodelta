@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from .node_variable import NodeVariable
 from .derived_node_serie import DerivedNodeSerie
 from .node_serie import NodeSerie
@@ -23,49 +23,53 @@ class DerivedNodeVariable(NodeVariable):
     
     def _setDerivedSeries(self) -> None:
         if self.series_output is None:
-            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
+            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id) if self._node is not None else "unknown",str(self.id)))
         self._series = []
         for serie in self.series_output:
             self._series.append(
                 DerivedNodeSerie(
                     series_id = serie.series_id, 
                     derived_from = self.derived_from,
-                    topology = self._node._topology,
+                    topology = self._node._topology if self._node is not None else None,
                     base_path=self.base_path
                 )
             )
     
     def _setInterpolatedSeries(self) -> None:
         if self.series_output is None:
-            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id),str(self.id)))
+            raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id) if self._node is not None else "unknown",str(self.id)))
         self._series = []
         for serie in self.series_output:
             self._series.append(
                 DerivedNodeSerie(
                     series_id = serie.series_id, 
                     interpolated_from = self.interpolated_from,
-                    topology = self._node._topology,
+                    topology = self._node._topology if self._node is not None else None,
                     base_path=self.base_path
                 )
             )
     
     @property
-    def series_prono(self) -> List[NodeSerieProno]:
+    def series_prono(self) -> Optional[List[NodeSerieProno]]:
         """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
         return self._series_prono
     
     @series_prono.setter
     def series_prono(
         self,
-        series : List[Union[dict,NodeSerieProno]] = None
+        series : Optional[List[Union[dict,NodeSerieProno]]] = None
         ) -> None:
-            self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x, base_path=self.base_path) for x in series] if series is not None else None
+            if series is None:
+                self._series_prono = None
+            else:
+                self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x, base_path=self.base_path) for x in series]
+    
     def __init__(
         self,
-        derived_from : DerivedOriginDict = None,
-        interpolated_from : InterpolatedOriginDict = None,
-        series : List[Union[dict,NodeSerie]] = None,
-        series_prono : List[Union[dict,NodeSerieProno]] = None,
+        derived_from : Optional[DerivedOriginDict] = None,
+        interpolated_from : Optional[InterpolatedOriginDict] = None,
+        series : Optional[List[Union[dict,NodeSerie]]] = None,
+        series_prono : Optional[List[Union[dict,NodeSerieProno]]] = None,
         derived : bool = True,
         **kwargs):
         """

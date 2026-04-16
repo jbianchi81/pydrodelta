@@ -1,7 +1,8 @@
 from .derived_origin import DerivedOrigin
 from .interpolated_origin import InterpolatedOrigin
 import logging
-from datetime import timedelta
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from a5client import createEmptyObsDataFrame
 from .util import applyTimeOffsetToIndex, resolve_path
 from .types.derived_origin_dict import DerivedOriginDict
@@ -10,7 +11,7 @@ from .types.tvp import TVP
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .config import config 
-from typing import Union, List
+from typing import Union, List, Optional, cast
 from pandas import Series
 import os
 import json
@@ -22,24 +23,24 @@ class DerivedNodeSerie:
     Represents a timeseries of a variable at a node derived or interpolated from another timeseries, i.e. of the same variable at a nearby node or another variable at the same (or nearby) node
     """
     @property
-    def derived_from(self) -> DerivedOrigin:
+    def derived_from(self) -> Optional[DerivedOrigin]:
         """Derivation configuration"""
         return self._derived_from
     @derived_from.setter
     def derived_from(
         self,
-        derived_from : DerivedOriginDict
+        derived_from : Optional[Union[DerivedOrigin,DerivedOriginDict]]
         ) -> None:
         self._derived_from = derived_from if isinstance(derived_from,DerivedOrigin) else DerivedOrigin(**derived_from,topology=self._topology) if derived_from is not None else None
 
     @property
-    def interpolated_from(self) -> InterpolatedOrigin:
+    def interpolated_from(self) -> Optional[InterpolatedOrigin]:
         """Interpolation configuration"""
         return self._interpolated_from
     @interpolated_from.setter
     def interpolated_from(
         self,
-        interpolated_from : InterpolatedOriginDict
+        interpolated_from : Optional[Union[InterpolatedOrigin,InterpolatedOriginDict]]
         ) -> None: 
             self._interpolated_from = interpolated_from if isinstance(interpolated_from,InterpolatedOrigin) else InterpolatedOrigin(**interpolated_from,topology=self._topology) if interpolated_from is not None else None
     
@@ -59,10 +60,10 @@ class DerivedNodeSerie:
     def __init__(
         self,
         topology,
-        series_id : int = None,
-        derived_from : Union[DerivedOrigin,DerivedOriginDict] = None,
-        interpolated_from : Union[InterpolatedOrigin,InterpolatedOriginDict] = None,
-        output_file : str = None,
+        series_id : Optional[int] = None,
+        derived_from : Optional[Union[DerivedOrigin,DerivedOriginDict]] = None,
+        interpolated_from : Optional[Union[InterpolatedOrigin,InterpolatedOriginDict]] = None,
+        output_file : Optional[str] = None,
         output_format : str = "json",
         output_schema : str = "dict",
         base_path : Union[str,Path,None] = None
@@ -95,7 +96,7 @@ class DerivedNodeSerie:
         self.output_format = output_format
         self.output_schema = output_schema
 
-    def resolve_path(self, path : Union[str,Path,None]) -> Union[str,None]:
+    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
     
     def deriveTag(
@@ -112,10 +113,13 @@ class DerivedNodeSerie:
     def deriveOffsetIndex(
         self,
         row : Series,
-        x_offset : int
-        ) -> Union[int,timedelta]:
+        x_offset : Union[int,relativedelta]
+        ) -> Union[int,datetime]:
         """Apply offset to index of row"""
-        return row.name + x_offset
+        if isinstance(x_offset, relativedelta):
+            return cast(datetime, row.name) + x_offset
+        else:
+            return cast(int, row.name) + x_offset
     def derive(
         self,
         keep_index : bool = True
@@ -129,25 +133,29 @@ class DerivedNodeSerie:
             Don't overwrite index (apply offset in-place)
         """
         if self.derived_from is not None:
-            logging.debug("Deriving %i from %s" % (self.series_id, self.derived_from.origin.name))
-            if not len(self.derived_from.origin.data):
-                logging.warn("No data found to derive from origin. Skipping derived node")
+            logging.debug("Deriving %i from %s" % (self.series_id, self.derived_from.origin.name if self.derived_from.origin is not None else "unknown"))
+            if self.derived_from.origin is None or self.derived_from.origin.data is None or not len(self.derived_from.origin.data):
+                logging.warning("No data found to derive from origin. Skipping derived node")
                 self.data = createEmptyObsDataFrame()
                 return
             self.data = self.derived_from.origin.data[["valor","tag"]] # self.derived_from.origin.series[0].data[["valor",]]
-            if isinstance(self.derived_from.x_offset,timedelta):
-                self.data["valor"] = self.data["valor"] + self.derived_from.y_offset
-                self.data.index = self.data.apply(lambda row: self.deriveOffsetIndex(row,self.derived_from.x_offset),axis=1)# for x in self.data.index]
-                self.data["tag"] = self.data.apply(lambda row: self.deriveTag(row,"tag"),axis=1) # ["derived" if x is None else "%s,derived" % x for x in self.data.tag]
-            else:
-                self.data["valor"] = self.data["valor"].shift(self.derived_from.x_offset, axis = 0) + self.derived_from.y_offset
-            self.data["tag"] = self.data.apply(lambda row: self.deriveTag(row,"tag"),axis=1) #["derived" if x is None else "%s,derived" % x for x in self.data.tag]
+            x_offset = self.derived_from.x_offset
+            y_offset = self.derived_from.y_offset
+            if isinstance(x_offset,relativedelta):
+                if y_offset is not None:
+                    self.data["valor"] = self.data["valor"] + y_offset
+                if x_offset is not None:
+                    self.data.index = self.data.apply(lambda row: self.deriveOffsetIndex(row,x_offset),axis=1)
+                    self.data["tag"] = self.data.apply(lambda row: self.deriveTag(row,"tag"),axis=1) 
+            elif x_offset is not None:
+                self.data["valor"] = self.data["valor"].shift(x_offset, axis = 0) + y_offset if y_offset is not None else 0
+                self.data["tag"] = self.data.apply(lambda row: self.deriveTag(row,"tag"),axis=1) #["derived" if x is None else "%s,derived" % x for x in self.data.tag]
             if hasattr(self.derived_from.origin,"max_obs_date"):
                 self.max_obs_date = self.derived_from.origin.max_obs_date
         elif self.interpolated_from is not None:
-            logging.debug("Interpolating %i from %s and %s" % (self.series_id, self.interpolated_from.origin_1.name, self.interpolated_from.origin_2.name))
-            if not len(self.interpolated_from.origin_1.data) or not len(self.interpolated_from.origin_2.data):
-                logging.warn("No data found to derive from origin. Skipping derived node")
+            logging.debug("Interpolating %i from %s and %s" % (self.series_id, self.interpolated_from.origin_1.name if self.interpolated_from.origin_1 is not None else "unknown", self.interpolated_from.origin_2.name if self.interpolated_from.origin_2 is not None else "unknown"))
+            if self.interpolated_from.origin_1 is None or self.interpolated_from.origin_1.data is None or not len(self.interpolated_from.origin_1.data) or self.interpolated_from.origin_2 is None or self.interpolated_from.origin_2.data is None or not len(self.interpolated_from.origin_2.data):
+                logging.warning("No data found to derive from origin. Skipping derived node")
                 self.data = createEmptyObsDataFrame()
                 return
             self.data = self.interpolated_from.origin_1.data[["valor","tag"]] # self.interpolated_from.origin_1.series[0].data[["valor",]]
@@ -156,13 +164,14 @@ class DerivedNodeSerie:
             self.data["tag"] = self.data.apply(lambda row: self.deriveTag(row,"tag","interpolated"),axis=1) #["interpolated" if x is None else "%s,interpolated" % x for x in self.data.tag]
             del self.data["valor_other"]
             del self.data["tag_other"]
-            if isinstance(self.interpolated_from.x_offset,timedelta):
+            x_offset = self.interpolated_from.x_offset
+            if isinstance(x_offset,relativedelta):
                 if keep_index:
-                    self.data = applyTimeOffsetToIndex(self.data,self.interpolated_from.x_offset)
+                    self.data = applyTimeOffsetToIndex(self.data,x_offset)
                 else:
-                    self.data.index = self.data.apply(lambda row: self.deriveOffsetIndex(row,self.interpolated_from.x_offset),axis=1) # for x in self.data.index]
+                    self.data.index = self.data.apply(lambda row: self.deriveOffsetIndex(row,x_offset),axis=1) # for x in self.data.index]
             else:
-                self.data[["valor","tag"]] = self.data[["valor","tag"]].shift(self.interpolated_from.x_offset, axis = 0)    
+                self.data[["valor","tag"]] = self.data[["valor","tag"]].shift(x_offset, axis = 0)    
             if hasattr(self.interpolated_from.origin_1,"max_obs_date"):
                 self.max_obs_date = self.interpolated_from.origin_1.max_obs_date
             
