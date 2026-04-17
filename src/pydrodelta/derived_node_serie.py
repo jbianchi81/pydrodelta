@@ -11,7 +11,7 @@ from .types.tvp import TVP
 from .descriptors.dataframe_descriptor import DataFrameDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .config import config 
-from typing import Union, List, Optional, cast
+from typing import Union, List, Optional, cast, Literal
 from pandas import Series
 import os
 import json
@@ -191,6 +191,8 @@ class DerivedNodeSerie:
         --------
         csv string : str
         """
+        if self.data is None:
+            raise RuntimeError("data not loaded")
         if include_series_id:
             data = self.data
             data["series_id"] = self.series_id
@@ -199,7 +201,7 @@ class DerivedNodeSerie:
     def toList(
         self,
         include_series_id : bool = False,
-        timeSupport : timedelta = None
+        timeSupport : Optional[relativedelta] = None
         ) -> List[TVP]:
         """
         Convert series to list of time-value pair dicts
@@ -218,6 +220,8 @@ class DerivedNodeSerie:
         --------
         List of time-value pair dicts : List[TVP]
         """
+        if self.data is None:
+            raise RuntimeError("data not loaded")
         data = self.data
         data["timestart"] = data.index
         data["timeend"] = [x + timeSupport for x in data["timestart"]] if timeSupport is not None else data["timestart"]
@@ -225,13 +229,13 @@ class DerivedNodeSerie:
         data["timeend"] = [x.isoformat() for x in data["timeend"]]
         if include_series_id:
             data["series_id"] = self.series_id
-        return data.to_dict(orient="records")
+        return cast(List[TVP], data.to_dict(orient="records"))
 
     def saveData(
         self,
         output_file = None,
-        format : str = None,
-        schema : str = None
+        format : Optional[Literal["json","yaml","csv"]] = None,
+        schema : Optional[Literal["dict","list"]] = None
         ) -> None:
         """Print data into file 
 
@@ -249,24 +253,24 @@ class DerivedNodeSerie:
             f = open(output_file,"w")
         except OSError as e:
             raise OSError("Couln't open file %s for writing: %s" % (output_file, e))
-        format = format if format is not None else self.output_format if self.output_format is not None else "json"
-        schema = schema if schema is not None else self.output_schema if self.output_schema is not None else "dict"
-        if format == "json":
-            if schema == "dict":
-                json.dump(self.toDict(),f)
-            elif schema == "list":
+        format_ = format if format is not None else self.output_format if self.output_format is not None else "json"
+        schema_ = schema if schema is not None else self.output_schema if self.output_schema is not None else "dict"
+        if format_ == "json":
+            if schema_ == "dict":
+                json.dump(self.__dict__,f)
+            elif schema_ == "list":
                 json.dump(self.toList(),f)
             else:
                 raise ValueError("Invalid schema. Options: dict, list")
-        elif format == "yaml":
-            if schema == "dict":
-                yaml.dump(self.toDict(),f)
-            elif schema == "list":
+        elif format_ == "yaml":
+            if schema_ == "dict":
+                yaml.dump(self.__dict__,f)
+            elif schema_ == "list":
                 yaml.dump(self.toList(),f)
             else:
                 raise ValueError("Invalid schema. Options: dict, list")
-        elif format == "csv":
+        elif format_ == "csv":
             f.write(self.toCSV())
         else:
-            raise ValueError("Invalid format. Options: json, csv")
+            raise ValueError("Invalid format. Options: json, yaml, csv")
         f.close()

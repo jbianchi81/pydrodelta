@@ -14,6 +14,7 @@ from pathlib import Path
 
 from a5client import Crud, createEmptyObsDataFrame
 from a5client.util import tryParseAndLocalizeDate
+from a5client.util_types import ApiConfigDict
 from .topology import Topology
 import pydrodelta.util as util
 from .procedure import Procedure
@@ -26,6 +27,8 @@ from .descriptors.filepath_descriptor import FilepathDescriptor
 from .base import Base
 from .types.typed_list import TypedList
 from .types.save_variable_sim_dict import SaveVariableSimDict
+from a5client.util_types import CorridaDict, Dateable, CorridaDictNoId
+from .node import Node
 
 from pydrodelta.config import config
 
@@ -77,15 +80,17 @@ class Plan(Base):
     def procedures(self,values : list):
         self._procedures = TypedList(Procedure, *values, unique_id_property = "id", plan = self, base_path=self.base_path) # [x if isinstance(x,Procedure) else Procedure(**x,plan=self) for x in values]
     
+    _forecast_date : datetime
+
     @property
-    def forecast_date(self):
+    def forecast_date(self) -> datetime:
         """Execution timestamp of the plan. Defaults to now rounded down to .time_interval"""
         return self._forecast_date
     @forecast_date.setter
-    def forecast_date(self,value):
+    def forecast_date(self,value : Dateable) -> None:
         self._forecast_date = util.tryParseAndLocalizeDate(value)
-        if self.forecast_date is not None and self.time_interval is not None:
-            self._forecast_date = util.roundDownDate(self.forecast_date,self.time_interval)
+        if self.time_interval is not None:
+            self._forecast_date = util.roundDownDate(self._forecast_date,self.time_interval)
     @property
     def time_interval(self) -> Optional[relativedelta]:
         """time step duration of the procedures"""
@@ -140,16 +145,13 @@ class Plan(Base):
     """File path where to save graph representation of the plan"""
     output_graph : Optional[Path]# = FilepathDescriptor()
 
-    """Base path. Used to resolve input/output relative paths"""
-    base_path : Optional[Path]= None
-        
     def __init__(
             self,
             name : str,
             id: int,
             topology: Union[dict, str],
             procedures: list = [],
-            forecast_date: Union[dict, str] = datetime.now().isoformat(),
+            forecast_date: Dateable = datetime.now().isoformat(),
             time_interval: Optional[Union[dict, str]] = None,
             output_stats: Optional[str] = None,
             output_results: Optional[str] = None,
@@ -245,7 +247,6 @@ class Plan(Base):
         self.name = name
         self.id = id
         self.topology = topology
-        self._forecast_date : Optional[datetime] = None
         self._time_interval : Optional[relativedelta] = None
         self.forecast_date = forecast_date
         self.time_interval = time_interval
@@ -273,8 +274,8 @@ class Plan(Base):
         include_prono : bool = True,
         upload : bool = True,
         pretty : bool = False,
-        input_api_config : Optional[dict] = None,
-        output_api_config : Optional[dict] = None):
+        input_api_config : Optional[ApiConfigDict] = None,
+        output_api_config : Optional[ApiConfigDict] = None):
         """
         Runs analysis and then each procedure sequentially
 
@@ -346,16 +347,18 @@ class Plan(Base):
                 self.topology.plotVariable(**item)
         if self.topology.save_variable is not None:
             for i, item in enumerate(self.topology.save_variable):
-                item["file"] = item["output"]
-                del item["output"]
-                item["variables"] = [item["var_id"]]
-                del item["var_id"]
-                self.topology.saveData(**item)
+                kwargs = {**item}
+                kwargs["variables"] = [kwargs["var_id"]]
+                del kwargs["var_id"]
+                self.topology.saveData(**kwargs)
         if self.output_sim_csv:
             sim_data = self.topology.pivotSimData()
-            util.createParent(self.output_sim_csv)
-            with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
-                sim_data.to_csv(outfile)
+            if sim_data is None:
+                logging.warning("sim data not found. Not writing.")
+            else:
+                util.createParent(self.output_sim_csv)
+                with open(self.output_sim_csv,"w",encoding='utf-8') as outfile:
+                    sim_data.to_csv(outfile)
         if self.save_variable_sim is not None:
             for v in self.save_variable_sim:
                 sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
@@ -368,17 +371,21 @@ class Plan(Base):
             self.printGraph(output_file=self.output_graph)
     
     def saveSimData(self):
+        if self.topology is None:
+            raise RuntimeError("topology not set")
         for node in self.topology.nodes:
             node.saveSeriesSeparately(["series_sim", "series_output"])
     
-    def toCorrida(self,strict_properties : bool=True) -> dict:
+    def toCorrida(self,strict_properties : bool=True) -> CorridaDictNoId:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         
         Returns:
         --------
         
-        dict
+        CorridaDict
         """
+        if self.topology is None:
+            raise RuntimeError("topology not set")
         series_sim = []
         for node in self.topology.nodes:
             for variable in node.variables.values():
@@ -395,12 +402,13 @@ class Plan(Base):
                             })
         return {
             "cal_id": self.id,
-            "forecast_date": self.forecast_date.isoformat(),
-            "series": series_sim 
+            "forecast_date": self.forecast_date,
+            "series": series_sim,
+            "id": None 
         }
     def uploadSim(
         self,
-        api_config : Optional[dict] = None) -> dict:
+        api_config : Optional[ApiConfigDict] = None) -> CorridaDict:
         """Upload forecast into output api. 
         
         If self.save_post is not None, saves the post message before request into that filepath. 
@@ -472,13 +480,15 @@ class Plan(Base):
 
         DataFrame
         """
+        if self.topology is None:
+            raise RuntimeError("topology not set")
         corrida = createEmptyObsDataFrame(extra_columns={"tag":"str","series_id":"int"})
         for node in self.topology.nodes:
             for variable in node.variables.values():
                 if variable.series_sim is not None:
                     for serie in variable.series_sim:
                         if serie.data is None:
-                            logging.warn("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
+                            logging.warning("Missing data for series sim:%i, variable:%i, node:%i" % (serie.series_id, variable.id, node.id))
                             continue
                         if pivot:
                             suffix = "_%i" % serie.series_id
@@ -518,7 +528,9 @@ class Plan(Base):
         corrida = self.toCorridaDataFrame(pivot=pivot)
         corrida.to_csv(filename,header=include_header)
     
-    def toGraph(self,nodes : Union[list,None]) -> nx.DiGraph:
+    def toGraph(
+            self,
+            nodes : Union[TypedList[Node],None]) -> nx.DiGraph:
         """
         Generate directioned graph from the plan. Topology nodes are linked to procedures according to the mapping provided at procedure.function.boundaries (node to procedure) and procedure.function.outputs (procedure to node)
 
@@ -537,6 +549,8 @@ class Plan(Base):
         exportGraph
 
         """
+        if self.topology is None:
+            raise RuntimeError("topology not set")
         DG = self.topology.toGraph(nodes)
         edges = list()
         for procedure in self.procedures:
@@ -564,10 +578,10 @@ class Plan(Base):
 
     def printGraph(
             self,
-            nodes : Union[list,None]=None,
-            output_file : Union[str,None]=None,
-            width : float=None,
-            height : float=None
+            nodes : Union[TypedList[Node],None]=None,
+            output_file : Optional[Union[str,Path]]=None,
+            width : Optional[float]=None,
+            height : Optional[float]=None
         ) -> None:
         """Print directioned graph from the plan. Topology nodes are linked to procedures according to the mapping provided at procedure.function.boundaries (node to procedure) and procedure.function.outputs (procedure to node)
         
@@ -605,7 +619,11 @@ class Plan(Base):
             plt.savefig(output_file, format='png')
             plt.close()
 
-    def exportGraph(self,nodes : Union[list,None]=None,output_file : Union[str,None]=None) -> Union[str,None]:
+    def exportGraph(
+            self,
+            nodes : Union[TypedList[Node],None]=None,
+            output_file : Union[str,None]=None
+            ) -> Union[str,None]:
         """Creates directioned graph from the plan and converts it to JSON. Topology nodes are linked to procedures according to the mapping provided at procedure.function.boundaries (node to procedure) and procedure.function.outputs (procedure to node)
         
         Parameters:

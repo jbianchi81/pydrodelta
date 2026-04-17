@@ -22,7 +22,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING, cast
+from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING, cast, Sequence
 from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -43,6 +43,7 @@ from .types.plot_variable_params import PlotVariableParams
 from a5client.util_types import Dateable, Intervaleable, TVP, TVPProno
 from .types.save_variable_params import SaveVariableParams
 from .types.api_config_dict import ApiConfigDict
+from .node_serie import NodeSerie
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -1547,7 +1548,7 @@ class Topology(Base):
                 variable_report = {
                     "id": variable.id
                 }
-                if isinstance(variable,ObservedNodeVariable):
+                if isinstance(variable,ObservedNodeVariable) and variable.series is not None:
                     if len(variable.series):
                         variable_report["series_obs"] = []
                         for serie in variable.series:
@@ -1566,7 +1567,7 @@ class Topology(Base):
                             }
                             variable_report["series_obs"].append(serie_report)
                 elif isinstance(variable,DerivedNodeVariable):
-                    if len(variable.series):
+                    if variable.series is not None and len(variable.series):
                         variable_report["series_der"] = []
                         for serie in variable.series:
                             if serie.data is None:
@@ -1737,7 +1738,7 @@ class Topology(Base):
     def storeSeries(
             self,
             bucket_name : str, 
-            series : list, 
+            series : Sequence[NodeSerie], 
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
@@ -1768,15 +1769,15 @@ class Topology(Base):
             for var_id, variable in node.variables.items():
                 if variable.data is not None:
                     self.s3_client.saveSeriesData(bucket_name, variable.data, "topology/nodes/%i/variables/%i/data.csv" % (node_id, var_id))
-                self.storeSeries(bucket_name,variable.series,node_id,var_id, "series")
-                self.storeSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
-                self.storeSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
-                self.storeSeries(bucket_name,variable.series_output,node_id,var_id, "series_output")
+                self.storeSeries(bucket_name,variable.series,node_id,var_id, "series") if variable.series is not None else None
+                self.storeSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono") if variable.series_prono is not None else None
+                self.storeSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim") if variable.series_sim is not None else None
+                self.storeSeries(bucket_name,variable.series_output,node_id,var_id, "series_output") if variable.series_output is not None else None
 
     def restoreSeries(
             self,
             bucket_name : str, 
-            series : list, 
+            series : Sequence[NodeSerie], 
             node_id : int, 
             var_id : int, 
             series_type : str = "series"):
@@ -1814,10 +1815,10 @@ class Topology(Base):
                     logging.warning("node %i var %i: data not found in storage: %s" % (node_id, var_id,str(e)))
                     continue
                 variable.data = data
-                self.restoreSeries(bucket_name,variable.series,node_id,var_id, "series")
-                self.restoreSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono")
-                self.restoreSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim")
-                self.restoreSeries(bucket_name,variable.series_output,node_id,var_id, "series_output")
+                self.restoreSeries(bucket_name,variable.series,node_id,var_id, "series") if variable.series is not None else None
+                self.restoreSeries(bucket_name,variable.series_prono,node_id,var_id, "series_prono") if variable.series_prono is not None else None
+                self.restoreSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim") if variable.series_sim is not None else None
+                self.restoreSeries(bucket_name,variable.series_output,node_id,var_id, "series_output") if variable.series_output is not None else None
 
     def readVar(self, id : int):
         if id not in self.var_map:

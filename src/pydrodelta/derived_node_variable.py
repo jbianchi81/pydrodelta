@@ -1,10 +1,11 @@
-from typing import List, Union, Optional
+from typing import List, Union, Optional, cast
 from .node_variable import NodeVariable
 from .derived_node_serie import DerivedNodeSerie
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 from .types.derived_origin_dict import DerivedOriginDict
 from .types.interpolated_origin_dict import InterpolatedOriginDict
+from .types.typed_list import TypedList
 from .descriptors.dict_descriptor import DictDescriptor
 
 class DerivedNodeVariable(NodeVariable):
@@ -15,12 +16,7 @@ class DerivedNodeVariable(NodeVariable):
     
     interpolated_from = DictDescriptor()
     """Interpolation configuration"""
-    
-    @property
-    def series(self) -> List[DerivedNodeSerie]:
-        """Series of derived data of this variable at this node."""
-        return self._series
-    
+        
     def _setDerivedSeries(self) -> None:
         if self.series_output is None:
             raise Exception("missing series_output for derived node %s variable %s" % (str(self._node.id) if self._node is not None else "unknown",str(self.id)))
@@ -49,27 +45,10 @@ class DerivedNodeVariable(NodeVariable):
                 )
             )
     
-    @property
-    def series_prono(self) -> Optional[List[NodeSerieProno]]:
-        """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
-        return self._series_prono
-    
-    @series_prono.setter
-    def series_prono(
-        self,
-        series : Optional[List[Union[dict,NodeSerieProno]]] = None
-        ) -> None:
-            if series is None:
-                self._series_prono = None
-            else:
-                self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x, base_path=self.base_path) for x in series]
-    
     def __init__(
         self,
         derived_from : Optional[DerivedOriginDict] = None,
         interpolated_from : Optional[InterpolatedOriginDict] = None,
-        series : Optional[List[Union[dict,NodeSerie]]] = None,
-        series_prono : Optional[List[Union[dict,NodeSerieProno]]] = None,
         derived : bool = True,
         **kwargs):
         """
@@ -94,6 +73,7 @@ class DerivedNodeVariable(NodeVariable):
             Keyword arguments. See NodeVariable (:class:`~pydrodelta.NodeVariable`)
         """
         super().__init__(**kwargs)
+        series_ = [*self.series] if self.series is not None else None
         self.derived = True
         self.derived_from = derived_from
         self.interpolated_from = interpolated_from
@@ -103,13 +83,24 @@ class DerivedNodeVariable(NodeVariable):
             self._setInterpolatedSeries()
         else:
             self._series = []
-        if series is not None:
-            self._series.extend([x if isinstance(x, NodeSerie) else NodeSerie(**x, base_path=self.base_path) for x in series])
-        self.series_prono = series_prono
+        if series_ is not None:
+            self._series.extend([x if isinstance(x, NodeSerie) else NodeSerie(**x, base_path=self.base_path) for x in series_])
+
     def derive(self) -> None:
         """Derive observations of .series[0] from associated node-variables"""
-        self.series[0].derive()
-        self.data = self.series[0].data
+        if self.series is None or not len(self.series):
+            raise Exception("series is not set")
+        serie = self.series[0]
+        if not isinstance(serie, DerivedNodeSerie):
+            raise Exception("serie must be a DerivedNodeSerie")
+        serie.derive()
+        if serie.data is None:
+            raise Exception("data not found")
+        self.data = serie.data
         self.original_data = self.data.copy(deep=True)
-        if hasattr(self.series[0],"max_obs_date"):
-            self.max_obs_date = self.series[0].max_obs_date
+        if hasattr(serie,"max_obs_date"):
+            self.max_obs_date = serie.max_obs_date
+
+    def __repr__(self):
+        series_str = ", ".join(["Series(type: derived, id: %i)" % (s.series_id) for s in self.series]) if self.series is not None else "None"
+        return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)

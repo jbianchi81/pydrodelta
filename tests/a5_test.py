@@ -35,8 +35,7 @@ class Test_a5Serie(unittest.TestCase):
             observaciones = [
                 {
                     "timestart": "2020-01-01T03:00:00.000Z",
-                    "valor": 123.456,
-                    "tipo": "puntual"
+                    "valor": 123.456
                 }
             ]
         )
@@ -54,8 +53,7 @@ class Test_a5Serie(unittest.TestCase):
             observaciones = [
                 {
                     "timestart": "2020-01-01T03:00:00.000Z",
-                    "valor": 123.456,
-                    "tipo": "puntual"
+                    "valor": 123.456
                 }
             ]
         ).toDict()

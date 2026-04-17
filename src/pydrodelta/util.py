@@ -17,7 +17,9 @@ from matplotlib.dates import DateFormatter
 from matplotlib.transforms import Bbox
 import csv
 import os.path
-from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping
+from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
+from a5client.util_types import Intervaleable, ApiConfigDict
+from .types.linear_combination_dict import LinearCombinationDict
 
 
 import random
@@ -262,7 +264,7 @@ def relativedelta_to_freq(rd: relativedelta) -> str:
 
 def createDatetimeSequence(
     datetime_index : Optional[pandas.DatetimeIndex]=None, 
-    timeInterval : Union[relativedelta,dict,int,timedelta] = relativedelta(days=1), 
+    timeInterval : Intervaleable = relativedelta(days=1), 
     timestart : Union[datetime,tuple,str,None] = None, 
     timeend : Union[datetime,tuple,str,None] = None, 
     timeOffset : Union[relativedelta,dict,None] = None
@@ -369,7 +371,7 @@ def serieRegular(
     time_offset : Optional[relativedelta] = None, 
     column : str = "valor", 
     interpolate : bool = True, 
-    interpolation_limit : Union[int,timedelta,relativedelta] = 1,
+    interpolation_limit : Optional[Union[int,timedelta,relativedelta]] = 1,
     tag_column : Optional[str] = None, 
     extrapolate : bool = False,
     agg_func : Optional[str] = None,
@@ -399,6 +401,8 @@ def serieRegular(
     Returns:
       DataFrame - time step regularized data (either interpolated or aggregated) 
     """
+    if interpolation_limit is None:
+        interpolation_limit = 1
     df_regular = DataFrame(index = createDatetimeSequence(cast(pandas.DatetimeIndex, data.index), time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
     if agg_func is not None:
@@ -606,7 +610,7 @@ def detectJumps(data : pandas.DataFrame,lim_jump,column="valor"):
 def adjustSeries(
         sim_df : pandas.DataFrame,
         truth_df : pandas.DataFrame,
-        method : str = "lfit",
+        method : Optional[Literal["lfit","arima"]] = "lfit",
         plot : bool = True,
         return_adjusted_series : bool = True,
         tag_column : Optional[str] = None,
@@ -641,6 +645,8 @@ def adjustSeries(
     Returns:
         Union[dict,Tuple[pandas.Series, pandas.Series, dict]]: If return_adjusted_seris is True, it returns a tuple of (adjusted values (pandas.Series), adjusted series tag (pandas.Series), fit result stats (dict)). Else it returns only fit result stats (dict)
     """
+    if method is None:
+        method = "lfit"
     truth_warm = truth_df.iloc[warmup:].copy() if warmup is not None else truth_df
     truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
     data = truth_warm.join(sim_df[covariables],how="outer" if method == "arima" else "left",rsuffix="_sim")
@@ -708,7 +714,7 @@ def adjustSeries(
 
 def linearCombination(
         sim_df : pandas.DataFrame,
-        params : dict,
+        params : LinearCombinationDict,
         plot=True,
         tag_column=None
         ) -> Union[pandas.Series, Tuple[pandas.Series, pandas.Series]]:
@@ -1018,7 +1024,12 @@ def plot_prono(
     plt.savefig(output_file,format = format)
     plt.close()
 
-def getParamOrDefaultTo(param_name:str,value,param_set:dict,default=None):
+def getParamOrDefaultTo(
+        param_name : str,
+        value : Optional[Any],
+        param_set : Optional[dict],
+        default=None
+        ):
     if value is not None:
         return value
     elif param_set is not None and param_name in param_set:
@@ -1091,7 +1102,7 @@ def tryParseFloat(value,allow_none=True):
             raise(ValueError)
     return parsed_float
 
-def ParseApiConfig(api_config = None):
+def ParseApiConfig(api_config = None) -> ApiConfigDict:
     if api_config is not None:
         pars = api_config.split("@")
         if len(pars) < 2:

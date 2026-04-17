@@ -5,42 +5,19 @@ from a5client import createEmptyObsDataFrame
 import logging
 from .util import serieFillNulls, serieRegular, createDatetimeSequence, coalesce, abs_relativedelta
 import numpy as np
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Literal, overload
 from datetime import datetime
 from pandas import DataFrame
 from .types.typed_list import TypedList
 from .types.api_config_dict import ApiConfigDict
+from a5client.util_types import Dateable
 import traceback
 
 class ObservedNodeVariable(NodeVariable):
     """This class represents a variable observed at a node"""
     
-    @property
-    def series(self) -> List[NodeSerie]:
-        """Series of observed data of this variable at this node. They may represent different data sources such as different instruments at the same station or different stations at (or near) the same site"""
-        return self._series  
-    @series.setter
-    def series(
-        self,
-        series
-        ) -> None:
-        self._series = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self, base_path=self.base_path) if series is not None else None
-    
-    @property
-    def series_prono(self) -> List[NodeSerieProno]:
-        """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
-        return self._series_prono
-    @series_prono.setter
-    def series_prono(
-        self,
-        series
-        ) -> None:
-        self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = ("id","cal_id"), node_variable = self, base_path=self.base_path) if series is not None else None
-    
     def __init__(
         self,
-        series : Union[List[Union[dict,NodeSerie]],None] = None,
-        series_prono : Union[List[Union[dict,NodeSerieProno]],None] = None,
         **kwargs,
         ):
         """
@@ -57,9 +34,7 @@ class ObservedNodeVariable(NodeVariable):
         """
         super().__init__(**kwargs)
         self.derived = False
-        self.series = series
-        self.series_prono = series_prono
-
+    
     def loadData(
         self,
         timestart : datetime,
@@ -142,7 +117,7 @@ class ObservedNodeVariable(NodeVariable):
                     raise e
                     # logging.error(e)
                     # raise Exception("Node %s, Variable: %i, series_id %i, cal_id %i, forecast_timestart: %s: failed loadData: %s" % (self._node.id if self._node is not None else "None",self.id,serie.series_id,serie.cal_id,serie.forecast_timestart.isoformat() if serie.forecast_timestart is not None else "None", str(e)))
-        if self.data is None and self.series is not None and len(self.series):
+        if self.data is None and self.series is not None and len(self.series) and self.series[0].data is not None:
             self.setDataWithNoValues()
             self.concatenate(self.series[0].data)
         else:
@@ -170,6 +145,8 @@ class ObservedNodeVariable(NodeVariable):
         --------
         True if at least one outlier was found : bool"""
         found_outliers = False
+        if self.series is None:
+            return found_outliers
         for serie in self.series:
             found_outliers_ = serie.removeOutliers()
             found_outliers = found_outliers_ if found_outliers_ else found_outliers
@@ -182,6 +159,8 @@ class ObservedNodeVariable(NodeVariable):
         --------
         True if at least one jump was found : bool"""
         found_jumps = False
+        if self.series is None:
+            return found_jumps
         for serie in self.series:
             found_jumps_ = serie.detectJumps()
             found_jumps = found_jumps_ if found_jumps_ else found_jumps
@@ -189,6 +168,8 @@ class ObservedNodeVariable(NodeVariable):
     
     def applyOffset(self) -> None:
         """For each serie in .series, apply offset where .x_offset and/or .y_offset is set"""
+        if self.series is None:
+            return
         for serie in self.series:
             serie.applyOffset()
         if self.series_prono is not None:
@@ -211,6 +192,8 @@ class ObservedNodeVariable(NodeVariable):
             raise Exception("Can't regularize: timeend is not set")
         if self.time_interval is None:
             raise Exception("Can't regularize: time_interval is not set")
+        if self.series is None:
+            return
         for serie in self.series:
             if serie.data is None:
                 raise Exception("Data not loaded. Load data before running regularize")
@@ -224,10 +207,22 @@ class ObservedNodeVariable(NodeVariable):
                 else:
                     serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
     
+    @overload
+    def fillNulls(
+        self,
+        inline : Literal[True] = True,
+        fill_value : Optional[float] = None
+        ) -> None: ...
+    @overload
+    def fillNulls(
+        self,
+        inline : Literal[False],
+        fill_value : Optional[float] = None
+        ) -> DataFrame: ...
     def fillNulls(
         self,
         inline : bool = True,
-        fill_value : bool = None
+        fill_value : Optional[float] = None
         ) -> Union[DataFrame,None]:
         """
         Copies data of first series and fills its null values with the other series
@@ -246,16 +241,20 @@ class ObservedNodeVariable(NodeVariable):
         --------
         DataFrame or None : Union[DataFrame,None]
         """
-        if len(self.series):
+        if self.series is None:
+            raise Exception("series not set")
+        if len(self.series) and self.series[0].data is not None:
             fill_value = fill_value if fill_value is not None else self.fill_value
             data = self.series[0].data[["valor","tag"]]
             if len(self.series) > 1:
                 i = 2
                 for serie in self.series[1:]:
                     # if last, fills  
+                    i = i + 1
+                    if serie.data is None:
+                        continue
                     fill_value_this = fill_value if i == len(self.series) else None 
                     data = serieFillNulls(data,serie.data,fill_value=fill_value_this,tag_column="tag")
-                    i = i + 1
             else:
                 logging.debug("No other series to fill nulls with")
             if inline:
@@ -284,7 +283,23 @@ class ObservedNodeVariable(NodeVariable):
             else:
                 return data
 
-    def fillNullsWithValue(self,inline : bool = True, fill_value : float = None):
+    @overload
+    def fillNullsWithValue(
+            self,
+            inline : Literal[True] = True, 
+            fill_value : Optional[float] = None
+            ) -> None: ...
+    @overload
+    def fillNullsWithValue(
+            self,
+            inline : Literal[False], 
+            fill_value : Optional[float] = None
+            ) -> DataFrame: ...
+    def fillNullsWithValue(
+            self,
+            inline : bool = True, 
+            fill_value : Optional[float] = None
+            ) -> Union[DataFrame, None]:
         fill_value = fill_value if fill_value is not None else self.fill_value
         data = DataFrame(self.data)
         if fill_value is not None:
@@ -297,14 +312,14 @@ class ObservedNodeVariable(NodeVariable):
     
     def batchProcessInput(
         self,
-        timestart : Union[datetime,str,dict] = None,
-        timeend : Union[datetime,str,dict] = None,
-        include_prono : bool = None,
-        forecast_timeend : Union[datetime,str,dict] = None,
-        input_api_config : dict = None,
+        timestart : Optional[Dateable] = None,
+        timeend : Optional[Dateable] = None,
+        include_prono : bool = True,
+        forecast_timeend : Optional[Dateable] = None,
+        input_api_config : Optional[ApiConfigDict] = None,
         error_band : bool = True,
         plot : bool = True,
-        fill_value : float = None) -> None:
+        fill_value : Optional[float] = None) -> None:
         """
         Run input processing sequence. This includes (in this order):
         
@@ -339,7 +354,11 @@ class ObservedNodeVariable(NodeVariable):
             - proxy_dict : dict
         """
         timestart = coalesce(timestart, self.timestart)
+        if timestart is None:
+            raise ValueError("Missing timestart")
         timeend = coalesce(timeend, self.timeend)
+        if timeend is None:
+            raise ValueError("Missing timeend")
         forecast_timeend = coalesce(forecast_timeend, self.forecast_timeend)
         # include_prono = include_prono if include_prono is not None else self.include_prono
         logging.debug("loadData")
@@ -385,3 +404,7 @@ class ObservedNodeVariable(NodeVariable):
             filename, lineno, func, text = tb[-1]
             raise ValueError("Plot prono failed at variable %i. Catched exception at file %s, line %i, function %s: %s" % (self.id, filename, lineno, func, str(e)))
         self.saveSeriesSeparately()
+
+    def __repr__(self):
+        series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series]) if self.series is not None else "None"
+        return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)

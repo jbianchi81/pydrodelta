@@ -13,7 +13,7 @@ import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import isodate
-from typing import Union, List, Dict, Tuple, Optional, cast
+from typing import Union, List, Dict, Tuple, Optional, cast, overload, Literal
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
@@ -65,7 +65,8 @@ class Node:
                         self._variables[variable["id"]] = DerivedNodeVariable(**kwargs, base_path=self.base_path) 
                     else:
                         kwargs = cast(ObservedNodeVariableDict, {k: v for k, v in variable.items() if k != "node"})
-                        self._variables[variable["id"]] = ObservedNodeVariable(node=self,**kwargs, base_path=self.base_path)
+                        kwargs["node"] = self
+                        self._variables[variable["id"]] = ObservedNodeVariable(**kwargs, base_path=self.base_path)
     
     node_type = StringDescriptor()
     """The type of node: either 'station' or 'basin'"""
@@ -306,7 +307,10 @@ class Node:
         """
         data = createEmptyObsDataFrame(extra_columns={"tag":"str"})
         for variable in self.variables.values():
-            data = data.join(variable.mergeOutputData())
+            mod = variable.mergeOutputData()
+            if mod is None:
+                raise RuntimeError("output data not set")
+            data = data.join(mod)
         return data.to_csv(header=include_header) # self.series[0].toCSV()
     
     def variablesToSeries(
@@ -561,7 +565,7 @@ class Node:
         else:
             data = createEmptyObsDataFrame()
             for variable in self.variables.values():
-                data = data.append(variable.seriesToDataFrame(include_prono=include_prono),ignore_index=True)
+                data = pandas.concat([data,variable.seriesToDataFrame(include_prono=include_prono)],ignore_index=True)
         return data
     
     def saveSeries(
@@ -587,13 +591,26 @@ class Node:
         if format=="csv":
             return data.to_csv(output)
         else:
-            return json.dump(data.to_dict(orient="records"),output)
+            with open(output, "w") as f:
+                return json.dump(data.to_dict(orient="records"),f)
     
+    @overload
+    def concatenateProno(
+        self,
+        inline : Literal[True] = True,
+        ignore_warmup : bool = True
+        ) -> None: ...
+    @overload
+    def concatenateProno(
+        self,
+        inline : Literal[False],
+        ignore_warmup : bool = True
+        ) -> DataFrame: ...
     def concatenateProno(
         self,
         inline : bool = True,
         ignore_warmup : bool = True
-        ) -> DataFrame:
+        ) -> Optional[DataFrame]:
         """Join every variable in .variables, run .concatenateProno().
         
         Parameters:
@@ -615,7 +632,7 @@ class Node:
         else:
             data = createEmptyObsDataFrame()
             for variable in self.variables.values():
-                data = data.append(variable.concatenateProno(inline=False,ignore_warmup=ignore_warmup))
+                data = pandas.concat([data,variable.concatenateProno(inline=False,ignore_warmup=ignore_warmup)], ignore_index=True)
             return data
     
     def interpolate(
@@ -931,11 +948,24 @@ class Node:
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.regularize(interpolate=interpolate)
+    
+    @overload
     def fillNulls(
         self,
-        inline : bool =True,
-        fill_value : float = None
-        ) -> None:
+        inline : Literal[True] = True,
+        fill_value : Optional[float] = None
+        ) -> None: ...
+    @overload
+    def fillNulls(
+        self,
+        inline : Literal[False],
+        fill_value : Optional[float] = None
+        ) -> List[DataFrame]: ...
+    def fillNulls(
+        self,
+        inline : bool = True,
+        fill_value : Optional[float] = None
+        ) -> Optional[List[DataFrame]]:
         """
         For each variable of .variables, if variable is an ObservedNodeVariable, run .fillNulls(). 
 
@@ -947,13 +977,19 @@ class Node:
         fill_value : float = None
             Fill missing values with this value
         """
+        result : List[DataFrame] = []
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
-                variable.fillNulls(inline,fill_value)
+                if inline:
+                    variable.fillNulls(True,fill_value)
+                else:
+                    result.append(variable.fillNulls(False,fill_value))                   
+        if not inline:
+            return result
 
     def fillNullsWithValue(self,
-        inline : bool =True,
-        fill_value : float = None
+        inline : bool = True,
+        fill_value : Optional[float] = None
         ) -> None:
         """
         For each variable of .variables, if variable is an ObservedNodeVariable, run .fillNullsWithValue(). 

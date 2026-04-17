@@ -470,8 +470,8 @@ class NodeSerie(Base):
         timestart : datetime,
         timeend : datetime,
         time_interval : relativedelta,
-        time_offset : relativedelta,
-        interpolation_limit : Union[int,relativedelta],
+        time_offset : Optional[relativedelta]=None,
+        interpolation_limit : Optional[Union[int,relativedelta]]=None,
         inline : bool = True,
         interpolate : bool = False,
         agg_func : Optional[str] = None
@@ -572,7 +572,7 @@ class NodeSerie(Base):
     def toList(
         self,
         include_series_id : bool = False,
-        timeSupport : Optional[timedelta] = None,
+        timeSupport : Optional[relativedelta] = None,
         remove_nulls : bool = False,
         max_obs_date : Optional[datetime] = None,
         qualifiers : Optional[List[str]] = None,
@@ -654,7 +654,7 @@ class NodeSerie(Base):
     
     def toDict(
         self,
-        timeSupport : Optional[timedelta] = None,
+        timeSupport : Optional[relativedelta] = None,
         as_prono : bool = False,
         remove_nulls : bool = False,
         max_obs_date : Optional[datetime] = None,

@@ -1,9 +1,10 @@
 from a5client import Crud, Serie
-from a5client.util_types import TVP
+from a5client.util_types import TVP, Intervaleable
+from a5client.util import interval2relativedelta, relativedeltaToSeconds
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, relativedeltaToSeconds, multiply_relativedelta, relativedelta_to_timedelta, resolve_path, ensure_local
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, multiply_relativedelta, relativedelta_to_timedelta, resolve_path, ensure_local
 import pandas
 import logging
 import json
@@ -12,7 +13,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, Tuple, Optional, cast, Dict, TypedDict
+from typing import List, Union, Tuple, Optional, cast, TypedDict, TYPE_CHECKING, Literal
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -26,7 +27,11 @@ from .types.adjust_from_dict import AdjustFromDict
 from .types.linear_combination_dict import LinearCombinationDict
 from .types.typed_list import TypedList
 from .types.api_config_dict import ApiConfigDict
+from .types.series_dict import SeriesDict
 from pathlib import Path
+
+if TYPE_CHECKING:
+    from .node import Node
 
 input_crud = Crud(**config["input_api"])
 output_crud = Crud(**config["output_api"])
@@ -52,14 +57,14 @@ class NodeVariable:
     """Value used to fill missing values"""
     
     @property
-    def series_output(self) -> List[NodeSerie]:
+    def series_output(self) -> Optional[TypedList[NodeSerie]]:
         """Output series of the analysis procedure"""
         return self._series_output
     
     @series_output.setter
     def series_output(
         self,
-        series : List[Union[NodeSerie,dict]] = None
+        series : Optional[List[Union[NodeSerie,dict]]] = None
         ) -> None:
         if series is None:
             self._series_output = None
@@ -67,24 +72,24 @@ class NodeVariable:
         self._series_output = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self)  # [x if isinstance(x,NodeSerie) else NodeSerie(**x) for x in series] if series is not None else None
     
     @property
-    def series_sim(self) -> List[NodeSerieProno]:
+    def series_sim(self) -> Optional[TypedList[NodeSerieProno]]:
         """Output series of the simulation procedure"""
         return self._series_sim
     @series_sim.setter
     def series_sim(
         self,
-        series : List[Union[NodeSerie,dict]] = None
+        series : Optional[Union[List[NodeSerieProno],List[dict]]] = None
         ) -> None:
         if series is None:
             self._series_sim = None
-            return
+            return           
         self._series_sim = TypedList(NodeSerieProno, unique_id_property = "series_id", node_variable = self)
         for serie in series:
             if isinstance(serie,NodeSerieProno):
                 self._series_sim.append(serie)
             else:
                 serie["cal_id"] = serie["cal_id"] if "cal_id" in serie else self._node._plan.id if self._node is not None and self._node._plan is not None else None
-                self._series_sim.append(serie) # NodeSerieProno(**serie))
+                self._series_sim.append(serie)
     
     time_support = DurationDescriptorDefaultNone()
     """Time support of the observations . The time interval that the observation is representative of."""
@@ -95,7 +100,7 @@ class NodeVariable:
     linear_combination = DictDescriptor()
     """Linear combination configuration. 'intercept' is the additive term (bias) and the 'coefficients' are the ordered coefficients for each series (independent variables)."""
     
-    interpolation_limit : Union[int,timedelta] = None
+    interpolation_limit : Optional[Union[int,relativedelta]] = None
     """Maximum steps to interpolate"""
     
     extrapolate = BoolDescriptor()
@@ -144,23 +149,25 @@ class NodeVariable:
         self,
         id : int,
         node = None,
-        fill_value : float = None,
-        series_output : List[Union[dict,NodeSerie]] = None,
-        output_series_id : int = None,
-        series_sim : List[Union[dict,NodeSerie]] = None,
-        time_support : Union[datetime,dict,int,str] = None,
-        adjust_from : AdjustFromDict = None,
-        linear_combination : LinearCombinationDict = None,
-        interpolation_limit : Union[relativedelta,int] = None,
-        extrapolate : bool = None,
-        time_interval : Union[relativedelta,dict,float] = None,
-        name : str = None,
-        timestart : datetime = None,
-        timeend : datetime = None,
-        time_offset : relativedelta = None,
-        forecast_timeend : datetime = None,
-        use_filled_truth : bool = False,
-        base_path : Optional[Path] = None
+        fill_value : Optional[float] = None,
+        series_output : Optional[List[Union[dict,NodeSerie]]] = None,
+        output_series_id : Optional[int] = None,
+        series_sim : Optional[Union[List[dict],List[NodeSerieProno]]] = None,
+        time_support : Optional[Intervaleable] = None,
+        adjust_from : Optional[AdjustFromDict] = None,
+        linear_combination : Optional[LinearCombinationDict] = None,
+        interpolation_limit : Optional[Intervaleable] = None,
+        extrapolate : Optional[bool] = None,
+        time_interval : Optional[Intervaleable] = None,
+        name : Optional[str] = None,
+        timestart : Optional[datetime] = None,
+        timeend : Optional[datetime] = None,
+        time_offset : Optional[relativedelta] = None,
+        forecast_timeend : Optional[datetime] = None,
+        use_filled_truth : Optional[bool] = False,
+        base_path : Optional[Path] = None,
+        series : Union[List[Union[SeriesDict,NodeSerie]],None] = None,
+        series_prono : Union[List[Union[dict,NodeSerieProno]],None] = None
         ):
         """
         Parameters:
@@ -230,27 +237,27 @@ class NodeVariable:
         
         """
         self.id = id
-        self._node = node
+        self._node : Optional["Node"] = node
         self.base_path = base_path
         self.metadata = self._node.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
         self.fill_value = fill_value
         self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
         self.series_sim = series_sim if series_sim is not None else None
-        self.time_support = time_support
+        self.time_support = interval2relativedelta(time_support) if time_support is not None else None
         if self.time_support is None and self.metadata is not None:
-            self.time_support = self.metadata["timeSupport"]
+            self.time_support = interval2relativedelta(self.metadata["timeSupport"])
         self.adjust_from = adjust_from
         self.linear_combination = linear_combination
         self.data = None
         self.original_data = None
         self.adjust_results = None
-        self.time_interval = time_interval if time_interval is not None else self._node.time_interval if self._node is not None else None
-        self.interpolation_limit = timedelta(**interpolation_limit) if isinstance(interpolation_limit,dict) else int(interpolation_limit) if isinstance(interpolation_limit,int) else interpolation_limit
+        self.time_interval = interval2relativedelta(time_interval) if time_interval is not None else self._node.time_interval if self._node is not None else None
+        self.interpolation_limit = int(interpolation_limit) if isinstance(interpolation_limit,int) else interval2relativedelta(interpolation_limit) if interpolation_limit is not None else None
         # self.interpolation_limit = int(relativedeltaToSeconds(interpolation_limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit # in number of steps
         self.extrapolate = extrapolate
         if self.interpolation_limit is not None:
-            if isinstance(self.interpolation_limit, timedelta):
-                if self.interpolation_limit.total_seconds() <= 0:
+            if isinstance(self.interpolation_limit, relativedelta):
+                if relativedeltaToSeconds(self.interpolation_limit) <= 0:
                     raise ValueError("Invalid interpolation_limit: must be greater than 0")
             elif self.interpolation_limit <= 0: 
                 raise ValueError("Invalid interpolation_limit: must be greater than 0")
@@ -261,13 +268,11 @@ class NodeVariable:
         self.time_offset = time_offset if time_offset is not None else self._node.time_offset if self._node is not None else None
         self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
         self.use_filled_truth = use_filled_truth
+        self.series = series
+        self.series_prono = series_prono
     
     def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
-
-    def __repr__(self):
-        series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series])
-        return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
     
     def __getitem__(self, key):
         """key is passed to self.data.loc"""
@@ -277,7 +282,7 @@ class NodeVariable:
 
     def setOriginalData(self):
         """copies .data into .original_data"""
-        self.original_data = self.data.copy(deep=True)
+        self.original_data = self.data.copy(deep=True) if self.data is not None else None
     
     def toDict(self) -> dict:
         """Convert this variable to dict"""
@@ -301,28 +306,28 @@ class NodeVariable:
         """Convert this variable to JSON string"""
         return json.dumps(self.toDict())
     
-    def dataAsDict(self) -> List[dict]:
+    def dataAsDict(self) -> Optional[List[TVP]]:
         """Convert this variable's data to a list of records (dict)"""
         if self.data is None:
             return None
         data = self.data.reset_index().to_dict("records") 
         for row in data:
             row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
-        return data
+        return cast(List[TVP], data)
     
-    def originalDataAsDict(self) -> List[dict]:
+    def originalDataAsDict(self) -> Optional[List[TVP]]:
         """Convert this variable's original data to a list of records (dict)"""
         if self.original_data is None:
             return None
         data = self.original_data.reset_index().to_dict("records") 
         for row in data:
             row["timestart"] = row["timestart"].isoformat() if "timestart" in row else None
-        return data
+        return cast(List[TVP],data)
     
     def getData(
         self,
         include_series_id : bool = False
-        ) -> pandas.DataFrame:
+        ) -> Optional[pandas.DataFrame]:
         """Read this variable's .data
         
         Parameters:
@@ -361,9 +366,11 @@ class NodeVariable:
         A csv string : str
         """
         data = self.getData(include_series_id=include_series_id)
+        if data is None:
+            raise ValueError("data is not set")
         return data.to_csv(header=include_header) # self.series[0].toCSV()
     
-    def mergeOutputData(self) -> pandas.DataFrame:
+    def mergeOutputData(self) -> Optional[pandas.DataFrame]:
         """
         Merges data of all self.series_output into a single dataframe
 
@@ -373,8 +380,12 @@ class NodeVariable:
         """
         data = None
         i = 0
+        if self.series_output is None:
+            return data
         for serie in self.series_output:
             i = i + 1
+            if serie.data is None:
+                continue
             series_data = serie.data[["valor","tag"]]
             series_data["series_id"] = serie.series_id
             data = series_data if i == 1 else pandas.concat([data,series_data],axis=0)
@@ -397,6 +408,8 @@ class NodeVariable:
         A csv string : str
         """
         data = self.mergeOutputData()
+        if data is None:
+            raise ValueError("output data not set")
         return data.to_csv(header=include_header) # self.series[0].toCSV()
     
     def toSerie(
@@ -422,7 +435,7 @@ class NodeVariable:
         if use_node_id and self._node is None:
             raise Exception("Can't use_node_id: node is not set")
         observaciones = self.toList(include_series_id=include_series_id,use_node_id=use_node_id)
-        series_id = self.series_output[0].series_id if not use_node_id else self.node_id if isinstance(self.node_id, int) else None 
+        series_id = self.node_id if isinstance(self.node_id, int) and use_node_id else self.series_output[0].series_id if self.series_output is not None and len(self.series_output) else None 
         return Serie(
             tipo = self._node.tipo if self._node is not None else None,
             id = series_id,
@@ -468,7 +481,7 @@ class NodeVariable:
     def outputToList(
         self,
         flatten : bool = True
-        ) -> Union[List[dict],List[Serie]]:
+        ) -> Optional[Union[List[dict],List[Serie]]]:
         """
         Convert series_output to list of records (dict)
 
@@ -498,7 +511,7 @@ class NodeVariable:
         self,
         flatten : bool = True,
         qualifiers : Optional[List[str]] = None
-        ) -> Union[List[dict],List[Serie]]:
+        ) -> Optional[Union[List[dict],List[Serie]]]:
         """
         Convert series_prono to list of records (dict)
 
@@ -529,8 +542,8 @@ class NodeVariable:
         self,
         plot : bool = True,
         error_band : bool = True,
-        sim : int = None,
-        truth : int = None
+        sim : Optional[int] = None,
+        truth : Optional[int] = None
         ) -> None:
         """By means of a linear regression, adjust data of one of .series ('sim') from data of another .series ('truth')
         
@@ -547,10 +560,19 @@ class NodeVariable:
 
         truth : int = None
             Index of the series to adjust from. In None, takes .adjust_from["truth"]"""
+        if self.adjust_from is None:
+            logging.warning("adjust_from not set")
+            return
         truth = truth if truth is not None else self.adjust_from["truth"]
         sim = sim if sim is not None else self.adjust_from["sim"]
+        if self.series is None:
+            raise Exception("series is not set")
         truth_data = self.series[truth].data
         sim_data = self.series[sim].data
+        if truth_data is None:
+            raise Exception("truth data not set")
+        if sim_data is None:
+            raise Exception("sim data not set")
         self.series[sim].original_data = sim_data.copy(deep=True)
         try:
             adj_serie, tags, model = adjustSeries(sim_data,truth_data,method=self.adjust_from["method"],plot=plot,tag_column="tag",title=self.name)
@@ -558,6 +580,8 @@ class NodeVariable:
             logging.debug("No observations found to estimate coefficients. Skipping adjust")
             return
         # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
+        if self.data is None:
+            raise Exception("data not set")
         self.data.loc[:,"valor"] = adj_serie
         self.data.loc[:,"tag"] = tags
         self.adjust_results = model
@@ -569,7 +593,7 @@ class NodeVariable:
         self,
         plot : bool = True,
         series_index : int = 0,
-        linear_combination : LinearCombinationDict = None
+        linear_combination : Optional[LinearCombinationDict] = None
         ) -> None:
         """Apply linear combination
         
@@ -585,9 +609,21 @@ class NodeVariable:
             Linear combination parameters: "intercept" and "coefficients". If None, reads from self.linear_combination
         """
 
-        self.series[series_index].original_data = self.series[series_index].data.copy(deep=True)
-        #self.series[series_index].data.loc[:,"valor"] = util.linearCombination(self.pivotData(),self.linear_combination,plot=plot)
-        self.data.loc[:,"valor"],  self.data.loc[:,"tag"] = linearCombination(self.pivotData(),linear_combination if linear_combination is not None else self.linear_combination,plot=plot,tag_column="tag")
+        if linear_combination is None:
+            if self.linear_combination is None:
+                raise ValueError("Missing linear_combination")
+            linear_combination = self.linear_combination
+        if self.data is None:
+            raise Exception("data not set")
+        if self.series is None:
+            raise Exception("series not set")
+        if series_index + 1 > len(self.series):
+            raise ValueError("series index %i not found in series" % series_index)
+        serie = self.series[series_index]
+        if serie.data is None:
+            raise Exception("data not set in series[%i]" % series_index)
+        serie.original_data = serie.data.copy(deep=True)
+        self.data.loc[:,"valor"],  self.data.loc[:,"tag"] = linearCombination(self.pivotData(),linear_combination,plot=plot,tag_column="tag")
     
     def applyMovingAverage(self) -> None:
         """For each serie in .series, apply moving average"""
@@ -599,11 +635,11 @@ class NodeVariable:
     def adjustProno(
         self,
         error_band : bool = True,
-        warmup : int = None,
-        tail : int = None,
-        sim_range : Tuple[float,float] = None,
-        method : str = "lfit",
-        use_filled_truth : bool = None
+        warmup : Optional[int] = None,
+        tail : Optional[int] = None,
+        sim_range : Optional[Tuple[float,float]] = None,
+        method : Literal["lfit","arima"] = "lfit",
+        use_filled_truth : Optional[bool] = None
         ) -> None:
         """For each serie in series_prono where adjust is True, perform adjustment against observed data (series[0].data). series_prono[x].data are updated with the results of the adjustment
         
@@ -630,6 +666,8 @@ class NodeVariable:
         if not self.series_prono or not len(self.series_prono) or self.series is None or len(self.series) == 0 or self.series[0].data is None:
             return
         truth_data = self.data if use_filled_truth else self.series[0].data
+        if truth_data is None:
+            raise Exception("truth data not set")
         for serie_prono in [x for x in self.series_prono if x.adjust]:
             sim_data = serie_prono.data[serie_prono.data["tag"]=="prono"]
             # serie_prono.original_data = sim_data.copy(deep=True)
@@ -646,7 +684,7 @@ class NodeVariable:
                     sim_range = coalesce(sim_range, serie_prono.sim_range)
                 )
             except ValueError as e:
-                logging.warning("No observations found to estimate coefficients at topology[%i][%i].series_prono %i. Skipping adjust. %s" % (self._node.id, self.id, serie_prono.series_id, str(e)))
+                logging.warning("No observations found to estimate coefficients at topology[%i][%i].series_prono %i. Skipping adjust. %s" % (self._node.id if self._node is not None else "unknown", self.id, serie_prono.series_id, str(e)))
                 continue
             # self.series[self.adjust_from["sim"]].data["valor"] = adj_serie
             serie_prono.data.loc[:,"valor"] = adj_serie
@@ -667,7 +705,7 @@ class NodeVariable:
         self,
         include_prono : bool = False,
         api_config : Optional[ApiConfigDict] = None,
-        ) -> list:
+        ) -> List[TVP]:
         """
         Uploads series_output (analysis results) to output API. For each serie in series_output, it converts .data into a list of records, uploads the records using .series_id as the series identifier, then concatenates all responses into a single list which it returns
 
@@ -708,7 +746,7 @@ class NodeVariable:
                     logging.error(str(e))
             return obs_created
         else:
-            logging.info("Missing output series for node %i, variable %i, skipping upload" % (self._node.id, self.id))
+            logging.info("Missing output series for node %i, variable %i, skipping upload" % (self._node.id if self._node is not None else "unknown", self.id))
             return []
     
     def pivotData(
@@ -725,9 +763,16 @@ class NodeVariable:
         Returns:
         --------
         pivoted data : DataFrame"""
-        data = self.series[0].data[["valor",]]
+        if self.series is None:
+            raise Exception("series not set")
+        if not len(self.series):
+            raise Exception("series has no length")
+        serie_ = self.series[0]
+        if serie_.data is None:
+            raise Exception("data not set")
+        data = serie_.data[["valor",]]
         for serie in self.series:
-            if len(serie.data):
+            if serie.data is not None and len(serie.data):
                 data = data.join(serie.data[["valor",]].dropna(),how='outer',rsuffix="_%s" % serie.series_id,sort=True)
         if include_prono and self.series_prono is not None and len(self.series_prono):
             for serie in self.series_prono:
@@ -752,9 +797,16 @@ class NodeVariable:
         if self.series_output is None or not len(self.series_output):
             raise Exception("Nothing to pivot: no series_output")
         columns = ["valor","tag"] if include_tag else ["valor"]
-        data = self.series_output[0].data[columns]
+        if self.series_output is None:
+            raise Exception("series_output not set")
+        if not len(self.series_output):
+            raise Exception("series_output has no length")
+        serie_ = self.series_output[0]
+        if serie_.data is None:
+            raise Exception("data not set")
+        data = serie_.data[columns]
         for serie in self.series_output:
-            if len(serie.data):
+            if serie.data is not None and len(serie.data):
                 data = data.join(serie.data[columns],how='outer',rsuffix="_%s" % serie.series_id,sort=True)
         for column in columns:
             del data[column]
@@ -762,7 +814,7 @@ class NodeVariable:
 
     def pivotSimData(
         self
-        ) -> pandas.DataFrame:
+        ) -> Optional[pandas.DataFrame]:
         """Joins all series in series_sim into a single pivoted DataFrame
                    
         Returns:
@@ -800,20 +852,37 @@ class NodeVariable:
         if pivot:
             data = self.pivotData(include_prono)
         else:
-            data = self.series[0].data[["valor",]]
-            data["series_id"] = self.series[0].series_id
+            if self.series is None:
+                raise Exception("series not set")
+            if not len(self.series):
+                raise Exception("series has no length")
+            serie_ = self.series[0]
+            if serie_.data is None:
+                raise Exception("data not set")
+            data = serie_.data[["valor",]]
+            data["series_id"] = serie_.series_id
             data["timestart"] = data.index
-            data.reset_index()
+            data = data.reset_index()
             for i in range(1,len(self.series)-1):
-                if len(self.series[i].data):
-                    other_data = self.series[i].data[["valor",]]
-                    other_data["series_id"] = self.series[i].series_id
+                serie = self.series[i]
+                if serie.data is not None and len(serie.data):
+                    other_data = serie.data[["valor",]]
+                    other_data["series_id"] = serie.series_id
                     other_data["timestart"] = other_data.index
                     other_data.reset_index
-                    data = data.append(other_data,ignore_index=True)
+                    data = pandas.concat([data,other_data],ignore_index=True)
         return data
     
-    def pivotAll(self, timestart : datetime=None, timeend : datetime=None, precision : int=None, extra_sim_columns : bool=False, date_as_string : bool=False, time_interval : timedelta=None, separate_original : bool=True) -> pandas.DataFrame:
+    def pivotAll(
+            self, 
+            timestart : Optional[datetime]=None, 
+            timeend : Optional[datetime]=None, 
+            precision : Optional[int]=None, 
+            extra_sim_columns : bool=False, 
+            date_as_string : bool=False, 
+            time_interval : Optional[relativedelta]=None, 
+            separate_original : bool=True
+            ) -> pandas.DataFrame:
         """Generates dataframe containing analysis and simulated series
 
         Args:
@@ -828,6 +897,8 @@ class NodeVariable:
         Returns:
             pandas.DataFrame: A dataframe containing analysis (first column) and simulated series. The latter are labeled "sim_$id" being $id the id of the simulated series
         """
+        if self.data is None:
+            raise Exception("data not set")
         data = self.data.reset_index().rename(columns={"index":"timestart"}) # .plot(y="valor")
         data["valor"] = pandas.to_numeric(data["valor"], errors="coerce")
         if timestart is not None:
@@ -836,6 +907,8 @@ class NodeVariable:
         if timeend is not None:
             timeend = ensure_local(timeend)
             data = data[data["timestart"] <= timeend]
+        if self.original_data is None:
+            raise Exception("original_data not set")
         original_data = self.original_data.reset_index().rename(columns={"index":"timestart"})
         original_data["valor"] = pandas.to_numeric(original_data["valor"], errors="coerce")
         data_table = data.set_index("timestart")[["valor"]]
@@ -888,7 +961,7 @@ class NodeVariable:
             ax = data_sim.plot(figsize=figsize, title=title)
             data_table[["result"]].plot(ax=ax, style="--",color="black",figsize=figsize)
         else:
-            ax = data_table[["result"]].plot(figsize=[12,6],style="--",color="black",title=title)
+            ax = data_table[["result"]].plot(figsize=(12,6),style="--",color="black",title=title)
         if "analysis" in data_table.columns:
             data_table[["analysis"]].plot(ax=ax, style="+",linestyle="None",color="red")
         plt.show()
@@ -917,7 +990,8 @@ class NodeVariable:
         if format=="csv":
             return data.to_csv(output)
         else:
-            return json.dump(data.to_dict(orient="records"),output)
+            with open(output, "w") as f:
+                return json.dump(data.to_dict(orient="records"),f)
     
     def concatenate(
         self,
@@ -1007,7 +1081,7 @@ class NodeVariable:
         self,
         inline : bool = True,
         ignore_warmup : bool = True
-        ) -> Union[pandas.DataFrame,None]:
+        ) -> Optional[pandas.DataFrame]:
         """
         Fills nulls of data with prono 
 
@@ -1023,6 +1097,8 @@ class NodeVariable:
         --------
         None or DataFrame : Union[pandas.DataFrame,None]
         """
+        if self.data is None:
+            raise Exception("data not set")
         if self.series_prono is not None and len(self.series_prono) and len(self.series_prono[0].data):
             data = self.data.copy()
             for i, serie_prono in enumerate(self.series_prono):
@@ -1041,7 +1117,9 @@ class NodeVariable:
             if not inline:
                 return self.data
     
-    def getMaxObsDate(self) -> datetime:
+    def getMaxObsDate(self) -> Optional[datetime]:
+        if self.data is None:
+            raise Exception("data not set")
         max_obs_date = self.data[~pandas.isna(self.data["valor"])].index.max()
         if pandas.isnull(max_obs_date):
             return None
@@ -1078,6 +1156,8 @@ class NodeVariable:
             )
             # logging.debug("limit: %s" % str(limit))
             # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
+            if self.time_interval is None:
+                raise RuntimeError("time_interval not set")
             interpolation_limit = int(limit.total_seconds() / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,timedelta) else int(limit) if limit is not None else None
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))
@@ -1112,13 +1192,18 @@ class NodeVariable:
             Output format. Either "csv" or "json"
         """
         # data = self.concatenateProno(inline=False) if include_prono else self.data
+        if self.data is None:
+            raise RuntimeError("data not loaded")
         if format=="csv":
             return self.data.to_csv(output)
         else:
-            return json.dump(self.data.to_dict(orient="records"),output)
+            with open(output, "w") as f:
+                return json.dump(self.data.to_dict(orient="records"),f)
     
     def plot(self) -> None:
         """Plot .data together with .series"""
+        if self.data is None:
+            raise RuntimeError("data not loaded")
         data = self.data[["valor",]]            
         pivot_series = self.pivotData()
         data = data.join(pivot_series,how="outer")
@@ -1129,7 +1214,7 @@ class NodeVariable:
         if self._node is not None and self._node.timeend is not None:
             # plt.axvline(x=self._node.timeend, color="black",label="timeend")
             plt.vlines(
-                x = [self._node.timeend],
+                x = cast(list,[self._node.timeend]),
                 ymin = min(data.min().dropna()),
                 ymax = max(data.max().dropna()),
                 colors = ["gray"], 
@@ -1138,7 +1223,7 @@ class NodeVariable:
         if self._node is not None and self._node.forecast_timeend is not None:
             # plt.axvline(x=self._node.forecast_timeend, color="red",label="forecast_timeend")
             plt.vlines(
-                x = [self._node.forecast_timeend],
+                x = cast(list, [self._node.forecast_timeend]),
                 ymin = min(data.min().dropna()),
                 ymax = max(data.max().dropna()),
                 colors = ["red"], 
@@ -1146,21 +1231,13 @@ class NodeVariable:
                 linestyles="dashed")
         data_lines = plt.plot(data)
         plt.legend(handles=data_lines, labels=[c for c in data.columns]) # plt.legend(data.columns)
-        plt.title(self.name if self.name is not None else self.id)
+        plt.title(self.name if self.name is not None else str(self.id))
         plt.show()
-        # if self._node._topology.forecast_timeend is not None:
-        #     plt.vlines(
-        #         x = [self._node._topology.timeend],
-        #         ymin = min(data.min()),
-        #         ymax = max(data.max()),
-        #         colors = ["gray"], 
-        #         # label = "forecast date",
-        #         linestyles="dashed")
     
     def plotProno(
         self,
-        output_dir : str = None,
-        use_series_sim : bool = None,
+        output_dir : Optional[str] = None,
+        use_series_sim : Optional[bool] = None,
         **kwargs
         # figsize : tuple = None,
         # title : str = None,
@@ -1325,6 +1402,8 @@ class NodeVariable:
             defaults = {
                 "output_file": output_file
             }
+            if self.series is None:
+                raise RuntimeError("series not set")
             if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
                 defaults["station_name"] = self.series[0].metadata["estacion"]["nombre"]
             if self.series[0].metadata is not None and "estacion" in self.series[0].metadata:
@@ -1335,30 +1414,18 @@ class NodeVariable:
                 defaults["errorBand"] = ("error_band_01","error_band_99")
                 defaults["adjust_results_string"] = serie_prono.adjust_results_string
             if self._node is not None and self._node._topology is not None and self._node._topology.plot_params is not None:
-                plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
+                if serie_prono.plot_params is not None:
+                    plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **serie_prono.plot_params, **kwargs}
+                else:
+                    plot_prono_kwargs = {**defaults, **self._node._topology.plot_params, **kwargs}
             elif serie_prono.plot_params is not None:
                 plot_prono_kwargs = {**defaults, **serie_prono.plot_params, **kwargs}
             else:
                 plot_prono_kwargs = {**defaults, **kwargs}
-            # logging.debug("error_band: %s" % str(error_band))
-            # ylim = getParamOrDefaultTo("ylim",ylim,serie_prono.plot_params)
-            # ydisplay = getParamOrDefaultTo("ydisplay",ydisplay,serie_prono.plot_params)
-            # text_xoffset = getParamOrDefaultTo("text_xoffset",text_xoffset,serie_prono.plot_params)
-            # xytext = getParamOrDefaultTo("xytext",xytext,serie_prono.plot_params)
-            # title = getParamOrDefaultTo("title",title,serie_prono.plot_params)
-            # obs_label = getParamOrDefaultTo("obs_label",obs_label,serie_prono.plot_params)
-            # tz = getParamOrDefaultTo("tz",tz,serie_prono.plot_params)
-            # prono_label = getParamOrDefaultTo("prono_label",prono_label,serie_prono.plot_params)
-            # errorBandLabel = getParamOrDefaultTo("errorBandLabel",errorBandLabel,serie_prono.plot_params)
-            # obsLine = getParamOrDefaultTo("obsLine",obsLine,serie_prono.plot_params)
-            # footnote = getParamOrDefaultTo("footnote",footnote,serie_prono.plot_params)
-            # xlim = getParamOrDefaultTo("xlim",xlim,serie_prono.plot_params)
-            # table_columns  = getParamOrDefaultTo("table_columns",table_columns,serie_prono.plot_params)
-            # date_form = getParamOrDefaultTo("date_form",date_form,serie_prono.plot_params)
-            # xaxis_minor_tick_hours = getParamOrDefaultTo("xaxis_minor_tick_hours", xaxis_minor_tick_hours, serie_prono.plot_params)
-            # error_band_fmt = getParamOrDefaultTo("error_band_fmt",error_band_fmt,serie_prono.plot_params)
-            # forecast_table = getParamOrDefaultTo("forecast_table",forecast_table,serie_prono.plot_params)
-            # footnote_height = getParamOrDefaultTo("footnote_height",footnote_height,serie_prono.plot_params)
+
+            if self.data is None:
+                raise RuntimeError("data not loaded")
+
             plot_prono(
                 self.data,
                 serie_prono.data,
@@ -1435,4 +1502,29 @@ class NodeVariable:
             if s.series_id == series_id:
                 return s
         raise KeyError("Series with series_id %i not found in %s" % (series_id, series_type))
-    
+
+    @property
+    def series(self) -> Optional[TypedList[NodeSerie]]:
+        """Series of observed data of this variable at this node. They may represent different data sources such as different instruments at the same station or different stations at (or near) the same site"""
+        return self._series  
+    @series.setter
+    def series(
+        self,
+        series
+        ) -> None:
+        self._series = TypedList(NodeSerie, *series, unique_id_property = "series_id", node_variable = self, base_path=self.base_path) if series is not None else None
+
+    @property
+    def series_prono(self) -> Optional[TypedList[NodeSerieProno]]:
+        """Series of forecasted data of this variable at this node. They may represent different data sources such as different model outputs"""
+        return self._series_prono
+    @series_prono.setter
+    def series_prono(
+        self,
+        series : Optional[List[Union[dict,NodeSerieProno]]]
+        ) -> None:
+        if series is None:
+            self._series_prono = None
+        else:
+            # self._series_prono = [x if isinstance(x, NodeSerieProno) else NodeSerieProno(**x, base_path=self.base_path) for x in series]
+            self._series_prono = TypedList(NodeSerieProno, *series, unique_id_property = ("id","cal_id"), node_variable = self, base_path=self.base_path) if series is not None else None

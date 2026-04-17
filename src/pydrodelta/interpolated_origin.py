@@ -61,7 +61,7 @@ class InterpolatedOrigin:
         var_id_2 : int,
         x_offset : Optional[Intervaleable] = None,
         y_offset : float = 0,
-        interpolation_coefficient : Optional[float] = None,
+        interpolation_coefficient : float = 0.5,
         topology : Optional["Topology"] = None
         ):
         """
@@ -89,7 +89,7 @@ class InterpolatedOrigin:
 
             Offset of the values
 
-        interpolation_coefficient : float = None
+        interpolation_coefficient : float = 0.5
 
             Interpolation weighting coefficient [0-1] (i.e., if 1, first node-variable gets all the weight)
 

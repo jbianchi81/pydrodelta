@@ -24,7 +24,8 @@ class Base():
         
     s3_client : Optional[S3Client]
 
-    base_path : Optional[Union[str,Path]]
+    base_path : Optional[Path]
+    """Base path. Used to resolve input/output relative paths"""
 
     def __init__(self,
         input_api_config : Optional[ApiConfigDict] = None, 
@@ -38,7 +39,7 @@ class Base():
         self.input_crud = Crud(**self.input_api_config) if self.input_api_config is not None else None
         self.output_crud = Crud(**self.output_api_config) if self.output_api_config is not None else None
         self.s3_client = S3Client(self.s3_config)
-        self.base_path = base_path
+        self.base_path = resolve_path(base_path) if base_path is not None else None
 
     @classmethod
     def load(cls, file : Union[Path,str], **kwargs):
