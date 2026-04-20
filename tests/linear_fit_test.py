@@ -20,7 +20,7 @@ class Test_LinearFit(TestCase):
             type="LinearFit",
             boundaries= [
                 {
-                    "name": "input",
+                    "name": "input_1",
                     "node_variable": [1,40]
                 }
             ],

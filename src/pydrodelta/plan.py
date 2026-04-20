@@ -622,7 +622,7 @@ class Plan(Base):
     def exportGraph(
             self,
             nodes : Union[TypedList[Node],None]=None,
-            output_file : Union[str,None]=None
+            output_file : Union[Path,str,None]=None
             ) -> Union[str,None]:
         """Creates directioned graph from the plan and converts it to JSON. Topology nodes are linked to procedures according to the mapping provided at procedure.function.boundaries (node to procedure) and procedure.function.outputs (procedure to node)
         

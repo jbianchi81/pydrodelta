@@ -20,8 +20,8 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
         node_serie.loadData("2000-01-01T03:00:00.000Z","2000-01-03T03:00:00.000Z")   
@@ -32,11 +32,12 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
-        node_serie.loadData("2000-01-01T03:00:00.000Z","2000-01-03T03:00:00.000Z")   
+        node_serie.loadData("2000-01-01T03:00:00.000Z","2000-01-03T03:00:00.000Z")  
+        assert node_serie.data is not None 
         self.assertEqual(len(node_serie.data),2)
 
     def test_series_load_inline_data_index_type(self):
@@ -44,11 +45,12 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
         node_serie.loadData("2000-01-01T03:00:00.000Z","2000-01-03T03:00:00.000Z")   
+        assert node_serie.data is not None
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
 
     def test_series_load_inline_data_outside_range(self):
@@ -56,11 +58,12 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
         node_serie.loadData("2000-01-03T03:00:00.000Z","2000-01-05T03:00:00.000Z")   
+        assert node_serie.data is not None
         self.assertEqual(len(node_serie.data),0)
 
     def test_series_load_inline_data_partially_in_range(self):
@@ -68,11 +71,12 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
-        node_serie.loadData("2000-01-02T03:00:00.000Z","2000-01-05T03:00:00.000Z")   
+        node_serie.loadData("2000-01-02T03:00:00.000Z","2000-01-05T03:00:00.000Z")  
+        assert node_serie.data is not None 
         self.assertEqual(len(node_serie.data),1)
 
     def test_series_load_csv_len(self):
@@ -81,7 +85,8 @@ class Test_NodeSerie(unittest.TestCase):
             tipo = "puntual",
             csv_file = data_dir / "csv/csv_file_sample.csv"
         )
-        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")   
+        node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")  
+        assert node_serie.data is not None  
         self.assertEqual(len(node_serie.data),24)
 
     def test_series_load_api_len(self):
@@ -93,9 +98,10 @@ class Test_NodeSerie(unittest.TestCase):
             "2022-07-15T03:00:00.000Z",
             "2022-07-18T03:00:00.000Z",
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })   
+        assert node_serie.data is not None 
         self.assertEqual(len(node_serie.data),3)
 
     def test_series_bad_id(self):
@@ -112,8 +118,8 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["200a0-01-01T03:00:00.000Z", 1.01],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("200a0-01-01T03:00:00.000Z", 1.01),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
 
@@ -124,8 +130,8 @@ class Test_NodeSerie(unittest.TestCase):
             series_id = 1,
             tipo = "puntual",
             observations = [
-                ["2000-01-01T03:00:00.000Z", "a1.01"],
-                ["2000-01-02T03:00:00.000Z", 2.02],
+                ("2000-01-01T03:00:00.000Z", "a1.01"),
+                ("2000-01-02T03:00:00.000Z", 2.02),
             ]
         )
 
@@ -136,6 +142,7 @@ class Test_NodeSerie(unittest.TestCase):
             json_file = data_dir / "json/series_sample.json"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
 
     def test_series_load_yaml(self):
@@ -145,6 +152,7 @@ class Test_NodeSerie(unittest.TestCase):
             json_file = data_dir / "yaml/series_sample.yaml"
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
 
     def test_series_save_json(self):
@@ -162,6 +170,8 @@ class Test_NodeSerie(unittest.TestCase):
             json_file = data_dir / "results/series_sample.json"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
+        assert node_serie_2.data is not None
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
 
     def test_series_save_yaml(self):
@@ -179,6 +189,8 @@ class Test_NodeSerie(unittest.TestCase):
             json_file = data_dir / "results/series_sample.yaml"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
+        assert node_serie_2.data is not None
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
 
     def test_series_save_json_list(self):
@@ -196,6 +208,8 @@ class Test_NodeSerie(unittest.TestCase):
             json_file= data_dir / "results/series_sample_list.json"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
+        assert node_serie_2.data is not None
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
 
     def test_series_save_csv(self):
@@ -213,6 +227,8 @@ class Test_NodeSerie(unittest.TestCase):
             csv_file= data_dir / "results/series_sample.csv"
         )
         node_serie_2.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
+        assert node_serie.data is not None
+        assert node_serie_2.data is not None
         self.assertEqual(len(node_serie.data), len(node_serie_2.data))
 
 if __name__ == '__main__':

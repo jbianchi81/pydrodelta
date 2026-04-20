@@ -6,8 +6,7 @@ from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame, DatetimeIndex
 from dateutil.relativedelta import relativedelta
 from .config import config
-from typing import Union, List, Tuple, Optional, Literal
-from .types.tvp import TVP
+from typing import Union, List, Tuple, Optional, Literal, TYPE_CHECKING
 from .types.series_dict import SeriesDict
 from .types.series_prono_dict import SeriesPronoDict
 from .types.api_config_dict import ApiConfigDict
@@ -22,6 +21,12 @@ from .descriptors.bool_descriptor import BoolDescriptor
 import json
 import yaml
 from .base import Base
+from a5client.util import tryParseAndLocalizeDate
+from a5client.util_types import Dateable, TVPdateable, TVP
+from pathlib import Path
+
+if TYPE_CHECKING:
+    from pydrodelta.node_variable import NodeVariable
 
 class NodeSerie(Base):
     """Represents a timestamped series of observed or simulated values for a variable in a node. """
@@ -91,7 +96,7 @@ class NodeSerie(Base):
     @observations.setter
     def observations(
         self,
-        values : Optional[Union[List[Tuple[datetime, float]], List[TVP]]]
+        values : Optional[Union[List[Tuple[Dateable, float]], List[TVP], List[TVPdateable]]]
         ) -> None:
         self._observations = util.parseObservations(values) if values is not None else None
     
@@ -128,14 +133,14 @@ class NodeSerie(Base):
         x_offset : relativedelta = relativedelta(seconds=0),
         y_offset : float = 0,
         moving_average : Optional[relativedelta] = None,
-        csv_file : Optional[str] = None,
-        observations : Optional[Union[List[TVP],List[Tuple[datetime,float]]]] = None,
-        save_post : Optional[str] = None,
+        csv_file : Optional[Union[Path,str]] = None,
+        observations : Optional[Union[List[TVPdateable],List[TVP],List[Tuple[Dateable,float]]]] = None,
+        save_post : Optional[Union[Path,str]] = None,
         comment : Optional[str] = None,
         name : Optional[str] = None,
-        node_variable = None,
-        json_file : Optional[str] = None,
-        output_file : Optional[str] = None,
+        node_variable : Optional["NodeVariable"]= None,
+        json_file : Optional[Union[Path,str]] = None,
+        output_file : Optional[Union[Path,str]] = None,
         output_format : str = "json",
         output_schema : str = "dict",
         required : bool = False,
@@ -258,8 +263,8 @@ class NodeSerie(Base):
 
     def loadData(
         self,
-        timestart : datetime,
-        timeend : datetime,
+        timestart : Dateable,
+        timeend : Dateable,
         input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False,
         tag : str = "obs"
@@ -274,10 +279,10 @@ class NodeSerie(Base):
         
         Parameters:
         -----------
-        timestart : datetime
+        timestart : Dateable
             Begin time of the timeseries
         
-        timeend : datetime
+        timeend : Dateable
             End time of the timeseries
         
         input_api_config : dict
@@ -294,8 +299,8 @@ class NodeSerie(Base):
         tag : str = "obs"
             Tag observations with this string
         """
-        timestart = util.tryParseAndLocalizeDate(timestart)
-        timeend = util.tryParseAndLocalizeDate(timeend)
+        timestart = tryParseAndLocalizeDate(timestart)
+        timeend = tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
             data = observacionesListToDataFrame(self.observations,tag=tag)

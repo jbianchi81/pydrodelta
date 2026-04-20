@@ -70,12 +70,15 @@ class TypedList(MutableSequence[T], Generic[T]):
     @overload
     def __getitem__(self, i: slice) -> "TypedList[T]": ...
     def __getitem__(self, i: Union[int, slice]) -> Union["TypedList[T]",T]:
-        return TypedList(
-            self.oktype,
-            *self.list[i],
-            unique_id_property=self._unique_id_property,
-            **self._fixed_kwargs
-        )
+        if isinstance(i, slice):
+            return TypedList(
+                self.oktype,
+                *self.list[i],
+                unique_id_property=self._unique_id_property,
+                **self._fixed_kwargs
+            )
+        else:
+            return self.list[i]
 
     def __delitem__(self, i : Union[int,slice]) -> None: del self.list[i]
 

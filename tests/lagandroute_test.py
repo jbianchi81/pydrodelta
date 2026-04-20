@@ -1,5 +1,6 @@
 from unittest import TestCase
 from pydrodelta.pydrology import LagAndRoute
+import math
 # from numpy import array
 # from typing import List, Tuple
 
@@ -19,6 +20,7 @@ class Test_lagandroute(TestCase):
         self.assertEqual(procedure.lag, 1.1)
         self.assertEqual(procedure.k, 2.2)
         self.assertEqual(procedure.n, 1)
+        assert procedure.routingSystem is not None
         self.assertEqual(len(procedure.routingSystem.Cascade),2)
         self.assertEqual(len(procedure.routingSystem.Cascade[0]),1)
         self.assertEqual(procedure.routingSystem.Cascade[0][0],0)
@@ -32,6 +34,7 @@ class Test_lagandroute(TestCase):
         self.assertEqual(procedure.lag, 1.1)
         self.assertEqual(procedure.k, 2.2)
         self.assertEqual(procedure.n, 1)
+        assert procedure.routingSystem is not None
         self.assertEqual(len(procedure.routingSystem.Cascade),2)
         self.assertEqual(len(procedure.routingSystem.Cascade[0]),1)
         self.assertEqual(procedure.routingSystem.Cascade[0][0],0)
@@ -45,6 +48,7 @@ class Test_lagandroute(TestCase):
         self.assertEqual(procedure.lag, 1.1)
         self.assertEqual(procedure.k, 2.2)
         self.assertEqual(procedure.n, 2)
+        assert procedure.routingSystem is not None
         self.assertEqual(len(procedure.routingSystem.Cascade),2)
         self.assertEqual(len(procedure.routingSystem.Cascade[0]),2)
         self.assertEqual(procedure.routingSystem.Cascade[0][0],0)
@@ -58,6 +62,7 @@ class Test_lagandroute(TestCase):
             pars = [1.1, 2.2, 2],
             InitialConditions = []
         )
+        assert procedure.routingSystem is not None
         self.assertEqual(len(procedure.routingSystem.Cascade),2)
         self.assertEqual(len(procedure.routingSystem.Cascade[0]),2)
         self.assertEqual(procedure.routingSystem.Cascade[0][0],0)
@@ -79,6 +84,7 @@ class Test_lagandroute(TestCase):
             pars = [1.1, 2.2, 3],
             InitialConditions = [1.1,2.2,3.3]
         )
+        assert procedure.routingSystem is not None
         self.assertEqual(len(procedure.routingSystem.Cascade),2)
         self.assertEqual(len(procedure.routingSystem.Cascade[0]),3)
         self.assertEqual(procedure.routingSystem.Cascade[0][0],1.1)
@@ -171,7 +177,7 @@ class Test_lagandroute(TestCase):
             ]
         )
         procedure.executeRun()
-        self.assertAlmostEqual(procedure.Q.sum(),1,4)
+        self.assertAlmostEqual(math.fsum(procedure.Q),1,4)
 
     def test_no_lag(self):    
         procedure = LagAndRoute(
@@ -190,7 +196,7 @@ class Test_lagandroute(TestCase):
             ]
         )
         procedure.executeRun()
-        self.assertAlmostEqual(procedure.Q.sum(),1,4)
+        self.assertAlmostEqual(math.fsum(procedure.Q),1,4)
         self.assertAlmostEqual(procedure.Q[2],1,4)
 
     def test_lag_and_route(self):    
@@ -201,5 +207,5 @@ class Test_lagandroute(TestCase):
             ]
         )
         procedure.executeRun()
-        self.assertAlmostEqual(procedure.Q.sum(),1,4)
+        self.assertAlmostEqual(math.fsum(procedure.Q),1,4)
         self.assertAlmostEqual(procedure.Q[15],0)

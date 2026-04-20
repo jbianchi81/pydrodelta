@@ -20,7 +20,7 @@ import os.path
 from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
 from a5client.util_types import Intervaleable, ApiConfigDict
 from .types.linear_combination_dict import LinearCombinationDict
-
+from a5client.util_types import TVP, Dateable, TVPdateable
 
 import random
 DataFrame = pandas.DataFrame
@@ -1043,7 +1043,7 @@ def readCsvFile(csv_file : FileDescriptorOrPath):
     with open(csv_file, newline='') as csvfile:
         return [row for row in csv.DictReader(csvfile)]
 
-def parseObservations(observations:list) -> list:
+def parseObservations(observations:Union[List[TVPdateable],Tuple[Dateable],Tuple[Dateable,float],List[Any]]) -> List[TVP]:
     result = []
     for i, o in enumerate(observations):
         # option 1: dict { "timestart": str, "valor": number }
@@ -1102,7 +1102,7 @@ def tryParseFloat(value,allow_none=True):
             raise(ValueError)
     return parsed_float
 
-def ParseApiConfig(api_config = None) -> ApiConfigDict:
+def ParseApiConfig(api_config : Optional[str] = None) -> Optional[ApiConfigDict]:
     if api_config is not None:
         pars = api_config.split("@")
         if len(pars) < 2:

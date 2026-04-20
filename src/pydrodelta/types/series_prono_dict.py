@@ -1,5 +1,5 @@
 from typing import TypedDict, List
-from .tvp import TVP
+from a5client.util_types import TVP
 
 class SeriesPronoDict(TypedDict):
     """

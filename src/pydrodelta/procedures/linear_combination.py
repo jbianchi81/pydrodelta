@@ -6,7 +6,7 @@ import scipy.stats as stats
 from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
@@ -142,7 +142,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         return self.parameters["lookback_steps"]
         
     @property
-    def coefficients(self) -> List[ForecastStep]:
+    def coefficients(self) -> Optional[List[ForecastStep]]:
         """Coefficients of the linear combination"""
         if "coefficients" not in self.parameters:
             logging.warning("Coefficients not set")
@@ -161,6 +161,8 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     @property
     def k(self) -> int:
         """Number of independent variables"""
+        if self.coefficients is None:
+            raise RuntimeError("coefficients not set")
         return self.lookback_steps * len(self.coefficients[0].boundaries)
     
     @property 
@@ -170,12 +172,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     
     @property
     def confidence_level(self) -> float:
-        return 2 * stats.norm.cdf(self.Z) - 1
+        return 2 * float(stats.norm.cdf(self.Z)) - 1
 
     @property
     def error_band(self) -> Union[List[float],None]:
         """Error band half-widths for each step in the forecast horizon"""
-        if self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
+        if self._procedure is not None and self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
             error_band = []
             for i, step in enumerate(self._procedure.calibration.result["scores"]):
                 rse = step["rse_val"] if step["rse_val"] is not None else step["rse"]
@@ -215,7 +217,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         if len(self.parameters["coefficients"]) > self.forecast_steps:
             raise Exception("length of coefficients exceeds forecast_steps")
         # set warmup_steps
-        if self._procedure.calibration is not None and self._procedure.calibration.calibrate == True:
+        if self._procedure is not None and self._procedure.calibration is not None and self._procedure.calibration.calibrate == True:
             pass
         else:
             for boundary in self.boundaries:
@@ -225,7 +227,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     
     def run(
         self,
-        input : List[DataFrame] = None
+        input : Optional[Union[DataFrame,List[DataFrame]]] = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -238,10 +240,16 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         
         Raises:
             Exception : If data is missing in a boundary at a required timestep"""
-        if input is None:
+        if self._procedure is None:
+            raise RuntimeError("procedure not set")
+        if isinstance(input, DataFrame):
+            input = [input]
+        elif input is None:
             input = self._procedure.loadInput(inplace=False,pivot=False)
         output = []
         error_band = self.error_band
+        if self.coefficients is None:
+            raise RuntimeError("Coefficients not set")
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = self._procedure._plan.forecast_date + (t_index + 1) * self._procedure._plan.time_interval
             result = 1 * forecast_step.intercept

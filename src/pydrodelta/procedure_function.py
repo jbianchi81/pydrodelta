@@ -1,6 +1,6 @@
 from .procedure_boundary import ProcedureBoundary
 from .procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union, Tuple, List, cast
+from typing import Optional, Union, Tuple, List, cast, Any, Mapping
 from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
@@ -150,7 +150,7 @@ class ProcedureFunction:
     def __init__(
         self,
         procedure : Optional["Procedure"] = None,
-        parameters : Union[list, dict] = [],
+        parameters : Union[List[Any], Mapping[str, Any]] = [],
         initial_states : Union[list, dict] = [],
         boundaries : list = [],
         outputs : list = [],
@@ -192,7 +192,7 @@ class ProcedureFunction:
         """
         # logging.debug("Running ProcedureFunction constructor")
         self._procedure = procedure
-        self.parameters = parameters
+        self.parameters = dict(parameters) if isinstance(parameters, Mapping) else parameters
         self.initial_states = initial_states
         self.boundaries = boundaries
         self.outputs = outputs

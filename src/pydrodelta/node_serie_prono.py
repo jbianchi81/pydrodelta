@@ -12,6 +12,8 @@ from .descriptors.list_descriptor import ListDescriptor
 from .util import coalesce
 from typing import Optional
 from .types.api_config_dict import ApiConfigDict
+from a5client.util_types import Dateable
+from a5client.util import tryParseAndLocalizeDate
 
 input_crud = Crud(**config["input_api"])
 # output_crud = Crud(**config["output_api"])
@@ -105,8 +107,8 @@ class NodeSerieProno(NodeSerie):
         upload : bool = True,
         cor_id : Optional[int] = None,
         main_qualifier : Optional[str] = None,
-        previous_runs_timestart : Optional[datetime] = None,
-        forecast_timestart : Optional[datetime] = None,
+        previous_runs_timestart : Optional[Dateable] = None,
+        forecast_timestart : Optional[Dateable] = None,
         warmup : Optional[int] = None,
         tail : Optional[int] = None,
         sim_range : Optional[int] = None,
@@ -143,8 +145,8 @@ class NodeSerieProno(NodeSerie):
 
     def loadData(
         self,
-        timestart : datetime,
-        timeend : datetime,
+        timestart : Dateable,
+        timeend : Dateable,
         input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False,
         tag : str = "sim",
@@ -177,12 +179,17 @@ class NodeSerieProno(NodeSerie):
         
         forecast_timestart : datetime = None
             Forecast date must be greater or equal to this value"""
+        timestart = tryParseAndLocalizeDate(timestart)
+        timeend = tryParseAndLocalizeDate(timeend)
         previous_runs_timestart = coalesce(previous_runs_timestart,self.previous_runs_timestart)
         forecast_timestart = coalesce(forecast_timestart, self.forecast_timestart)
         if self.observations is not None or self.csv_file is not None or self.json_file is not None:
             super().loadData(timestart, timeend, tag = "sim")
             # self.data = observacionesListToDataFrame(self.observations, tag = "sim")
-            self.metadata = {"cal_id": self.cal_id} if self.metadata is None else {**self.metadata, "cal_id": self.cal_id}
+            if self.metadata is None:
+                self.metadata = {"cal_id": self.cal_id}
+            else:
+                self.metadata["cal_id"] = self.cal_id
             return
         elif self.cal_id == 0:
             # Lee observaciones
@@ -253,9 +260,9 @@ class NodeSerieProno(NodeSerie):
             
             self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
         
-            # del metadata["pronosticos"]
-            self.metadata = {**metadata}
-            del self.metadata["pronosticos"]
+            md = {**metadata}
+            del md["pronosticos"]
+            self.metadata = md
         self.original_data = self.data.copy(deep=True)
     
     def setData(self,data):

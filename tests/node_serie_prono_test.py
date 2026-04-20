@@ -3,6 +3,7 @@ import unittest
 from pandas import DatetimeIndex, DataFrame
 from datetime import timedelta
 from pathlib import Path
+from a5client.util import tryParseAndLocalizeDate
 
 data_dir = Path(__file__).parent / "data"
 
@@ -10,15 +11,15 @@ class Test_NodeSerieProno(unittest.TestCase):
 
     def test_series_load_api_len(self):
         node_serie = NodeSerieProno(
-            cal_id = 5,
-            series_id = 64006,
+            cal_id = 312,
+            series_id = 1525,
             tipo = "puntual"
         )
         node_serie.loadData(
-            "2023-04-01T00:00:00.000Z",
-            "2023-08-01T00:00:00.000Z",
+            tryParseAndLocalizeDate("2024-11-18T00:00:00.000Z"),
+            tryParseAndLocalizeDate("2024-11-22T00:00:00.000Z"),
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })   
         self.assertEqual(len(node_serie.data),4)
@@ -41,6 +42,7 @@ class Test_NodeSerieProno(unittest.TestCase):
         self.assertTrue(type(node_serie.data),DataFrame)
         self.assertTrue(len(node_serie.data) > 0)
         # self.assertTrue(node_serie.data.dropna().index.min() < node_serie.previous_runs_timestart + timedelta(days=0))
+        assert node_serie.metadata is not None
         self.assertTrue(node_serie.data.dropna().index.min() < node_serie.metadata["forecast_date"])
         self.assertTrue(node_serie.metadata["forecast_date"] >= node_serie.previous_runs_timestart)
 
@@ -54,6 +56,7 @@ class Test_NodeSerieProno(unittest.TestCase):
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
+        assert node_serie.metadata is not None
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 
@@ -66,6 +69,7 @@ class Test_NodeSerieProno(unittest.TestCase):
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
+        assert node_serie.metadata is not None
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 
@@ -78,6 +82,7 @@ class Test_NodeSerieProno(unittest.TestCase):
         )
         node_serie.loadData("2023-04-23T03:00:00.000Z","2023-04-24T02:00:00.000Z")
         self.assertTrue(isinstance(node_serie.data.index,DatetimeIndex))
+        assert node_serie.metadata is not None
         self.assertEqual(node_serie.metadata["series_id"], 1)
         self.assertEqual(node_serie.metadata["series_table"], "series")
 

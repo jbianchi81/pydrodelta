@@ -38,7 +38,7 @@ procedures:
   function:
     type: ExponentialFit
     boundaries:
-    - name: input
+    - name: input_1
       node_variable: [1,40]
     outputs:
     - name: output

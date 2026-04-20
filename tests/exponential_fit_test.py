@@ -42,7 +42,7 @@ class Test_ExponentialFit(TestCase):
                 "type": "ExponentialFit",
                 "boundaries": [
                     {
-                        "name": "input",
+                        "name": "input_1",
                         "node_variable": [1,40]
                     }
                 ],
@@ -56,7 +56,7 @@ class Test_ExponentialFit(TestCase):
         )
         assert isinstance(procedure.function.boundaries, EnhancedTypedList)
         self.assertEqual(len(procedure.function.boundaries),1)
-        self.assertIsInstance(procedure.function.boundaries.getById("input"),ProcedureBoundary)
+        self.assertIsInstance(procedure.function.boundaries.getById("input_1"),ProcedureBoundary)
         self.assertRaises(
             ValueError,
             procedure.function.outputs.append,
@@ -69,13 +69,13 @@ class Test_ExponentialFit(TestCase):
             ValueError,
             procedure.function.boundaries.append,
             {
-                "name": "input",
+                "name": "input_1",
                 "node_variable": [1,40]
             }
         )
 
 
-        i = procedure.function.boundaries.getIndex("input")
+        i = procedure.function.boundaries.getIndex("input_1")
         self.assertRaises(
             AttributeError,
             setattr,
@@ -98,7 +98,7 @@ class Test_ExponentialFit(TestCase):
                 "type": "ExponentialFit",
                 "boundaries": [
                     {
-                        "name": "input",
+                        "name": "input_1",
                         "node_variable": [1,40]
                     }
                 ],
@@ -116,7 +116,7 @@ class Test_ExponentialFit(TestCase):
         boundaries.replace(
             0,
             {
-                "name": "input",
+                "name": "input_1",
                 "node_variable": [2,41]
             }
         )
@@ -147,7 +147,7 @@ class Test_ExponentialFit(TestCase):
                 "type": "ExponentialFit",
                 "boundaries": [
                     {
-                        "name": "input",
+                        "name": "input_1",
                         "node_variable": [1,40]
                     }
                 ],

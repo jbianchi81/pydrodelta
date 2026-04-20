@@ -45,14 +45,14 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "enum": ["input"]
+                                "type": "string",
+                                "pattern": "^input_[0-9]+$"
                             }
                         }
                     }
                 ]
             },
-            "minItems": 1,
-            "maxItems": 1
+            "minItems": 1
         },
         "outputs": {
             "type": "array",

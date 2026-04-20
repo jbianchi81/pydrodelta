@@ -2,7 +2,7 @@ from numpy import array
 import logging
 import json
 from ..util import tryParseAndLocalizeDate, resolve_path
-from typing import Optional, List, Union, Tuple
+from typing import Optional, List, Union, Tuple, Any, TYPE_CHECKING
 from datetime import datetime
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
@@ -12,6 +12,10 @@ from ..config import config
 import os
 import yaml
 from pathlib import Path
+from a5client.util_types import Dateable
+
+if TYPE_CHECKING:
+    from pydrodelta.procedure import Procedure
 
 class Calibration:
     """Calibration base/abstract class"""
@@ -30,7 +34,7 @@ class Calibration:
     """
 
     @property
-    def calibration_result(self) -> Tuple[List[float],float]:
+    def calibration_result(self) -> Optional[Tuple[Any,float]]:
         """Calibration result. First element is the list of obtained parameters. The second element is the obtained objective function value"""
         return self._calibration_result
 
@@ -38,13 +42,13 @@ class Calibration:
     """Save calibration result into this file"""
 
     @property
-    def calibration_period(self) -> Tuple[datetime, datetime]:
+    def calibration_period(self) -> Optional[Tuple[datetime, datetime]]:
         """Calibration period (begin date, end date)"""
         return self._calibration_period
     @calibration_period.setter
     def calibration_period(
         self,
-        calibration_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
+        calibration_period : Optional[Tuple[Dateable, Dateable]]
         ) -> None:
         self._calibration_period = self.parseCalibrationPeriod(calibration_period) if calibration_period is not None else None
 
@@ -62,12 +66,12 @@ class Calibration:
 
     def __init__(
             self,
-            procedure,
+            procedure : Optional["Procedure"],
             calibrate : bool = True,
             result_index : int = 0,
             objective_function : str = 'rmse',
-            save_result : str = None,
-            calibration_period : list = None,
+            save_result : Optional[str] = None,
+            calibration_period : Optional[List[datetime]] = None,
             base_path : Union[str,Path,None] = None
             ):
         """
@@ -105,7 +109,7 @@ class Calibration:
         self._calibration_result = None
         self.base_path = base_path
         self.save_result = self.resolve_path(save_result)
-        self.calibration_period = calibration_period
+        self.calibration_period = (calibration_period[0], calibration_period[1]) if calibration_period is not None else None
         self.scores = None
 
     def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
@@ -130,7 +134,7 @@ class Calibration:
     
     def parseCalibrationPeriod(
         self, 
-        cal_period : Tuple[Union[datetime,dict,float], Union[datetime,dict,float]]
+        cal_period : Tuple[Dateable, Dateable]
         ) -> Tuple[datetime, datetime]:
         if len(cal_period) < 2:
             raise ValueError("calibration_period must be a list of length 2")
@@ -141,10 +145,10 @@ class Calibration:
     
     def runReturnScore(
         self,
-        parameters : array, 
+        parameters : Any, 
         objective_function : Optional[str] = None, 
         result_index : Optional[int] = None,
-        save_results : str = None,
+        save_results : Optional[Union[Path,str]] = None,
         ) -> float:
         """
         Runs procedure and returns objective function value
@@ -152,7 +156,7 @@ class Calibration:
 
         Parameters:
         -----------
-        parameters : array
+        parameters : Any
 
             Procedure function parameters
 
@@ -170,12 +174,18 @@ class Calibration:
         """
         objective_function = objective_function if objective_function is not None else self.objective_function
         result_index = result_index if result_index is not None else self.result_index
+        if self._procedure is None:
+            raise RuntimeError("procedure not set")
         self._procedure.run(
             parameters=parameters, 
             save_results=save_results, 
             load_input=False, 
             load_output_obs=False
         )
+        if self._procedure.procedure_function_results is None:
+            raise RuntimeError("procedure function results not set")
+        if self._procedure.procedure_function_results.statistics is None:
+            raise RuntimeError("statistics not set")
         value = getattr(self._procedure.procedure_function_results.statistics[result_index],objective_function)
         logging.debug((parameters, value))
         return value
@@ -207,7 +217,7 @@ class Calibration:
         """
         raise NotImplementedError("run() method not implemented for the base class Calibration. It must be overriden by the derived class")
 
-    def saveResult(self, file : str, format : str ="json") -> None:
+    def saveResult(self, file : Union[Path,str], format : str ="json") -> None:
         if self.calibration_result is None:
             raise Exception("calibration_result is not set")
         with open(file,"w") as f:

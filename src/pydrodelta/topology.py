@@ -72,12 +72,12 @@ class Topology(Base):
     @nodes.setter
     def nodes(self,nodes : List[NodeDict]):
         self._nodes : TypedList[Node] = TypedList(Node, *nodes, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
-        for i, node in enumerate(nodes):
-            if "id" not in node:
-                raise ValueError("Missing node.id at index %i of topology.nodes" % i)
-            if node["id"] in [n.id for n in self._nodes]:
-                raise ValueError("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
-            # self._nodes[i] = node
+        # for i, node in enumerate(nodes):
+        #     if "id" not in node:
+        #         raise ValueError("Missing node.id at index %i of topology.nodes" % i)
+        #     if node["id"] in [n.id for n in self._nodes]:
+        #         raise ValueError("Duplicate node.id = %s at index %i of topology.nodes" % (str(node["id"]), i))
+        #     # self._nodes[i] = node
     cal_id : Optional[int]
     """Identifier for saving analysis results as forecast (i.e. using .uploadDataAsProno)"""
     plot_params : Optional[PlotParamsDict]
