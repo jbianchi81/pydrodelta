@@ -96,7 +96,7 @@ class Test_NodeSerie(unittest.TestCase):
         )
         node_serie.loadData(
             "2022-07-15T03:00:00.000Z",
-            "2022-07-18T03:00:00.000Z",
+            "2022-07-17T03:00:00.000Z",
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"

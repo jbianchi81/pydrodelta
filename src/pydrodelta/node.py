@@ -19,7 +19,7 @@ from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
-from a5client.util_types import ApiConfigDict
+from a5client.util_types import ApiConfigDict, SeriesDict, TVP
 import traceback
 from pathlib import Path
 
@@ -335,10 +335,20 @@ class Node:
         """
         return [variable.toSerie(include_series_id=include_series_id,use_node_id=use_node_id) for variable in self.variables.values()]
     
+    @overload
+    def variablesOutputToList(
+            self,
+            flatten : Literal[True] = True
+        ) -> List[TVP]: ...
+    @overload
+    def variablesOutputToList(
+            self,
+            flatten : Literal[False]
+        ) -> List[SeriesDict]: ...
     def variablesOutputToList(
             self,
             flatten : bool = True
-        ) -> list:
+        ) -> Union[List[TVP],List[SeriesDict]]:
         """
         For each variable in .variables, converts series_output to list of dict
 
@@ -351,12 +361,21 @@ class Node:
         --------
         list
         """
-        list = []
-        for variable in self.variables.values():
-            output_list = variable.outputToList(flatten=flatten)
-            if output_list is not None:
-                list.extend(output_list)
-        return list
+        if flatten:
+            list_tvp : List[TVP]= []
+            for variable in self.variables.values():
+                output_list = variable.outputToList(flatten=True)
+                if output_list is not None:
+                    list_tvp.extend(output_list)
+            return list_tvp
+        else:
+            list_series : List[SeriesDict]= []
+            for variable in self.variables.values():
+                output_list = variable.outputToList(flatten=False)
+                if output_list is not None:
+                    list_series.extend(output_list)
+            return list_series
+
     
     def variablesPronoToList(
             self,

@@ -6,8 +6,7 @@ from a5client import createEmptyObsDataFrame, observacionesListToDataFrame, Crud
 from pandas import isna, DataFrame, DatetimeIndex
 from dateutil.relativedelta import relativedelta
 from .config import config
-from typing import Union, List, Tuple, Optional, Literal, TYPE_CHECKING
-from .types.series_dict import SeriesDict
+from typing import Union, List, Tuple, Optional, Literal, TYPE_CHECKING, overload
 from .types.series_prono_dict import SeriesPronoDict
 from .types.api_config_dict import ApiConfigDict
 from .descriptors.int_descriptor import IntDescriptor
@@ -22,7 +21,7 @@ import json
 import yaml
 from .base import Base
 from a5client.util import tryParseAndLocalizeDate
-from a5client.util_types import Dateable, TVPdateable, TVP
+from a5client.util_types import Dateable, TVPdateable, TVP, SeriesDict
 from pathlib import Path
 
 if TYPE_CHECKING:
@@ -300,15 +299,15 @@ class NodeSerie(Base):
             Tag observations with this string
         """
         timestart = tryParseAndLocalizeDate(timestart)
-        timeend = tryParseAndLocalizeDate(timeend)
+        timeend_ = tryParseAndLocalizeDate(timeend)
         if(self.observations is not None):
             logging.debug("Load data for series_id: %i from configuration" % (self.series_id))
             data = observacionesListToDataFrame(self.observations,tag=tag)
-            self.data = data[(data.index >= timestart) & (data.index <= timeend)]
+            self.data = data[(data.index >= timestart) & (data.index <= timeend_)]
             self.metadata = {"id": self.series_id, "tipo": self.type}
         elif(self.csv_file is not None):
             logging.debug("Load data for series_id: %i from file %s" % (self.series_id, self.csv_file))
-            data = util.readDataFromCsvFile(self.csv_file,self.series_id,timestart,timeend)
+            data = util.readDataFromCsvFile(self.csv_file,self.series_id,timestart,timeend_)
             self.data = observacionesListToDataFrame(data,tag=tag)
             self.metadata = {"id": self.series_id, "tipo": self.type}
         elif(self.json_file is not None):
@@ -328,15 +327,15 @@ class NodeSerie(Base):
                 raise KeyError("Observaciones key not found in file " % self.json_file)
         else:
             if self._variable is not None and self._variable.time_support is not None:
-                timeend = timeend + self._variable.time_support
-            logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend.isoformat()))
+                timeend_ = timeend_ + self._variable.time_support
+            logging.debug("Load data for series_id: %i [%s to %s] from a5 api" % (self.series_id,timestart.isoformat(),timeend_.isoformat()))
             crud = Crud(**input_api_config) if input_api_config is not None else self._variable._node._crud if self._variable is not None and self._variable._node is not None else self.input_crud
             if crud is None:
                 raise Exception("crud is not set")
             self.metadata = crud.readSerie(
                 self.series_id,
                 timestart,
-                timeend,
+                timeend_,
                 tipo = self.type, 
                 no_metadata = no_metadata)
             if len(self.metadata["observaciones"]):
@@ -657,6 +656,27 @@ class NodeSerie(Base):
             all_obs = [x for x in all_obs if x["valor"] is not None] # remove nulls
         return all_obs
     
+    @overload
+    def toDict(
+        self,
+        timeSupport : Optional[relativedelta] = None,
+        as_prono : Literal[False] = False,
+        remove_nulls : bool = False,
+        max_obs_date : Optional[datetime] = None,
+        qualifiers : Optional[List[str]] = None,
+        value_key : str = "valor"
+        ) -> SeriesDict: ...
+    @overload
+    def toDict(
+        self,
+        timeSupport : Optional[relativedelta] = None,
+        *,
+        as_prono : Literal[True],
+        remove_nulls : bool = False,
+        max_obs_date : Optional[datetime] = None,
+        qualifiers : Optional[List[str]] = None,
+        value_key : str = "valor"
+        ) -> SeriesPronoDict: ...
     def toDict(
         self,
         timeSupport : Optional[relativedelta] = None,
@@ -705,7 +725,7 @@ class NodeSerie(Base):
                 "series_id": self.series_id, 
                 "series_table": series_table, 
                 "observaciones": obs_list
-        }
+            }
         # return {
         #     "series_id": self.series_id,
         #     "type": self.type,
@@ -722,6 +742,6 @@ class NodeSerie(Base):
         # }
 
 
-    def getSeriesTable(self) -> str:
+    def getSeriesTable(self) -> Literal["series","series_areal","series_rast"]:
         """Retrieve series table name (of a5 schema) for this timeseries"""
         return "series" if self.type == "puntual" else "series_areal" if self.type == "areal" else "series_rast" if self.type == "raster" else "series"

@@ -1,5 +1,5 @@
 from a5client import Crud, Serie
-from a5client.util_types import TVP, Intervaleable
+from a5client.util_types import TVP, Intervaleable, SeriesDict, ApiConfigDict
 from a5client.util import interval2relativedelta, relativedeltaToSeconds
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 import isodate
 from .config import config
-from typing import List, Union, Tuple, Optional, cast, TypedDict, TYPE_CHECKING, Literal
+from typing import List, Union, Tuple, Optional, cast, TypedDict, TYPE_CHECKING, Literal, overload
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -26,8 +26,6 @@ from .descriptors.string_descriptor import StringDescriptor
 from .types.adjust_from_dict import AdjustFromDict
 from .types.linear_combination_dict import LinearCombinationDict
 from .types.typed_list import TypedList
-from .types.api_config_dict import ApiConfigDict
-from .types.series_dict import SeriesDict
 from pathlib import Path
 
 if TYPE_CHECKING:
@@ -478,10 +476,20 @@ class NodeVariable:
             data.loc[:,"series_id"] = self.node_id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
         return cast(list[TVP], data.to_dict(orient="records"))
     
+    @overload
+    def outputToList(
+        self,
+        flatten : Literal[True] = True
+        ) -> Optional[List[TVP]]: ...
+    @overload
+    def outputToList(
+        self,
+        flatten : Literal[False]
+        ) -> Optional[List[SeriesDict]]: ...
     def outputToList(
         self,
         flatten : bool = True
-        ) -> Optional[Union[List[dict],List[Serie]]]:
+        ) -> Optional[Union[List[TVP],List[SeriesDict]]]:
         """
         Convert series_output to list of records (dict)
 
@@ -497,16 +505,19 @@ class NodeVariable:
             return None
         if self.series_output[0].data is None:
             self.setOutputData()
-        list = []
-        for serie in self.series_output:
-            if flatten:
+        if flatten:
+            list_tvp : List[TVP] = []
+            for serie in self.series_output:
                 obs_list = serie.toList(include_series_id=True,timeSupport=self.time_support,remove_nulls=True)
-                list.extend(obs_list)
-            else:
+                list_tvp.extend(obs_list)
+            return list_tvp
+        else:
+            list_series : List[SeriesDict] = []
+            for serie in self.series_output:
                 series_dict = serie.toDict(timeSupport=self.time_support, as_prono=False, remove_nulls=True)
-                list.append(series_dict)
-        return list
-    
+                list_series.append(series_dict)
+            return list_series
+        
     def pronoToList(
         self,
         flatten : bool = True,

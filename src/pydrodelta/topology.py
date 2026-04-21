@@ -1,7 +1,7 @@
 import jsonschema
 import yaml
 import os
-from pydrodelta.util import getRandColor, coalesce, createParent
+from pydrodelta.util import getRandColor, coalesce, createParent, ensure_local
 from pathlib import Path
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -11,8 +11,8 @@ import logging
 import json
 from numpy import nan
 from a5client import createEmptyObsDataFrame, Crud, Serie
-from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
-from a5client.util_types import CorridaDict
+from a5client.util import tryParseAndLocalizeDate, interval2relativedelta, serieObsToProno
+from a5client.util_types import CorridaDict, CorridaDictNoId, SeriesDict, TVP, Dateable, Intervaleable, CorridaNoIdSerializableDict
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo
@@ -22,7 +22,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.backends.backend_pdf
 from colour import Color
-from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING, cast, Sequence
+from typing import Union, List, Tuple, Optional, overload, Literal, TYPE_CHECKING, cast, Sequence, Dict
 from .validation import getSchemaAndValidate
 from pandas import DataFrame
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -40,14 +40,15 @@ from .types.plot_params_dict import PlotParamsDict
 from .base import Base
 from .types.typed_list import TypedList
 from .types.plot_variable_params import PlotVariableParams
-from a5client.util_types import Dateable, Intervaleable, TVP, TVPProno
 from .types.save_variable_params import SaveVariableParams
 from .types.api_config_dict import ApiConfigDict
 from .node_serie import NodeSerie
 
 if TYPE_CHECKING:
     from .plan import Plan
-    
+
+PivotedRow = Dict[str, Union[datetime, float, str]]
+
 class Topology(Base):
     """The topology defines a list of nodes which represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
 
@@ -792,11 +793,29 @@ class Topology(Base):
                         series_list.append(variable.toSerie(True,use_node_id=use_node_id))
                 return series_list
     
+    @overload
+    def outputToList(
+        self,
+        pivot : Literal[True],
+        flatten : bool = False
+        ) -> List[PivotedRow]: ...
+    @overload
+    def outputToList(
+        self,
+        pivot : Literal[False] = False,
+        flatten : Literal[False] = False
+        ) -> List[SeriesDict]: ...
+    @overload
+    def outputToList(
+        self,
+        pivot : Literal[False],
+        flatten : Literal[True]
+        ) -> List[TVP]: ...
     def outputToList(
         self,
         pivot : bool = False,
         flatten : bool = False
-        ) -> list:
+        ) -> Union[List[PivotedRow],List[SeriesDict],List[TVP]]:
         """returns list of data of all output_series of all variables of all nodes
         
         Parameters:
@@ -816,12 +835,17 @@ class Topology(Base):
             data.reset_index
             data["timeend"] = data["timestart"]
             data = data.replace({nan:None})
-            return data.to_dict(orient="records")
-        obs_list = []
-        for node in self.nodes:
-            obs_list.extend(node.variablesOutputToList(flatten=flatten))
-        return obs_list
-    
+            return cast(List[PivotedRow],data.to_dict(orient="records"))
+        if flatten:
+            list_tvp : List[TVP] = []
+            for node in self.nodes:
+                list_tvp.extend(node.variablesOutputToList(flatten=True))
+            return list_tvp
+        else:    
+            list_series : List[SeriesDict] = []
+            for node in self.nodes:
+                list_series.extend(node.variablesOutputToList(flatten=False))
+            return list_series
     def saveData(
         self,
         output : Union[Path,str],
@@ -939,7 +963,7 @@ class Topology(Base):
         self,
         include_obs : bool = True,
         include_prono : bool = False
-    ) -> dict:
+    ) -> CorridaNoIdSerializableDict:
         """
         Converts analysis data (series_output) of all variables of all nodes to a5 'corrida' object (https://github.com/jbianchi81/alerta5DBIO/blob/master/public/schemas/a5/pronostico.yml)
 
@@ -961,7 +985,7 @@ class Topology(Base):
                 raise Exception("upload analysis: Missing required parameter cal_id")
         else:
             cal_id = self.cal_id
-        prono = {
+        prono : CorridaNoIdSerializableDict = {
             "cal_id": cal_id,
             "forecast_date": self.timeend.isoformat(),
             "series": []
@@ -970,9 +994,8 @@ class Topology(Base):
             for node in self.nodes:
                 serieslist = node.variablesOutputToList(flatten=False)
                 for serie in serieslist:
-                    serie["pronosticos"] = serie["observaciones"]
-                    del serie["observaciones"]
-                prono["series"].extend(serieslist)
+                    prono["series"].append(serieObsToProno(serie))
+                # prono["series"].extend(serieslist)
         if include_prono:
             for node in self.nodes:
                 serieslist = node.variablesPronoToList(flatten=False, qualifiers = self.qualifiers)
