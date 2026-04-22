@@ -1,8 +1,9 @@
-from .util import interval2timedelta, createDatetimeSequence, resolve_path, IntervalDict
+from .util import createDatetimeSequence, resolve_path, IntervalDict
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
 from .node_variable import NodeVariable
 from a5client import createEmptyObsDataFrame, Serie, Crud
+from a5client.util import interval2relativedelta, tryParseAndLocalizeDate
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -13,15 +14,18 @@ import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import isodate
-from typing import Union, List, Dict, Tuple, Optional, cast, overload, Literal
+from typing import Union, List, Dict, Tuple, Optional, cast, overload, Literal, TYPE_CHECKING
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
-from a5client.util_types import ApiConfigDict, SeriesDict, TVP
+from a5client.util_types import ApiConfigDict, SeriesDict, TVP, Dateable, Intervaleable
 import traceback
 from pathlib import Path
+
+if TYPE_CHECKING:
+    from .topology import Topology
 
 class Node:
     id = IntDescriptor()
@@ -101,14 +105,14 @@ class Node:
             self,
             id : int,
             name : str,
-            time_interval : Union[relativedelta,IntervalDict,int],
+            time_interval : Intervaleable,
             tipo : str="puntual",
-            timestart : Optional[datetime] = None,
-            timeend : Optional[datetime] = None,
-            forecast_timeend : Optional[datetime] = None,
+            timestart : Optional[Dateable] = None,
+            timeend : Optional[Dateable] = None,
+            forecast_timeend : Optional[Dateable] = None,
             plan = None,
-            time_offset : Optional[Union[relativedelta,IntervalDict,int]] = None,
-            topology = None,
+            time_offset : Optional[Intervaleable] = None,
+            topology : Optional["Topology"] = None,
             hec_node : Optional[dict] = None,
             variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
             node_type : str = "station",
@@ -179,15 +183,15 @@ class Node:
         # if "name" not in params:
         #     raise ValueError("name of node must be defined")
         self.name = name
-        self.timestart = timestart
-        self.timeend = timeend
-        self.forecast_timeend = forecast_timeend
+        self.timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else None
+        self.timeend = tryParseAndLocalizeDate(timeend) if timeend is not None else None
+        self.forecast_timeend = tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None
         # if "time_interval" not in params:
         #     raise ValueError("time_interval of node must be defined")
-        self.time_interval = interval2timedelta(time_interval)
+        self.time_interval = interval2relativedelta(time_interval)
         if datetime(2000,1,1) - self.time_interval == datetime(2000,1,1):
             raise ValueError("Invalid time_interval")
-        self.time_offset = interval2timedelta(time_offset) if time_offset is not None else None
+        self.time_offset = interval2relativedelta(time_offset) if time_offset is not None else None
         self.hec_node = hec_node
         self._plan = plan
         self._topology = topology
@@ -874,10 +878,10 @@ class Node:
 
     def loadData(
         self,
-        timestart : datetime,
-        timeend : datetime,
+        timestart : Dateable,
+        timeend : Dateable,
         include_prono : bool = True,
-        forecast_timeend : Optional[datetime] = None,
+        forecast_timeend : Optional[Dateable] = None,
         input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False,
         ) -> None:
@@ -913,10 +917,10 @@ class Node:
         for variable in self.variables.values():
             if isinstance(variable,ObservedNodeVariable):
                 variable.loadData(
-                    timestart,
-                    timeend,
+                    tryParseAndLocalizeDate(timestart),
+                    tryParseAndLocalizeDate(timeend),
                     include_prono,
-                    forecast_timeend,
+                    tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None,
                     input_api_config,
                     no_metadata = no_metadata)
     def removeOutliers(self) -> bool:

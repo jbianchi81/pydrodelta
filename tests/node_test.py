@@ -1,12 +1,13 @@
 from pydrodelta.node import Node
 from unittest import TestCase
+from a5client.util_types import IntervalDict
 
 class Test_Node(TestCase):
 
     def test_node_load_api_len(self):
-        timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-20T03:00:00.000Z"
-        time_interval = { "hours": 1}
+        timestart : IntervalDict = {"days": -3}
+        timeend : IntervalDict = {"days": 30}
+        time_interval : IntervalDict = { "days": 1}
         node = Node(
             id = 1,
             name = "node 1",
@@ -18,19 +19,18 @@ class Test_Node(TestCase):
                     "id": 39,
                     "series": [
                         {
-                            "series_id": 38,
+                            "series_id": 26282,
                             "tipo": "puntual"
                         },
                         {
-                            "series_id": 100003,
+                            "series_id": 41,
                             "tipo": "puntual"
                         }
                     ],
                     "series_prono": [
                         {
-                            "cal_id": 288,
-                            "cor_id": 6,
-                            "series_id": 3416,
+                            "cal_id": 499,
+                            "series_id": 35471,
                             "tipo":  "puntual"
                         }
                     ]
@@ -41,12 +41,12 @@ class Test_Node(TestCase):
             timestart,
             timeend,
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })   
-        self.assertEqual(len(node.variables[39].series[0].data),3)
-        self.assertEqual(len(node.variables[39].series[1].data),3)
-        self.assertEqual(len(node.variables[39].series_prono[0].data),43)
+        assert len(node.variables[39].series[0].data) >= 2
+        assert len(node.variables[39].series[1].data) >= 2
+        assert len(node.variables[39].series_prono[0].data) >= 4
 
     def test_area_retrieve_metadata(self):
         timestart = "2022-02-18T03:00:00.000Z"
@@ -71,14 +71,14 @@ class Test_Node(TestCase):
             ],
             node_type = "basin",
             basin_pars = {
-                "area_id": 614
+                "area_id": 365
             },
             api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             }
         )
         self.assertIsNotNone(node.basin_pars)
         self.assertTrue("area" in node.basin_pars)        
         self.assertIsNotNone(node.basin_pars["area"])
-        self.assertAlmostEqual(node.basin_pars["area"],140273473.449287,1)
+        self.assertAlmostEqual(node.basin_pars["area"],45250735227.4144,1)

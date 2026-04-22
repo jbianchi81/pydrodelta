@@ -59,7 +59,7 @@ class Test_Plan(TestCase):
         plan = Plan.load(data_dir / "plans/dummy_polynomial.yml")
         plan.topology.batchProcessInput(
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })
         for n in plan.topology.nodes:
@@ -73,7 +73,7 @@ class Test_Plan(TestCase):
         plan = Plan.load(data_dir / "plans/dummy_sac_basin_pars_from_api.yml")
         self.assertTrue("area" in plan.procedures[0].function.extra_pars)
         self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
-        self.assertAlmostEqual(plan.procedures[0].function.extra_pars["area"], 140273473.449287,1)
+        self.assertAlmostEqual(plan.procedures[0].function.extra_pars["area"], 45250735227.4144,1)
         plan.execute(
             upload = False
         )
@@ -83,7 +83,7 @@ class Test_Plan(TestCase):
         plan.execute(
             upload = False,
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })
 

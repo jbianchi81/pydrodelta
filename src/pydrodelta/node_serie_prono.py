@@ -10,9 +10,9 @@ from .descriptors.datetime_descriptor import DatetimeDescriptor
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.list_descriptor import ListDescriptor
 from .util import coalesce
-from typing import Optional
+from typing import Optional, cast
 from .types.api_config_dict import ApiConfigDict
-from a5client.util_types import Dateable
+from a5client.util_types import Dateable, TVPGroupedByQualifier
 from a5client.util import tryParseAndLocalizeDate
 
 input_crud = Crud(**config["input_api"])
@@ -218,22 +218,22 @@ class NodeSerieProno(NodeSerie):
                         forecast_timestart = previous_runs_timestart,
                         tipo = self.type,
                         group_by_qualifier=True)
-                    main_qualifier_index = 0
-
-                    if self.main_qualifier is not None:
-                        for i, m in enumerate(metadata["pronosticos"]):
-                            qualifier = m.get("qualifier")
-                            if qualifier == self.main_qualifier:
-                                main_qualifier_index = i
                     
-                    if not len(metadata["pronosticos"]) or "pronosticos" not in metadata["pronosticos"][main_qualifier_index] or not len(metadata["pronosticos"][main_qualifier_index]["pronosticos"]):
-                        logging.warning("No forecast values found for series_id %i, tipo %s, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.type, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
-                        self.data = createEmptyObsDataFrame()
-                    else:
-                        self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")
-                        for member in metadata["pronosticos"]:
-                            self.data = self.data.join(observacionesListToDataFrame(member["pronosticos"]).rename(columns={"valor": member["qualifier"]}))
-                    return
+                    # main_qualifier_index = 0
+                    # if self.main_qualifier is not None:
+                    #     for i, m in enumerate(metadata["pronosticos"]):
+                    #         qualifier = m.get("qualifier")
+                    #         if qualifier == self.main_qualifier:
+                    #             main_qualifier_index = i
+                    
+                    # if not len(metadata["pronosticos"]) or "pronosticos" not in metadata["pronosticos"][main_qualifier_index] or not len(metadata["pronosticos"][main_qualifier_index]["pronosticos"]):
+                    #     logging.warning("No forecast values found for series_id %i, tipo %s, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.type, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
+                    #     self.data = createEmptyObsDataFrame()
+                    # else:
+                    #     self.data = observacionesListToDataFrame(metadata["pronosticos"][main_qualifier_index]["pronosticos"],tag="prono")
+                    #     for member in metadata["pronosticos"]:
+                    #         self.data = self.data.join(observacionesListToDataFrame(member["pronosticos"]).rename(columns={"valor": member["qualifier"]}))
+                    # return
                 else:
                     metadata = crud.readSeriePronoConcat(
                         self.cal_id,
@@ -256,9 +256,27 @@ class NodeSerieProno(NodeSerie):
             if not len(metadata["pronosticos"]):
                 logging.warning("No data found for series_id=%i, tipo=%s, cal_id=%i" % (self.series_id, self.type, self.cal_id))
                 self.data = createEmptyObsDataFrame()
-                return
-            
-            self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
+            else:
+                # check if pronosticos is List[SeriesPronoGroupedByQualifierDict]
+                if "pronosticos" in metadata["pronosticos"][0]:
+                    main_qualifier_index = 0
+                    if self.main_qualifier is not None:
+                        for i, m in enumerate(metadata["pronosticos"]):
+                            qualifier = m.get("qualifier")
+                            if qualifier == self.main_qualifier:
+                                main_qualifier_index = i
+
+                    prono_main = cast(TVPGroupedByQualifier,metadata["pronosticos"][main_qualifier_index])    
+                    if "pronosticos" not in prono_main or not len(prono_main["pronosticos"]):
+                        logging.warning("No forecast values found for series_id %i, tipo %s, cal_id %i, timestart %s, timeend %s, cor_id %s, main qualifier index %i" % (self.series_id, self.type, self.cal_id, timestart.isoformat(), timeend.isoformat(), self.cor_id, main_qualifier_index))
+                        self.data = createEmptyObsDataFrame()
+                    else:
+                        self.data = observacionesListToDataFrame(prono_main["pronosticos"],tag="prono")
+                        for member in metadata["pronosticos"]:
+                            prono_q = cast(TVPGroupedByQualifier, member)
+                            self.data = self.data.join(observacionesListToDataFrame(prono_q["pronosticos"]).rename(columns={"valor": prono_q["qualifier"]}))
+                else:
+                    self.data = observacionesListToDataFrame(metadata["pronosticos"],tag="prono")
         
             md = {**metadata}
             del md["pronosticos"]

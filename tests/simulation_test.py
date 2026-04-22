@@ -9,9 +9,9 @@ class Test_Simulation(TestCase):
         result = runner.invoke(
             run_plan,
             [
-                "sample_data/plans/dummy_polynomial.yml",
+                "tests/data/plans/dummy_polynomial.yml",
                 "--input-api",
-                "my_token@https://alerta.ina.gob.ar/test"
+                "my_token@https://alerta.ina.gob.ar/a5"
             ]
         )
         self.assertEqual(result.exit_code, 0)
@@ -21,7 +21,7 @@ class Test_Simulation(TestCase):
         result = runner.invoke(
             run_plan,
             [
-                "sample_data/plans/dummy_polynomial.yml"
+                "tests/data/plans/dummy_polynomial.yml"
             ]
         )
         self.assertEqual(result.exit_code, 0)

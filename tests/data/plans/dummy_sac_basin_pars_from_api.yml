@@ -17,9 +17,9 @@ topology:
     node_type: basin
     description: basin area and outlet station
     basin_pars:
-     area_id: 614
+     area_id: 365
     api_config:
-      url: https://alerta.ina.gob.ar/test
+      url: https://alerta.ina.gob.ar/a5
       token: MY_TOKEN
     time_interval:
       days: 1
@@ -29,19 +29,19 @@ topology:
       series:
       - series_id: 1
         tipo: areal
-        csv_file: sample_data/csv/dummy_sac.csv
+        csv_file: ../csv/dummy_sac.csv
     - id: 15
       name: ETPD
       series:
       - series_id: 2
         tipo: areal
-        csv_file: sample_data/csv/dummy_sac.csv
+        csv_file: ../csv/dummy_sac.csv
     - id: 20
       name: SMC
       series:
       - series_id: 3
         tipo: areal
-        csv_file: sample_data/csv/dummy_sac.csv
+        csv_file: ../csv/dummy_sac.csv
       series_sim:
       - series_id: 3
         tipo: areal
@@ -52,7 +52,7 @@ topology:
       series:
       - series_id: 4
         tipo: puntual
-        csv_file: sample_data/csv/dummy_sac.csv
+        csv_file: ../csv/dummy_sac.csv
       series_sim:
       - series_id: 4
         tipo: puntual

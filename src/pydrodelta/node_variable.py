@@ -146,7 +146,7 @@ class NodeVariable:
     def __init__(
         self,
         id : int,
-        node = None,
+        node : Optional["Node"] = None,
         fill_value : Optional[float] = None,
         series_output : Optional[List[Union[dict,NodeSerie]]] = None,
         output_series_id : Optional[int] = None,
@@ -1169,7 +1169,7 @@ class NodeVariable:
             # logging.debug("self.interpolation_limit: %s" % str(self.interpolation_limit))
             if self.time_interval is None:
                 raise RuntimeError("time_interval not set")
-            interpolation_limit = int(limit.total_seconds() / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,timedelta) else int(limit) if limit is not None else None
+            interpolation_limit = int(limit.total_seconds() / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,timedelta) else int(relativedeltaToSeconds(limit) / relativedeltaToSeconds(self.time_interval)) if isinstance(limit,relativedelta) else int(limit) if limit is not None else None
             logging.debug("interpolation limit:%s" % str(interpolation_limit))
             logging.debug("extrapolate:%s" % str(extrapolate))
             if interpolation_limit is not None and interpolation_limit <= 0:

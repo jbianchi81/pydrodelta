@@ -11,6 +11,7 @@ from pandas import DataFrame
 from .types.typed_list import TypedList
 from .types.api_config_dict import ApiConfigDict
 from a5client.util_types import Dateable
+from a5client.util import tryParseAndLocalizeDate
 import traceback
 
 class ObservedNodeVariable(NodeVariable):
@@ -37,10 +38,10 @@ class ObservedNodeVariable(NodeVariable):
     
     def loadData(
         self,
-        timestart : datetime,
-        timeend : datetime,
+        timestart : Dateable,
+        timeend : Dateable,
         include_prono : bool = True,
-        forecast_timeend : Optional[datetime] = None,
+        forecast_timeend : Optional[Dateable] = None,
         input_api_config : Optional[ApiConfigDict] = None,
         no_metadata : bool = False
         ) -> None:
@@ -72,6 +73,9 @@ class ObservedNodeVariable(NodeVariable):
         no_metadata : bool = False
             Don't retrieve series metadata on load from api
         """
+        timestart = tryParseAndLocalizeDate(timestart)
+        timeend = tryParseAndLocalizeDate(timeend)
+        forecast_timeend = tryParseAndLocalizeDate(forecast_timeend) if forecast_timeend is not None else None
         logging.debug("Load data for observed node: %i" % (self.id))
         if self.series is not None:
             for serie in self.series:

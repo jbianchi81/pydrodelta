@@ -33,11 +33,8 @@ class DerivedOrigin:
     def origin(self) -> Optional[NodeVariable]:
         """Origin NodeVariable"""
         return self._origin
-    @origin.setter
-    def origin(
-        self,
-        ignored
-        ) -> None:
+    
+    def set(self) -> None:
         if self._topology is not None:
             from_nodes = [x for x in self._topology.nodes if x.id == self.node_id]
             if not len(from_nodes):
@@ -82,4 +79,5 @@ class DerivedOrigin:
         self.x_offset = x_offset
         self.y_offset = y_offset
         self._topology = topology
-        self.origin = 0
+        # self.origin = 0 instead, self.set() after topology.nodes is set 
+    

@@ -130,7 +130,7 @@ class Test_Topology(TestCase):
             ]
         )
         topology.loadData(input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "test_reader"
             })
         self.assertTrue(topology.no_metadata)
@@ -229,7 +229,7 @@ class Test_Topology(TestCase):
         topology = Topology(**dummy_topology)
         topology.batchProcessInput(include_prono=True)
         topology.saveData(
-            file = data_dir / "results/h_data.csv",
+            output = data_dir / "results/h_data.csv",
             format = "csv",
             pivot = True,
             variables = [4]

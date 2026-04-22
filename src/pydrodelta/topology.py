@@ -11,7 +11,7 @@ import logging
 import json
 from numpy import nan
 from a5client import createEmptyObsDataFrame, Crud, Serie
-from a5client.util import tryParseAndLocalizeDate, interval2relativedelta, serieObsToProno
+from a5client.util import tryParseAndLocalizeDate, interval2relativedelta, serieObsToProno, parseVar
 from a5client.util_types import CorridaDict, CorridaDictNoId, SeriesDict, TVP, Dateable, Intervaleable, CorridaNoIdSerializableDict
 import pandas
 import matplotlib.pyplot as plt
@@ -43,6 +43,7 @@ from .types.plot_variable_params import PlotVariableParams
 from .types.save_variable_params import SaveVariableParams
 from .types.api_config_dict import ApiConfigDict
 from .node_serie import NodeSerie
+from .derived_node_serie import DerivedNodeSerie
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -66,13 +67,14 @@ class Topology(Base):
     """maximum duration between observations for interpolation"""
     extrapolate : bool
     """Extrapolate observations outside the observation time domain, up to a maximum duration equal to .interpolation_limit"""
+    _nodes : TypedList[Node]
     @property
     def nodes(self) -> TypedList[Node]:
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
         return self._nodes
     @nodes.setter
     def nodes(self,nodes : List[NodeDict]):
-        self._nodes : TypedList[Node] = TypedList(Node, *nodes, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
+        self._nodes = TypedList(Node, *nodes, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
         # for i, node in enumerate(nodes):
         #     if "id" not in node:
         #         raise ValueError("Missing node.id at index %i of topology.nodes" % i)
@@ -354,6 +356,7 @@ class Topology(Base):
         self._plan = plan
         """Plan that contains this topology"""
         self.nodes = nodes
+        self.setDerivedOrigins()
         self.cal_id = cal_id
         self.plot_params = plot_params
         self.report_file = self.resolve_path(report_file)
@@ -493,7 +496,7 @@ class Topology(Base):
         self,
         include_prono : bool = True,
         input_api_config : Optional[ApiConfigDict] = None,
-        no_metadata : bool = False) -> None:
+        no_metadata : Optional[bool] = None) -> None:
         """For each series of each variable of each node, load data from the source.
         
         Parameters:
@@ -1287,19 +1290,19 @@ class Topology(Base):
                                 data_table = data_table.join(data_sim.set_index("timestart")[[c]].rename(columns={c:label}))
                                 data_table[label] = data_table[label].round(2)
             if hasattr(nodevariable,"max_obs_date") and nodevariable.max_obs_date is not None:
-                plt.axvline(nodevariable.max_obs_date, color='k', linestyle='--')
+                plt.axvline(nodevariable.max_obs_date, color='k', linestyle='--') # type: ignore[arg-type]
             if table:
                 ax[1].axis('off')  # Hide axes
                 data_table = data_table.reset_index()
                 data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
                 table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).round(round_to).values.tolist(), loc='center')
-                table.auto_set_font_size(False)
+                table.auto_set_font_size(False) # type: ignore[arg-type]
             if output is not None:
-                pdf.savefig()
+                pdf.savefig() # type: ignore[arg-type]
             plt.close()
         
         if output is not None:
-            pdf.close()
+            pdf.close() # type: ignore[arg-type]
             matplotlib.use(os.environ["MPLBACKEND"] if "MPLBACKEND" in os.environ else "Agg")
         else:
             plt.show()
@@ -1847,6 +1850,22 @@ class Topology(Base):
         if id not in self.var_map:
             if self.input_crud is None:
                 raise Exception("input crud not set")
-            self.var_map[id]  = self.input_crud.readVar(id)
+            v = self.input_crud.readVar(id)
+            self.var_map[id] = parseVar(v)
         return self.var_map[id]
         
+    def setDerivedOrigins(self):
+        for n in self.nodes:
+            for var_id, v in n.variables.items():
+                if isinstance(v,DerivedNodeVariable):
+                    if v.series is None:
+                        continue
+                    for s in v.series:
+                        if isinstance(s, DerivedNodeSerie):
+                            if s.derived_from is not None:
+                                s.derived_from.set()
+                            elif s.interpolated_from is not None:
+                                s.interpolated_from.set()
+                            else:
+                                raise RuntimeError("derived_from or interpolated_from not set at node %i, variable %i serie %i", (n.id, var_id, s.series_id))
+                

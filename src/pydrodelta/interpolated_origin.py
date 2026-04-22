@@ -106,9 +106,9 @@ class InterpolatedOrigin:
         self.y_offset = y_offset
         self.interpolation_coefficient = interpolation_coefficient
         self._topology = topology
-        self.setOrigin()
+        # wait for topology.nodes to be set self.set()
     
-    def setOrigin(self) -> None:
+    def set(self) -> None:
         """Set origin node-variables according to the stored identifiers (.node_id_1, .node_id_2, .var_id_1, .var_id_2)"""
         if self._topology is not None:
             from_nodes = [x for x in self._topology.nodes if x.id == self.node_id_1]

@@ -912,7 +912,7 @@ def plot_prono(
         if forecast_date.tzinfo is not None and forecast_date.tzinfo.utcoffset(forecast_date) is not None:
             ahora = forecast_date
         else:
-            ahora = localtz.localize(forecast_date)
+            ahora = localtz.localize(forecast_date) # type: ignore[arg-type]
     elif not isinstance(obs_df, type(None)):
         ahora = obs_df.index.max()
     else: 
@@ -1000,8 +1000,9 @@ def plot_prono(
         # columns = table_columns # ('Fecha','Nivel',)
         if len(cell_text):
             table = plt.table(cellText=cell_text,
-                            colLabels=table_columns,
-                            bbox = Bbox.from_bounds(1.08, 0, 0.2, 0.5))
+                colLabels=table_columns,
+                bbox = cast(Bbox,(1.08, 0, 0.2, 0.5))
+            )
             table.set_fontsize(12)
         else:
             logging.warning("No rows found for forecast table")
@@ -1021,7 +1022,7 @@ def plot_prono(
         ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
         i=i+2
     createParent(output_file)
-    plt.savefig(output_file,format = format)
+    plt.savefig(output_file, format = format)
     plt.close()
 
 def getParamOrDefaultTo(
@@ -1141,7 +1142,7 @@ def groupByCalibrationPeriod(
 def coalesce(*args):
     return next((item for item in args if item is not None), None)
 
-colormap = plt.colormaps["hsv"]
+colormap = plt.colormaps["hsv"] # type: ignore[arg-type]
 def getRandColor():
     return colormap(random.randrange(colormap.N))
 
@@ -1292,8 +1293,9 @@ def interpolate_or_copy_closest(data : Series,interpolation_limit : Union[timede
     delta_bwd = bfill_times - data.index.to_series()
 
     # Mask values where gap is too big
-    use_ffill = (delta_fwd <= interpolation_limit)
-    use_bfill = (delta_bwd <= interpolation_limit)
+    td = relativedelta_to_timedelta(interpolation_limit) if isinstance(interpolation_limit, relativedelta) else interpolation_limit
+    use_ffill = (delta_fwd <= td)
+    use_bfill = (delta_bwd <= td)
 
     # Choose closest direction when both are valid
     filled = data.copy()

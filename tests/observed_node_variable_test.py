@@ -4,26 +4,26 @@ from datetime import timedelta
 from pydrodelta.types.typed_list import TypedList
 from pydrodelta.node_serie import NodeSerie
 from pydrodelta.node_serie_prono import NodeSerieProno
+from a5client.util_types import IntervalDict
 
 class Test_ObservedNodeVariable(TestCase):
 
     def test_series_load_api_len(self):
-        timestart = "2022-02-18T03:00:00.000Z"
-        timeend = "2022-02-22T03:00:00.000Z"
-        time_interval = { "hours": 1}
+        timestart : IntervalDict = {"days": -3}
+        timeend : IntervalDict = {"days": 30}
+        time_interval : IntervalDict = { "days": 1}
         node_variable = ObservedNodeVariable(
             id = 2,
             series = [
                 {
-                    "series_id": 38,
+                    "series_id": 41,
                     "tipo": "puntual"
                 }
             ],
             series_prono = [
                 {
-                    "cal_id": 288,
-                    "cor_id": 6,
-                    "series_id": 3416,
+                    "cal_id": 499,
+                    "series_id": 35471,
                     "tipo":  "puntual"
                 }
             ],
@@ -35,11 +35,11 @@ class Test_ObservedNodeVariable(TestCase):
             timestart,
             timeend,
             input_api_config = {
-                "url": "https://alerta.ina.gob.ar/test",
+                "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
             })   
-        self.assertEqual(len(node_variable.series[0].data),3)
-        self.assertEqual(len(node_variable.series_prono[0].data),91)
+        self.assertEqual(len(node_variable.series[0].data),2)
+        self.assertEqual(len(node_variable.series_prono[0].data),4)
 
     def test_series_load_api_raise_timestart_not_set(self):
         node_variable = ObservedNodeVariable(
