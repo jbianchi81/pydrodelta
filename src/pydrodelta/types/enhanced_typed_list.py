@@ -1,5 +1,5 @@
 from collections.abc import MutableSequence
-from typing import List, Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar, Iterator
 
 T = TypeVar("T")
 
@@ -114,3 +114,6 @@ class EnhancedTypedList(MutableSequence, Generic[T]):
         if not self._allow_missing:
             self.assert_missing_ids()
         return popped
+    
+    def __iter__(self) -> Iterator[T]:
+        return iter(self.list)

@@ -5,7 +5,10 @@ from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .node import Node
 from .node_variable import NodeVariable
-from typing import Tuple, Optional
+from typing import Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .plan import Plan
 
 class ProcedureBoundary():
     """
@@ -35,12 +38,12 @@ class ProcedureBoundary():
         return self._name
 
     @property
-    def node(self) -> Node:
+    def node(self) -> Optional[Node]:
         """Reference to the Node instance of the topology that this boundary is assigned to"""
         return self._node
 
     @property
-    def variable(self) -> NodeVariable:
+    def variable(self) -> Optional[NodeVariable]:
         """Reference to the NodeVariable instance of the topology that this boundary is assigned to"""
         return self._variable
 
@@ -54,15 +57,15 @@ class ProcedureBoundary():
     """Compute result statistics for this boundary"""
     def __init__(
             self,
-            node_id : int = None,
-            var_id : int = None,
-            name : str = None,
-            plan = None,
-            optional : bool = False,
-            warmup_only : bool = False,
-            compute_statistics : bool = True,
-            node_variable : Tuple[int,int] = None,
-            warmup_steps : int = None
+            node_id : Optional[int] = None,
+            var_id : Optional[int] = None,
+            name : Optional[str] = None,
+            plan : Optional["Plan"] = None,
+            optional : Optional[bool] = False,
+            warmup_only : Optional[bool] = False,
+            compute_statistics : Optional[bool] = True,
+            node_variable : Optional[Tuple[int,int]] = None,
+            warmup_steps : Optional[int] = None
         ):
         """Initiate class ProcedureBoundary
         
@@ -93,15 +96,17 @@ class ProcedureBoundary():
             Number of steps needed for warmup
 
         """
-        if node_id is None and node_variable is None:
-            raise TypeError("Either node_id or node_variable must be set")
-        if var_id is None and node_variable is None:
-            raise TypeError("Either var_id or node_variable must be set")
+        if node_id is None:
+            if node_variable is None:
+                raise TypeError("Either node_id or node_variable must be set")
+            node_id = node_variable[0]
+        if var_id is None:
+            if node_variable is None:
+                raise TypeError("Either var_id or node_variable must be set")
+            var_id = node_variable[1]
         if name is None:
             raise TypeError("name must be str, not None")
         self.optional = optional
-        node_id = node_id if node_id is not None else node_variable[0]
-        var_id = var_id if var_id is not None else node_variable[1]
         self._node_variable = (node_id, var_id)
         self._name = name
         self._plan = plan
@@ -124,7 +129,7 @@ class ProcedureBoundary():
             "warmup_only": self.warmup_only,
             "compute_statistics": self.compute_statistics
         }
-    def setNodeVariable(self,plan) -> None:
+    def setNodeVariable(self,plan : "Plan") -> None:
         """
         Search for node id=self.node_id, variable id=self.var_id in plan.topology and set self._node and self._variable
         
@@ -136,6 +141,8 @@ class ProcedureBoundary():
         Raises:
         -------
         Exception when node with id: self.node_id containing a variable with id: self.var_id is not found in plan.topology"""
+        if plan.topology is None:
+            raise RuntimeError("topology not set")
         for t_node in plan.topology.nodes:
             if t_node.id == self.node_id:
                 self._node = t_node
@@ -178,6 +185,8 @@ class ProcedureBoundary():
         if self._variable is None:
             raise AssertionError("procedure boundary variable is None")
         if read_sim:
+            if self._variable.series_sim is None:
+                raise AssertionError("procedure boundary series_sim not set")
             if len(self._variable.series_sim) < sim_index + 1:
                 raise AssertionError("procedure boundary series_sim not found at required index %i" % sim_index)
             if self._variable.series_sim[sim_index].data is None:
@@ -188,6 +197,8 @@ class ProcedureBoundary():
                 raise AssertionError("procedure boundary data is None")
             data = self._variable.data
         if warmup_only:
+            if self._plan is None:
+                raise RuntimeError("plan is not set")
             if warmup_steps is not None:
                 data_filtered = data[data.index <= self._plan.forecast_date]["valor"].tail(warmup_steps)
             else:

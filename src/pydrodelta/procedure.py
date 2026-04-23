@@ -121,7 +121,7 @@ class Procedure():
     sim_index = IntDescriptor()
     """With read_sim, which series_sim index of node variables to read from"""
 
-    adjust_method = StringDescriptor()
+    adjust_method : Literal['lfit', 'arima']
     """Adjust method. Options: lfit (linear regression), arima (ARIMA)"""
 
     drop_warmup = BoolDescriptor()
@@ -143,7 +143,7 @@ class Procedure():
         overwrite_original : bool = False,
         calibration : Optional[dict] = None,
         adjust : bool = False,
-        adjust_method : str = "lfit",
+        adjust_method : Literal['lfit', 'arima'] = "lfit",
         warmup_steps : Optional[int] = None,
         tail_steps : Optional[int] = None,
         error_band : Optional[bool] = None,
@@ -342,6 +342,8 @@ class Procedure():
             for boundary in self.function.boundaries:
                 if boundary._variable is None:
                     raise Exception("variable not set")
+                if boundary._variable.series_sim is None:
+                    raise Exception("series_sim not set")
                 if read_sim and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
                     boundary_data = boundary._variable.series_sim[sim_index].data
                 elif boundary._variable.data is not None and len(boundary._variable.data):
@@ -386,6 +388,8 @@ class Procedure():
                     except AssertionError as e:
                         raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
                 if read_sim:
+                    if boundary._variable.series_sim is None:
+                        raise RuntimeError("series_sim not set")
                     if boundary._variable.series_sim[sim_index].data is None:
                         raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
                     data_.append(boundary._variable.series_sim[sim_index].data.copy())
@@ -649,7 +653,7 @@ class Procedure():
         load_input : bool = True, 
         load_output_obs : bool = True,
         adjust : Optional[bool] = None,
-        adjust_method : Optional[str] = None,
+        adjust_method : Optional[Literal['lfit', 'arima']] = None,
         warmup_steps : Optional[int] = None,
         tail_steps : Optional[int] = None,
         error_band : Optional[bool] = None,
@@ -849,10 +853,15 @@ class Procedure():
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
                 continue
+            if o.node is None:
+                raise RuntimeError("node not set")
             output_data = self.setIndexOfDataFrame(self.output if isinstance(self.output, DataFrame) else self.output[index],time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
-                o._variable.concatenateOriginal(self.output[index],overwrite=overwrite_original)
+                data = self.output if isinstance(self.output, DataFrame) else self.output[index]
+                if not isinstance(data, DataFrame):
+                    raise RuntimeError("output item is not DataFrame")
+                o._variable.concatenateOriginal(data,overwrite=overwrite_original)
             for serie in o._variable.series_sim:
                 # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
                 serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
@@ -954,6 +963,8 @@ class Procedure():
         calibration_result = self.calibration.run(inplace=inplace)
         if inplace:
             # updates params
+            if self.calibration.calibration_result is None:
+                raise RuntimeError("calibration_result not set")
             self.function.setParameters(self.calibration.calibration_result[0])
             # runs procedure
             self.run(load_input=False, load_output_obs=False)
