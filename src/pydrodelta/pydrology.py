@@ -1,36 +1,39 @@
 #/usr/bin/python3
 #Librería de métodos para modelación hidrológica SSIyAH-INA, 2022 (modelación dinámica)
 import math
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, cast, Any, overload
 from sys import maxsize
 from zlib import MAX_WBITS
 from .pydrology_procedure_interface import PydrologyProcedureInterface
 import numpy  as np
+from numpy.typing import NDArray
 import pandas as pd
 import matplotlib.pyplot as plt
 import os, glob
 import logging
 
+def is_scalar_like(x) -> bool:
+    return np.isscalar(x) or (isinstance(x, np.ndarray) and x.ndim == 0)
 
 #Funciones/Procedimientos (Procesos Hidrológicos, procesamiento de datos)
-def testPlot(Inflow: Union[np.ndarray,List[float]],Outflow : Union[np.ndarray,List[float]]):
+def testPlot(Inflow: Union[NDArray[np.float64],List[float]],Outflow : Union[NDArray[np.float64],List[float]]):
     """Genera una gráfica de prueba comparando 2 señales
 
      Args:
-        Inflow : Union[np.ndarray,List[float]] 
+        Inflow : Union[NDArray[np.float64],List[float]] 
             Hidrograma, lista de números (float)
-        Outflow : Union[np.ndarray,List[float]]
+        Outflow : Union[NDArray[np.float64],List[float]]
             Hidrograma, lista de números (float)
     """
     plt.plot(Inflow,'r')
     plt.plot(Outflow,'b')
     plt.show()
 
-def shiftLeft(array1d : Union[np.ndarray,List[float]],fill : float =0) -> np.ndarray:
+def shiftLeft(array1d : Union[NDArray[np.float64],List[float]],fill : float =0) -> NDArray[np.float64]:
     """Desplaza una serie hacia la izquierda (valor de índice en lista)
 
      Args:
-        array1d : Union[np.ndarray,List[float]] 
+        array1d : Union[NDArray[np.float64],List[float]] 
             Serie numérica
         fill : float 
             valor de relleno para datos nulos
@@ -63,13 +66,13 @@ def getDrivers(file : str,tCol: str ='t') -> pd.DataFrame:
     data.index=data[tCol]
     return(data)
 
-def makeBoundaries(p : Union[List[float],np.ndarray] = [0],evp : Union[List[float],np.ndarray] =[0]) -> np.ndarray:
+def makeBoundaries(p : Union[List[float],NDArray[np.float64]] = [0],evp : Union[List[float],NDArray[np.float64]] =[0]) -> NDArray[np.float64]:
     """Dummy para generación de series de borde en modelos PQ operacionales (para cada polígono)
 
      Args: 
-        p : [List[float],np.ndarray]  
+        p : [List[float],NDArray[np.float64]]  
             serie de datos de precipitación acumulada
-        evp : [List[float],np.ndarray]  
+        evp : [List[float],NDArray[np.float64]]  
             serie de datos de evapotranspiración potencial acumulada
         
         Returns:
@@ -80,7 +83,11 @@ def makeBoundaries(p : Union[List[float],np.ndarray] = [0],evp : Union[List[floa
     boundaries[:,1]=evp
     return(boundaries)
 
-def differentiate(lista_valores : List[float], asume_initial : bool =True) -> List[float]:
+@overload
+def differentiate(lista_valores : List[float], asume_initial : bool =True) -> List[float]: ...
+@overload
+def differentiate(lista_valores : NDArray[np.float64], asume_initial : bool =True) -> NDArray[np.float64]: ...
+def differentiate(lista_valores : Union[List[float],NDArray[np.float64]], asume_initial : bool =True) -> Union[List[float],NDArray[np.float64]]:
     """Diferencia la serie de valores
     
     Args:
@@ -95,12 +102,12 @@ def differentiate(lista_valores : List[float], asume_initial : bool =True) -> Li
     if(asume_initial==True):
         dif=[lista_valores[0]]*len(lista_valores)
     else:
-        dif=[0]*len(lista_valores)
+        dif=[0.0]*len(lista_valores)
     for i in range(1,len(lista_valores)):
         dif[i]=lista_valores[i]-lista_valores[i-1]
     return(dif)
 
-def integrate(lista_valores : List[float], dt : float) -> float:
+def integrate(lista_valores : Union[List[float],NDArray[np.float64]], dt : float) -> float:
     """Integra por método del trapecio la serie de valores
     
     Args:
@@ -117,7 +124,7 @@ def integrate(lista_valores : List[float], dt : float) -> float:
         integral=integral+(lista_valores[i]+lista_valores[i-1])*dt/2
     return(integral)
 
-def triangularDistribution(pars : Union[List[float],float],distribution : str ='Symmetric',dt : float =0.01,shift : bool =True,approx: bool=True) -> np.ndarray:
+def triangularDistribution(pars : Union[List[float],float],distribution : str ='Symmetric',dt : float =0.01,shift : bool =True,approx: bool=True) -> NDArray[np.float64]:
     """Computa Hidrogramas Unitarios Triangulares (función respuesta a pulso unitario, función de transferencia) 
     
     Args:
@@ -142,7 +149,7 @@ def triangularDistribution(pars : Union[List[float],float],distribution : str ='
         tb=8/3*T
         peakValue=3/4*1/T
     elif distribution == 'pbT':
-        tb=pars[0]
+        tb=T
         peakValue=2/tb
     else:
         raise ValueError("distribution must be 'Symmetric', 'SCS' or 'pbT'")
@@ -150,19 +157,24 @@ def triangularDistribution(pars : Union[List[float],float],distribution : str ='
     ndimU=int(round(tb,0)+1)
     u=np.array([0]*(ndimu),dtype='float')
     U=np.array([0]*(ndimU),dtype='float')
-    i=0
-    j=0    
+    desc : bool = False
+    j : int = 0    
+    slope : Optional[float] = None
     for t in np.array(list(range(0,ndimu))):
         if t*dt<T:
             if j==0:
-                m=peakValue/T
-            u[j]=m*t*dt
+                slope=peakValue/T
+            if slope is None:
+                raise RuntimeError("slope not set")
+            u[j]=slope * t * dt
         else:
-            if i==0:
-                i=1
-                m=peakValue/(T-tb)
-            u[j]=peakValue+m*(t*dt-T)
-        j=j+1 
+            if not desc:
+                desc = True
+                slope=peakValue/(T - tb)
+            if slope is None:
+                raise RuntimeError("slope not set")
+            u[j]=peakValue + slope * (t * dt - T)
+        j= j + 1 
     for j in range(1,ndimU):
         min=int((j-1)/dt)
         max=int(j/dt)+1
@@ -175,7 +187,7 @@ def triangularDistribution(pars : Union[List[float],float],distribution : str ='
     else:
         return(U)
 
-def gammaDistribution(n : float,k : float,dt : float =1,m : float =10,approx : bool = True,shift :bool =True) -> np.ndarray:
+def gammaDistribution(n : float,k : float,dt : float =1,m : float =10,approx : bool = True,shift :bool =True) -> NDArray[np.float64]:
     """Computa Hidrogramas Unitarios (función respuesta a pulso unitario, función de transferencia) sobre la base de una función respuesta a impulso unitaria suponiendo n reservorios lineales en cascada con tiempo de residencia k (función de transferencia tipo gamma)
     
     Args:
@@ -210,7 +222,7 @@ def gammaDistribution(n : float,k : float,dt : float =1,m : float =10,approx : b
         U=shiftLeft(U)
     return(U)
 
-def grXDistribution(T : float,distribution : str ='SH1') -> np.ndarray:    
+def grXDistribution(T : float,distribution : str ='SH1') -> NDArray[np.float64]:    
     """Computa Hidrogramas Unitarios (función respuesta a pulso unitario, función de transferencia) propuestos por SEMAGREF (GR4J, GP)
     
     Args:
@@ -244,17 +256,19 @@ def grXDistribution(T : float,distribution : str ='SH1') -> np.ndarray:
     u=differentiate(U,True)
     return(shiftLeft(u))
 
-def getPulseMatrix(inflows : Union[float,List[float],np.ndarray],u : np.ndarray) -> np.ndarray:
+def getPulseMatrix(inflows : Union[float,List[float],NDArray[np.float64]],u : NDArray[np.float64]) -> NDArray[np.float64]:
     """Computa matriz de convolución a partir de una lista o array1d de 'Inflows' (hidrograma de entrada) y sobre la base de una función de transferenciaa o HU 'u'    
     Args:
-        Inflows : Union[float,List[float],np.ndarray]
+        Inflows : Union[float,List[float],NDArray[np.float64]]
             lista o array1d con hidrograma de entrada    
-        u : np.ndarray  
+        u : NDArray[np.float64]  
             función de transferencia (HU)     
 
     Returns:
         Devuelve un array2d con la matriz de convolución 
     """    
+    if isinstance(inflows, (int,float)):
+        inflows = [inflows]
     n=len(inflows)
     m=len(u)
     rows=n+m-1
@@ -306,14 +320,21 @@ def computeEVR(P : float,EV0 : float ,Storage : float,MaxStorage : float) -> flo
     sigma=max(EV0-P,0)
     return(EV0+Storage*(1-math.exp(-sigma/MaxStorage))-sigma)
 
-def apportion(Inflow : Union[float,List[float],np.ndarray],phi : float=0.1) -> Union[float,List[float],np.ndarray]:
+@overload
+def apportion(Inflow : Union[List[float],NDArray[np.float64]],phi : float=0.1) -> NDArray[np.float64]: ...
+@overload
+def apportion(Inflow : float,phi : float=0.1) -> float: ...
+def apportion(Inflow : Union[float,List[float],NDArray[np.float64]],phi : float=0.1) -> Union[float,NDArray[np.float64]]:
     """Proratea un hidrograma   
     Args:
-        Inflow: Union[float,List[float],np.ndarray]
-            Hidorgrama de entrada
+        Inflow: Union[float,List[float],NDArray[np.float64]]
+            Hidrograma de entrada
     Returns:
         Devuelve el hidrograma prorateado 
     """
+    if isinstance(Inflow, list):
+        Inflow = np.array(Inflow, dtype=float)
+
     return(Inflow*phi)
 
 def curveNumberRunoff(NetRainfall : float,MaxStorage : float,Storage : float) -> float:
@@ -336,18 +357,18 @@ def curveNumberRunoff(NetRainfall : float,MaxStorage : float,Storage : float) ->
     return NetRainfall**2/(MaxStorage-Storage+NetRainfall)
 
 
-def SimonovKhristoforov(sim : np.array,obs : np.ndarray) -> np.ndarray: 
+def SimonovKhristoforov(sim : NDArray[np.float64],obs : NDArray[np.float64]) -> NDArray[np.float64]: 
     """   
     Realiza correción de sesgo por simple updating (método propuesto por el Servicio Ruso)
     Args:
 
-        sim: np.ndarray
+        sim: NDArray[np.float64]
             Serie simulada o sintética
         
-        obs: np.ndarray
+        obs: NDArray[np.float64]
             Serie observada
 
-        Returns:
+        Returns: NDArray[np.float64]
             Devuelve serie simulada con correción de sesgo
     """
     uObs=np.mean(obs)
@@ -370,26 +391,32 @@ class RetentionReservoir(PydrologyProcedureInterface):
     Reservorio de Retención. Un sólo parámetro (capacidad máxima de almacenamiento). Condiciones de borde: lista con hidrograma/hietograma de entrada. Condición inicial       
     """
     type='Retention Reservoir'
-    MaxStorage : float
-    """Almacenamiento Máximo"""
-    Inflow: np.ndarray
+    Inflow: NDArray[np.float64]
     """Serie de datos con hidrograma/hietograma de entrada (condición de borde)"""
-    EVP: np.ndarray
+    EVP: NDArray[np.float64]
     """Serie de datos de evapotranspiración potencial (condición de borde)"""
-    Storage: np.ndarray
+    Storage: NDArray[np.float64]
     """Almacenamiento a inicios de paso de cálculo (proceso computado)"""
-    Runoff: np.ndarray
+    Runoff: NDArray[np.float64]
     """Escorrentía (proceso computado)"""
-    EV: np.ndarray
+    EV: NDArray[np.float64]
     """Evapotranspiración real (proceso computado)"""
     Proc: str
     "Procedimiento: Abstraction o CN_h0_continuous"
 
+    pars : List[float]
+
+    boundaries : List[List[float]]
+
+    initial_conditions : List[float]
+
     @property 
     def MaxStorage(self) -> float:
+        """Almacenamiento Máximo"""
         return self.pars[0]
     
-    def __init__(self,pars : List[float],InitialConditions : List[float] =[0],Boundaries : List[float] =[[0],[0]],Proc : str ='Abstraction'):
+    
+    def __init__(self,pars : List[float],InitialConditions : List[float] =[0],Boundaries : List[List[float]] =[[0],[0]],Proc : str ='Abstraction'):
         """
             pars : list
                 lista con el valor de almacenamiento máximo
@@ -427,22 +454,30 @@ class LinearReservoir(PydrologyProcedureInterface):
     Reservorio Lineal. Vector pars de un sólo parámetro: Tiempo de residencia (K). Vector de Condiciones Iniciales (InitialConditions): Storage, con el cual computa Outflow. Condiciones de Borde (Boundaries): Inflow y EV.
     """
     type='Linear Reservoir'
-    K : float
-    """ Constante de Recesión"""
-    Inflow : np.ndarray 
+    
+    Inflow : NDArray[np.float64] 
     """ Caudal Alfuente"""
-    EV: np.ndarray 
+    EV: NDArray[np.float64] 
     """"Evpotranspiraciòn"""
-    Storage : np.ndarray 
+    Storage : NDArray[np.float64] 
     """Almacenamiento"""
-    Outflow: np.ndarray 
+    Outflow: NDArray[np.float64] 
     """Caudal efluente"""
+
+    pars : List[float]
+
+    boundaries : List[List[Any]]
+
+    initial_conditions : List[float]
+
 
     @property
     def K(self) -> float:
+        """ Constante de Recesión"""
         return self.pars[0]
     
-    def __init__(self,pars : list,InitialConditions : list =[0],Boundaries : List[List[float]] =[[0],[0]],Proc : str ='Agg',dt : float=1):
+    
+    def __init__(self,pars : List[float],InitialConditions : List[float] =[0],Boundaries : List[List[Any]] =[[0],[0]],Proc : str ='Agg',dt : float=1):
         """
         pars : List[float]
             lista con el valor del coeficiente de recesión, expresado en dt unidades
@@ -467,6 +502,7 @@ class LinearReservoir(PydrologyProcedureInterface):
             self.dt=dt
         else:
             raise ValueError("Argumento Proc inválido")
+        
     def computeOutFlow(self)-> None :
         for i in range (0,len(self.Inflow),1):
             if self.Proc == 'Agg':
@@ -491,33 +527,39 @@ class ProductionStoreGR4J(PydrologyProcedureInterface):
     """
     Reservorio de Producción de Escorrentía modelo GR4J
     """
-    MaxSoilStorage : float
-    """Almacenamiento Máximo en Perfil de Suelo"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    EVP : np.ndarray
+    EVP : NDArray[np.float64]
     """Evapotranspiración potencial (serie temporal)"""
-    SoilStorage : np.ndarray
+    SoilStorage : NDArray[np.float64]
     """Almacenamiento en Perfil de Suelo (serie temporal)"""
-    NetEVP : np.ndarray
+    NetEVP : NDArray[np.float64]
     """Evapotranspiración Potencial Neta (serie temporal)"""
-    EVR : np.ndarray
+    EVR : NDArray[np.float64]
     """Evapotranspiración Real (serie temporal)"""
-    NetRainfall : np.ndarray
+    NetRainfall : NDArray[np.float64]
     """Precipitación Neta (serie temporal)"""
-    Recharge : np.ndarray
+    Recharge : NDArray[np.float64]
     """Transferencia vertical: Pérdidas por recarga de flujo demorado (serie temporal)"""
-    Infiltration : np.ndarray
+    Infiltration : NDArray[np.float64]
     """Ingresos Netos al reservorio por Infiltración (serie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Transferencia horizontal: Pérdidas por flujo directo (serie temporal)"""
     type='GR4J Runoff Production Store'
 
+    pars : List[float]
+
+    boundaries : Union[NDArray[np.float64],List[List[float]]]
+
+    initial_conditions : List[float]
+
     @property
     def MaxSoilStorage(self) -> float:
+        """Almacenamiento Máximo en Perfil de Suelo"""
         return self.pars[0]
-
-    def __init__(self,pars : list,InitialConditions : list = [0],Boundaries : List[float] =[[0],[0]]):
+    
+    
+    def __init__(self,pars : List[float],InitialConditions : List[float] = [0],Boundaries : Union[NDArray[np.float64],List[List[float]]] =[[0],[0]]):
         """
             pars : list
                 lista con el valor de almacenamiento máximo
@@ -556,31 +598,37 @@ class RoutingStoreGR4J(PydrologyProcedureInterface):
     Reservorio de Propagación de Escorrentía modelo GR4J
     """
     type='GR4J Runoff Routing Store'
-    MaxStorage : float
-    """Almacenamiento Máximo"""
-    waterExchange : float
-    """Coeficiente de trasvase"""
-    Inflow : np.ndarray
+    Inflow : NDArray[np.float64]
     """Recarga del reservorio (serie temporal)"""
-    Leakages : np.ndarray
+    Leakages : NDArray[np.float64]
     """trasvase (serie temporal)"""
-    Runoff: np.ndarray
+    Runoff: NDArray[np.float64]
     """Transferencia horizontal : pérdidas por flujo demorado"""
-    Storage : np.ndarray
+    Storage : NDArray[np.float64]
     """Almacenamiento"""
+
+    pars : List[float]
+
+    initial_conditions : List[float]
+
+    boundaries : Union[NDArray[np.float64],List[float]]
 
     @property
     def MaxStorage(self) -> float:
+        """Almacenamiento Máximo"""
         return self.pars[0]
+    
     
     @property
     def waterExchange(self) -> float:
+        """Coeficiente de trasvase"""
         if len(self.pars)<2:
             return 0
         else:
             return self.pars[1]
+    
 
-    def __init__(self,pars : Union[List[float],List[Tuple[float,float]]],InitialConditions : list =[0],Boundaries : List[float] =[0]):
+    def __init__(self,pars : Union[List[float],List[Tuple[float,float]]],InitialConditions : list =[0],Boundaries : Union[NDArray[np.float64],List[float]] =[0]):
         """
             pars : Union[List[float],List[Tuple[float,float]]]
                 lista con los valores de almacenamiento máximo (obligatorio) y del coeficiente de trasvase (opcional/puede omitirse, en cuyo caso se asigna el valor 0)
@@ -607,33 +655,39 @@ class SCSReservoirs(PydrologyProcedureInterface):
     """
     Sistema de 2 reservorios de retención (intercepción/abstracción superficial y retención en perfil de suelo - i.e. capacidad de campo-), con función de cómputo de escorrentía siguiendo el método propuesto por el Soil Conservation Service. Lista pars de dos parámetros: Máximo Almacenamiento Superficial (Abstraction) y Máximo Almacenamiento por Retención en Perfil de Suelo (MaxStorage). Condiciones iniciales: Almacenamiento Superficial y Almacenamiento en Perfil de Suelo (lista de valores). Condiciones de Borde: Hietograma (lista de valores).
     """
-    MaxSurfaceStorage : float
-    """Almacenamiento Máximo en reservorio de retención"""
-    MaxStorage : float
-    """Almacenamiento Máximo en reservorio de producción"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    SurfaceStorage: np.ndarray
+    SurfaceStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de retención (serie temporal)"""
-    SoilStorage : np.ndarray
+    SoilStorage : NDArray[np.float64]
     """Almacenamiento en resservorio de producción (sserie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Transferencia horizontal: escorrentía total (serie temporal)"""
-    Infiltration : np.ndarray
+    Infiltration : NDArray[np.float64]
     """Recarga de reservorio de producción (serie temporal)"""
-    CumPrecip: np.ndarray
+    CumPrecip: NDArray[np.float64]
     "Precipitación acumulada durante el evento (serie temporal)"
-    NetRainfall: np.ndarray
+    NetRainfall: NDArray[np.float64]
     """Precipitación neta (serie temporal)"""
     type='Soil Conservation Service Model for Runoff Computation (Curve Number Method / Discrete Approach)'
-    
+
+    pars : List[float]
+
+    initial_conditions : List[float]
+
+    boundaries : List[float]
+
     @property
     def MaxSurfaceStorage(self) -> float:
+        """Almacenamiento Máximo en reservorio de retención"""
         return self.pars[0]
+    
     
     @property
     def MaxStorage(self) -> float:
+        """Almacenamiento Máximo en reservorio de producción"""
         return self.pars[1]
+    
     
     def __init__(self,pars : List[float],InitialConditions : List[float] =[0,0],Boundaries : List[float] =[0]):
         """
@@ -652,6 +706,7 @@ class SCSReservoirs(PydrologyProcedureInterface):
         self.Infiltration=np.array([0]*len(self.Precipitation),dtype='float')
         self.CumPrecip=np.array([0]*len(self.Precipitation),dtype='float')
         self.NetRainfall=np.array([0]*len(self.Precipitation),dtype='float') 
+
     def computeAbstractionAndRunoff(self):
         Abstraction=self.MaxSurfaceStorage-self.SurfaceStorage[0]
         for i in range(0,len(self.Precipitation)):
@@ -677,42 +732,47 @@ class SCSReservoirsMod(PydrologyProcedureInterface):
     """
     Sistema de 2 reservorios de retención+detención (una capa de abstracción superficial/suelo y otra capa de retención/detención en resto perfil de suelo), con función de cómputo de escorrentía siguiendo el método propuesto por el Soil Conservation Service y añadiendo pérdida continua por flujo de base (primario). Lista pars de 3 parámetros: Máxima Abtracción por retención (Abstraction) y Máximo Almacenamiento por Retención+Detención en Perfil de Suelo (MaxStorage) y coefiente de pérdida K. Se añade pérdida continua. Condiciones iniciales: Almacenamiento Superficial y Almacenamiento en Perfil de Suelo (lista de valores). Condiciones de Borde: Hietograma (lista de valores).
     """
-    MaxSurfaceStorage : float
-    """Almacenamiento Máximo en reservorio de retención"""
-    MaxStorage : float
-    """Almacenamiento Máximo en reservorio de producción"""
-    K : float
-    """Coeficiente de recesión (autovalor dominante del sistema reservorio de produccción)"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    SurfaceStorage: np.ndarray
+    SurfaceStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de retención (serie temporal)"""
-    SoilStorage : np.ndarray
+    SoilStorage : NDArray[np.float64]
     """Almacenamiento en resservorio de producción (sserie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Transferencia horizontal: flujo directo (serie temporal)"""
-    Infiltration : np.ndarray
+    Infiltration : NDArray[np.float64]
     """Recarga de reservorio de producción (serie temporal)"""
-    CumPrecip: np.ndarray
+    CumPrecip: NDArray[np.float64]
     "Precipitación acumulada durante el evento (serie temporal)"
-    NetRainfall: np.ndarray
+    NetRainfall: NDArray[np.float64]
     """Precipitación neta (serie temporal)"""
-    BaseFlow: np.ndarray
+    BaseFlow: NDArray[np.float64]
     """Transferencia vertical: recarga de flujo demorado (serie temporal)"""
     type='Soil Conservation Service Model for Runoff Computation (Curve Number Method / Discrete Approach)'
 
+    pars : List[float]
+
+    initial_conditions : List[float]
+
+    boundaries : List[float]
+
     @property
     def MaxSurfaceStorage(self) -> float:
+        """Almacenamiento Máximo en reservorio de retención"""
         return self.pars[0]
+    
     
     @property
     def MaxStorage(self) -> float:
+        """Almacenamiento Máximo en reservorio de producción"""
         return self.pars[1]
+    
     
     @property
     def K(self) -> float:
+        """Coeficiente de recesión (autovalor dominante del sistema reservorio de produccción)"""
         return self.pars[2]
-
+    
     def __init__(self,pars : List[float],InitialConditions : List[float] =[0,0],Boundaries : List[float] =[0]):
         """
             pars : List[float]
@@ -731,6 +791,7 @@ class SCSReservoirsMod(PydrologyProcedureInterface):
         self.CumPrecip=np.array([0]*len(self.Precipitation),dtype='float')
         self.NetRainfall=np.array([0]*len(self.Precipitation),dtype='float')
         self.BaseFlow=np.array([0]*len(self.Precipitation),dtype='float') 
+
     def computeAbstractionAndRunoff(self):
         Abstraction=self.MaxSurfaceStorage-self.SurfaceStorage[0]
         for i in range(0,len(self.Precipitation)):
@@ -762,28 +823,34 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
     """
     Cascada de Reservorios Lineales (Discreta). Lista pars de dos parámetros: Tiempo de Residencia (K) y Número de Reservorios (N). Vector de Condiciones Iniciales (InitialConditions): Si es un escalar (debe ingresarse como elemento de lista) genera una matriz de 2xN con valor constante igual al escalar, también puede ingresarse una lista de longitud N que represente el caudal inicial en cada reservorio de la cascada. Condiciones de Borde (Boundaries): lista Inflow. 
     """
-    K : float
-    """Tiempo de residencia en reservorio"""
-    N : float
-    """Número de reservorios en cascada"""
     dt : float
     """Longitud del paso de cálculo"""
     type='Discrete Cascade of N Linear Reservoirs with Time K'
 
+    pars : List[float]
+
+    initial_conditions : List[float]
+
+    boundaries : Union[NDArray[np.float64],List[float]]
+
     @property
     def K(self) -> float:
+        """Tiempo de residencia en reservorio"""
         if self.pars[0] <= 0:
             raise ValueError("Invalid parameter K: must be > 0")
         return self.pars[0]
     
+    
     @property
     def N(self) -> int:
+        """Número de reservorios en cascada"""
         if(len(self.pars) < 2):
             return 2
         else:
             return int(self.pars[1])
-
-    def __init__(self,pars : List[float],Boundaries : List[float] =[0],InitialConditions : List[float] =[0],dt=1):
+    
+    
+    def __init__(self,pars : List[float],Boundaries : Union[NDArray[np.float64],List[float]] =[0],InitialConditions : List[float] =[0],dt=1):
         """
             pars : List[float]
                 lista con los valores del tiempo de residencia K y de la cantidad discreta de N de reservorios lineales en cascada 
@@ -815,42 +882,48 @@ class LinearReservoirCascade(PydrologyProcedureInterface):
         b=1-k/dt*(1-c)
         end=int(1/dt+1)
         for i in range(0,len(self.Inflow)):
+            last_j = 0
             for n in range(1,end,1):
                 self.Cascade[1][0]=self.Inflow[i]+(self.Cascade[0][0]-self.Inflow[i])*c
                 if self.N > 1:
                     for j in range(1,self.N,1):
                         self.Cascade[1][j]=c*self.Cascade[0][j]+a*self.Cascade[0][j-1]+b*self.Cascade[1][j-1]
+                        last_j = j
                 for j in range(0,self.N,1):
                     self.Cascade[0][j]=self.Cascade[1][j]
-            self.Outflow[i]=self.Cascade[0][j]
+                    last_j = j
+            self.Outflow[i]=self.Cascade[0][last_j]
 
 #Reservorio de enrutamiento (HIDROSAT)
 class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
     """
     Reservorio potencial para tránsito de escorrentía total (modelo HIDROSAT). Se establece ley de potencia entre caudal (Q) y almacenamiento (W) en instante dado, de forma tal que Q=Q0.(W/W0)^(gamma). W0 representa el almacenamiento mínimo o de referencia para una situación en que la planicie aluvial se encuentre completamente anegada. Q0 es el caudal de referencia para dicha situación, mientras gamma es un parámetro de forma que tiene efecto sobre la capacidad de abstracción/retención de la red y sobre las puntas del hidrograma simulado (mayores o menores que un reservorio lineal para caso gamma!=1). El método de computación considera un único paso de cálculo, y estima un valor de descarga a fin de paso de cómputo, a partir de las condiciones de borde conocidas, pudiéndose subdividir en 1/dt subpasos de cómputo, de resolución dt. Se asume que las condiciones de borde están compuestas por una lista que contiene 4 valores: (a) la precipitación directa sobre el reservorio, (b) la evaporación desde la planicie a la atmósfera y (c.1) la escorrentía total que alcanza el reservorio al inicio del paso de cómputo y (c.2) la escorrentía total que alcanza el reservorio al final del paso de cómputo (pudiéndose informar sólo c.1, i.e. caso constante). La condición inicial está compuesta por una lista con 2 valores: (a) el almacenamiento inicial y (b) el área anegada inicial, expresada como fracción de área del sistema hídrico considerado.   
     """
-    W0 : float
-    """Almacenamiento de referencia en planicie aluvial"""
-    Q0 : float
-    """Caudal de referencia"""
-    gamma: float
-    """Factor de forma (abstracción) en relación Q(W)"""
-    epsilon: float
-    """Error máximo tolerable en Newthon-Raphson"""
+   
     dt : float
     """Longitud del paso de cálculo"""
+
     type='Power Law Reservoir w/ vertical Losses'
     
+    pars : List[float]
+
+    boundaries : Union[NDArray[np.float64],List[List[float]],List[float]]
+
+    initial_conditions : List[float]
+
     @property
     def W0(self) -> float:
+        """Almacenamiento de referencia en planicie aluvial"""
         return self.pars[0]
     
     @property
     def Q0(self) -> float:
+        """Caudal de referencia"""
         return self.pars[1]
     
     @property
     def gamma(self) -> float:
+        """Factor de forma (abstracción) en relación Q(W)"""
         return self.pars[2]
     
     @property
@@ -862,12 +935,18 @@ class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
 
     @property
     def epsilon(self) -> float:
+        """Error máximo tolerable en Newthon-Raphson"""
         if(len(self.pars)<5):
             return 0.0001
         else:
             return self.pars[4]
     
-    def __init__(self,pars : List[float],Boundaries : List[float] =[0,0,0,0],InitialConditions : List[float] =[0,0],dt=1):
+    Inflow : NDArray[np.float64]
+    Outflow : NDArray[np.float64]
+    Storage : NDArray[np.float64]
+    Flooded : NDArray[np.float64]
+
+    def __init__(self,pars : List[float],Boundaries : Union[NDArray[np.float64],List[List[float]],List[float]] =[0.0,0.0,0.0,0.0],InitialConditions : List[float] =[0.0,0.0],dt=1):
         """
             pars : List[float]
                 lista con los valores del almacenamiento de referencia W0, el caudal de referencia Q0, el factor de forma y opcionalmente el valor máximo de área inundada y el valor de epsilon 
@@ -880,11 +959,9 @@ class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
         self.Precipitation=np.array(self.boundaries[0],dtype='float')
         self.EV=np.array(self.boundaries[1],dtype='float')
         if len(self.boundaries) < 4:
-            self.Inflow=self.boundaries[2]
-            self.Inflow=np.array([self.Inflow]*2,dtype='float')
+            self.Inflow=np.array([self.boundaries[2], self.boundaries[2]],dtype='float')
         elif len(self.boundaries) == 4:
-            self.Inflow=[self.boundaries[2],self.boundaries[3]]
-            self.Inflow=np.array(self.Inflow,dtype='float')
+            self.Inflow=np.array([self.boundaries[2],self.boundaries[3]],dtype='float')
         else:
             raise NameError("Boundaries must be a List object of length 3 or 4 (direct precipitation, evaporation, initial/final inflows of time step)")
         self.Storage=np.array([self.initial_conditions[0]]*2,dtype='float')
@@ -894,7 +971,7 @@ class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
         self.dt=dt
 
     def estimateDischarge(self):
-        self.U=(self.Inflow[0]+self.Inflow[1]-self.Outflow[0])*self.dt/2+(self.Precipitation-self.EV)*self.dt+self.Storage[0]
+        self.U=(self.Inflow[0]+self.Inflow[1]-self.Outflow[0])*self.dt/2+(self.Precipitation[0]-self.EV[0])*self.dt+self.Storage[0]
         self.U=max(0,self.U)
         qPred=self.Q0*(self.U/self.W0)**(self.gamma)
         if(qPred>0):
@@ -903,7 +980,10 @@ class HIDROSATPowerLawReservoir(PydrologyProcedureInterface):
         else:
             self.f=0
             self.df=self.dt/2
-        self.Outflow[1]=max(0,qPred-self.f/self.df)
+        outflow = max(0,qPred-self.f/self.df)
+        if not is_scalar_like(outflow):
+            raise TypeError(f"expected scalar, got {type(outflow)} with value {outflow}")
+        self.Outflow[1]=outflow
         while abs(qPred-self.Outflow[1])>self.epsilon:
             qPred=self.Outflow[1]
             if(qPred>0):
@@ -933,30 +1013,31 @@ class MuskingumChannel(PydrologyProcedureInterface):
     """
     Método de tránsito hidrológico de la Oficina del río Muskingum. Lista pars de dos parámetros: Tiempo de Tránsito (K) y Factor de forma (X). Condiciones Iniciales (InitialConditions): lista con array de condiciones iniciales o valor escalar constante. Condiciones de borde: lista con hidrograma en nodo superior de tramo. A fin de mantener condiciones de estabilidad numérica en la propagación (conservar volumen), sobre la base de la restricción 2KX<=dt<=2K(1-X) (Chin,2000) y como dt viene fijo por la condición de borde (e.g. por defecto 'una unidad') y además se pretende respetar el valor de K, se propone incrementar la resolución espacial dividiendo el tramo en N' subtramos de igual longitud, con tiempo de residencia mínimo T'=K/N', para el caso dt<2KX (frecuencia de muestreo demasiado alta). Así para obtener el valor N', se aplica el criterio de Chin estableciendo que el valor crítico debe satisfacer dt=uT', específicamente con u=2X y T' = K/N'--> N'=2KX/dt. Al mismo tiempo si dt>2K(1-X) (frecuencia de muestreo demasiado baja), el paso de cálculo se subdivide en M subpasos de longitud dT=2K(1-X) de forma tal que dT/dt=dv y M=dt/dv. El atributo self.tau resultante especifica el subpaso de cálculo (siendo self.M la cantidad de subintervalos utilizados) y self.N la cantidad de subtramos. 
     """ 
-    K : float
-    """Tiempo de tránsito, parámetro del modelo"""
-    X : float
-    """Factor de forma, parámetro del modelo"""
+
     dt : float
     """Longitud del paso de cálculo"""
-    Inflow: np.ndarray
+    Inflow: NDArray[np.float64]
     """"Hidrogama de ingresos al tramo (serie temporal)"""
-    Outflow: np.ndarray 
+    Outflow: NDArray[np.float64] 
     """Hidrograma de descargas del tramo (serie temporal)"""
-    N : float
+    N : int
     """Cantidad de subtramos en tramo"""
-    M : float
+    M : int
     """Cantidad de subpasos de cálculo en paso"""
     tau : float
     """Longitud de subpaso de cómputo"""
     type='Muskingum Channel'
 
+    pars : List[float]
+
     @property
     def K(self) -> float:
+        """Tiempo de tránsito, parámetro del modelo"""
         return self.pars[0]
     
     @property
     def X(self) -> float:
+        """Factor de forma, parámetro del modelo"""
         return self.pars[1]
 
     def __init__(
@@ -1023,16 +1104,16 @@ class LinearChannel(PydrologyProcedureInterface):
     """
     Método de tránsito hidrológico implementado sobre la base de teoría de sistemas lineales. Así, considera al tránsito de energía, materia o información como un proceso lineal desde un nodo superior hacia un nodo inferior. Específicamente, sea I=[I1,I2,...,IN] el vector de pulsos generados por el borde superior y U=[U1,U2,..,UM] una función de distribución que representa el prorateo de un pulso unitario durante el tránsito desde un nodo superior (borde) hacia un nodo inferior (salida), el sistema opera aplicando las propiedades de proporcionalidad y aditividad, de manera tal que es posible propagar cada pulso a partir de U y luego mediante la suma de estos prorateos obtener el aporte de este tránsito sobre el nodo inferior (convolución).
     """
-    Inflow : np.ndarray
+    Inflow : NDArray[np.float64]
     """Hidrograma de entrada (serie temporal)"""
     dt : float
     """Longitud de paso de cálculo"""
     Proc: str
     """Tipo de Procedimiento. Admite 'Nash' (cascada de reservorios lineales, debe proveerse lista de pars k y n) y 'UH' (Hidrograma Unitario, debe proveerse lista con array conteniendo ordenadas de UH a paso dt)"""
     type='Single Linear Channel'
-    def __init__(self,pars : List[float],Boundaries : List[float] =[0],Proc : str='Nash',dt : float =1):
+    def __init__(self,pars : Union[NDArray[np.float64],List[float]],Boundaries : Union[NDArray[np.float64],List[float]] =[0],Proc : str='Nash',dt : float =1):
        """
-            pars : List[List[float]]
+            pars : List[float]
                 Lista de flotantes con los valores del tiempo de residencia (k) y número de reservorios (n), en caso que Proc='Nash', o lista, tupla o array con ordenadas de Hidrograma Unitario, en caso que  Proc='UH'
             InitialConditions : List [float]
                 Lista  con el valor de la condición inicial de almacenamiento en tramo 
@@ -1058,6 +1139,7 @@ class LinearChannel(PydrologyProcedureInterface):
        else:
             raise ValueError("Argumento Proc inválido. Debe ser 'Nash' o 'UH'")
        self.Outflow=np.array([[0]]*(len(self.Inflow)+len(self.u)-1))
+
     def computeOutFlow(self):
         I=getPulseMatrix(self.Inflow,self.u)
         self.Outflow=np.dot(I,self.u)
@@ -1066,16 +1148,16 @@ class LinearNet(PydrologyProcedureInterface):
     """
     Método de tránsito hidrológico implementado sobre la base de teoría de sistemas lineales. Así, considera al tránsito de energía, materia o información como un proceso lineal desde N nodos superiores hacia un nodo inferior. Específicamente, sea I=[I1,I2,...,IN] un vector de pulsos generados por un borde y U=[U1,U2,..,UM] una función de distribución que representa el prorateo de un pulso unitario durante el tránsito desde un nodo superior (borde) hacia un nodo inferior (salida), aplicando las propiedades de proporcionalidad y aditividad es posible propagar mediante convolución cada pulso de cada hidrograma a partir de su respectiva función de distribución U y luego mediante la suma de las propagaciones obtenerse el aporte de este tránsito sobre el nodo inferior. Numéricamente el sistema se representa como una transformación matricial (matriz de pulsos*u=vector de aportes). Consecuentemente, el tránsito se realiza para cada borde y la suma total de estos tránsitos constituye la señal transitada sobre el nodo inferior.  Condiciones de borde: Lista con los hidrogramas en nodos superiores del tramo. Parámetros: función de distribución (proc='UH') o tiempo de residencia (k) y número de reservorios (n), si se desea utilizar el método de hidrograma unitario de Nash (proc='Nash'). Pars es una lista en donde la información necesaria para cada nodo se presenta por fila (parámetros de nodo). El parámetro dt refiere a la longitud de paso de cálculo para el método de integración, siendo dt=1 la resolución nativa de los hidrogramas de entrada provistos. Importante, las funciones de transferencia deben tener la misma cantidad de ordenadas (igual dimensión). 
     """
-    pars : np.ndarray
+    pars : NDArray[np.float64]
     """Matriz con parámetros de propagación (j-vectores fila)"""
-    Inflows : np.ndarray
+    Inflows : NDArray[np.float64]
     """Matriz con hidrogramas de entrada (j-vectores columna)"""
     Proc : str
     """Procedimiento, admite 'Nash' y 'UH'"""
     dt : float
     """Longitud del paso de cómputo"""
     type='Linear Routing System. System of Linear Channels'
-    def __init__(self,pars : List[List[float]],Boundaries : List[List[float]] ,Proc : str = 'Nash',dt : float =1):
+    def __init__(self,pars : List[Tuple[float,float]],Boundaries : List[List[float]] ,Proc : str = 'Nash',dt : float =1):
         """
             pars : List[List[float]]
                 Lista  con los valores del tiempo de residencia (k) y número de reservorios (n), en caso que Proc='Nash', o con ordenadas de cada Hidrograma Unitario, en caso que  Proc='UH', para cada nodo de entrada
@@ -1119,27 +1201,35 @@ class ClarkSystem(PydrologyProcedureInterface):
     """
     Método de tránsito hidrológico implementado sobre la base de la propuesta de Clark. Requiere un UH () obtenido sobre la base de una curva TAC (análisis de MDET) y un tiempo de residencia (tr). El método es una extensión del enfoque modelístico, asumiendo la cuenca como sistema lineal y sobre la base de la convolución de los pulsos de escorrentía, utilizando una función de transferencia'tiempo-area' (TAC). Así, primeramente se obtiene un hidrograma por convolución (escorrentía/TAC) y este se transita sobre un reservorio lineal a fin de incluir el efecto de almacenamiento en la red de drenaje.  
     """
-    Inflow : np.ndarray
+    Inflow : NDArray[np.float64]
     """Hidrograma de entrada (serie temporal)"""
     dt : float
     """Longitud de paso de cálculo"""
     type='Clark Routing System'
     
+    pars : List[Union[List[float],float]]
+
+    boundaries : List[List[float]]
+
+    initial_conditions : List[float]
+
     @property
-    def u(self) -> float:
-        if self.pars[0] is not None:
-            return self.pars[0]
-        else:
+    def u(self) -> List[float]:
+        if not len(self.pars) or self.pars[0] is None:
             raise Exception("Ordinates of Time Area curve must be provided. Check pars[0]")
+        if isinstance(self.pars[0], (int,float)):
+            return [self.pars[0]]
+        return self.pars[0]
 
     @property
     def k(self) -> float:
-        if self.pars[1] is not None:
-            return self.pars[1]
-        else:
+        if len(self.pars) < 2 or self.pars[1] is None:
             raise Exception("Residence time must ne provided. Check pars[1]")
+        if isinstance(self.pars[1], list):
+            raise TypeError("invalid type: pars[1] must be a scalar")
+        return self.pars[1]
         
-    def __init__(self,pars : List[float],Boundaries : List[float] =[[0],[0]],InitialConditions : float = [0],Proc : str = 'Clark',dt=1):
+    def __init__(self,pars : List[float],Boundaries : List[List[float]] =[[0],[0]],InitialConditions : List[float] = [0],Proc : str = 'Clark',dt=1):
        """
         pars : List[List[float]]
             Lista que contiene las ordenadas de la curva 'tiempo area' (lista de flotantes) y el valor del tiempo de residencia en el reservorio lineal (k)
@@ -1162,15 +1252,15 @@ class ClarkSystem(PydrologyProcedureInterface):
             else:
                 dif=len(self.boundaries[1])-len(self.boundaries[0])
                 self.Inflow=np.append(self.boundaries[0],np.zeros(dif))
-                self.Leakages=self.boundaries[1]
+                self.Leakages=np.array(self.boundaries[1],dtype='float')
        else:
             self.Leakages=np.zeros(len(self.boundaries[0]))
        self.dt=dt
        
     def executeRun(self):
-       self.TimeAreaConvolution=LinearChannel(pars=self.u,Boundaries=self.Inflow,Proc='UH',dt=self.dt)
+       self.TimeAreaConvolution=LinearChannel(pars=self.u,Boundaries=self.Inflow.astype(float).tolist(),Proc='UH',dt=self.dt)
        self.TimeAreaConvolution.computeOutFlow()
-       self.RoutingReservoir=LinearReservoir(pars=[self.k],InitialConditions=self.initial_conditions,Boundaries=[self.TimeAreaConvolution.Outflow,self.Leakages],Proc='Instant',dt=self.dt)
+       self.RoutingReservoir=LinearReservoir(pars=[self.k],InitialConditions=self.initial_conditions,Boundaries=[self.TimeAreaConvolution.Outflow.astype(float).tolist(),self.Leakages.astype(float).tolist()],Proc='Instant',dt=self.dt)
        self.RoutingReservoir.computeOutFlow()
        self.Q=self.RoutingReservoir.Outflow
 
@@ -1178,27 +1268,29 @@ class LagAndRoute(PydrologyProcedureInterface):
     """
     Método de tránsito hidrológico implementado sobre la base de la propuesta de Clark. Requiere un UH () obtenido sobre la base de una curva TAC (análisis de MDET) y un tiempo de residencia (tr). El método es una extensión del enfoque modelístico, asumiendo la cuenca como sistema lineal y sobre la base de la convolución de los pulsos de escorrentía, utilizando una función de transferencia'tiempo-area' (TAC). Así, primeramente se obtiene un hidrograma por convolución (escorrentía/TAC) y este se transita sobre un reservorio lineal a fin de incluir el efecto de almacenamiento en la red de drenaje.  
     """
-    Inflow : np.ndarray
+    Inflow : NDArray[np.float64]
     """Hidrograma de entrada (serie temporal)"""
     dt : float
     """Longitud de paso de cálculo"""
     type='Lag and route method'
-    Q : List[float]
+    Q : NDArray[np.float64] # List[float]
     """Output hydrogram"""
-    
-    @property
-    def lag(self) -> float:
-        if self.pars[0] is not None:
-            return self.pars[0]
-        else:
-            raise ValueError("lag time must be provided. Check pars[0]")
+
+    pars : List[float]
+
+    boundaries : List[List[float]]
 
     @property
+    def lag(self) -> float:
+        if not len(self.pars) or self.pars[0] is None:
+            raise ValueError("lag time must be provided. Check pars[0]")
+        return self.pars[0]
+    
+    @property
     def k(self) -> float:
-        if len(self.pars) >= 2 and self.pars[1] is not None:
-            return self.pars[1]
-        else:
+        if len(self.pars) < 2 or self.pars[1] is None:
             raise ValueError("Residence time (k) must ne provided, for computation you may take attenuation index = -1/ln(k). Check pars[1]")
+        return self.pars[1]
     
     @property
     def n(self) -> int:
@@ -1262,7 +1354,7 @@ class LagAndRoute(PydrologyProcedureInterface):
         else:
             self.routingSystem = LinearReservoirCascade(
                 pars=[self.k,self.n],
-                Boundaries=self.laggedInflow, 
+                Boundaries=self.laggedInflow.astype(float).tolist(), 
                 InitialConditions=InitialConditions,
                 dt=self.dt
             )
@@ -1279,64 +1371,79 @@ class HOSH4P1L(PydrologyProcedureInterface):
     """
     Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base). Rutina de propagación por 'UH' arbitario (e.g. generado por triangularDistributon) o por función de transsferencia gamma. 
     """
-    maxSurfaceStorage : float
-    """Almacenamiento Máximo Superficial (reservorio de retención)"""
-    maxSoilStorage : float
-    """Almacenamiento máximo en el Suelo (reservorio de producción)"""
+    
     Proc : str
     """Procedimiento de propagación ('Nash' o 'UH')"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    SurfaceStorage: np.ndarray
+    SurfaceStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de retención (serie temporal)"""
-    SoilStorage : np.ndarray
+    SoilStorage : NDArray[np.float64]
     """Almacenamiento en resservorio de producción (sserie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Transferencia horizontal: escorrentía total (serie temporal)"""
-    Infiltration : np.ndarray
+    Infiltration : NDArray[np.float64]
     """Recarga de reservorio de producción (serie temporal)"""
-    CumPrecip: np.ndarray
+    CumPrecip: NDArray[np.float64]
     "Precipitación acumulada durante el evento (serie temporal)"
-    NetRainfall: np.ndarray
+    NetRainfall: NDArray[np.float64]
     """Precipitación neta (serie temporal)"""
-    EVR1 : np.ndarray
+    EVR1 : NDArray[np.float64]
     """Evapotranspiración real reservorio de abstracción"""
-    EVR2 : np.ndarray
+    EVR2 : NDArray[np.float64]
     """Evapotranspiración real reservorio de producción"""
-    Q : float
+    Q : NDArray[np.float64]
     """Flujo encauzado (serie temporal)"""
     type='PQ Model'
     
+    pars : List[Union[float,List[float]]]
+
+    boundaries : Union[List[List[float]],NDArray[np.float64]]
+
+    initial_conditions : Union[List[Tuple[float,float]],List[float]]
+
     @property
     def maxSurfaceStorage(self) -> float:
+        """Almacenamiento Máximo Superficial (reservorio de retención)"""
+        if isinstance(self.pars[0], list):
+            raise TypeError("pars[0] must be a scalar")
         return self.pars[0]
 
     @property
     def maxSoilStorage(self) -> float:
+        """Almacenamiento máximo en el Suelo (reservorio de producción)"""
+        if isinstance(self.pars[1], list):
+            raise TypeError("pars[1] must be a scalar")
         return self.pars[1]
     
     @property
-    def u(self) -> float:
+    def u(self) -> Optional[List[float]]:
         if self.routingProc == 'UH':
+            if isinstance(self.pars[2], (int,float)):
+                raise TypeError("With Proc='UH' pars[2] must be a list")
             return self.pars[2]
         else:
             return None
 
     @property
-    def k(self) -> float:
+    def k(self) -> Optional[float]:
         if self.routingProc == 'Nash':
+            if isinstance(self.pars[2], list):
+                raise TypeError("With Proc='Nash' pars[2] must be a scalar")
             return self.pars[2]
         else:
             return None
     
     @property
-    def n(self) -> float:
+    def n(self) -> Optional[float]:
         if self.routingProc == 'Nash':
+            if isinstance(self.pars[3], list):
+                raise TypeError("With Proc='Nash' pars[3] must be a scalar")
             return self.pars[3]
         else:
             return None
     
-    def __init__(self,pars : List[List[float]],Boundaries : Union[List[float],np.ndarray] =[[0],[0]],InitialConditions : Union[List[Tuple[float,float]],List[float]] =[0,0],Proc : str ='Nash'):
+    def __init__(self,pars : List[Union[float,List[float]]],Boundaries : Union[List[List[float]],NDArray[np.float64]] =[[0],[0]],InitialConditions : Union[List[Tuple[float,float]],List[float]] =[0,0],Proc : str ='Nash'):
         """
             pars : List[List[float]]
                 Lista con los valores de maxSurFaceStorage (reservorio de abstracción), maxSoilStorage (reservorio de producción) y parámetros tiempo de residencia (k) y n reservorios (caso Proc='Nash') o con último elemento como con ordenadas de Hidrograma Unitario (caso Proc='UH') 
@@ -1351,11 +1458,17 @@ class HOSH4P1L(PydrologyProcedureInterface):
         self.routingProc=Proc
         self.soilSystem=SCSReservoirs(pars=[self.maxSurfaceStorage,self.maxSoilStorage])
         if self.routingProc == 'Nash':
+                if self.k is None:
+                    raise ValueError("k not set")
+                if self.n is None:
+                    raise ValueError("n not set")
                 self.routingSystem=LinearChannel(pars=[self.k,self.n],Proc='Nash')    
         elif self.routingProc == 'UH':
+                if self.u is None:
+                    raise ValueError("u not set")
                 self.routingSystem=LinearChannel(pars=self.u,Proc='UH')
         else:
-            raise Exception("invalid Proc. Must be one of: Nash, UH")
+            raise ValueError("invalid Proc. Must be one of: Nash, UH")
         self.Precipitation=np.array(self.boundaries[0],dtype='float')
         self.EVP=np.array(self.boundaries[1],dtype='float')
         self.EVR1=np.array([0]*len(self.Precipitation),dtype='float')
@@ -1414,70 +1527,90 @@ class HOSH4P2L(PydrologyProcedureInterface):
     """
     Modelo Operacional de Transformación de Precipitación en Escorrentía de 4/6 parámetros (estimables), con 2 capas de suelo. Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (zona superior) y un reservorio linear (zona inferior). Rutea utilizando una función respuesta de pulso unitario arbitraria o mediante na cascada de Nash (se debe especificar tiempo de residencia y número de reservorios)
     """
-    maxSurfaceStorage : float
-    """Almacenamiento Máximo Superficial (reservorio de retención)"""
-    maxSoilStorage : float
-    """Almacenamiento máximo en el Suelo (reservorio de producción)"""
+    
     Proc : str
     """Procedimiento de propagación ('Nash' o 'UH')"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    SurfaceStorage: np.ndarray
+    SurfaceStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de retención (serie temporal)"""
-    SoilStorage : np.ndarray
+    SoilStorage : NDArray[np.float64]
     """Almacenamiento en resservorio de producción (sserie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Transferencia horizontal: escorrentía total (serie temporal)"""
-    Infiltration : np.ndarray
+    Infiltration : NDArray[np.float64]
     """Recarga de reservorio de producción (serie temporal)"""
-    CumPrecip: np.ndarray
+    CumPrecip: NDArray[np.float64]
     "Precipitación acumulada durante el evento (serie temporal)"
-    NetRainfall: np.array
+    NetRainfall: NDArray[np.float64]
     """Precipitación neta (serie temporal)"""
-    EVR1 : np.ndarray
+    EVR1 : NDArray[np.float64]
     """Evapotranspiración real reservorio de abstracción"""
-    EVR2 : np.ndarray
+    EVR2 : NDArray[np.float64]
     """Evapotranspiración real reservorio de producción"""
-    Q : float
+    Q : NDArray[np.float64]
     """Flujo encauzado (serie temporal)"""
     routingProc : str
     """Procedimiento de ruteo"""
     type='PQ Model'
 
+    pars : List[Union[List[float],float]]
+
+    boundaries : Union[List[List[float]],NDArray[np.float64]]
+
+    initial_conditions : Union[List[Tuple[float,float]],List[float]]
+
+
     @property
     def maxSurfaceStorage(self) -> float:
+        """Almacenamiento Máximo Superficial (reservorio de retención)"""
+        if not isinstance(self.pars[0],(int, float)):
+            raise TypeError("pars[0] must be a scalar")
         return self.pars[0]
 
     @property
     def maxSoilStorage(self) -> float:
+        """Almacenamiento máximo en el Suelo (reservorio de producción)"""
+        if not isinstance(self.pars[1],(int, float)):
+            raise TypeError("pars[1] must be a scalar")
         return self.pars[1]
     
     @property
     def phi(self) -> float:
+        if not isinstance(self.pars[2],(int, float)):
+            raise TypeError("pars[2] must be a scalar")
         return self.pars[2]
     
     @property
     def kb(self) -> float:
+        if not isinstance(self.pars[3],(int, float)):
+            raise TypeError("pars[0] must be a scalar")
         return self.pars[3]
     
 
     @property
-    def tr(self) -> float:
+    def tr(self) -> Optional[float]:
         if self.routingProc == 'Nash':
+            if not isinstance(self.pars[4],(int, float)):
+                raise TypeError("pars[4] must be a scalar")
             return self.pars[4]
         else:
             return None
         
     @property
-    def n(self) -> float:
+    def n(self) -> Optional[float]:
         if self.routingProc == 'Nash':
+            if not isinstance(self.pars[5],(int, float)):
+                raise TypeError("pars[5] must be a scalar")
             return self.pars[5]
         else:
             return None
     
     @property
-    def u(self) -> float:
+    def u(self) -> Optional[List[float]]:
         if self.routingProc == 'UH':
+            if not isinstance(self.pars[4],list):
+                raise TypeError("pars[4] must be a list")
             return self.pars[4]
         else:
             return None
@@ -1543,8 +1676,14 @@ class HOSH4P2L(PydrologyProcedureInterface):
             j=j+1                  
     def computeOutFlow(self):
         if self.routingProc == 'Nash':
+            if self.tr is None:
+                raise ValueError("tr not set")
+            if self.n is None:
+                raise ValueError("n not set")
             self.routingSystem=LinearChannel(pars=[self.tr,self.n],Boundaries=apportion(self.Runoff,self.phi))
         elif self.routingProc == 'UH':
+            if self.u is None:
+                raise ValueError("u not set")
             self.routingSystem=LinearChannel(pars=self.u,Boundaries=apportion(self.Runoff,self.phi),Proc='UH')
         else: 
             raise Exception("invalid Proc. Must be one of: Nash, UH")
@@ -1560,17 +1699,23 @@ class GR4J(PydrologyProcedureInterface):
     """
     Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo almacenamiento en reservorio de propagación, coeficiente de intercambio.
     """
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación (serie temporal)"""
-    EVP : np.ndarray
+    EVP : NDArray[np.float64]
     """Evapotranspiración (serie temporal)"""
-    Runoff : np.ndarray
+    Runoff : NDArray[np.float64]
     """Escorentía reservorio de producción (serie temporal)"""
-    Q: np.ndarray
+    Q: NDArray[np.float64]
     """Flujo encauzado (serie temporal)"""
     RoutingProc : str
     """Procedimiento de ruteo"""
     type='PQ Model'
+
+    pars : List[float]
+
+    boundaries : List[List[float]]
+
+    initial_conditions : List[float]
 
     @property
     def prodStoreMaxStorage(self) -> float:
@@ -1608,16 +1753,18 @@ class GR4J(PydrologyProcedureInterface):
         self.EVP=np.array(self.boundaries[1],dtype='float')
         self.Runoff=np.array([0]*len(self.Precipitation),dtype='float')
         self.Q=np.array([0]*len(self.Precipitation),dtype='float')
-        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=[self.Precipitation,self.EVP],InitialConditions=[self.initial_conditions[0]]) #cambios realizados en ProdStore (Ajuste interfaz) 20240524
+        self.prodStore=ProductionStoreGR4J(pars=[self.prodStoreMaxStorage],Boundaries=np.vstack([self.Precipitation,self.EVP]),InitialConditions=[self.initial_conditions[0]]) #cambios realizados en ProdStore (Ajuste interfaz) 20240524
+
     def computeRunoff(self):
         self.prodStore.computeOutFlow()
         self.Runoff=self.prodStore.Runoff
+
     def computeOutFlow(self):
-        self.channel1=LinearChannel(pars=self.u1,Boundaries=apportion(0.9,self.Runoff),Proc='UH')
-        self.channel2=LinearChannel(pars=self.u2,Boundaries=apportion(0.1,self.Runoff),Proc='UH')
+        self.channel1=LinearChannel(pars=self.u1,Boundaries=apportion(self.Runoff,0.9),Proc='UH')
+        self.channel2=LinearChannel(pars=self.u2,Boundaries=apportion(self.Runoff,0.1),Proc='UH')
         self.channel1.computeOutFlow()
         self.channel2.computeOutFlow()
-        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=[self.channel1.Outflow],InitialConditions=[self.initial_conditions[1]]) #cambios realizados en RoutStore 20240524. Hay que ajustar todos los procedimientos a los requisitos impuestos por interfaz, continuar
+        self.routStore=RoutingStoreGR4J(pars=[self.routStoreMaxStorage,self.waterExchange],Boundaries=np.vstack([self.channel1.Outflow]),InitialConditions=[self.initial_conditions[1]]) #cambios realizados en RoutStore 20240524. Hay que ajustar todos los procedimientos a los requisitos impuestos por interfaz, continuar
         self.routStore.computeOutFlow()
         n=min(len(self.routStore.Runoff),len(self.channel2.Outflow))
         self.DirectRunoff=np.array([0]*n,dtype='float')
@@ -1632,42 +1779,36 @@ class HIDROSAT(PydrologyProcedureInterface):
     """
     Modelo Operacional de Transformación de Precipitación en Escorrentía HIDROSAT. 
     """
-    S0: float 
-    """Capacidad de campo"""
-    W0 : float
-    """Almacenamiento de referencia en planicie aluvial"""
-    Q0 : float
-    """Caudal de referencia"""
-    gamma: float
-    """Factor de forma (abstracción) en relación Q(W)"""
-    epsilon: float
-    """Error máximo tolerable en Newthon-Raphson"""
+    
     dt : float
     """Longitud del paso de cálculo"""
-    Precipitation : np.ndarray
+    Precipitation : NDArray[np.float64]
     """Precipitación Media Areal"""
-    EVP: np.ndarray
+    EVP: NDArray[np.float64]
     """Evapotranspiración Potencial Media Areal"""
-    soilStorage: np.ndarray
+    soilStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de retención (agua de tensión/interfluvios)"""
-    EVSoil: np.ndarray
+    EVSoil: NDArray[np.float64]
     """Evapotranspiración (retención interfluvios)"""
-    freeWater: np.ndarray
+    freeWater: NDArray[np.float64]
     """Agua gravífica"""
-    DirectRunoff: np.ndarray
+    DirectRunoff: NDArray[np.float64]
     """Escorrentía directa"""
-    Runoff: np.ndarray
+    Runoff: NDArray[np.float64]
     """Escorrentía demorada"""
-    floodplainStorage: np.ndarray
+    floodplainStorage: NDArray[np.float64]
     """Almacenamiento en reservorio de detención (propagación escorrentía/planicie aluvial)"""
-    EVFloodPlain: np.ndarray
+    EVFloodPlain: NDArray[np.float64]
     """Evaporación (detención planicie aluvial)"""
-    Q: np.ndarray
-    "Caudal"
+    Q: NDArray[np.float64]
+    """Caudal"""
     type='HIDROSAT Model (Giordano, 2014)'
+
+    pars : List[float]
 
     @property
     def S0(self) -> float:
+        """Capacidad de campo"""
         return self.pars[0]
     
     @property
@@ -1680,14 +1821,17 @@ class HIDROSAT(PydrologyProcedureInterface):
     
     @property
     def W0(self) -> float:
+        """Almacenamiento de referencia en planicie aluvial"""
         return self.pars[3]
     
     @property
     def Q0(self) -> float:
+        """Caudal de referencia"""
         return self.pars[4]
     
     @property
     def gamma(self) -> float:
+        """Factor de forma (abstracción) en relación Q(W)"""
         return self.pars[5]
 
     @property
@@ -1712,11 +1856,16 @@ class HIDROSAT(PydrologyProcedureInterface):
 
     @property
     def epsilon(self) -> float:
+        """Error máximo tolerable en Newthon-Raphson"""
         if(len(self.pars)<9):
             return 0.0001
         else:
             return self.pars[8]
     
+    boundaries : List[List[float]] =[[0],[0],[0]]
+
+    initial_conditions : List[float]
+
     def __init__(self,pars : List[float], Boundaries : List[List[float]] =[[0],[0],[0]],InitialConditions : List[float]=[0,0,0,0],dt : float = 1):
         """
             pars : List[float]
@@ -1771,15 +1920,15 @@ class HIDROSAT(PydrologyProcedureInterface):
             self.DirectRunoff[i]=(1-phi)*self.Precipitation[i]
             self.EVFloodPlain[i]=min(self.floodplainStorage[i]+self.DirectRunoff[i],(1-phi)*self.EVP[i])
             p_floodplain=[apportion(self.DirectRunoff[i],self.detentionRatio)]
-            q_direct=[apportion(self.DirectRunoff[i],1-self.detentionRatio)]
+            q_direct=apportion(self.DirectRunoff[i],1-self.detentionRatio)
             ev_floodplain=[self.EVFloodPlain[i]]
             inflows_floodplain=[self.Runoff[i]+self.inFlow[i],self.Runoff[i+1]+self.inFlow[i+1]]
             initial_floodplain=[self.floodplainStorage[i],self.Flooded[i]]
-            self.routingSystem=HIDROSATPowerLawReservoir(pars=[self.W0,self.Q0,self.gamma,self.maxFlooded,self.epsilon],Boundaries=[p_floodplain,ev_floodplain,inflows_floodplain[0],inflows_floodplain[1]],InitialConditions=initial_floodplain,dt=self.dt)
+            self.routingSystem=HIDROSATPowerLawReservoir(pars=[self.W0,self.Q0,self.gamma,self.maxFlooded,self.epsilon],Boundaries=[p_floodplain,ev_floodplain,inflows_floodplain[0],inflows_floodplain[1]],InitialConditions=initial_floodplain,dt=int(self.dt))
             self.routingSystem.computeOutFlow()
             self.floodplainStorage[i+1]=self.routingSystem.Storage[1]
             self.Flooded[i+1]=self.routingSystem.Flooded[1]
-            self.Q[i+1]=self.routingSystem.Outflow[1]+q_direct
+            self.Q[i+1]=self.routingSystem.Outflow[1] + q_direct
 
 if __name__ == "__main__":
     import sys

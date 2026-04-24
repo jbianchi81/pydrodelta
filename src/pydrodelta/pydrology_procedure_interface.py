@@ -1,4 +1,8 @@
 from .descriptors.list_descriptor import ListDescriptor
+from typing import Union, Sequence, Mapping, Optional, Any
+from .types.procedure_boundary_dict import ProcedureBoundaryDict
+from numpy.typing import NDArray
+from numpy import float64
 
 class PydrologyProcedureInterface:
     """Abstract class to use as base for pydrology procedures. 
@@ -30,9 +34,9 @@ class PydrologyProcedureInterface:
 
     def __init__(
         self,
-        pars : list = None,
-        Boundaries : list = None,
-        InitialConditions : list = None,
+        pars : Optional[Union[Sequence[Any],NDArray[float64],Mapping[str,Any]]] = None,
+        Boundaries : Optional[Union[NDArray[float64],Sequence[Any]]] = None, # ProcedureBoundaryDict
+        InitialConditions : Optional[Union[Sequence[Any],Mapping[str,Any]]] = None,
         **kwargs):
         """
         Args:
@@ -52,7 +56,7 @@ class PydrologyProcedureInterface:
         self,
         attr : str,
         item_type : type,
-        length : int = None,
+        length : Optional[int] = None,
         coerce : bool = False
     ) -> None:
         """Iterates attr attribute and raises TypeError if an item is not an instance of item_type. If length is not set, attr may be None
