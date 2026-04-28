@@ -1,17 +1,16 @@
 from a5client import Crud, Serie
-from a5client.util_types import TVP, Intervaleable, SeriesDict, ApiConfigDict
-from a5client.util import interval2relativedelta, relativedeltaToSeconds
+from a5client.util_types import TVP, Intervaleable, SeriesDict, ApiConfigDict, TVPserializable, VariableDict, SeriesSerializableDict
+from a5client.util import interval2relativedelta, relativedeltaToSeconds, parseVar
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
-from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, multiply_relativedelta, relativedelta_to_timedelta, resolve_path, ensure_local
+from .util import adjustSeries, linearCombination, adjustSeries, serieFillNulls, interpolateData, getParamOrDefaultTo, plot_prono, coalesce, multiply_relativedelta, relativedelta_to_timedelta, resolve_path, ensure_local, relativedelta_to_iso
 import pandas
 import logging
 import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
-import isodate
 from .config import config
 from typing import List, Union, Tuple, Optional, cast, TypedDict, TYPE_CHECKING, Literal, overload
 from .descriptors.int_descriptor import IntDescriptor
@@ -48,7 +47,7 @@ class NodeVariable:
     id = IntDescriptor()
     """Id of the variable"""
     
-    metadata = DictDescriptor()
+    metadata : VariableDict
     """Variable metadata"""
     
     fill_value = FloatDescriptor()
@@ -237,7 +236,7 @@ class NodeVariable:
         self.id = id
         self._node : Optional["Node"] = node
         self.base_path = base_path
-        self.metadata = self._node.readVar(self.id) if self._node is not None else input_crud.readVar(self.id)
+        self.metadata : VariableDict = self._node.readVar(self.id) if self._node is not None else parseVar(input_crud.readVar(self.id))
         self.fill_value = fill_value
         self.series_output = series_output if series_output is not None else [NodeSerie(series_id=output_series_id)]  if output_series_id is not None else None
         self.series_sim = series_sim if series_sim is not None else None
@@ -282,15 +281,23 @@ class NodeVariable:
         """copies .data into .original_data"""
         self.original_data = self.data.copy(deep=True) if self.data is not None else None
     
+    @property
+    def metadata_serializable(self) -> dict:
+        time_support = relativedelta_to_iso(self.metadata["timeSupport"]) 
+        return {
+            **self.metadata,
+            "timeSupport": time_support        
+        }
+
     def toDict(self) -> dict:
         """Convert this variable to dict"""
         return {
             "id": self.id,
-            "metadata": self.metadata,
+            "metadata": self.metadata_serializable,
             "fill_value": self.fill_value,
             "series_output": [serie.toDict() for serie in self.series_output] if self.series_output is not None else None,
             "series_sim": [serie.toDict() for serie in self.series_sim] if self.series_sim is not None else None,
-            "time_support": isodate.duration_isoformat(self.time_support) if self.time_support is not None else None, 
+            "time_support": relativedelta_to_iso(self.time_support) if self.time_support is not None else None, 
             "adjust_from": self.adjust_from,
             "linear_combination": self.linear_combination,
             "interpolation_limit": self.interpolation_limit,
@@ -298,7 +305,7 @@ class NodeVariable:
             "original_data": self.originalDataAsDict(),
             "adjust_results": self.adjust_results,
             "name": self.name,
-            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None
+            "time_interval": relativedelta_to_iso(self.time_interval) if self.time_interval is not None else None
         }
     def toJSON(self) -> str:
         """Convert this variable to JSON string"""
@@ -480,16 +487,16 @@ class NodeVariable:
     def outputToList(
         self,
         flatten : Literal[True] = True
-        ) -> Optional[List[TVP]]: ...
+        ) -> Optional[List[TVPserializable]]: ...
     @overload
     def outputToList(
         self,
         flatten : Literal[False]
-        ) -> Optional[List[SeriesDict]]: ...
+        ) -> Optional[List[SeriesSerializableDict]]: ...
     def outputToList(
         self,
         flatten : bool = True
-        ) -> Optional[Union[List[TVP],List[SeriesDict]]]:
+        ) -> Optional[Union[List[TVPserializable],List[SeriesSerializableDict]]]:
         """
         Convert series_output to list of records (dict)
 
@@ -506,13 +513,13 @@ class NodeVariable:
         if self.series_output[0].data is None:
             self.setOutputData()
         if flatten:
-            list_tvp : List[TVP] = []
+            list_tvp : List[TVPserializable] = []
             for serie in self.series_output:
                 obs_list = serie.toList(include_series_id=True,timeSupport=self.time_support,remove_nulls=True)
                 list_tvp.extend(obs_list)
             return list_tvp
         else:
-            list_series : List[SeriesDict] = []
+            list_series : List[SeriesSerializableDict] = []
             for serie in self.series_output:
                 series_dict = serie.toDict(timeSupport=self.time_support, as_prono=False, remove_nulls=True)
                 list_series.append(series_dict)

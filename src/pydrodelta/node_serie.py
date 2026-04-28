@@ -7,8 +7,8 @@ from pandas import isna, DataFrame, DatetimeIndex
 from dateutil.relativedelta import relativedelta
 from .config import config
 from typing import Union, List, Tuple, Optional, Literal, TYPE_CHECKING, overload
-from .types.series_prono_dict import SeriesPronoDict
 from .types.api_config_dict import ApiConfigDict
+from .types.series_prono_serializable_dict import SeriesPronoSerializableDict
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
@@ -21,7 +21,7 @@ import json
 import yaml
 from .base import Base
 from a5client.util import tryParseAndLocalizeDate
-from a5client.util_types import Dateable, TVPdateable, TVP, SeriesDict
+from a5client.util_types import Dateable, TVPdateable, TVP, SeriesDict, TVPserializable, SeriesSerializableDict
 from pathlib import Path
 
 if TYPE_CHECKING:
@@ -582,7 +582,7 @@ class NodeSerie(Base):
         qualifiers : Optional[List[str]] = None,
         value_key : str = "valor",
         strict_properties : bool = False
-        ) -> List[TVP]:
+        ) -> List[TVPserializable]:
         """Convert timeseries to list of time-value pair dicts
         
         Parameters:
@@ -665,7 +665,7 @@ class NodeSerie(Base):
         max_obs_date : Optional[datetime] = None,
         qualifiers : Optional[List[str]] = None,
         value_key : str = "valor"
-        ) -> SeriesDict: ...
+        ) -> SeriesSerializableDict: ...
     @overload
     def toDict(
         self,
@@ -676,7 +676,7 @@ class NodeSerie(Base):
         max_obs_date : Optional[datetime] = None,
         qualifiers : Optional[List[str]] = None,
         value_key : str = "valor"
-        ) -> SeriesPronoDict: ...
+        ) -> SeriesPronoSerializableDict: ...
     def toDict(
         self,
         timeSupport : Optional[relativedelta] = None,
@@ -685,7 +685,7 @@ class NodeSerie(Base):
         max_obs_date : Optional[datetime] = None,
         qualifiers : Optional[List[str]] = None,
         value_key : str = "valor"
-        ) -> Union[SeriesDict, SeriesPronoDict]:
+        ) -> Union[SeriesSerializableDict, SeriesPronoSerializableDict]:
         """Convert timeseries to series dict
         
         Parameters:

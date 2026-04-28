@@ -16,7 +16,6 @@ dependencies = [
     "pytz",
     "jsonschema",
     "pyyaml",
-    "isodate",
     "networkx",
     "a5-client",
     "scikit-learn",

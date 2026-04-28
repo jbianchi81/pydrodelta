@@ -1391,3 +1391,29 @@ def toMapping(data : Any) -> Mapping[str, Any]:
         raise TypeError("Keys must be str")
 
     return cast(Mapping[str, Any], data)
+
+from dateutil.relativedelta import relativedelta
+
+def relativedelta_to_iso(rd: relativedelta) -> str:
+    parts = ["P"]
+
+    if rd.years:
+        parts.append(f"{rd.years}Y")
+    if rd.months:
+        parts.append(f"{rd.months}M")
+    if rd.days:
+        parts.append(f"{rd.days}D")
+
+    time_parts = []
+    if rd.hours:
+        time_parts.append(f"{rd.hours}H")
+    if rd.minutes:
+        time_parts.append(f"{rd.minutes}M")
+    if rd.seconds:
+        time_parts.append(f"{rd.seconds}S")
+
+    if time_parts:
+        parts.append("T")
+        parts.extend(time_parts)
+
+    return "".join(parts) if len(parts) > 1 else "P0D"

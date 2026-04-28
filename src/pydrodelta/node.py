@@ -1,9 +1,9 @@
-from .util import createDatetimeSequence, resolve_path, IntervalDict
+from .util import createDatetimeSequence, resolve_path, relativedelta_to_iso
 from .derived_node_variable import DerivedNodeVariable
 from .observed_node_variable import ObservedNodeVariable
 from .node_variable import NodeVariable
 from a5client import createEmptyObsDataFrame, Serie, Crud
-from a5client.util import interval2relativedelta, tryParseAndLocalizeDate
+from a5client.util import interval2relativedelta, tryParseAndLocalizeDate, parseVar
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.datetime_descriptor import DatetimeDescriptor
@@ -13,14 +13,14 @@ import pandas
 import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import isodate
 from typing import Union, List, Dict, Tuple, Optional, cast, overload, Literal, TYPE_CHECKING
 from pandas import DatetimeIndex, DataFrame
 from .config import config
 import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
-from a5client.util_types import ApiConfigDict, SeriesDict, TVP, Dateable, Intervaleable
+from .types.node_variable_dict import NodeVariableDict
+from a5client.util_types import ApiConfigDict, SeriesDict, TVP, Dateable, Intervaleable, TVPserializable, VariableDict, SeriesSerializableDict
 import traceback
 from pathlib import Path
 
@@ -55,7 +55,7 @@ class Node:
     @variables.setter
     def variables(
         self,
-        variables : Optional[List[Union[DerivedNodeVariable,ObservedNodeVariable,DerivedNodeVariableDict,ObservedNodeVariableDict]]] = None
+        variables : Optional[List[Union[DerivedNodeVariable,ObservedNodeVariable,NodeVariableDict]]] = None
         ) -> None:
         self._variables = {}
         if variables is not None:
@@ -65,12 +65,10 @@ class Node:
                 else:
                     if "derived" in variable and variable["derived"] == True:
                         kwargs = cast(DerivedNodeVariableDict, {k: v for k, v in variable.items() if k != "node"})
-                        kwargs["node"] = self
-                        self._variables[variable["id"]] = DerivedNodeVariable(**kwargs, base_path=self.base_path) 
+                        self._variables[variable["id"]] = DerivedNodeVariable(**kwargs, node=self, base_path=self.base_path) 
                     else:
                         kwargs = cast(ObservedNodeVariableDict, {k: v for k, v in variable.items() if k != "node"})
-                        kwargs["node"] = self
-                        self._variables[variable["id"]] = ObservedNodeVariable(**kwargs, base_path=self.base_path)
+                        self._variables[variable["id"]] = ObservedNodeVariable(**kwargs, node=self, base_path=self.base_path)
     
     node_type = StringDescriptor()
     """The type of node: either 'station' or 'basin'"""
@@ -114,7 +112,7 @@ class Node:
             time_offset : Optional[Intervaleable] = None,
             topology : Optional["Topology"] = None,
             hec_node : Optional[dict] = None,
-            variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
+            variables : List[Union[NodeVariableDict,DerivedNodeVariable,ObservedNodeVariable]] = list(),
             node_type : str = "station",
             description : Optional[str] = None,
             basin_pars : Optional[dict] = None,
@@ -250,8 +248,8 @@ class Node:
             "timestart": self.timestart.isoformat() if self.timestart is not None else None,
             "timeend": self.timeend.isoformat() if self.timeend is not None else None,
             "forecast_timeend": self.forecast_timeend.isoformat() if self.forecast_timeend is not None else None,
-            "time_interval": isodate.duration_isoformat(self.time_interval) if self.time_interval is not None else None,
-            "time_offset": isodate.duration_isoformat(self.time_offset) if self.time_offset is not None else None,
+            "time_interval": relativedelta_to_iso(self.time_interval) if self.time_interval is not None else None,
+            "time_offset": relativedelta_to_iso(self.time_offset) if self.time_offset is not None else None,
             "hec_node": dict(self.hec_node) if self.hec_node is not None else None,
             "variables": [self.variables[key].toDict() for key in self.variables], 
             "node_type": self.node_type
@@ -343,16 +341,16 @@ class Node:
     def variablesOutputToList(
             self,
             flatten : Literal[True] = True
-        ) -> List[TVP]: ...
+        ) -> List[TVPserializable]: ...
     @overload
     def variablesOutputToList(
             self,
             flatten : Literal[False]
-        ) -> List[SeriesDict]: ...
+        ) -> List[SeriesSerializableDict]: ...
     def variablesOutputToList(
             self,
             flatten : bool = True
-        ) -> Union[List[TVP],List[SeriesDict]]:
+        ) -> Union[List[TVPserializable],List[SeriesSerializableDict]]:
         """
         For each variable in .variables, converts series_output to list of dict
 
@@ -366,14 +364,14 @@ class Node:
         list
         """
         if flatten:
-            list_tvp : List[TVP]= []
+            list_tvp : List[TVPserializable]= []
             for variable in self.variables.values():
                 output_list = variable.outputToList(flatten=True)
                 if output_list is not None:
                     list_tvp.extend(output_list)
             return list_tvp
         else:
-            list_series : List[SeriesDict]= []
+            list_series : List[SeriesSerializableDict]= []
             for variable in self.variables.values():
                 output_list = variable.outputToList(flatten=False)
                 if output_list is not None:
@@ -1044,8 +1042,9 @@ class Node:
         for var_id, variable in self.variables.items():
             variable.saveSeriesSeparately(types)
     
-    def readVar(self, id : int):
+    def readVar(self, id : int) -> VariableDict:
         if self._topology is not None:
             return self._topology.readVar(id)
         else:
-            return self._crud.readVar(id)
+            v = self._crud.readVar(id)
+            return parseVar(v)

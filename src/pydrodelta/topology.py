@@ -12,7 +12,7 @@ import json
 from numpy import nan
 from a5client import createEmptyObsDataFrame, Crud, Serie
 from a5client.util import tryParseAndLocalizeDate, interval2relativedelta, serieObsToProno, parseVar
-from a5client.util_types import CorridaDict, CorridaDictNoId, SeriesDict, TVP, Dateable, Intervaleable, CorridaNoIdSerializableDict
+from a5client.util_types import CorridaDict, SeriesDict, TVP, Dateable, Intervaleable, CorridaNoIdSerializableDict, VariableDict, TVPserializable, SeriesSerializableDict
 import pandas
 import matplotlib.pyplot as plt
 from .util import getParamOrDefaultTo
@@ -807,18 +807,18 @@ class Topology(Base):
         self,
         pivot : Literal[False] = False,
         flatten : Literal[False] = False
-        ) -> List[SeriesDict]: ...
+        ) -> List[SeriesSerializableDict]: ...
     @overload
     def outputToList(
         self,
         pivot : Literal[False],
         flatten : Literal[True]
-        ) -> List[TVP]: ...
+        ) -> List[TVPserializable]: ...
     def outputToList(
         self,
         pivot : bool = False,
         flatten : bool = False
-        ) -> Union[List[PivotedRow],List[SeriesDict],List[TVP]]:
+        ) -> Union[List[PivotedRow],List[SeriesSerializableDict],List[TVPserializable]]:
         """returns list of data of all output_series of all variables of all nodes
         
         Parameters:
@@ -840,12 +840,12 @@ class Topology(Base):
             data = data.replace({nan:None})
             return cast(List[PivotedRow],data.to_dict(orient="records"))
         if flatten:
-            list_tvp : List[TVP] = []
+            list_tvp : List[TVPserializable] = []
             for node in self.nodes:
                 list_tvp.extend(node.variablesOutputToList(flatten=True))
             return list_tvp
         else:    
-            list_series : List[SeriesDict] = []
+            list_series : List[SeriesSerializableDict] = []
             for node in self.nodes:
                 list_series.extend(node.variablesOutputToList(flatten=False))
             return list_series
@@ -1846,7 +1846,7 @@ class Topology(Base):
                 self.restoreSeries(bucket_name,variable.series_sim,node_id,var_id, "series_sim") if variable.series_sim is not None else None
                 self.restoreSeries(bucket_name,variable.series_output,node_id,var_id, "series_output") if variable.series_output is not None else None
 
-    def readVar(self, id : int):
+    def readVar(self, id : int) -> VariableDict:
         if id not in self.var_map:
             if self.input_crud is None:
                 raise Exception("input crud not set")

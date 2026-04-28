@@ -27,7 +27,7 @@ from .descriptors.filepath_descriptor import FilepathDescriptor
 from .base import Base
 from .types.typed_list import TypedList
 from .types.save_variable_sim_dict import SaveVariableSimDict
-from a5client.util_types import CorridaDict, Dateable, CorridaDictNoId
+from a5client.util_types import CorridaDict, Dateable, CorridaNoIdSerializableDict
 from .node import Node
 
 from pydrodelta.config import config
@@ -376,7 +376,7 @@ class Plan(Base):
         for node in self.topology.nodes:
             node.saveSeriesSeparately(["series_sim", "series_output"])
     
-    def toCorrida(self,strict_properties : bool=True) -> CorridaDictNoId:
+    def toCorrida(self,strict_properties : bool=True) -> CorridaNoIdSerializableDict:
         """Convert simulation results into dict according to alerta5DBIO schema (https://raw.githubusercontent.com/jbianchi81/alerta5DBIO/master/public/schemas/a5/corrida.yml)
         
         Returns:
@@ -402,7 +402,7 @@ class Plan(Base):
                             })
         return {
             "cal_id": self.id,
-            "forecast_date": self.forecast_date,
+            "forecast_date": self.forecast_date.isoformat(),
             "series": series_sim,
             "id": None 
         }

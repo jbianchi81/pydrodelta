@@ -1,9 +1,6 @@
 from .procedure_function import ProcedureFunction
-from .config import config
 import logging
 import json
-import numpy as np
-import os
 from . import util
 from a5client import createEmptyObsDataFrame
 from .result_statistics import ResultStatistics, ResultStatisticsDict, ResultStatisticsShortDict
@@ -11,8 +8,7 @@ from .procedure_function_results import ProcedureFunctionResults
 from .pydrology import testPlot
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from .calibration.linear_regression_calibration import LinearRegressionCalibration
-from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, Mapping, cast
-from datetime import timedelta
+from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, cast
 from pandas import DataFrame
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
@@ -246,8 +242,8 @@ class Procedure():
             'function_type_name': self.function_type_name, 
             'function': self.function.toDict(),
             'parameters': self.parameters, 
-            'time_interval': self.time_interval, 
-            'time_offset': self.time_offset, 
+            'time_interval': util.relativedelta_to_iso(self.time_interval) if self.time_interval is not None else None, 
+            'time_offset': util.relativedelta_to_iso(self.time_offset) if self.time_offset is not None else None, 
             'input': [x.to_dict(orient="records") if isinstance(x, DataFrame) else x for x in self.input] if self.input is not None else None, 
             'output': [x.to_dict(orient="records") if isinstance(x, DataFrame) else x  for x in self.output] if self.output is not None else None, 
             'output_obs': [x.to_dict(orient="records")  if isinstance(x, DataFrame) else x for x in self.output_obs] if self.output_obs is not None else None, 
@@ -340,11 +336,10 @@ class Procedure():
             data : DataFrame = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
             columns = ["valor","tag"] if tag_column else ["valor"] 
             for boundary in self.function.boundaries:
+                boundary_data : DataFrame
                 if boundary._variable is None:
                     raise Exception("variable not set")
-                if boundary._variable.series_sim is None:
-                    raise Exception("series_sim not set")
-                if read_sim and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
+                if read_sim and boundary._variable.series_sim is not None and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
                     boundary_data = boundary._variable.series_sim[sim_index].data
                 elif boundary._variable.data is not None and len(boundary._variable.data):
                     boundary_data = boundary._variable.data

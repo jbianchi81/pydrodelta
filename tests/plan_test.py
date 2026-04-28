@@ -104,6 +104,7 @@ class Test_Plan(TestCase):
 
     def test_stats_df(self):
         plan = Plan.load(data_dir / "plans/dummy_sac.yml")
+        assert plan.procedures[0].calibration is not None
         plan.procedures[0].calibration.calibrate = False
         plan.execute(upload = False)
         stats_df = plan.procedures[0].read_statistics(as_dataframe=True)
@@ -112,10 +113,12 @@ class Test_Plan(TestCase):
     def test_stats_df_score(self):
         plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload = False)
+        assert plan.procedures[0].calibration is not None
         self.assertTrue(isinstance(plan.procedures[0].calibration.scores, DataFrame))
 
     def test_calibration_save_result_raise_exception(self):
         plan = Plan.load(data_dir / "plans/dummy_sac.yml")
+        assert plan.procedures[0].calibration is not None
         self.assertRaises(
             Exception, 
             plan.procedures[0].calibration.saveResult,

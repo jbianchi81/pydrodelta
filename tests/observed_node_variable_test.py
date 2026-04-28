@@ -37,8 +37,11 @@ class Test_ObservedNodeVariable(TestCase):
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/a5",
                 "token": "MY_TOKEN"
-            })   
-        self.assertEqual(len(node_variable.series[0].data),2)
+            }) 
+        assert node_variable.series is not None
+        assert node_variable.series[0].data is not None  
+        self.assertEqual(len(node_variable.series[0].data),3)
+        assert node_variable.series_prono is not None
         self.assertEqual(len(node_variable.series_prono[0].data),4)
 
     def test_series_load_api_raise_timestart_not_set(self):
