@@ -1,9 +1,12 @@
-from collections.abc import MutableSequence
+try:
+    from collections.abc import MutableSequence  # runtime base
+except ImportError:
+    from typing import MutableSequence  # fallback (older Python)
 from typing import Optional, Tuple, Union, Generic, TypeVar, Callable, overload, Iterable, Any
 
 T = TypeVar("T")
 
-class TypedList(MutableSequence[T], Generic[T]):
+class TypedList(MutableSequence, Generic[T]):
 
     def __init__(self, oktype, *args, unique_id_property : Optional[Union[str,Tuple[str, ...]]] = None, **fixed_kwargs):
         self.oktype = oktype

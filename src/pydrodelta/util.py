@@ -31,21 +31,34 @@ from pathlib import Path
 import statistics
 from a5client.util import tryParseAndLocalizeDate
 from os import PathLike
+import sys
 
 localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
 
-FilePath = str | PathLike[str]
+if sys.version_info >= (3, 9):
+    FilePath = Union[str, PathLike[str]]
+else:
+    FilePath = Union[str, PathLike]
 WriteBuffer = IO[str]
 
-PathOrBuf = FilePath | WriteBuffer
+PathOrBuf = Union[FilePath,WriteBuffer]
 
-FileDescriptorOrPath = Union[
-    int,                # file descriptor
-    str,                # path
-    bytes,              # path (low-level)
-    PathLike[str],      # pathlib.Path
-    PathLike[bytes]
-]
+if sys.version_info >= (3, 9):
+        FileDescriptorOrPath = Union[
+        int,                # file descriptor
+        str,                # path
+        bytes,              # path (low-level)
+        PathLike[str],
+        PathLike[bytes]
+    ]
+
+else:
+    FileDescriptorOrPath = Union[
+        int,                # file descriptor
+        str,                # path
+        bytes,              # path (low-level)
+        PathLike
+    ]
 
 class IntervalDict(TypedDict):
     day: int

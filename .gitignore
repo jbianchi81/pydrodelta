@@ -28,3 +28,4 @@ tests/data/results
 !tests/data/
 jupyter_env
 .venv
+.38venv
