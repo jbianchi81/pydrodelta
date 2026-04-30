@@ -1,4 +1,5 @@
-from typing import TypedDict, Required, NotRequired, List, Union, Literal
+from typing import TypedDict, List, Union, Literal
+from typing_extensions import Required, NotRequired
 from a5client.util_types import Intervaleable, TVP, TVPserializable
 
 class AbstractNodeSerieDict(TypedDict, total=False):

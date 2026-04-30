@@ -7,7 +7,8 @@ from ..procedure_boundary import ProcedureBoundary
 from ..types.procedure_boundary_dict import ProcedureBoundaryDict
 from ..types.enhanced_typed_list import EnhancedTypedList
 import numpy as np
-from typing import List, TypedDict, Optional, NotRequired, cast, Union, Tuple
+from typing import List, TypedDict, Optional, cast, Union, Tuple
+from typing_extensions import NotRequired
 from pandas import DataFrame
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")

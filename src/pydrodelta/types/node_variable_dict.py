@@ -1,4 +1,5 @@
-from typing import TypedDict, NotRequired, Required, Union, List, Literal, Sequence
+from typing import TypedDict, Union, List, Literal, Sequence
+from typing_extensions import Required, NotRequired
 from a5client.util_types import Intervaleable
 from .abstract_node_serie_dict import AbstractNodeSerieDict
 from .node_serie_prono_dict import NodeSeriePronoDict

@@ -1,4 +1,5 @@
-from typing import NotRequired, Union
+from typing import Union
+from typing_extensions import NotRequired
 from .abstract_node_serie_dict import AbstractNodeSerieDict
 from .plot_params_dict import PlotParamsDict
 

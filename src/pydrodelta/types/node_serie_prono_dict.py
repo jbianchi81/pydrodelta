@@ -1,4 +1,5 @@
-from typing import NotRequired, Required, Union, List
+from typing import Union, List
+from typing_extensions import Required, NotRequired
 from .abstract_node_serie_dict import AbstractNodeSerieDict
 from .plot_params_dict import PlotParamsDict
 from a5client.util_types import Dateable

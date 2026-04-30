@@ -1,4 +1,5 @@
-from typing import TypedDict, Union, Optional, NotRequired
+from typing import TypedDict, Union, Optional
+from typing_extensions import NotRequired
 from a5client.util_types import Dateable
 from pathlib import Path
 
