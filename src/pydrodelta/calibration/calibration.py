@@ -2,7 +2,7 @@ from numpy import array
 import logging
 import json
 from ..util import tryParseAndLocalizeDate, resolve_path
-from typing import Optional, List, Union, Tuple, Any, TYPE_CHECKING
+from typing import Optional, List, Union, Tuple, Any, TYPE_CHECKING, Literal
 from datetime import datetime
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
@@ -69,7 +69,7 @@ class Calibration:
             procedure : Optional["Procedure"],
             calibrate : bool = True,
             result_index : int = 0,
-            objective_function : str = 'rmse',
+            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"] = 'rmse',
             save_result : Optional[str] = None,
             calibration_period : Optional[List[datetime]] = None,
             base_path : Union[str,Path,None] = None

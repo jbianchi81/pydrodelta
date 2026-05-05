@@ -940,15 +940,15 @@ def plot_prono(
     if annotate:
         xdisplay = ahora + relativedelta(days=1)
         ax.annotate(prono_annotation,
-            xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points',
+            xy=(xdisplay, ydisplay), xytext=(text_xoffset[0]*offset, -offset), textcoords='offset points', # type: ignore
             bbox=bbox, fontsize=18,
-            color = prono_annotation_color)#arrowprops=arrowprops
+            color = prono_annotation_color)
         xdisplay = ahora - relativedelta(days=2)
         ax.annotate(obs_annotation,
-            xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points',
+            xy=(xdisplay, ydisplay), xytext=(text_xoffset[1]*offset, -offset), textcoords='offset points', # type: ignore
             bbox=bbox, fontsize=18)
         ax.annotate(forecast_date_annotation,
-            xy=(cast(float, ahora), ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(hours=7), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05))
+            xy=(cast(float, ahora), ylim[0]+0.05*(ylim[1]-ylim[0])),fontsize=15, xytext=(ahora+relativedelta(hours=7), ylim[0]+0.1*(ylim[1]-ylim[0])), arrowprops=dict(facecolor='black',shrink=0.05)) # type: ignore
     if adjust_results_string is not None:
         plt.gcf().text(0.6, 0.85, adjust_results_string, fontsize=10)
     if footnote is not None:
@@ -978,7 +978,7 @@ def plot_prono(
     else:
         xlim_0 =roundDownDate(xmin,relativedelta(days=1))
         xlim_1 = roundDownDate(xmax,relativedelta(days=1))
-    ax.set_xlim(np.datetime64(xlim_0),np.datetime64(xlim_1))
+    ax.set_xlim(np.datetime64(xlim_0),np.datetime64(xlim_1)) # type: ignore
     ax.tick_params(labeltop=False, labelright=True)
     plt.grid(True, which='both', color='0.75', linestyle='-.',linewidth=0.5)
     plt.tick_params(axis='both', labelsize=16)
@@ -1032,7 +1032,7 @@ def plot_prono(
     list0hrs = pandas.date_range(start_0hrs,end_0hrs)
     i = 1
     while i < len(list0hrs):
-        ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey')
+        ax.axvspan(list0hrs[i-1] + relativedelta(hours=3), list0hrs[i] + relativedelta(hours=3), alpha=0.1, color='grey') # type: ignore
         i=i+2
     createParent(output_file)
     plt.savefig(output_file, format = format)

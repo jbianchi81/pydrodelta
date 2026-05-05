@@ -3,13 +3,15 @@ from ..downhill_simplex import DownhillSimplex
 import logging
 import os
 import json
-from typing import Optional, List, Union, Tuple
+from typing import Optional, List, Union, Tuple, Literal
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.float_descriptor import FloatDescriptor
 from .calibration import Calibration
 from ..config import config
 from pathlib import Path
+import numpy as np
+from datetime import datetime
 
 class DownhillSimplexCalibration(Calibration):
     """Calibration procedure using Nelder Mead Downhill Simplex"""
@@ -21,17 +23,19 @@ class DownhillSimplexCalibration(Calibration):
     """Factor of the variance of the initial distribution of the parameter values"""
 
     @property
-    def ranges(self) ->  List[Tuple[float,float]]: 
+    def ranges(self) ->  Optional[List[Tuple[float,float]]]: 
         """Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)"""
         return self._ranges
     @ranges.setter
     def ranges(
         self,
-        ranges : List[Tuple[float,float]]
+        ranges : Optional[List[Tuple[float,float]]]
         ) -> None:
         if ranges is not None:
             if not isinstance(ranges,(list,tuple)):
                 raise ValueError("Invalid ranges argument. Must be a list")
+            if self._procedure is None:
+                raise RuntimeError("_procedure not set")
             if len(ranges) != len(self._procedure.function._parameters):
                 raise ValueError("Invalid ranges argument length. Must be equal the number of parameters of the procedure function (_procedure.function._parameters) =  %i. Instead, length is %i" % (len(self._procedure.function._parameters), len(ranges)))
             self._ranges = list()
@@ -54,11 +58,11 @@ class DownhillSimplexCalibration(Calibration):
     """maximum iterations"""
 
     @property
-    def simplex(self) -> List[Tuple[List[float],float]]:
+    def simplex(self) -> Optional[Union[np.typing.NDArray[np.float64],List[Tuple[List[float],float]]]]:
         return self._simplex
 
     @property
-    def downhill_simplex(self) -> DownhillSimplex:
+    def downhill_simplex(self) -> Optional[DownhillSimplex]:
         """Instance of DownhillSimplex"""
         return self._downhill_simplex
 
@@ -67,15 +71,15 @@ class DownhillSimplexCalibration(Calibration):
             procedure,
             calibrate : bool = True,
             result_index : int = 0,
-            objective_function : str = 'rmse',
+            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"] = 'rmse',
             limit : bool = True,
             sigma : float = 0.25,
-            ranges : List[Tuple[float,float]] = None,
+            ranges : Optional[List[Tuple[float,float]]] = None,
             no_improve_thr : float = 0.0000001,
             max_stagnations : int = 10,
             max_iter : int = 5000,
-            save_result : str = None,
-            calibration_period : list = None,
+            save_result : Optional[str] = None,
+            calibration_period : Optional[List[datetime]] = None,
             base_path : Union[str,Path,None] = None
             ):
         """
@@ -221,6 +225,8 @@ class DownhillSimplexCalibration(Calibration):
         sigma = sigma if sigma is not None else self.sigma
         limit = limit if limit is not None else self.limit
         ranges = ranges if ranges is not None else self.ranges
+        if self._procedure is None:
+            raise RuntimeError("_procedure not set")
         points = self._procedure.function.makeSimplex(sigma=sigma, limit=limit, ranges=ranges)
         simplex = list()
         for i, p in enumerate(points):
@@ -239,7 +245,7 @@ class DownhillSimplexCalibration(Calibration):
     def downhillSimplex(
         self,
         inplace : bool = True, 
-        sigma : Optional[int] = None,
+        sigma : Optional[float] = None,
         limit : Optional[bool] = None,
         ranges : Optional[List[Tuple[float,float]]] = None,
         no_improve_thr : Optional[float] = None, 
@@ -285,6 +291,8 @@ class DownhillSimplexCalibration(Calibration):
         sigma = sigma if sigma is not None else self.sigma
         limit = limit if limit is not None else self.limit
         ranges = ranges if ranges is not None else self.ranges
+        if self._procedure is None:
+            raise RuntimeError("_procedure not set")
         points = self._procedure.function.makeSimplex(
             sigma=sigma, 
             limit=limit, 
@@ -302,7 +310,8 @@ class DownhillSimplexCalibration(Calibration):
             max_stagnations=max_stagnations, 
             max_iter=max_iter,
             limit = limit,
-            limits = ranges if ranges is not None else self._procedure.function.limits
+            limits = ranges if ranges is not None else self._procedure.function.limits,
+            maximize = True if self.objective_function in ["nse","r","cov"] else False
         )
         if inplace:
             self._downhill_simplex = downhill_simplex
@@ -311,13 +320,14 @@ class DownhillSimplexCalibration(Calibration):
     def run(
         self, 
         inplace : bool = True, 
+        save_result : Optional[Union[Path,str]] = None,
         sigma : Optional[int] = None,
         limit : Optional[bool] = None,
         ranges : Optional[List[Tuple[float,float]]] = None,
         no_improve_thr : Optional[float] = None, 
         max_stagnations : Optional[int] = None, 
         max_iter : Optional[int] = None,
-        save_result : Optional[str] = None
+        **kwargs
         ) -> Union[None,Tuple[List[float],float]]:
         """
         Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
@@ -370,6 +380,8 @@ class DownhillSimplexCalibration(Calibration):
             no_improve_thr=no_improve_thr, 
             max_stagnations=max_stagnations, 
             max_iter=max_iter)
+        if self._downhill_simplex is None:
+            raise RuntimeError("_downhill_simplex not set")
         calibration_result = self._downhill_simplex.run()
         parameters = [float(x) for x in calibration_result[0]]
         score = float(calibration_result[1])
@@ -385,6 +397,8 @@ class DownhillSimplexCalibration(Calibration):
                 indent = 4
             )
         self.runReturnScore(parameters=parameters, objective_function=self.objective_function)
+        if self._procedure is None:
+            raise RuntimeError("_procedure not set")
         self.scores = self._procedure.read_statistics(as_dataframe=True)
         if inplace:
             self._calibration_result = (list(parameters),score)

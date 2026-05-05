@@ -46,10 +46,10 @@ class DownhillSimplex(object):
     max_iter=1000
 
     @property
-    def limits(self) -> List[Tuple[float,float]]:
+    def limits(self) -> Optional[List[Tuple[float,float]]]:
         return self._limits
     @limits.setter
-    def limits(self,limits : List[Tuple[float,float]]):
+    def limits(self,limits : Optional[List[Tuple[float,float]]]):
         if limits is None:
             self._limits = None
             return
@@ -59,7 +59,16 @@ class DownhillSimplex(object):
                 raise Exception("Range for parameter index %i must be of length 2: (min, max)" % i)
             self._limits.append((float(r[0]), float(r[1])))
 
-    def __init__(self, f, points,no_improve_thr:Optional[float]=None, max_stagnations:Optional[int]=None, max_iter:Optional[int]=None, limit:bool=False, limits:List[Tuple[float,float]]=None):
+    def __init__(
+            self, 
+            f, 
+            points,
+            no_improve_thr:Optional[float]=None, 
+            max_stagnations:Optional[int]=None, 
+            max_iter:Optional[int]=None, 
+            limit:bool=False, 
+            limits:Optional[List[Tuple[float,float]]]=None, 
+            maximize:bool=False):
         '''
             f: (function): function to optimize, must return a scalar score 
                 and operate over a numpy array of the same dimensions as x_start
@@ -69,6 +78,7 @@ class DownhillSimplex(object):
             max_iter: maximum iterations
             limit: if True, uses limits to limit parameter values on expansion and reflection
             limits: if limit=True, use this ordered list of tuples (min, max) to limit parameter values
+            maximize: maximize objective function (instead of the default which is to minimize it)
         '''
         self.f = f
         self.points = points
@@ -81,6 +91,7 @@ class DownhillSimplex(object):
         self.iters = 0
         self.limit = limit
         self.limits = limits
+        self.maximize = maximize
 
     def step(self, res):
         # centroid of the lowest face
@@ -105,9 +116,10 @@ class DownhillSimplex(object):
         res = self.make_score(self.points)
 
         # simplex iter
+        iters = 0
         for iters in range(self.max_iter):
             self.iters = iters
-            res = self.sort(res)
+            res = self.sort(res, reverse=self.maximize)
             best = res[0][1]
 
             # break after max_stagnations iterations with no improvement
@@ -128,11 +140,11 @@ class DownhillSimplex(object):
             raise Exception("No convergence after {} iterations".format(iters))
 
 
-    def sort(self, res):
+    def sort(self, res, reverse : bool=False):
         """
         Order the points according to their value.
         """
-        return sorted(res, key = lambda x: x[1])
+        return sorted(res, key = lambda x: x[1], reverse=reverse)
 
     def reflection(self, res, x0, refl):
         """
@@ -202,7 +214,7 @@ class DownhillSimplex(object):
     def limitVertex(
             self,
             vertex : List[float]
-        ) -> List[float]:
+        ) -> np.typing.NDArray[np.float64]: # List[float]:
         """Limit parameters with self.limits
 
         Args:
