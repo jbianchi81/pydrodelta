@@ -39,7 +39,7 @@ class JunctionProcedureFunction(ProcedureFunction):
 
                 Replace negative output values to zero
 
-        \**kwargs (see [..procedure_function.ProcedureFunction][])
+        \\**kwargs (see [..procedure_function.ProcedureFunction][])
         """        
         super().__init__(extra_pars = extra_pars, **kwargs)
         getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")

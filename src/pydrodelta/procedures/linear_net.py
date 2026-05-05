@@ -154,7 +154,7 @@ class LinearNetProcedureFunction(ProcedureFunction):
         input_colnames = []
         last_i : int = 0
         for i in range(len(input)):
-            data = input[i][["valor"]].rename(columns={"valor":"input"}) if data is None else data.join(input[i][["valor"]].rename(columns={"valor":"input"}))
+            data = input[i][["valor"]].astype(float).rename(columns={"valor":"input"}) if data is None else data.join(input[i][["valor"]].astype(float).rename(columns={"valor":"input"}))
             if not len(data.dropna().index):
                 raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self._procedure.id if self._procedure is not None else "unknown", i))
             last_date = max(data.dropna().index)

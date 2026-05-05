@@ -36,7 +36,7 @@ class HOSH4P1LNashProcedureFunction(HOSH4P1LProcedureFunction):
             - k of Nash cascade
             - n of Nash cascade
         
-        \**kwargs : keyword arguments (see [..hosh4p1l.HOSH4P1L][])"""
+        \\**kwargs : keyword arguments (see [..hosh4p1l.HOSH4P1L][])"""
         super().__init__(parameters = parameters, **kwargs)
 
     def setParameters(

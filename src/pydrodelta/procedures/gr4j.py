@@ -115,7 +115,7 @@ class GR4JProcedureFunction(PQProcedureFunction):
 
                 Time step duration (days, default 1)
 |
-        \**kwargs : keyword arguments (see ProcedureFunction)"""
+        \\**kwargs : keyword arguments (see ProcedureFunction)"""
         super().__init__(
             parameters=parameters, 
             initial_states=initial_states,

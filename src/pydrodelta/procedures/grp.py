@@ -136,7 +136,7 @@ class GRPProcedureFunction(PQProcedureFunction):
 
             Update model states when discharge observations are available
 |
-        \**kwargs : keyword arguments (see ProcedureFunction)
+        \\**kwargs : keyword arguments (see ProcedureFunction)
         """
         super().__init__(
             parameters = parameters,

@@ -21,9 +21,9 @@ pip install pywin32
 
 Step 2: Run makepy utilities
 - Go to the path where Python modules are sitting:
-	It may look like this -> C:/Users\solo\Anaconda\Lib\site-packages\win32com\client
-	or C:/Python27\ArcGIS10.2\Lib\site-packages\win32com\client
-	or C:/Python27\Lib\site-packages\win32com\client
+	It may look like this -> C:/Users\\solo\\Anaconda\\Lib\\site-packages\\win32com\\client
+	or C:/Python27\\ArcGIS10.2\\Lib\\site-packages\\win32com\\client
+	or C:/Python27\\Lib\\site-packages\\win32com\\client
 - Open command line at the above (^) path and run $: python makepy.py
 	select HECRAS River Analysis System (1.1) from the pop-up window
 	this will build definitions and import modules of RAS-Controller for use  '''

@@ -521,7 +521,7 @@ def interpolateData(
         extrapolate : bool = False
         ) -> pandas.DataFrame:
     min_obs_date, max_obs_date = (data[~pandas.isna(data[column])].index.min(),data[~pandas.isna(data[column])].index.max())
-    data["interpolated"] = data[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
+    data["interpolated"] = data[column].astype(float).interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate else 'inside')
     if tag_column is not None:
         data[tag_column] = data.apply(lambda row: f5(row,column,tag_column,min_obs_date,max_obs_date),axis=1)#[x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[column]) else x[tag_column] for (i, x) in data.iterrows()]
     data[column] = data["interpolated"]

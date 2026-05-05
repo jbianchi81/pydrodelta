@@ -28,7 +28,7 @@ class ExpressionProcedureFunction(ProcedureFunction):
 
             Expression to evaluate. For each step of input, 'value' is replaced with the value of input and the expression is evaluated
         
-        \**kwargs : keyword arguments (see ProcedureFunction)
+        \\**kwargs : keyword arguments (see ProcedureFunction)
         """
         super().__init__(**kwargs)
         getSchemaAndValidate(
