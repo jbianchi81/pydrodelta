@@ -15,22 +15,15 @@ logging.basicConfig(
         config["log"]["filename"]
     ),
     level = logging.DEBUG, 
-    format = "%(asctime)s:%(levelname)s:%(message)s"
-)
-logging.FileHandler(
-    os.path.join(
-        "/var/log",
-        config["log"]["filename"]
-    ),
-    "w+"
+    format = "%(asctime)s:%(levelname)s:%(message)s",
+    force=True
 )
 
-root_logger = logging.getLogger()
-# root_logger.setLevel(logging.DEBUG)
 str_handler = logging.StreamHandler(sys.stdout)
 str_handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
 str_handler.setFormatter(formatter)
+root_logger = logging.getLogger()
 root_logger.addHandler(str_handler)
 
 # class ProcedureType():
@@ -138,10 +131,16 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         input_api_config = input_api_config,
         output_api_config = output_api_config)
     if csv is not None:
+        if plan.topology is None:
+            raise RuntimeError("topology not set")
         plan.topology.saveData(csv,pivot=pivot)
     if json is not None:
+        if plan.topology is None:
+            raise RuntimeError("topology not set")
         plan.topology.saveData(json,format="json",pivot=pivot,pretty=pretty)
     if upload:
+        if plan.topology is None:
+            raise RuntimeError("topology not set")
         created = plan.topology.uploadData(include_prono, api_config = output_api_config)
         if save_upload_response is not None:
             json_dump(created,open(save_upload_response,"w"))
@@ -158,6 +157,8 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         plan.printGraph(output_file=graph_file)
     if plot_var is not None:
         for var_tuple in plot_var:
+            if plan.topology is None:
+                raise RuntimeError("topology not set")
             var_id, filename = var_tuple
             logging.info("plotVariable: var_id: %s, filename: %s" % (var_id, filename))
             plan.topology.plotVariable(var_id,output=filename)
