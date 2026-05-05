@@ -481,7 +481,7 @@ class NodeVariable:
         data["timeend"] = data["timeend"].apply(lambda x: x.isoformat())
         if len(data) and include_series_id:
             data.loc[:,"series_id"] = self.node_id if use_node_id else self.series_output[0].series_id if self.series_output is not None else None
-        return cast(list[TVP], data.to_dict(orient="records"))
+        return cast(List[TVP], data.to_dict(orient="records"))
     
     @overload
     def outputToList(
