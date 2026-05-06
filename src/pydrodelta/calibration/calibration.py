@@ -187,7 +187,7 @@ class Calibration:
         if self._procedure.procedure_function_results.statistics is None:
             raise RuntimeError("statistics not set")
         value = getattr(self._procedure.procedure_function_results.statistics[result_index],objective_function)
-        logging.debug((parameters, value))
+        # logging.debug((parameters, value))
         return value
 
     def run(

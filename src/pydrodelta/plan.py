@@ -337,7 +337,7 @@ class Plan(Base):
         if self.output_results_file is not None:
             util.createParent(self.output_results_file)
             with open(self.output_results_file,"w",encoding='utf-8') as outfile:
-                json.dump([p.read_results() for p in self.procedures], outfile, indent=4) 
+                json.dump([p.toDict() for p in self.procedures], outfile, indent=4) 
         if self.output_stats_file is not None:
             util.createParent(self.output_stats_file)
             with open(self.output_stats_file,"w",encoding='utf-8') as outfile:

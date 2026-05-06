@@ -1,6 +1,6 @@
 from .procedure_boundary import ProcedureBoundary
 from .procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union, Tuple, List, cast, Any, Mapping
+from typing import Optional, Union, Tuple, List, cast, Any, Mapping, Dict
 from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
@@ -14,6 +14,7 @@ from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
 from .util import getInputListFromDataFrame
+from .model_parameter import ModelParameter
 
 from typing import TYPE_CHECKING
 
@@ -40,13 +41,13 @@ class ProcedureFunction:
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
     
-    _parameters : list = []
+    _parameters : List[ModelParameter] = []
     """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
     
     _states : list = []
     """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
 
-    parameters = ListOrDictDescriptor()
+    parameters = ListOrDictDescriptor() #  : Union[List[float], Dict[str, float]]
     """function parameter values. Ordered list or dict"""
 
     @property
@@ -281,8 +282,9 @@ class ProcedureFunction:
         self,
         sigma : float = 0.25,
         limit : bool = True,
-        ranges : Optional[list] = None
-        ) -> list:
+        ranges : Optional[list] = None,
+        # minmax : Optional[list] = None
+        ) -> List[List[float]]:
         """Generate Simplex from procedure function parameters. 
         
         Generates a list of len(self._parameters)+1 parameter sets randomly using a normal distribution centered in the corresponding parameter range and with variance=sigma
@@ -303,9 +305,9 @@ class ProcedureFunction:
         list : list of  length = len(self._parameters) + 1 where each element is a list of floats of length = len(self._parameters)"""
         if not len(self._parameters):
             raise Exception("_parameters not set for this class")
-        points = []
+        points : List[List[float]] = []
         for i in range(len(self._parameters)+1):
-            point = []
+            point : List[float] = []
             for j, p in enumerate(self._parameters):
                 if ranges is not None and len(ranges) - 1 >= j:
                     if len(ranges[j]) < 2:
@@ -315,7 +317,15 @@ class ProcedureFunction:
                 else:
                     range_min = None
                     range_max = None
-                point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max))
+                # if minmax is not None and len(minmax) - 1 >= j:
+                #     if len(minmax[j]) < 2:
+                #         raise ValueError("minmax must be a list of 2-tuples")
+                #     abs_min = minmax[j][0]
+                #     abs_max = minmax[j][1]
+                # else:
+                #     abs_min = None
+                #     abs_max = None
+                point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max)) # , abs_min=abs_min,abs_max=abs_max)
             points.append(list(point))
         return points
 
@@ -337,6 +347,8 @@ class ProcedureFunction:
         if len(self._parameters):
             if reset:
                 self.parameters = {}
+            if not isinstance(self.parameters, dict):
+                raise RuntimeError("parameters must be a dict")
             for i, p in enumerate(self._parameters):
                 if len(parameters) - 1 < i:
                     raise ValueError("parameters list is too short: %i item is missing" % i)

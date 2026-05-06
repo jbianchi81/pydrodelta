@@ -391,7 +391,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
     def check3(self, x1n, X0, c):
         nn = 1
-        if x1n != 0 and x1n + X0 * c < 0:
+        if x1n > np.finfo(np.float64).tiny and x1n + X0 * c < 0:
             nn = 2 + int(1/x1n * c * abs(X0))
         return min(15,nn)
 

@@ -610,35 +610,19 @@ class Procedure():
             "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics] if self.procedure_function_results is not None and self.procedure_function_results.statistics is not None else None,
             "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results is not None and self.procedure_function_results.statistics_val is not None else None
         }
-    def read_results(self) -> dict:
-        """Get results as a dict
-        
-        Returns
-        -------
-        results : dict of the form:
-            {
-                "procedure_id": int,
-                "function_type": str,
-                "results": dict    
-            }
-        """
-        return {
-            "procedure_id": self.id,
-            "function_type": self.function_type_name,
-            "results": self.procedure_function_results.toDict() if self.procedure_function_results is not None else None
-        }
 
     save_dict = StringDescriptor()
     """Save results as dict to this file"""
 
-    def saveDict(self, output : str):
+    def saveDict(self, output : Union[str, Path]):
         try:
             with open(output,'w') as f:
-                json.dump(self.read_results(), f)
-            logging.info("Procedure function results saved into %s" % output)
+                json.dump(self.toDict(), f, indent=2)
+                # logging.info("Procedure function results saved into %s" % output)
         except IOError as e:
             # logging.ERROR(f"Couldn't write to file ({e})")
             raise e
+    
     def run(
         self,
         inplace : bool = True,
@@ -778,7 +762,7 @@ class Procedure():
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
         if bool(save_dict):
-            self.procedure_function_results.saveDict(output=save_dict)
+            self.saveDict(output=save_dict)
         # returns
         if inplace:
             return
@@ -843,7 +827,7 @@ class Procedure():
             if o._variable is None:
                 raise Exception("variable is not set")
             if o._variable.series_sim is None:
-                logging.warning("series_sim not defined for output %s" % o.name)
+                # logging.warning("series_sim not defined for output %s" % o.name)
                 continue
             if index + 1 > len(self.output):
                 logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))

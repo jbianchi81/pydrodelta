@@ -1,14 +1,12 @@
 from numpy import array, isnan
 from ..downhill_simplex import DownhillSimplex
 import logging
-import os
 import json
-from typing import Optional, List, Union, Tuple, Literal
+from typing import Optional, List, Union, Tuple, Literal, Sequence
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.float_descriptor import FloatDescriptor
 from .calibration import Calibration
-from ..config import config
 from pathlib import Path
 import numpy as np
 from datetime import datetime
@@ -22,6 +20,8 @@ class DownhillSimplexCalibration(Calibration):
     sigma = FloatDescriptor()
     """Factor of the variance of the initial distribution of the parameter values"""
 
+    _ranges : Optional[List[Tuple[float,float]]]
+
     @property
     def ranges(self) ->  Optional[List[Tuple[float,float]]]: 
         """Override default parameter ranges with these values. A list of length equal to the number of parameters of the procedure function (._procedure.function._parameters) where each element is a 2-tuple of floats (range_min, range_max)"""
@@ -29,7 +29,7 @@ class DownhillSimplexCalibration(Calibration):
     @ranges.setter
     def ranges(
         self,
-        ranges : Optional[List[Tuple[float,float]]]
+        ranges : Optional[Sequence[Tuple[float,float]]]
         ) -> None:
         if ranges is not None:
             if not isinstance(ranges,(list,tuple)):
@@ -57,6 +57,9 @@ class DownhillSimplexCalibration(Calibration):
     max_iter = IntDescriptor()
     """maximum iterations"""
 
+    save_simplex : Optional[Union[Path, str]]
+    """save simplex at this file path as comma separated values. Each row is a point. Last column is score."""
+
     @property
     def simplex(self) -> Optional[Union[np.typing.NDArray[np.float64],List[Tuple[List[float],float]]]]:
         return self._simplex
@@ -80,7 +83,8 @@ class DownhillSimplexCalibration(Calibration):
             max_iter : int = 5000,
             save_result : Optional[str] = None,
             calibration_period : Optional[List[datetime]] = None,
-            base_path : Union[str,Path,None] = None
+            base_path : Union[str,Path,None] = None,
+            save_simplex : Optional[Union[str, Path]] = None
             ):
         """
         Parameters:
@@ -131,6 +135,7 @@ class DownhillSimplexCalibration(Calibration):
         calibration_period : list = None
 
             Calibration period (begin date, end date) 
+    
         """
         super().__init__(
             procedure = procedure,
@@ -148,6 +153,7 @@ class DownhillSimplexCalibration(Calibration):
         self.max_iter = max_iter
         self._downhill_simplex = None
         self._simplex = None
+        self.save_simplex = self.resolve_path(save_simplex)
 
     def toDict(self) -> dict:
         cal_dict = {
@@ -163,9 +169,10 @@ class DownhillSimplexCalibration(Calibration):
             "save_result": self.save_result,
             "calibration_period": [self.calibration_period[0].isoformat(), self.calibration_period[1].isoformat()] if self.calibration_period is not None else None,
             "calibration_result": self.calibration_result,
-            "simplex": self.simplex,
             "iters": self._downhill_simplex.iters if self._downhill_simplex is not None else None,
-            "limits": self._downhill_simplex.limits if self._downhill_simplex is not None else None
+            "limits": self._downhill_simplex.limits if self._downhill_simplex is not None else None,
+            "initial_simplex": self._downhill_simplex.initial_points_list if self._downhill_simplex is not None else None,
+            "final_simplex" : self._downhill_simplex.current_points_list if self._downhill_simplex is not None else None
         }
         for key in cal_dict:
             try:
@@ -237,8 +244,9 @@ class DownhillSimplexCalibration(Calibration):
             if isnan(score):
                 raise Exception("Simplex item %i returned NaN to objective function %s" % (i, objective_function))
             simplex.append( (p, score))
+        self._simplex = simplex
         if inplace:
-            self._simplex = array(simplex,dtype=object)
+            return None
         else:
             return simplex
 
@@ -250,7 +258,8 @@ class DownhillSimplexCalibration(Calibration):
         ranges : Optional[List[Tuple[float,float]]] = None,
         no_improve_thr : Optional[float] = None, 
         max_stagnations : Optional[int] = None, 
-        max_iter : Optional[int] = None
+        max_iter : Optional[int] = None,
+        save_simplex : Optional[Union[Path,str]] = None
         ) -> Union[None,DownhillSimplex]:
         """
         Instantiate DownhillSimplex object. Every parameter is optional. If missing or None, the corresponding instance property is used.
@@ -301,17 +310,20 @@ class DownhillSimplexCalibration(Calibration):
         no_improve_thr = no_improve_thr if no_improve_thr is not None else self.no_improve_thr
         max_stagnations = max_stagnations if max_stagnations is not None else self.max_stagnations
         max_iter = max_iter if max_iter is not None else self.max_iter
+        save_simplex = save_simplex if save_simplex is not None else self.save_simplex
         self._procedure.loadInputDefault()
         self._procedure.loadOutputObs()
         downhill_simplex = DownhillSimplex(
             self.runReturnScore, 
-            points, 
+            np.array(points), 
             no_improve_thr=no_improve_thr, 
             max_stagnations=max_stagnations, 
             max_iter=max_iter,
             limit = limit,
             limits = ranges if ranges is not None else self._procedure.function.limits,
-            maximize = True if self.objective_function in ["nse","r","cov"] else False
+            maximize = True if self.objective_function in ["nse","r","cov"] else False,
+            save_simplex = save_simplex,
+            minmax = self._procedure.function.limits
         )
         if inplace:
             self._downhill_simplex = downhill_simplex
@@ -327,6 +339,7 @@ class DownhillSimplexCalibration(Calibration):
         no_improve_thr : Optional[float] = None, 
         max_stagnations : Optional[int] = None, 
         max_iter : Optional[int] = None,
+        save_simplex : Optional[Union[Path,str]] = None,
         **kwargs
         ) -> Union[None,Tuple[List[float],float]]:
         """
@@ -379,12 +392,14 @@ class DownhillSimplexCalibration(Calibration):
             ranges=ranges,
             no_improve_thr=no_improve_thr, 
             max_stagnations=max_stagnations, 
-            max_iter=max_iter)
+            max_iter=max_iter,
+            save_simplex=save_simplex)
         if self._downhill_simplex is None:
             raise RuntimeError("_downhill_simplex not set")
         calibration_result = self._downhill_simplex.run()
         parameters = [float(x) for x in calibration_result[0]]
         score = float(calibration_result[1])
+        self._calibration_result = (list(parameters),score)
         logging.debug("Downhill simplex finished at iteration %i" % self._downhill_simplex.iters)
         save_result = save_result if save_result is not None else self.save_result
         if save_result:
@@ -396,12 +411,13 @@ class DownhillSimplexCalibration(Calibration):
                 open(save_result,"w"),
                 indent = 4
             )
+        # self._calibration_result = (list(parameters),score)
         self.runReturnScore(parameters=parameters, objective_function=self.objective_function)
         if self._procedure is None:
             raise RuntimeError("_procedure not set")
         self.scores = self._procedure.read_statistics(as_dataframe=True)
         if inplace:
-            self._calibration_result = (list(parameters),score)
+            return None 
         else:
             return (parameters, score)
         

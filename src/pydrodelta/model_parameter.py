@@ -1,5 +1,5 @@
 from numpy import random
-from typing import Tuple
+from typing import Tuple, Optional
 from .descriptors.string_descriptor import StringDescriptor
 from .descriptors.float_descriptor import FloatDescriptor
 
@@ -57,8 +57,8 @@ class ModelParameter:
         self,
         sigma : float = 0.25,
         limit : bool = True,
-        range_min : float = None,
-        range_max : float = None
+        range_min : Optional[float] = None,
+        range_max : Optional[float] = None
         ) -> float:
         """
         Generates random value using normal distribution centered between self.range_min and self.range_max
@@ -92,6 +92,5 @@ class ModelParameter:
         range_max = range_max if range_max is not None else self.range_max
         rand = range_min + random.normal(0.5,sigma) * (range_max - range_min)
         if limit:
-            return self.min if rand < self.min else rand if rand < self.max else self.max
-        else:
-            return rand
+            rand = self.range_min if rand < self.min else rand if rand < self.max else self.range_max
+        return self.min if rand < self.min else rand if rand < self.max else self.max

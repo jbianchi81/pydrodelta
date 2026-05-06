@@ -14,7 +14,7 @@
         },
         "limit": {
             "type": "boolean",
-            "description": "Limit the parameter values inside the min - max range"
+            "description": "Limit the parameter values inside the min - max range. If ranges not set, uses default min - max of model parameter"
         },
         "sigma": {
             "type": "number",
@@ -43,6 +43,10 @@
         "max_iter": {
             "type": "integer",
             "description": "maximum iterations"
+        },
+        "save_simplex": {
+            "type": "string",
+            "description": "save simplex at this file path as comma separated values. Each row is a point. Last column is score."
         }
     }
 }
