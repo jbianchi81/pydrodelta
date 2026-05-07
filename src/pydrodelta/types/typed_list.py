@@ -2,7 +2,7 @@ try:
     from collections.abc import MutableSequence  # runtime base
 except ImportError:
     from typing import MutableSequence  # fallback (older Python)
-from typing import Optional, Tuple, Union, Generic, TypeVar, Callable, overload, Iterable, Any
+from typing import Optional, Tuple, Union, Generic, TypeVar, Callable, overload, Iterable, Any, Iterator
 
 T = TypeVar("T")
 
@@ -113,3 +113,6 @@ class TypedList(MutableSequence, Generic[T]):
             unique_id_property=self._unique_id_property,
             **self._fixed_kwargs
         )
+    
+    def __iter__(self) -> Iterator[T]:
+        return iter(self.list)

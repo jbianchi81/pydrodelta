@@ -316,6 +316,7 @@ class Plan(Base):
             raise Exception("topology is not set")
         self.topology.batchProcessInput(include_prono=include_prono,input_api_config=input_api_config)
         if self.output_analysis is not None:
+            util.createParent(self.output_analysis)
             with open(self.output_analysis,'w') as analysisfile:
                 if pretty:
                     json.dump(self.topology.toList(pivot=self.pivot),analysisfile,indent=4)
