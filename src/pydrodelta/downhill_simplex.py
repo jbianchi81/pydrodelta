@@ -219,7 +219,7 @@ class DownhillSimplex(object):
         new_res = res[:]
 
         progress = rscore > new_res[-2][1] if self.maximize else rscore < new_res[-2][1]
-        logging.debug(f"Downhill simplex reflection. score: {"%f" % rscore}, progress: {progress}")
+        logging.debug(f"Downhill simplex reflection. score: {rscore:f}, progress: {progress}")
         if progress: # if this is a progress, we keep it
             new_res[-1] = (xr, rscore)
             return new_res
@@ -236,11 +236,11 @@ class DownhillSimplex(object):
             xe = self.limitVertex(xe)
             escore = np.float64(self.f(xe))
             if (escore > rscore if self.maximize else escore < rscore):
-                logging.debug(f"Downhill simplex expansion score: {"%f" % escore}, progress: True")
+                logging.debug(f"Downhill simplex expansion score: {escore:f}, progress: True")
                 new_res = res[:]
                 new_res[-1] = (xe, escore)
                 return new_res
-            logging.debug(f"Downhill simplex expansion score: {"%f" % escore}, progress: False")
+            logging.debug(f"Downhill simplex expansion score: {escore:f}, progress: False")
             return None
         return None
 
@@ -254,7 +254,7 @@ class DownhillSimplex(object):
         new_res = res[:]
 
         progress = cscore > new_res[-1][1] if self.maximize else cscore < new_res[-1][1]
-        logging.debug(f"Downhill simplex contraction, score: {"%f" % cscore}, progress: {progress}")
+        logging.debug(f"Downhill simplex contraction, score: {cscore:f}, progress: {progress}")
         if progress:
             new_res[-1] = (xc, cscore)
             return new_res
@@ -276,7 +276,7 @@ class DownhillSimplex(object):
         i = 0
         for pt in points:
             score = np.float64(self.f(pt))
-            logging.debug(f"Donwhill simplex make_score point: {i}, score: {"%f" % score}")
+            logging.debug(f"Donwhill simplex make_score point: {i}, score: {score:f}")
             res.append((pt, score))
             i = i + 1
         return res
