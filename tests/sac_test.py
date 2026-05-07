@@ -18,6 +18,8 @@ class Test_SacramentoSimplified(TestCase):
         plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload=False)
         
+        assert plan.procedures[0].calibration is not None
+        assert plan.procedures[0].calibration.calibration_result is not None
         self.assertTrue(isinstance(plan.procedures[0].calibration.calibration_result[0],list))
         self.assertEqual(
             len(plan.procedures[0].calibration.calibration_result[0]),
@@ -38,7 +40,7 @@ class Test_SacramentoSimplified(TestCase):
             len(plan.procedures[0].calibration.result["scores"]),
             1
         )
-        for key in ["n","rmse","r","nse", "n_val", "rmse_val", "r_val", "nse_val"]:
+        for key in ["n","rmse","r","nse", "n_val", "rmse_val", "r_val", "nse_val", "kge"]:
             self.assertTrue(key in plan.procedures[0].calibration.result["scores"][0])
             if key in ["n", "n_val"]:
                 self.assertTrue(isinstance(plan.procedures[0].calibration.result["scores"][0][key], int))

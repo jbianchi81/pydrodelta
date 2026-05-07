@@ -21,6 +21,7 @@ class ResultStatisticsShortDict(TypedDict):
     cov : Optional[float]
     r : Optional[float]
     oneminusr : Optional[float]
+    kge : Optional[float]
 
 class ResultStatisticsDict(ResultStatisticsShortDict):
     errors : Optional[List[float]]
@@ -115,6 +116,7 @@ class ResultStatistics:
         """residual standard error"""
         self.k : Optional[int] = k
         """number of independent variables"""
+        self.kge : Optional[float] = None
 
         if compute:
             self.compute()
@@ -156,6 +158,12 @@ class ResultStatistics:
         self.oneminusr = 1 - self.r if self.r is not None else None
         if self.k is not None:
             self.rse = ( sum([ e ** 2 for e in self.errors]) / ( self.n - self.k - 1 )) ** 0.5
+        # kge
+        if self.r is not None:
+            beta = self.mean_sim / self.mean_obs
+            alfa = self.stdev_sim / self.stdev_obs
+            self.kge = 1 - ((self.r - 1)**2 + (alfa - 1)**2 + (beta - 1)**2)**0.5
+
     def toDict(self) -> ResultStatisticsDict:
         """Convert result statistics into dict
         
@@ -188,5 +196,6 @@ class ResultStatistics:
             "var_sim": self.var_sim,
             "cov": self.cov,
             "r": self.r,
-            "oneminusr": self.oneminusr
+            "oneminusr": self.oneminusr,
+            "kge": self.kge
         }

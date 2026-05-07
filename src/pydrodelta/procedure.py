@@ -599,11 +599,13 @@ class Procedure():
                 stats["rmse"],
                 stats["r"],
                 stats["nse"],
+                stats["kge"],
                 stats_val["n"] if stats_val is not None else None,
                 stats_val["rmse"] if stats_val is not None else None,
                 stats_val["r"] if stats_val is not None else None,
-                stats_val["nse"] if stats_val is not None else None
-            ]], columns = ["n","rmse","r","nse","n_val","rmse_val","r_val","nse_val"])
+                stats_val["nse"] if stats_val is not None else None,
+                stats_val["kge"] if stats_val is not None else None
+            ]], columns = ["n","rmse","r","nse","kge","n_val","rmse_val","r_val","nse_val","kge_val"])
         return {
             "procedure_id": self.id,
             "function_type": self.function_type_name,

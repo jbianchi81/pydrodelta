@@ -74,7 +74,7 @@ class DownhillSimplexCalibration(Calibration):
             procedure,
             calibrate : bool = True,
             result_index : int = 0,
-            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"] = 'rmse',
+            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr","kge"] = 'rmse',
             limit : bool = True,
             sigma : float = 0.25,
             ranges : Optional[List[Tuple[float,float]]] = None,
@@ -201,7 +201,7 @@ class DownhillSimplexCalibration(Calibration):
 
         objective_function : Optional[str] = None
 
-            Name of the objective function. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr'
+            Name of the objective function. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr', 'kge'
 
         result_index : Optional[int] = None
 
@@ -321,7 +321,7 @@ class DownhillSimplexCalibration(Calibration):
             max_iter=max_iter,
             limit = limit,
             limits = ranges if ranges is not None else self._procedure.function.limits,
-            maximize = True if self.objective_function in ["nse","r","cov"] else False,
+            maximize = True if self.objective_function in ["nse","r","cov","kge"] else False,
             save_simplex = save_simplex,
             minmax = self._procedure.function.limits
         )

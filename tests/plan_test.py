@@ -91,10 +91,17 @@ class Test_Plan(TestCase):
         plan = Plan.load(data_dir / "plans/dummy_sac.yml")
         plan.execute(upload = False)
         stats = plan.procedures[0].read_statistics()
+        assert stats["results"] is not None
+        assert stats["results"][0] is not None
         self.assertEqual(stats["results"][0]["n"], 3)
+        assert stats["results"][1] is not None
         self.assertEqual(stats["results"][1]["n"], 3)
+        assert stats["results_val"] is not None
+        assert stats["results_val"][0] is not None
         self.assertEqual(stats["results_val"][0]["n"], 2)
+        assert stats["results_val"][1] is not None
         self.assertEqual(stats["results_val"][1]["n"], 2)
+        assert plan.procedures[0].calibration is not None
         calibration = plan.procedures[0].calibration.toDict()
         self.assertEqual(len(calibration["calibration_result"][0]),10)
         for i, x in enumerate(calibration["calibration_result"][0]):

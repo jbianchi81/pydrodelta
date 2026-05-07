@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class Calibration:
     """Calibration base/abstract class"""
     
-    _valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"]
+    _valid_objective_function = ['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr","kge"]
 
     calibrate = BoolDescriptor()
     """Perform the calibration"""
@@ -30,7 +30,7 @@ class Calibration:
 
     objective_function = StringDescriptor()
     """
-    Objective function for the calibration procedure. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr' 
+    Objective function for the calibration procedure. One of 'rmse', 'mse', 'bias', 'stdev_dif', 'r', 'nse', 'cov', 'oneminusr', 'kge' 
     """
 
     @property
@@ -69,7 +69,7 @@ class Calibration:
             procedure : Optional["Procedure"],
             calibrate : bool = True,
             result_index : int = 0,
-            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr"] = 'rmse',
+            objective_function : Literal['rmse','mse','bias','stdev_dif','r','nse','cov',"oneminusr","kge"] = 'rmse',
             save_result : Optional[str] = None,
             calibration_period : Optional[List[datetime]] = None,
             base_path : Union[str,Path,None] = None
