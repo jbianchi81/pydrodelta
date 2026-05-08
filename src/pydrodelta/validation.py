@@ -8,6 +8,8 @@ import logging
 import importlib.resources
 from datetime import datetime, date
 from collections.abc import Mapping
+from pandas import DataFrame
+from .util import make_serializable
 
 def to_json_types(obj):
     if isinstance(obj, Path):
@@ -21,6 +23,9 @@ def to_json_types(obj):
 
     if isinstance(obj, (list, tuple, set)):
         return [to_json_types(v) for v in obj]
+    
+    if isinstance(obj, DataFrame):
+        return make_serializable(obj).to_dict(orient="records")
 
     return obj
 

@@ -29,10 +29,15 @@ from .types.typed_list import TypedList
 from .types.save_variable_sim_dict import SaveVariableSimDict
 from a5client.util_types import CorridaDict, Dateable, CorridaNoIdSerializableDict
 from .node import Node
+from .procedures import UHLinearChannelProcedure
 
 from pydrodelta.config import config
 
 output_crud = Crud(**config["output_api"])
+
+procedures_class_map = {
+    "UHLinearChannel": UHLinearChannelProcedure,
+}
 
 class Plan(Base):
     """

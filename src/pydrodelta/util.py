@@ -18,9 +18,9 @@ from matplotlib.transforms import Bbox
 import csv
 import os.path
 from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
-from a5client.util_types import Intervaleable, ApiConfigDict
+from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList
 from .types.linear_combination_dict import LinearCombinationDict
-from a5client.util_types import TVP, Dateable, TVPdateable
+from a5client import observacionesListToDataFrame
 
 import random
 DataFrame = pandas.DataFrame
@@ -1077,6 +1077,10 @@ def parseObservations(observations:Union[List[TVPdateable],Tuple[Dateable],Tuple
                 "valor": float(o[1]) if len(o) > 1 and o[1] is not None else None
             })
     return result
+
+def tvpListToDataFrame(data : TVPList) -> DataFrame:
+    data_ = parseObservations(data)
+    return observacionesListToDataFrame(data_)
 
 def readDataFromCsvFile(csv_file: FileDescriptorOrPath,series_id: int,timestart=None,timeend=None) -> list:
     """reads from csv_file and returns list of observaciones (dicts). series_id must be in the header of the column containing the values of the corresponding series. timestart column must be in iso format. Other columns are ignored"""

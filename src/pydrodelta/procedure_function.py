@@ -1,6 +1,6 @@
 from .procedure_boundary import ProcedureBoundary
 from .procedure_function_results import ProcedureFunctionResults
-from typing import Optional, Union, Tuple, List, cast, Any, Mapping, Dict
+from typing import Optional, Union, Tuple, List, cast, Any, Mapping, Dict, overload, TYPE_CHECKING
 from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.dict_descriptor import DictDescriptor
@@ -13,10 +13,9 @@ from datetime import datetime
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
-from .util import getInputListFromDataFrame
+from .util import getInputListFromDataFrame, tvpListToDataFrame
 from .model_parameter import ModelParameter
-
-from typing import TYPE_CHECKING
+from a5client.util_types import TVPList
 
 if TYPE_CHECKING:
     from .procedure import Procedure
@@ -73,10 +72,11 @@ class ProcedureFunction:
     def boundaries(self) -> EnhancedTypedList[ProcedureBoundary]:
         """List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
         return self.__boundaries
+    
     @boundaries.setter
     def boundaries(
         self,
-        boundaries : List[ProcedureBoundaryDict]
+        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
         ) -> None:
         """Setter of boundaries
         
@@ -85,16 +85,29 @@ class ProcedureFunction:
         boundaries : list
             List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
+        if isinstance(boundaries, DataFrame):
+            boundaries_ = self.dfToBoundaryDicts(boundaries)
+        else:
+            isdict = [isinstance(b, dict) for b in boundaries]
+            if all(isdict):
+                boundaries_ = cast(List[ProcedureBoundaryDict],boundaries)
+            elif not any(isdict):
+                boundaries_no_dict = cast(
+                    list[TVPList] | list[DataFrame],
+                    boundaries
+                )
+                boundaries_ = [self.tvpListToBoundaryDict(b, i) for (i, b) in enumerate(boundaries_no_dict)]
+            else:
+                raise TypeError("Boundaries must be all dict or all list, not mixed")
         self.__boundaries = EnhancedTypedList(
             ProcedureBoundary, 
-            *boundaries,
+            *boundaries_,
             unique_id_property="name",
             valid_items_list=[b.__dict__() for b in self.__class__._boundaries],
             allow_additional_ids=self.__class__._additional_boundaries,
             allow_missing=False,
             plan = self._procedure._plan if self._procedure is not None else None
         )
-    
     @property
     def outputs(self) -> EnhancedTypedList[ProcedureBoundary]:
         """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
@@ -102,7 +115,7 @@ class ProcedureFunction:
     @outputs.setter
     def outputs(
         self,
-        outputs : List[ProcedureBoundaryDict]
+        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
         ) -> None:
         """Setter for outputs
         
@@ -111,9 +124,23 @@ class ProcedureFunction:
         outputs : list of dict
             list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id, variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
+        if isinstance(outputs, DataFrame):
+            outputs_ = self.dfToBoundaryDicts(outputs)
+        else:
+            isdict = [isinstance(b, dict) for b in outputs]
+            if all(isdict):
+                outputs_ = cast(List[ProcedureBoundaryDict],outputs)
+            elif not any(isdict):
+                outputs_no_dict = cast(
+                    list[TVPList] | list[DataFrame],
+                    outputs
+                )
+                outputs_ = [self.tvpListToBoundaryDict(b, i,is_output=True) for (i, b) in enumerate(outputs_no_dict)]
+            else:
+                raise TypeError("Outputs must be all dict or all list, not mixed")
         self.__outputs = EnhancedTypedList(
             ProcedureBoundary, 
-            *outputs,
+            *outputs_,
             unique_id_property="name",
             valid_items_list=[b.__dict__() for b in self.__class__._outputs],
             allow_additional_ids=self.__class__._additional_outputs,
@@ -153,8 +180,8 @@ class ProcedureFunction:
         procedure : Optional["Procedure"] = None,
         parameters : Union[List[Any], Mapping[str, Any]] = [],
         initial_states : Union[list, dict] = [],
-        boundaries : list = [],
-        outputs : list = [],
+        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
+        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
         extra_pars : dict = dict(),
         forecast_date : Optional[datetime] = None,
         save_results : Optional[str] = None,
@@ -405,3 +432,44 @@ class ProcedureFunction:
             for name, values in other.items():
                 result[name] = values
         return result
+    
+    def tvpListToBoundaryDict(
+            self, 
+            b : Union[TVPList,DataFrame], 
+            index : int=0, 
+            is_output : bool=False
+            ) -> ProcedureBoundaryDict:
+        if is_output:
+            if index + 1 > len(self._outputs):
+                if not self._additional_outputs:
+                    raise ValueError("Invalid index for output. Index exceeds procedure outputs length and additional outputs are not allowed")
+                name = f"output_{index - 1}"
+            else:
+                name = self._outputs[index].name
+        else:
+            if index + 1 > len(self._boundaries):
+                if not self._additional_boundaries:
+                    raise ValueError("Invalid index for boundary. Index exceeds procedure boundaries length and additional boundaries are not allowed")
+                name = f"input_{index - 1}"
+            else:
+                name = self._boundaries[index].name
+        if isinstance(b, DataFrame):
+            data = b
+        else:
+            data = tvpListToDataFrame(b)
+        return {
+            "name": name,
+            "node_variable": (0,0),
+            "data": data
+        }
+    
+    def dfToBoundaryDicts(self, df : DataFrame) -> List[ProcedureBoundaryDict]:
+        # each column into a ProcedureBoundaryDict using column names
+        return [
+            {
+                "name": col,
+                "node_variable": (0,0),
+                "data": df[[col]]
+            }
+            for col in df.columns
+        ] 

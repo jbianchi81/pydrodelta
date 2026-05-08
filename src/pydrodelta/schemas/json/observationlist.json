@@ -1,0 +1,17 @@
+{
+  "$id": "observationlist.json",
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title": "ObservationList",
+  "type": "array",
+  "description": "list of observations. Each element must be an ObservationDict or an ObservationArray",
+  "items": {
+    "oneOf": [
+      {
+        "$ref": "observationdict.json"
+      },
+      {
+        "$ref": "observationarray.json"
+      }
+    ] 
+  }
+}

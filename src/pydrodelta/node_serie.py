@@ -21,7 +21,7 @@ import json
 import yaml
 from .base import Base
 from a5client.util import tryParseAndLocalizeDate
-from a5client.util_types import Dateable, TVPdateable, TVP, SeriesDict, TVPserializable, SeriesSerializableDict
+from a5client.util_types import Dateable, TVPdateable, TVP, SeriesDict, TVPserializable, SeriesSerializableDict, TVPList
 from pathlib import Path
 
 if TYPE_CHECKING:
@@ -133,7 +133,7 @@ class NodeSerie(Base):
         y_offset : float = 0,
         moving_average : Optional[relativedelta] = None,
         csv_file : Optional[Union[Path,str]] = None,
-        observations : Optional[Union[List[TVPdateable],List[TVP],List[Tuple[Dateable,float]]]] = None,
+        observations : Optional[TVPList] = None,
         save_post : Optional[Union[Path,str]] = None,
         comment : Optional[str] = None,
         name : Optional[str] = None,

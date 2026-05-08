@@ -6,14 +6,15 @@
     "description": "Unit Hydrograph linear channel procedure function",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "UHLinearChannel"
+                "UHLinearChannel",
+                "UHLinearChannelProcedure"
             ]
         },
         "parameters": {

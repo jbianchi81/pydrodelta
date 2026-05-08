@@ -6,6 +6,8 @@ from .descriptors.string_descriptor import StringDescriptor
 from .node import Node
 from .node_variable import NodeVariable
 from typing import Tuple, Optional, TYPE_CHECKING
+from pandas import DataFrame
+from .util import make_serializable
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -55,6 +57,9 @@ class ProcedureBoundary():
         
     compute_statistics = BoolDescriptor()
     """Compute result statistics for this boundary"""
+
+    data : Optional[DataFrame]
+
     def __init__(
             self,
             node_id : Optional[int] = None,
@@ -65,7 +70,8 @@ class ProcedureBoundary():
             warmup_only : Optional[bool] = False,
             compute_statistics : Optional[bool] = True,
             node_variable : Optional[Tuple[int,int]] = None,
-            warmup_steps : Optional[int] = None
+            warmup_steps : Optional[int] = None,
+            data : Optional[DataFrame] = None
         ):
         """Initiate class ProcedureBoundary
         
@@ -118,6 +124,7 @@ class ProcedureBoundary():
         self.warmup_only = warmup_only
         self.compute_statistics = compute_statistics
         self.warmup_steps = warmup_steps
+        self.data = data
     
     def toDict(self) -> dict:
         """Convert object into dict"""
@@ -127,7 +134,8 @@ class ProcedureBoundary():
             "var_id": self.var_id,
             "name": self.name,
             "warmup_only": self.warmup_only,
-            "compute_statistics": self.compute_statistics
+            "compute_statistics": self.compute_statistics,
+            "data": make_serializable(self.data).to_dict("records") if self.data is not None else None
         }
     def setNodeVariable(self,plan : "Plan") -> None:
         """

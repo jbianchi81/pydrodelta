@@ -1,13 +1,16 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure import Procedure
+from ..procedure_function import ProcedureFunctionResults
 from ..function_boundary import FunctionBoundary
 from ..pydrology import LinearChannel
 from ..descriptors.int_descriptor import IntDescriptor 
 import numpy as np
+from pandas import DataFrame
+from typing import List, Union, Optional
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
 
-class GenericLinearChannelProcedureFunction(ProcedureFunction):
+class GenericLinearChannelProcedure(Procedure):
     """
     Abstract class
     
@@ -53,12 +56,12 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
         # self.Proc = None
         # self.coefficients = list()
-    def run(
+    def exec(
         self,
-        input : list = None
+        input : Optional[Union[List[DataFrame],DataFrame]] = None
         ) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
 
         Parameters:
@@ -71,10 +74,12 @@ class GenericLinearChannelProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        if isinstance(input,DataFrame):
+            input = [ input ]
         data = input[0][["valor"]].rename(columns={"valor":"input"})
         if not len(data.dropna().index):
-            raise Exception("Procedure %s: Missing input data: no valid values found" % self._procedure.id)
+            raise Exception("Procedure %s: Missing input data: no valid values found" % self.id)
         last_date = max(data.dropna().index)
         linear_channel_input = data[data.index <= last_date]["input"].values
         if True in np.isnan(linear_channel_input):

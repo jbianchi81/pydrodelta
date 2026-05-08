@@ -2,12 +2,12 @@ from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LinearChannel
-from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedureFunction
+from pydrodelta.procedures import GenericLinearChannelProcedure
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
 from typing import Union
 
-class LinearChannelProcedureFunction(GenericLinearChannelProcedureFunction):
+class LinearChannelProcedureFunction(GenericLinearChannelProcedure):
     """Nash Linear channel procedure (gamma distribution)"""
 
     _parameters = [

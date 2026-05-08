@@ -1,4 +1,3 @@
-from .procedure_function import ProcedureFunction
 import logging
 import json
 from . import util
@@ -18,6 +17,24 @@ from .descriptors.string_descriptor import StringDescriptor
 from pathlib import Path
 from dateutil.relativedelta import relativedelta
 from .observed_node_variable import ObservedNodeVariable
+from .base import Base
+from .procedure_boundary import ProcedureBoundary
+from .procedure_function_results import ProcedureFunctionResults
+from typing import Optional, Union, Tuple, List, cast, Any, Mapping, Dict, overload, TYPE_CHECKING
+from .types.procedure_boundary_dict import ProcedureBoundaryDict
+from .descriptors.list_descriptor import ListDescriptor
+from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
+from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
+from numpy import array
+from pandas import DataFrame
+from datetime import datetime
+from .types.typed_list import TypedList
+from .types.enhanced_typed_list import EnhancedTypedList
+from .function_boundary import FunctionBoundary
+from .util import getInputListFromDataFrame, tvpListToDataFrame
+from .model_parameter import ModelParameter
+from a5client.util_types import TVPList
+from pydrodelta.validation import getSchemaAndValidate
 
 class StatsDict(TypedDict):
     procedure_id : Union[str,int]
@@ -25,7 +42,7 @@ class StatsDict(TypedDict):
     results : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
     results_val : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
 
-class Procedure():
+class Procedure(Base):
     """
     A Procedure defines a hydrological, hydrodinamic or static procedure which takes one or more NodeVariables from the Plan as boundary condition, one or more NodeVariables from the Plan as outputs and a ProcedureFunction. The input is read from the selected boundary NodeVariables and fed into the ProcedureFunction which produces an output, which is written into the output NodeVariables
     
@@ -123,15 +140,168 @@ class Procedure():
     drop_warmup = BoolDescriptor()
     """Eliminate warmup steps of adjusted output"""
 
-    base_path : Union[str,Path,None] = None
+    @property
+    def data(self) -> Optional[DataFrame]:
+        try:
+            return self.pivotInOut()
+        except Exception:
+            return None
+    
+    _boundaries = TypedList(FunctionBoundary)
+    """ static list of function boundaries (of class function_boundary.FunctionBoundary)
+    """
+    
+    _outputs = TypedList(FunctionBoundary) 
+    """ static list of function outputs (of class function_boundary.FunctionBoundary)
+    """
+    
+    _additional_boundaries = False
+    """ set to true to allow for additional boundaries """
+    
+    _additional_outputs = False
+    """ set to true to allow for additional outputs"""
+    
+    _parameters : List[ModelParameter] = []
+    """ use this attribute to set parameter constraints. Must be a list of <pydrodelta.model_parameter.ModelParameter>"""
+    
+    _states : list = []
+    """ use this attribute to set state constraints. Must be a list of <pydrodelta.model_state.ModelState>"""
+
+    parameters = ListOrDictDescriptor() #  : Union[List[float], Dict[str, float]]
+    """function parameter values. Ordered list or dict"""
+
+    @property
+    def parameter_list(self) -> list:
+        """Get parameters list"""
+        if type(self.parameters) == list:
+            return self.parameters
+        elif type(self.parameters) == dict:
+            parlist = []
+            for parameter in self._parameters:
+                if parameter.name not in self.parameters:
+                    raise Exception("Key %s missing from parameters" % parameter.name)
+                parlist.append(self.parameters[parameter.name])
+            return parlist
+        else:
+            raise TypeError("parameters must be a list or a dict. Instead, it is a %s " % type(self.parameters).__name__)
+
+
+    initial_states : Union[List[float],Dict[str,float]] # = ListOrDictDescriptor()
+    """list or dict of function initial state values"""
+    
+    @property
+    def boundaries(self) -> EnhancedTypedList[ProcedureBoundary]:
+        """List of boundary conditions. Each item is a dict with a name <string> and a node_variable tuple(node_id : int,variable_id : int). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        return self.__boundaries
+    
+    @boundaries.setter
+    def boundaries(
+        self,
+        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        ) -> None:
+        """Setter of boundaries
+        
+        Parameters:
+        ----------
+        boundaries : list
+            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
+        if isinstance(boundaries, DataFrame):
+            boundaries_ = self.dfToBoundaryDicts(boundaries)
+        else:
+            isdict = [isinstance(b, dict) for b in boundaries]
+            if all(isdict):
+                boundaries_ = cast(List[ProcedureBoundaryDict],boundaries)
+            elif not any(isdict):
+                boundaries_no_dict = cast(
+                    list[TVPList] | list[DataFrame],
+                    boundaries
+                )
+                boundaries_ = [self.tvpListToBoundaryDict(b, i) for (i, b) in enumerate(boundaries_no_dict)]
+            else:
+                raise TypeError("Boundaries must be all dict or all list, not mixed")
+        self.__boundaries = EnhancedTypedList(
+            ProcedureBoundary, 
+            *boundaries_,
+            unique_id_property="name",
+            valid_items_list=[b.__dict__() for b in self.__class__._boundaries],
+            allow_additional_ids=self.__class__._additional_boundaries,
+            allow_missing=False,
+            plan = self._plan
+        )
+    @property
+    def outputs(self) -> EnhancedTypedList[ProcedureBoundary]:
+        """list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id,variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id] """
+        return self.__outputs
+    @outputs.setter
+    def outputs(
+        self,
+        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        ) -> None:
+        """Setter for outputs
+        
+        Parameters:
+        -----------
+        outputs : list of dict
+            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id, variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
+        """
+        if isinstance(outputs, DataFrame):
+            outputs_ = self.dfToBoundaryDicts(outputs)
+        else:
+            isdict = [isinstance(b, dict) for b in outputs]
+            if all(isdict):
+                outputs_ = cast(List[ProcedureBoundaryDict],outputs)
+            elif not any(isdict):
+                outputs_no_dict = cast(
+                    list[TVPList] | list[DataFrame],
+                    outputs
+                )
+                outputs_ = [self.tvpListToBoundaryDict(b, i,is_output=True) for (i, b) in enumerate(outputs_no_dict)]
+            else:
+                raise TypeError("Outputs must be all dict or all list, not mixed")
+        self.__outputs = EnhancedTypedList(
+            ProcedureBoundary, 
+            *outputs_,
+            unique_id_property="name",
+            valid_items_list=[b.__dict__() for b in self.__class__._outputs],
+            allow_additional_ids=self.__class__._additional_outputs,
+            allow_missing=False,
+            plan = self._plan
+        )
+    
+    input : Optional[Union[List[DataFrame],DataFrame]]
+    """Input of the procedure function"""
+
+    extra_pars = DictDescriptor()
+    """Additional (non-calibratable) parameters"""
+
+    @property
+    def limits(self) -> List[Tuple[float,float]]:
+        """Parameter limits"""
+        return [(float(x.min), float(x.max)) for x in self._parameters]
+
+    _pivot_input : bool = False
+    """Set to True if the run method requires a pivoted input"""
+
+    @property
+    def pivot_input(self) -> bool:
+        """Read-only property. Specifies if the run method of the procedure function requires a pivoted input"""
+        return self._pivot_input
+
+    _no_sim : bool = False
+    """Set to True if procedure function produces only forecast (no simulation)"""
+
+    forecast_date = DatetimeDescriptor()
+    """Forecast date. By default, copies value from plan"""
+
+    save_results : Optional[Path]
 
     def __init__(
         self,
         id : Union[int, str],
-        function : dict,
         plan = None,
-        initial_states : list = [],
-        parameters : list = [],
+        initial_states : Union[list, dict] = [],
+        parameters : Union[List[Any], Mapping[str, Any]] = [],
         time_interval : Optional[Union[float,util.IntervalDict]] = None,
         time_offset : Optional[Union[float,util.IntervalDict]] = None,
         save_results : Optional[str] = None,
@@ -147,46 +317,100 @@ class Procedure():
         sim_index : int = 0,
         save_dict : Optional[str] = None,
         drop_warmup : bool = False,
-        base_path : Union[str,Path,None] = None
+        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
+        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
+        extra_pars : dict = dict(),
+        forecast_date : Optional[datetime] = None,
+        **kwargs
         ):
+        """A procedure
+        
+        Parameters:
+        -----------
+        parameters : list or dict of floats 
+        
+            function parameter values. Ordered list or dict
+            
+        initial_states : list or dict of floats
+        
+            list of function initial state values. Ordered list or dict
+        
+        boundaries : list of dict
+        
+            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>
+        
+        outputs : list of dict
+        
+            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>
+        
+        extra_pars: dict
+        
+            Additional (non-calibratable) parameters
+            
+        save_results : str = None
+            save results into file. Defaults to save_results of plan
+        """
+        if "type" in kwargs:
+            del kwargs["type"]
+        super().__init__(**kwargs)
+        getSchemaAndValidate(
+            {
+                "id": id,
+                "type": type(self).__name__,
+                "plan": plan,
+                "initial_states": initial_states,
+                "parameters": parameters,
+                "time_interval": time_interval,
+                "time_offset": time_offset,
+                "save_results": save_results,
+                "overwrite": overwrite,
+                "overwrite_original": overwrite_original,
+                "calibration": calibration,
+                "adjust": adjust,
+                "adjust_method": adjust_method,
+                "warmup_steps": warmup_steps,
+                "tail_steps": tail_steps,
+                "error_band": error_band,
+                "read_sim": read_sim,
+                "sim_index": sim_index,
+                "save_dict": save_dict,
+                "drop_warmup": drop_warmup,
+                "boundaries": boundaries,
+                "outputs": outputs,
+                "extra_pars": extra_pars,
+                "forecast_date": forecast_date,
+            },
+            "Procedure")
+        
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
-        self.base_path = base_path
-        self.save_results : Optional[Path] = self.resolve_path(save_results)
+        self.save_results = self.resolve_path(save_results)
         """Save procedure results into this file (csv pivoted table)"""
-        self.initial_states : list = initial_states
+        self.initial_states = initial_states
         """List of procedure initial states"""
-        if type(function) != dict:
-            if type(function) != str:
-                raise TypeError("Value of argument 'function' must be of type dict or str")
-            function_file = function
-            try:
-                f = open(function_file)
-            except IOError as e:
-                raise IOError("Couldn´t open function file %s: %s" % (function_file, str(e)))
-            try:
-                function = json.load(f)
-            except json.JSONDecodeError as e:
-                raise json.JSONDecodeError("JSON decode error on parsing function file %s: %s" % (function_file, e.msg))
-            f.close()
-        if "type" not in function:
-            raise ValueError("Property 'type' missing from argument 'function'")
-        if function["type"] in procedureFunctionDict:
-            self.function_type : type = procedureFunctionDict[function["type"]]
-            """Class constructor of the procedure function"""
-            self.function_type_name : str = function["type"]
-            """Name of the class constructor of the procedure function"""
-        else:
-            raise ValueError("Procedure init: procedure function class constructor %s not found" % function["type"])
-            # self.function_type = ProcedureFunction
-            # self.function_type_name = "ProcedureFunction"
-        self.function : ProcedureFunction = self.function_type(**function,procedure=self)
-        """ProcedureFunction object (or a subclass) containing the .run() method, the .boundaries list and the .outputs list"""
-        # self.procedure_type = params["procedure_type"]
-        self.parameters : list = parameters
+        # if type(function) != dict:
+        #     if type(function) != str:
+        #         raise TypeError("Value of argument 'function' must be of type dict or str")
+        #     function_file = function
+        #     try:
+        #         f = open(function_file)
+        #     except IOError as e:
+        #         raise IOError("Couldn´t open function file %s: %s" % (function_file, str(e)))
+        #     try:
+        #         function = json.load(f)
+        #     except json.JSONDecodeError as e:
+        #         raise json.JSONDecodeError("JSON decode error on parsing function file %s: %s" % (function_file, e.msg))
+        #     f.close()
+        self.parameters = dict(parameters) if isinstance(parameters, Mapping) else parameters
         """List of procedure parameters"""
+        self.boundaries = boundaries
+        self.outputs = outputs
+        self.extra_pars = extra_pars
+        if forecast_date is not None:
+            self.forecast_date = forecast_date
+        
         self.time_interval : Optional[relativedelta] = util.interval2timedelta(time_interval) if time_interval is not None else None
         """Time step duration of the procedure"""
         self.time_offset : Optional[relativedelta] = util.interval2timedelta(time_offset) if time_offset is not None else None
@@ -219,9 +443,6 @@ class Procedure():
         self.save_dict = self.resolve_path(save_dict)
         self.drop_warmup = drop_warmup
     
-    def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
-        return util.resolve_path(path, self.base_path) if path is not None else None
-
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
         if self.calibration is not None:
@@ -239,9 +460,11 @@ class Procedure():
         return {
             'id': self.id, 
             'initial_states': self.initial_states, 
-            'function_type_name': self.function_type_name, 
-            'function': self.function.toDict(),
-            'parameters': self.parameters, 
+            "type": type(self).__name__,
+            "parameters": self.parameters,
+            "boundaries": [b.toDict() for b in self.boundaries],
+            "outputs": [o.toDict() for o in self.outputs],
+            "extra_pars": self.extra_pars, 
             'time_interval': util.relativedelta_to_iso(self.time_interval) if self.time_interval is not None else None, 
             'time_offset': util.relativedelta_to_iso(self.time_offset) if self.time_offset is not None else None, 
             'input': [x.to_dict(orient="records") if isinstance(x, DataFrame) else x for x in self.input] if self.input is not None else None, 
@@ -257,7 +480,7 @@ class Procedure():
 
     def loadInputDefault(self) -> None:
         """Loads input with default behaviour according to the procedure function"""
-        if self.function.pivot_input:
+        if self.pivot_input:
             self.loadInput(
                 inplace = True,
                 pivot = True,
@@ -270,7 +493,7 @@ class Procedure():
     @overload
     def loadInput(
         self,
-        inplace : Literal[True],
+        inplace : Literal[True] = True,
         pivot : bool = False,
         use_boundary_name : bool = False,
         tag_column : bool = True,
@@ -280,7 +503,7 @@ class Procedure():
     @overload
     def loadInput(
         self,
-        inplace : Literal[False]=False,
+        inplace : Literal[False],
         pivot : Literal[False] = False,
         use_boundary_name : bool = False,
         tag_column : bool = True,
@@ -291,6 +514,7 @@ class Procedure():
     def loadInput(
         self,
         inplace : Literal[False],
+        *,
         pivot : Literal[True],
         use_boundary_name : bool = False,
         tag_column : bool = True,
@@ -307,7 +531,7 @@ class Procedure():
         sim_index : Optional[int] = None
         ) -> Union[List[DataFrame],DataFrame,None]:
         """
-        Loads the boundary variables defined in self.function.boundaries. Takes .data from each element of self.function.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
+        Loads the boundary variables defined in self.boundaries. Takes .data from each element of self.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
 
         Parameters:
         ----------
@@ -335,16 +559,21 @@ class Procedure():
         if pivot:
             data : DataFrame = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
             columns = ["valor","tag"] if tag_column else ["valor"] 
-            for boundary in self.function.boundaries:
+            for boundary in self.boundaries:
                 boundary_data : DataFrame
-                if boundary._variable is None:
-                    raise Exception("variable not set")
-                if read_sim and boundary._variable.series_sim is not None and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
-                    boundary_data = boundary._variable.series_sim[sim_index].data
-                elif boundary._variable.data is not None and len(boundary._variable.data):
-                    boundary_data = boundary._variable.data
+                if boundary.data is not None:
+                    use_boundary_name = True
+                    boundary_data = boundary.data
+                    boundary_data["tag"] = "inline"
                 else:
-                    continue
+                    if boundary._variable is None:
+                        raise Exception("variable not set. data not set")
+                    if read_sim and boundary._variable.series_sim is not None and len(boundary._variable.series_sim) >= sim_index + 1 and boundary._variable.series_sim[sim_index].data is not None and len(boundary._variable.series_sim[sim_index].data):
+                        boundary_data = boundary._variable.series_sim[sim_index].data
+                    elif boundary._variable.data is not None and len(boundary._variable.data):
+                        boundary_data = boundary._variable.data
+                    else:
+                        continue
                 if use_boundary_name:
                     data = data.join(
                         boundary_data[columns][boundary_data.valor.notnull()].rename(
@@ -372,24 +601,27 @@ class Procedure():
                 return data
         else:
             data_ : List[DataFrame]= []
-            for boundary in self.function.boundaries:
+            for boundary in self.boundaries:
                 logging.debug("loading boundary: %s: node %i, variable %i, optional: %s, warmup_only: %s" % (boundary.name, boundary.node_id,boundary.var_id, str(boundary.optional), str(boundary.warmup_only)))
-                if boundary._variable is None:
-                    raise Exception("variable not set")
-                if not boundary.optional:
-                    try:
-                        warmup_only = boundary.warmup_only if boundary.warmup_only else False
-                        boundary.assertNoNaN(warmup_only, read_sim, 0, boundary.warmup_steps)
-                    except AssertionError as e:
-                        raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
-                if read_sim:
-                    if boundary._variable.series_sim is None:
-                        raise RuntimeError("series_sim not set")
-                    if boundary._variable.series_sim[sim_index].data is None:
-                        raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
-                    data_.append(boundary._variable.series_sim[sim_index].data.copy())
+                if boundary.data is not None:
+                    data_.append(boundary.data.copy())
                 else:
-                    data_.append(boundary._variable.data.copy())
+                    if boundary._variable is None:
+                        raise Exception("variable not set")
+                    if not boundary.optional:
+                        try:
+                            warmup_only = boundary.warmup_only if boundary.warmup_only else False
+                            boundary.assertNoNaN(warmup_only, read_sim, 0, boundary.warmup_steps)
+                        except AssertionError as e:
+                            raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
+                    if read_sim:
+                        if boundary._variable.series_sim is None:
+                            raise RuntimeError("series_sim not set")
+                        if boundary._variable.series_sim[sim_index].data is None:
+                            raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
+                        data_.append(boundary._variable.series_sim[sim_index].data.copy())
+                    else:
+                        data_.append(boundary._variable.data.copy())
             if inplace:
                 self.input = data_
             else:
@@ -428,7 +660,7 @@ class Procedure():
         pivot : bool = False
         ) -> Union[DataFrame,List[DataFrame],None]:
         """
-        Load observed values of output variables defined in self.function.outputs. Used in error calculation.
+        Load observed values of output variables defined in self.outputs. Used in error calculation.
 
         Parameters:
         -----------
@@ -441,14 +673,18 @@ class Procedure():
         """
         if pivot:
             data : DataFrame = createEmptyObsDataFrame()
-            for i, output in enumerate(self.function.outputs):
-                if output._variable is None:
-                    raise Exception("Variable is not set")
-                if output._variable.data is not None and len(output._variable.data):
+            for i, output in enumerate(self.outputs):
+                if output.data is not None:
                     colname = "valor_%i" % (i + 1) 
-                    data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
+                    data = data.join(output.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
-                    logging.warning("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
+                    if output._variable is None:
+                        raise Exception("Variable is not set")
+                    if output._variable.data is not None and len(output._variable.data):
+                        colname = "valor_%i" % (i + 1) 
+                        data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
+                    else:
+                        logging.warning("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
             # logging.debug("loadOutputObs: columns: %s" % (data.columns))
             if "valor" in data.columns:
                 data.drop(columns="valor",inplace=True)
@@ -458,14 +694,18 @@ class Procedure():
                 return data
         else:
             data_ : List[DataFrame] = []
-            for output in self.function.outputs:
-                if output._variable is None:
-                    raise Exception("Variable is not set")
-                data_.append(output._variable.data[["valor"]].dropna())
+            for output in self.outputs:
+                if output.data is not None:
+                    data_.append(output.data[["valor"]].dropna())
+                else:
+                    if output._variable is None:
+                        raise Exception("Variable is not set")
+                    data_.append(output._variable.data[["valor"]].dropna())
             if inplace:
                 self.output_obs = data_
             else:
                 return data_
+            
     def computeStatistics(
         self, 
         obs : Optional[Union[List[DataFrame],DataFrame]] = None, 
@@ -505,11 +745,11 @@ class Procedure():
         result_val = list()
         # if len(obs) < len(sim):
         #     raise Exception("length of obs must be equal than length of sim")
-        for i, o in enumerate(self.function.outputs):
+        for i, o in enumerate(self.outputs):
             if len(sim) < i + 1:
-                raise Exception("List of sim outputs is shorter than function.outputs (%i < %i" % (len(sim), len(self.function.outputs)))
+                raise Exception("List of sim outputs is shorter than function.outputs (%i < %i" % (len(sim), len(self.outputs)))
             if len(obs) < i + 1:
-                raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.function.outputs)))
+                raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.outputs)))
             df_obs = obs[i].iloc[warmup:].copy() if warmup is not None else obs[i]
             df_obs = cast(DataFrame,df_obs.tail(tail)) if tail is not None else cast(DataFrame,df_obs)
             df_sim = sim[i].iloc[warmup:].copy() if warmup is not None else sim[i]
@@ -608,7 +848,7 @@ class Procedure():
             ]], columns = ["n","rmse","r","nse","kge","n_val","rmse_val","r_val","nse_val","kge_val"])
         return {
             "procedure_id": self.id,
-            "function_type": self.function_type_name,
+            "function_type": type(self).__name__,
             "results": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics] if self.procedure_function_results is not None and self.procedure_function_results.statistics is not None else None,
             "results_val": [x.toShortDict() if x is not None and short else x.toDict() if x is not None else None for x in self.procedure_function_results.statistics_val] if self.procedure_function_results is not None and self.procedure_function_results.statistics_val is not None else None
         }
@@ -642,7 +882,7 @@ class Procedure():
         drop_warmup : Optional[bool] = None
         ) -> Union[List[DataFrame], DataFrame, None]:
         """
-        Run self.function.run()
+        Run self.exec()
 
         Parameters:
         ----------
@@ -688,7 +928,7 @@ class Procedure():
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
-            if self.function.pivot_input:
+            if self.pivot_input:
                 input = self.loadInput(
                     inplace=inplace,
                     pivot=True,
@@ -707,14 +947,14 @@ class Procedure():
             # logging.debug("Output obs already loaded")
             output_obs = self.output_obs
         # runs procedure function
-        output, procedure_function_results = self.function.rerun(input = input, parameters = parameters, initial_states = initial_states)
+        output, procedure_function_results = self.rerun(input = input, parameters = parameters, initial_states = initial_states)
         # sets procedure_function_results
         self.procedure_function_results = ProcedureFunctionResults(**procedure_function_results) if isinstance(procedure_function_results, dict) else procedure_function_results
         # sets states
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
         # compute statistics
-        if not self.function._no_sim:
+        if not self._no_sim:
             if inplace:
                 self.output = output
                 self.computeStatistics(
@@ -792,7 +1032,7 @@ class Procedure():
         timeseries dataframe : DataFrame
         """
         index = 0
-        for o in self.function.outputs:
+        for o in self.outputs:
             if o.var_id == var_id and o.node_id == node_id:
                 if self.output is not None:
                     if isinstance(self.output,DataFrame):
@@ -808,7 +1048,7 @@ class Procedure():
         overwrite : Optional[bool] = None,
         overwrite_original : Optional[bool] = None
         ) -> None:
-        """Saves procedure output into the topology. Each element of self.output is concatenated into the .data property of the corresponding NodeVariable in self.plan.topology.nodes according the mapping defined in self.function.outputs. 
+        """Saves procedure output into the topology. Each element of self.output is concatenated into the .data property of the corresponding NodeVariable in self.plan.topology.nodes according the mapping defined in self.outputs. 
         
         Parameters:
         ----------
@@ -825,7 +1065,7 @@ class Procedure():
             return
         # output_columns = self.output.columns
         index = 0
-        for o in self.function.outputs:
+        for o in self.outputs:
             if o._variable is None:
                 raise Exception("variable is not set")
             if o._variable.series_sim is None:
@@ -897,13 +1137,13 @@ class Procedure():
         if isinstance(self.input, DataFrame):
             df = self.input.copy()
         else:
-            for i, boundary in enumerate(self.function.boundaries):
+            for i, boundary in enumerate(self.boundaries):
                 data_renamed = self.input[i][["valor"]].rename(columns={"valor":boundary.name})
                 if df is None:
                     df = data_renamed
                 else:
                     df = df.join(data_renamed)
-        for i, boundary in enumerate(self.function.outputs):
+        for i, boundary in enumerate(self.outputs):
             if self.output is None:
                 raise Exception("output is not set")
             df_sim = self.output if isinstance(self.output,DataFrame) else self.output[i]
@@ -929,7 +1169,7 @@ class Procedure():
         ----------
 
         inplace : bool
-            If true, set resulting parameters in self.function.parameters. Else, returns resulting parameters 
+            If true, set resulting parameters in self.parameters. Else, returns resulting parameters 
         
         Returns
         -------
@@ -946,88 +1186,307 @@ class Procedure():
             # updates params
             if self.calibration.calibration_result is None:
                 raise RuntimeError("calibration_result not set")
-            self.function.setParameters(self.calibration.calibration_result[0])
+            self.setParameters(self.calibration.calibration_result[0])
             # runs procedure
             self.run(load_input=False, load_output_obs=False)
         else:
             return calibration_result
     
     def batchProcessInput(self, **kwargs):
-        for boundary in self.function.boundaries:
+        for boundary in self.boundaries:
             if isinstance(boundary.variable,ObservedNodeVariable):
                 boundary.variable.batchProcessInput(**kwargs)
-        for boundary in self.function.outputs:
+        for boundary in self.outputs:
             if isinstance(boundary.variable,ObservedNodeVariable):
                 boundary.variable.batchProcessInput(**kwargs)
+
+    ################ moved from procedure function ##################
+
+    def setParameters(
+        self,
+        parameters : Union[List,Tuple] = [],
+        reset : bool = True
+        ) -> None:
+        """
+        Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.parameters as a dict. Else will set a list
+
+        Parameters:
+        -----------
+        parameters : list or tuple
+            Procedure function parameters to set
+        reset : bool = True
+            Start new parameter set from empty dict
+        """
+        if len(self._parameters):
+            if reset:
+                self.parameters = {}
+            if not isinstance(self.parameters, dict):
+                raise RuntimeError("parameters must be a dict")
+            for i, p in enumerate(self._parameters):
+                if len(parameters) - 1 < i:
+                    raise ValueError("parameters list is too short: %i item is missing" % i)
+                self.parameters[p.name] = parameters[i]
+        else:
+            self.parameters = list(parameters)
+
+    def setInitialStates(
+        self,
+        states : Union[list,tuple] = []
+        ) -> None:
+        """
+        Generic self.initial_states setter. If self._states is not empty, uses name of each item to set self.initial_states as a dict. Else will set a list
+
+        Parameters:
+        states : list or tuple
+            Procedure function initial states to set
+        """
+        if len(self._states):
+            self.initial_states = {}
+            for i, p in enumerate(self._states):
+                if len(states) - 1 < i:
+                    raise ValueError("states list is too short: %i item is missing" % i)
+                self.initial_states[p.name] = states[i]
+        else:
+            self.initial_states = list(states)
+
+    def rerun(
+        self,
+        input : Optional[Union[DataFrame,List[DataFrame]]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None
+        ) -> Tuple[Union[DataFrame,List[DataFrame]], ProcedureFunctionResults]:
+        """Execute the procedure with the given parameters and initial_states
+        
+        Parameters:
+        -----------
+        input : list if DataFrames
+            Procedure input (boundary conditions). If None, loads using .loadInput()
+        
+        parameters : list or tuple
+            Set procedure parameters (self.parameters).
+        
+        initial_states : list or tuple
+            Set initial states (self.initial_states)
+        
+        Returns:
+        --------
+        2-tuple : first element is the procedure output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        if parameters is not None:
+            self.setParameters(parameters)
+        if initial_states is not None:
+            self.setInitialStates(initial_states)
+        return self.exec(input)
+
+    def exec(
+        self,
+        input : Optional[Union[List[DataFrame],DataFrame]] = None
+        ) -> Tuple[Union[DataFrame,List[DataFrame]], ProcedureFunctionResults]:
+        """
+        Placeholder procedure execution. To be overwritten in subclasses
+
+        Parameters:
+        -----------
+        input : list of DataFrames
+            Procedure function input (boundary conditions). If None, loads using .loadInput()
+
+        Returns:
+        --------
+        2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
+        """
+        input = self.loadInput(inplace=False)
+        # data = self._plan.topology.pivotData(nodes=self.output_nodes,include_tag=False,use_output_series_id=False,use_node_id=True)
+        return input, ProcedureFunctionResults()
+
+    def makeSimplex(
+        self,
+        sigma : float = 0.25,
+        limit : bool = True,
+        ranges : Optional[list] = None,
+        # minmax : Optional[list] = None
+        ) -> List[List[float]]:
+        """Generate Simplex from procedure function parameters. 
+        
+        Generates a list of len(self._parameters)+1 parameter sets randomly using a normal distribution centered in the corresponding parameter range and with variance=sigma
+        
+        Parameters:
+        -----------
+        sigma : float (default 0.25)
+            Variance of the normal distribution relative to the range(1 = max_range - min_range)
+        
+        limit : bool (default True)
+            Truncate values outside of the min-max range
+            
+        ranges : list or None
+            Override parameter ranges with these values. Length must be equal to self._parameters and each element of the list must be a 2-tuple (range_min, range_max) 
+        
+        Returns:
+        --------
+        list : list of  length = len(self._parameters) + 1 where each element is a list of floats of length = len(self._parameters)"""
+        if not len(self._parameters):
+            raise Exception("_parameters not set for this class")
+        points : List[List[float]] = []
+        for i in range(len(self._parameters)+1):
+            point : List[float] = []
+            for j, p in enumerate(self._parameters):
+                if ranges is not None and len(ranges) - 1 >= j:
+                    if len(ranges[j]) < 2:
+                        raise ValueError("ranges must be a list of 2-tuples")
+                    range_min = ranges[j][0]
+                    range_max = ranges[j][1]
+                else:
+                    range_min = None
+                    range_max = None
+                # if minmax is not None and len(minmax) - 1 >= j:
+                #     if len(minmax[j]) < 2:
+                #         raise ValueError("minmax must be a list of 2-tuples")
+                #     abs_min = minmax[j][0]
+                #     abs_max = minmax[j][1]
+                # else:
+                #     abs_min = None
+                #     abs_max = None
+                point.append(p.makeRandom(sigma=sigma, limit=limit, range_min=range_min, range_max=range_max)) # , abs_min=abs_min,abs_max=abs_max)
+            points.append(list(point))
+        return points
+    
+    def extractListsFromInput(self, input : List[DataFrame], allow_na : List[bool]=[False]) -> List[List[float]]:
+        while len(allow_na) < len(input):
+            allow_na.append(False)
+        return [ getInputListFromDataFrame(df,allow_na[i], self.id) for i, df in enumerate(input) ]
+    
+    def pivotInputOutput(
+            self, 
+            input : List[DataFrame], 
+            output : List[DataFrame] = [], 
+            other : Optional[dict] = None) -> DataFrame:
+        if not len(input):
+            raise ValueError("input must be of length 1 or greater")
+        result = input[0][["valor"]].rename(columns={"valor": self._boundaries[0].name})
+        for i in range(1,len(self._boundaries)):
+            if self._boundaries[i].optional and len(input) < i + 1:
+                continue
+            result = result.join(input[i][["valor"]].rename(columns={"valor": self._boundaries[i].name}))
+        for i in range(0,len(self._outputs)):
+            if self._outputs[i].optional and len(output) < i + 1:
+                continue
+            if type(output[i]) == DataFrame:
+                result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
+            else:
+                result[self._outputs[i].name] = output[i]
+        if other is not None:
+            # must be a a dict where key is the column name and value is the list of values
+            for name, values in other.items():
+                result[name] = values
+        return result
+    
+    def tvpListToBoundaryDict(
+            self, 
+            b : Union[TVPList,DataFrame], 
+            index : int=0, 
+            is_output : bool=False
+            ) -> ProcedureBoundaryDict:
+        if is_output:
+            if index + 1 > len(self._outputs):
+                if not self._additional_outputs:
+                    raise ValueError("Invalid index for output. Index exceeds procedure outputs length and additional outputs are not allowed")
+                name = f"output_{index - 1}"
+            else:
+                name = self._outputs[index].name
+        else:
+            if index + 1 > len(self._boundaries):
+                if not self._additional_boundaries:
+                    raise ValueError("Invalid index for boundary. Index exceeds procedure boundaries length and additional boundaries are not allowed")
+                name = f"input_{index - 1}"
+            else:
+                name = self._boundaries[index].name
+        if isinstance(b, DataFrame):
+            data = b
+        else:
+            data = tvpListToDataFrame(b)
+        return {
+            "name": name,
+            "node_variable": (0,0),
+            "data": data
+        }
+    
+    def dfToBoundaryDicts(self, df : DataFrame) -> List[ProcedureBoundaryDict]:
+        # each column into a ProcedureBoundaryDict using column names
+        return [
+            {
+                "name": col,
+                "node_variable": (0,0),
+                "data": df[[col]]
+            }
+            for col in df.columns
+        ] 
 
     
-from pydrodelta.procedures.hecras import HecRasProcedureFunction
-from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
-from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
-from pydrodelta.procedures.grp import GRPProcedureFunction
-from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
-from pydrodelta.procedures.expression import ExpressionProcedureFunction
-from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
-from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedureFunction
-from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
-from pydrodelta.procedures.junction import JunctionProcedureFunction
-from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
-from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
-from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
-from pydrodelta.procedures.gr4j import GR4JProcedureFunction
-from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
-from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
-from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
-from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
-from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
-from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
-from pydrodelta.procedures.difference import DifferenceProcedureFunction
-from pydrodelta.procedures.linear_net import LinearNetProcedureFunction
-from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
-from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
-from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
-from pydrodelta.procedures.abstract import AbstractProcedureFunction
-from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
-from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
-from pydrodelta.procedures.analogy import AnalogyProcedureFunction
-from pydrodelta.procedures.persistence import PersistenceProcedureFunction
-from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedureFunction
+# from pydrodelta.procedures.hecras import HecRasProcedureFunction
+# from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
+# from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
+# from pydrodelta.procedures.grp import GRPProcedureFunction
+# from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
+# from pydrodelta.procedures.expression import ExpressionProcedureFunction
+# from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+# from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedureFunction
+# from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
+# from pydrodelta.procedures.junction import JunctionProcedureFunction
+# from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
+# from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
+# from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
+# from pydrodelta.procedures.gr4j import GR4JProcedureFunction
+# from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
+# from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
+# from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
+# from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
+# from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
+# from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
+# from pydrodelta.procedures.difference import DifferenceProcedureFunction
+# from pydrodelta.procedures.linear_net import LinearNetProcedureFunction
+# from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
+# from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
+# from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
+# from pydrodelta.procedures.abstract import AbstractProcedureFunction
+# from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
+# from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
+# from pydrodelta.procedures.analogy import AnalogyProcedureFunction
+# from pydrodelta.procedures.persistence import PersistenceProcedureFunction
+# from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedureFunction
 
-procedureFunctionDict = {
-    "ProcedureFunction": ProcedureFunction,
-    "AbstractProcedureFunction": AbstractProcedureFunction,
-    "HecRas": HecRasProcedureFunction,
-    "HecRasProcedureFunction": HecRasProcedureFunction,
-    "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,
-    "Polynomial": PolynomialTransformationProcedureFunction,
-    "MuskingumChannel": MuskingumChannelProcedureFunction,
-    "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
-    "GRP": GRPProcedureFunction,
-    "GRPProcedureFunction": GRPProcedureFunction,
-    "LinearCombination": LinearCombinationProcedureFunction,
-    "LinearCombination2B": LinearCombination2BProcedureFunction,
-    "LinearCombination3B": LinearCombination3BProcedureFunction,
-    "LinearCombination4B": LinearCombination4BProcedureFunction,
-    "Expression": ExpressionProcedureFunction,
-    "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
-    "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedureFunction,
-    "SacEnKF": SacEnkfProcedureFunction,
-    "Junction": JunctionProcedureFunction,
-    "LinearChannel": LinearChannelProcedureFunction,
-    "UHLinearChannel": UHLinearChannelProcedureFunction,
-    "GR4J": GR4JProcedureFunction,
-    "GR4J_": GR4J_ProcedureFunction,
-    "HOSH4P1L": HOSH4P1LProcedureFunction,
-    "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
-    "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
-    "Difference": DifferenceProcedureFunction,
-    "LinearNet": LinearNetProcedureFunction,
-    "LinearNet3": LinearNet3ProcedureFunction,
-    "ExponentialFit": ExponentialFitProcedureFunction,
-    "LinearFit": LinearFitProcedureFunction,
-    "LagAndRoute": LagAndRouteProcedureFunction,
-    "LagAndRouteNet": LagAndRouteNetProcedureFunction,
-    "HIDROSAT": HIDROSATProcedureFunction,
-    "Analogy": AnalogyProcedureFunction,
-    "Persistence": PersistenceProcedureFunction
-}
+# procedureFunctionDict = {
+#     # "ProcedureFunction": ProcedureFunction,
+#     "AbstractProcedureFunction": AbstractProcedureFunction,
+#     "HecRas": HecRasProcedureFunction,
+#     "HecRasProcedureFunction": HecRasProcedureFunction,
+#     "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,
+#     "Polynomial": PolynomialTransformationProcedureFunction,
+#     "MuskingumChannel": MuskingumChannelProcedureFunction,
+#     "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
+#     "GRP": GRPProcedureFunction,
+#     "GRPProcedureFunction": GRPProcedureFunction,
+#     "LinearCombination": LinearCombinationProcedureFunction,
+#     "LinearCombination2B": LinearCombination2BProcedureFunction,
+#     "LinearCombination3B": LinearCombination3BProcedureFunction,
+#     "LinearCombination4B": LinearCombination4BProcedureFunction,
+#     "Expression": ExpressionProcedureFunction,
+#     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
+#     "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedureFunction,
+#     "SacEnKF": SacEnkfProcedureFunction,
+#     "Junction": JunctionProcedureFunction,
+#     "LinearChannel": LinearChannelProcedureFunction,
+#     "UHLinearChannel": UHLinearChannelProcedureFunction,
+#     "GR4J": GR4JProcedureFunction,
+#     "GR4J_": GR4J_ProcedureFunction,
+#     "HOSH4P1L": HOSH4P1LProcedureFunction,
+#     "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
+#     "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
+#     "Difference": DifferenceProcedureFunction,
+#     "LinearNet": LinearNetProcedureFunction,
+#     "LinearNet3": LinearNet3ProcedureFunction,
+#     "ExponentialFit": ExponentialFitProcedureFunction,
+#     "LinearFit": LinearFitProcedureFunction,
+#     "LagAndRoute": LagAndRouteProcedureFunction,
+#     "LagAndRouteNet": LagAndRouteNetProcedureFunction,
+#     "HIDROSAT": HIDROSATProcedureFunction,
+#     "Analogy": AnalogyProcedureFunction,
+#     "Persistence": PersistenceProcedureFunction
+# }

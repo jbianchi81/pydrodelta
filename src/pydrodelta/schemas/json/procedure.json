@@ -1,176 +1,175 @@
 {
-    "$id": "procedure.json",
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "properties": {
-      "id": {
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "type": "string"
-          }
-        ]
-      },
-      "initial_states": {
-        "type": "array",
-        "items": {
-          "type": "number"
+  "$id": "procedure.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "string"
         }
-      },
-      "function": {
-        "anyOf": [
-          {
-            "$ref": "abstractprocedurefunction.json"
-          },
-          {
-            "$ref": "hecrasprocedurefunction.json"
-          },
-          {
-            "$ref": "polynomialtransformationprocedurefunction.json"
-          },
-          {
-            "$ref": "linearcombinationprocedurefunction.json"
-          },
-          {
-            "$ref": "expressionprocedurefunction.json"
-          },
-          {
-            "$ref": "sacramentosimplifiedprocedurefunction.json"
-          },
-          {
-            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json"
-          },
-          {
-            "$ref": "pqprocedurefunction.json"
-          },
-          {
-            "$ref": "sacenkfprocedurefunction.json"
-          },
-          {
-            "$ref": "junctionprocedurefunction.json"
-          },
-          {
-            "$ref": "linearchannelprocedurefunction.json"
-          },
-          {
-            "$ref": "uhlinearchannelprocedurefunction.json"
-          },
-          {
-            "$ref": "muskingumchannelprocedurefunction.json"
-          },
-          {
-            "$ref": "hosh4p1lprocedurefunction.json"
-          },
-          {
-            "$ref": "linearnetprocedurefunction.json"
-          },
-          {
-            "$ref": "linearnet3procedurefunction.json"
-          },
-          {
-            "$ref": "exponentialfitprocedurefunction.json"
-          },
-          {
-            "$ref": "linearfitprocedurefunction.json"
-          },
-          {
-            "$ref": "lagandrouteprocedurefunction.json"
-          },
-          {
-            "$ref": "lagandroutenetprocedurefunction.json"
-          },
-          {
-            "$ref": "hidrosatprocedurefunction.json"
-          },
-          {
-            "$ref": "analogyprocedurefunction.json"
-          },
-          {
-            "$ref": "persistenceprocedurefunction.json"
-          }
-        ]
-      },
-      "parameters": {
-        "type": "array",
-        "items": {
-          "type": "number"
-        }
-      },
-      "time_interval": {
-        "$ref": "timeinterval.json"
-      },
-      "time_offset": {
-        "$ref": "timeinterval.json"
-      },
-      "save_results": {
-        "type": "string",
-        "description": "File path where to save the results of the procedure"
-      },
-      "save_dict": {
-        "type": "string",
-        "description": "File path where to save the results of the procedure as dict"
-      },
-      "overwrite": {
-        "type": "boolean",
-        "description": "Choice to overwrite observations at the node-variable with the procedure output"
-      },
-      "overwrite_original": {
-        "type": "boolean",
-        "description": "Choice to overwrite original observations at the node-variable with the procedure output"
-      },
-      "calibration": {
-        "oneOf": [
-          {
-            "$ref": "downhill_simplex_calibration.json"
-          },          
-          {
-            "$ref": "linear_regression_calibration.json"
-          }
-        ],
-        "description": "Calibration parameters"
-      },
-      "adjust": {
-        "type": "boolean",
-        "description": "Adjust output series using observations. Adjustment is performed after statistics computation",
-        "default": false
-      },
-      "adjust_method": {
-        "type": "string",
-        "description": "Adjust method. Default: lfit",
-        "enum": [
-          "lfit",
-          "arima"
-        ],
-        "default": false
-      },
-      "warmup_steps": {
-        "type": "integer",
-        "description": "For output adjustment, discard this number of initial rows"        
-      },
-      "tail_steps": {
-        "type": "integer",
-        "description": "For output adjustment, use only this number of final rows"
-      },
-      "error_band": {
-        "type": "boolean",
-        "description": "If ajusting output, add error band series",
-        "default": true
-      },
-      "read_sim": {
-        "type": "boolean",
-        "description": "Instead of reading .data of input node variables, read .series_sim[0].data . Defaults to self.read_sim",
-        "default": false
-      },
-      "sim_index": {
-        "type": "number",
-        "description": "read this series_sim index of boundary node variables (with read_sim) ",
-        "default": 0
-      }
+      ]
     },
-    "required": [
-      "id",
-      "function"
-    ]
+    "type": {
+      "type": "string",
+      "description": "The id or class name of the procedureFunction type. Either 'ProcedureFunction' or a derived type identifier"
+    },
+    "parameters": {
+      "description": "list of function parameter values",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "initial_states": {
+      "description": "list of function initial state values",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "boundaries": {
+      "oneOf": [
+        {
+          "description": "List of boundary conditions. Each item has a name <string> and a node_variable <NodeVariableIdTuple>",
+          "type": "array",
+          "items": {
+            "$ref": "procedureboundary.json"
+          }
+        },
+        {
+          "type": "array",
+          "description": "list of lists of observations",
+          "items": {
+            "$ref": "observationlist.json"
+          }
+        }
+      ]
+    },
+    "outputs": {
+      "oneOf": [
+        {
+          "description": "list of procedure outputs. Each item has a name <string> and a node_variable tuple <NodeVariableIdTuple>",
+          "type": "array",
+          "items": {
+            "$ref": "procedureboundary.json"
+          }
+        },
+        {
+          "type": "array",
+          "description": "list of lists of observations",
+          "items": {
+            "$ref": "observationlist.json"
+          }
+        }
+      ]
+    },
+    "time_interval": {
+      "$ref": "timeinterval.json"
+    },
+    "time_offset": {
+      "$ref": "timeinterval.json"
+    },
+    "save_results": {
+      "type": "string",
+      "description": "File path where to save the results of the procedure"
+    },
+    "save_dict": {
+      "type": "string",
+      "description": "File path where to save the results of the procedure as dict"
+    },
+    "overwrite": {
+      "type": "boolean",
+      "description": "Choice to overwrite observations at the node-variable with the procedure output"
+    },
+    "overwrite_original": {
+      "type": "boolean",
+      "description": "Choice to overwrite original observations at the node-variable with the procedure output"
+    },
+    "calibration": {
+      "oneOf": [
+        {
+          "$ref": "downhill_simplex_calibration.json"
+        },
+        {
+          "$ref": "linear_regression_calibration.json"
+        }
+      ],
+      "description": "Calibration parameters"
+    },
+    "adjust": {
+      "type": "boolean",
+      "description": "Adjust output series using observations. Adjustment is performed after statistics computation",
+      "default": false
+    },
+    "adjust_method": {
+      "type": "string",
+      "description": "Adjust method. Default: lfit",
+      "enum": [
+        "lfit",
+        "arima"
+      ],
+      "default": false
+    },
+    "warmup_steps": {
+      "type": "integer",
+      "description": "For output adjustment, discard this number of initial rows"
+    },
+    "tail_steps": {
+      "type": "integer",
+      "description": "For output adjustment, use only this number of final rows"
+    },
+    "error_band": {
+      "type": "boolean",
+      "description": "If ajusting output, add error band series",
+      "default": true
+    },
+    "read_sim": {
+      "type": "boolean",
+      "description": "Instead of reading .data of input node variables, read .series_sim[0].data . Defaults to self.read_sim",
+      "default": false
+    },
+    "sim_index": {
+      "type": "number",
+      "description": "read this series_sim index of boundary node variables (with read_sim) ",
+      "default": 0
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "boundaries",
+    "outputs"
+  ]
 }

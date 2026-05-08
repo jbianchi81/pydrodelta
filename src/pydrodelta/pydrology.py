@@ -1111,7 +1111,7 @@ class LinearChannel(PydrologyProcedureInterface):
     Proc: str
     """Tipo de Procedimiento. Admite 'Nash' (cascada de reservorios lineales, debe proveerse lista de pars k y n) y 'UH' (Hidrograma Unitario, debe proveerse lista con array conteniendo ordenadas de UH a paso dt)"""
     type='Single Linear Channel'
-    def __init__(self,pars : Union[NDArray[np.float64],List[float]],Boundaries : Union[NDArray[np.float64],List[float]] =[0],Proc : str='Nash',dt : float =1):
+    def __init__(self,pars : Union[NDArray[np.float64],List[float]],Boundaries : Union[NDArray[np.float64],List[float]] =[0],Proc : Optional[str]='Nash',dt : float =1):
        """
             pars : List[float]
                 Lista de flotantes con los valores del tiempo de residencia (k) y número de reservorios (n), en caso que Proc='Nash', o lista, tupla o array con ordenadas de Hidrograma Unitario, en caso que  Proc='UH'

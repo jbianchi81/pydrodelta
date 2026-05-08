@@ -28,7 +28,7 @@
         "items": {
           "oneOf": [
             {
-              "$ref": "procedure.json"
+              "$ref": "uhlinearchannelprocedure.json"
             },
             {
               "type": "string"
