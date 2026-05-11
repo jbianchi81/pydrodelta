@@ -1,19 +1,20 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "persistenceprocedurefunction.json",
-    "title": "PersistenceProcedureFunction",
+    "$id": "persistenceprocedure.json",
+    "title": "PersistenceProcedure",
     "type": "object",
-    "description": "Procedure function that calculates de percentile of the last observation for that month of the historical record and builds a forecast in which the percentile is mantained",
+    "description": "Procedure that calculates de percentile of the last observation for that month of the historical record and builds a forecast in which the percentile is mantained",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "Persistence"
+                "Persistence",
+                "PersistenceProcedure"
             ]
         },
         "parameters": {

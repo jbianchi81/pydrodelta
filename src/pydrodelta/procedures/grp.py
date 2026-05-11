@@ -1,19 +1,18 @@
 import logging
 from numpy import tanh
-# from typing import Optional
-# from pydrodelta.series_data import SeriesData
-from pandas import DataFrame, Series, concat
-from typing import Union, List, Tuple
+from pandas import DataFrame
+from typing import Union, List, Tuple, Optional
 from numpy import inf, isnan
 
-from ..procedure_function import ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
-from .pq import PQProcedureFunction
+from .pq import PQProcedure
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
+from ..types import ExecInput
 
-class GRPProcedureFunction(PQProcedureFunction):
+class GRPProcedure(PQProcedure):
     """L'équipe du Cemagref a développé un logiciel de prévision hydrologique (GRP) pour le Service central d'hydrométéorologie et d'appui à la prévision des inondations (SCHAPI), conçu pour prédire les crues des cours d'eau. Les chercheurs expliquent que les observations et prévisions des précipitations du réseau Météo-France pour les bassins correspondants sont exploitées par le logiciel. L'indice d'humidité des sols est également un facteur pris en compte par le logiciel."""
     _parameters = [
         ModelParameter(name="X0",constraints=(0.0001,10,1200,inf)),
@@ -37,22 +36,30 @@ class GRPProcedureFunction(PQProcedureFunction):
     @property
     def X0(self) -> float:
         """capacite du reservoir de production (mm)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return self.parameters["X0"]
     @property
     def X1(self) -> float:
         """capacite du reservoir de routage (mm)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return self.parameters["X1"]
     @property
     def X2(self) -> float:
         """facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[2]
         return self.parameters["X2"]
     @property
     def X3(self) -> float:
         """temps de base de l'hydrogramme unitaire (d)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[3]
         return self.parameters["X3"]
 
     @property
-    def windowsize(self) -> int:
+    def windowsize(self) -> Optional[int]:
         """time window size"""
         return self.extra_pars["windowsize"] if "windowsize" in self.extra_pars else None
     
@@ -74,11 +81,15 @@ class GRPProcedureFunction(PQProcedureFunction):
     @property
     def Sk_init(self) -> float:
         """Initial soil storage"""
+        if isinstance(self.initial_states, list):
+            return self.initial_states[0]
         return self.initial_states["Sk"] if "Sk" in self.initial_states else 0
 
     @property
     def Rk_init(self) -> float:
         """Initial routing storage"""
+        if isinstance(self.initial_states, list):
+            return self.initial_states[1]
         return self.initial_states["Rk"] if "Rk" in self.initial_states else 0
 
     @property
@@ -91,7 +102,7 @@ class GRPProcedureFunction(PQProcedureFunction):
         """exponent of the unit hydrograph"""
         return 5/2
 
-    UH1 = ListDescriptor()
+    UH1 : List[float]
     """Pulses unit hydrograph"""
     
     SH1 = ListDescriptor()
@@ -143,14 +154,14 @@ class GRPProcedureFunction(PQProcedureFunction):
             initial_states = initial_states,
             **kwargs)
         
-        self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
+        self.UH1, self.SH1 = GRPProcedure.createUnitHydrograph(self.X3, self.alpha)
         self.update = update
 
     @staticmethod
     def createUnitHydrograph(
         X3 : float,
         alpha : float
-        ) -> Tuple[list,list]:
+        ) -> Tuple[List[float],List[float]]:
         """Creates unit hydrograph
         
         Parameters:
@@ -181,12 +192,12 @@ class GRPProcedureFunction(PQProcedureFunction):
             t = t + 1
         return UH1, SH1
 
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
+        input : ExecInput = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
 
         Parameters:
@@ -199,31 +210,17 @@ class GRPProcedureFunction(PQProcedureFunction):
         -------- 
         """
         if input is None:
-            input = self._procedure.loadInput(
+            input = self.loadInput(
                 inplace=False,
                 pivot=True,
                 use_boundary_name=True,
                 tag_column=False)
-        # results = DataFrame({
-        #     "timestart": Series(dtype='datetime64[ns]'),
-        #     "pma": Series(dtype='float'),
-        #     "etp": Series(dtype='float'),
-        #     "q_obs": Series(dtype='float'),
-        #     "smc_obs": Series(dtype='float'),
-        #     "Sk": Series(dtype='float'),
-        #     "Rk": Series(dtype='float'),
-        #     "q": Series(dtype='float'),
-        #     "smc": Series(dtype='float'),
-        #     "k": Series(dtype='int'),
-        #     "runoff": Series(dtype="float"), 
-        #     "inflow": Series(dtype="float"),
-        #     "leakages": Series(dtype="float")
-        # })
-        # results.set_index("timestart", inplace=True)
+        if isinstance(input, list):
+            input = input[0]
         result_rows = []
         # initialize states
         Sk = min(self.Sk_init,self.X0)
-        self.Pr = []
+        self.Pr : List[float] = []
         k = -1
         Rk = self.Rk_init # *self.X2
 
@@ -243,17 +240,17 @@ class GRPProcedureFunction(PQProcedureFunction):
             smc = (self.rho-self.wp)*Sk/self.X0+self.wp
             if isnan(pma):
                 if self.fill_nulls:
-                    logging.warn("Missing pma value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing pma value for date: %s. Filling up with 0" % i)
                     pma = 0
                 else:
-                    logging.warn("Missing pma value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing pma value for date: %s. Unable to continue" % i)
                     break
             if isnan(etp):
                 if self.fill_nulls:
-                    logging.warn("Missing etp value for date: %s. Filling up with 0" % i)
+                    logging.warning("Missing etp value for date: %s. Filling up with 0" % i)
                     etp = 0
                 else:
-                    logging.warn("Missing etp value for date: %s. Unable to continue" % i)
+                    logging.warning("Missing etp value for date: %s. Unable to continue" % i)
                     break
             Sk_, Rk_, q, runoff, inflow, leakages = self.advance_step(Sk, Rk, pma, etp, k, q_obs)
             # new_row = DataFrame([[i, pma, etp, q_obs, smc_obs, Sk, Rk, q, smc, k, runoff, inflow, leakages]], columns= ["timestart", "pma", "etp", "q_obs", "smc_obs", "Sk", "Rk", "q", "smc", "k", "runoff", "inflow", "leakages"])
@@ -331,15 +328,15 @@ class GRPProcedureFunction(PQProcedureFunction):
         Returns:
         --------
         Tuple[float,float,float,float,float,float] : (Sk_, Rk_, Qk, Qr, self.X2*(Perc+Pn-Ps), R1 - R1**2/(R1+self.X1)"""
-        Pn = pma - etp if pma >= etp else 0
-        Ps = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0
-        Es = Sk*(2-Sk/self.X0)*tanh((etp-pma)/self.X0)/(1+(1-Sk/self.X0)*tanh((etp-pma)/self.X0)) if Pn == 0 else 0
-        S1 = Sk + Ps - Es
-        Perc = S1*(1-(1+(4/9*S1/self.X0)**4)**(-1/4))
+        Pn : float = pma - etp if pma >= etp else 0
+        Ps : float = self.X0*(1-(Sk/self.X0)**2)*tanh(Pn/self.X0)/(1+Sk/self.X0*tanh(Pn/self.X0)) if Pn > 0 else 0
+        Es : float = Sk*(2-Sk/self.X0)*tanh((etp-pma)/self.X0)/(1+(1-Sk/self.X0)*tanh((etp-pma)/self.X0)) if Pn == 0 else 0
+        S1 : float = Sk + Ps - Es
+        Perc : float = S1*(1-(1+(4/9*S1/self.X0)**4)**(-1/4))
         Sk_ = S1 - Perc
         self.Pr.append(self.X2*(Perc+Pn-Ps))
         Quh = self.computeUnitHydrograph(k)
-        R1 = max(0, Rk+Quh)
+        R1 = max(0, Rk + Quh)
         # update with q_obs (disabled by default)
         if q_obs is not None and self.update:
             Qt = q_obs*1000*24*60*60*self.dt/self.area/self.ae
@@ -351,7 +348,7 @@ class GRPProcedureFunction(PQProcedureFunction):
 
     def computeUnitHydrograph(
         self,
-        k : int) -> list:
+        k : int) -> float:
         """Compute unit hydrograph discharge for time step k
         
         Parameters:
@@ -375,7 +372,8 @@ class GRPProcedureFunction(PQProcedureFunction):
     
     def setParameters(
         self,
-        parameters : Union[list,tuple] = []
+        parameters : Union[list,tuple] = [],
+        reset : bool=False
         ) -> None:
         """
         Setter for self.parameters.
@@ -387,7 +385,7 @@ class GRPProcedureFunction(PQProcedureFunction):
             GRP parameters to set (X0,X1,X2,X3)
         """
         super().setParameters(parameters)
-        self.UH1, self.SH1 = GRPProcedureFunction.createUnitHydrograph(self.X3, self.alpha)
+        self.UH1, self.SH1 = GRPProcedure.createUnitHydrograph(self.X3, self.alpha)
     
     def setInitialStates(self,states:Union[list,tuple]=[]):
         """

@@ -188,6 +188,13 @@ class Procedure(Base):
 
     initial_states : Union[List[float],Dict[str,float]] # = ListOrDictDescriptor()
     """list or dict of function initial state values"""
+
+    @property
+    def initial_states_list(self) -> List[float]:
+        if isinstance(self.initial_states, list):
+            return self.initial_states
+        else:
+            return list(self.initial_states.values())
     
     @property
     def boundaries(self) -> EnhancedTypedList[ProcedureBoundary]:
@@ -317,8 +324,8 @@ class Procedure(Base):
         sim_index : int = 0,
         save_dict : Optional[str] = None,
         drop_warmup : bool = False,
-        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
-        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame] = [],
+        boundaries : Optional[Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
+        outputs : Optional[Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
         extra_pars : dict = dict(),
         forecast_date : Optional[datetime] = None,
         **kwargs
@@ -375,8 +382,8 @@ class Procedure(Base):
                 "sim_index": sim_index,
                 "save_dict": save_dict,
                 "drop_warmup": drop_warmup,
-                "boundaries": boundaries,
-                "outputs": outputs,
+                "boundaries": boundaries if boundaries is not None else [],
+                "outputs": outputs if outputs is not None else [],
                 "extra_pars": extra_pars,
                 "forecast_date": forecast_date,
             },
@@ -405,8 +412,8 @@ class Procedure(Base):
         #     f.close()
         self.parameters = dict(parameters) if isinstance(parameters, Mapping) else parameters
         """List of procedure parameters"""
-        self.boundaries = boundaries
-        self.outputs = outputs
+        self.boundaries = boundaries if boundaries is not None else []
+        self.outputs = outputs if outputs is not None else []
         self.extra_pars = extra_pars
         if forecast_date is not None:
             self.forecast_date = forecast_date
@@ -1204,7 +1211,7 @@ class Procedure(Base):
 
     def setParameters(
         self,
-        parameters : Union[List,Tuple] = [],
+        parameters : Union[List,Tuple,Mapping[str, Any]] = [],
         reset : bool = True
         ) -> None:
         """
@@ -1222,12 +1229,20 @@ class Procedure(Base):
                 self.parameters = {}
             if not isinstance(self.parameters, dict):
                 raise RuntimeError("parameters must be a dict")
-            for i, p in enumerate(self._parameters):
-                if len(parameters) - 1 < i:
-                    raise ValueError("parameters list is too short: %i item is missing" % i)
-                self.parameters[p.name] = parameters[i]
+            for i, p in enumerate(self._parameters):                    
+                if isinstance(parameters, (tuple,list)):
+                    if len(parameters) - 1 < i:
+                        raise ValueError("parameters list is too short: %i item is missing" % i)
+                    self.parameters[p.name] = parameters[i]
+                else:
+                    if p.name not in parameters:
+                        raise ValueError(f"Missing key '{p.name}' in parameters dict")
+                    self.parameters[p.name] = parameters[p.name]
         else:
-            self.parameters = list(parameters)
+            if isinstance(parameters, (list,tuple)):
+                self.parameters = list(parameters)
+            else:
+                self.parameters = parameters
 
     def setInitialStates(
         self,
@@ -1356,7 +1371,7 @@ class Procedure(Base):
     def pivotInputOutput(
             self, 
             input : List[DataFrame], 
-            output : List[DataFrame] = [], 
+            output : List[Union[DataFrame,List[float]]] = [], 
             other : Optional[dict] = None) -> DataFrame:
         if not len(input):
             raise ValueError("input must be of length 1 or greater")
@@ -1368,10 +1383,11 @@ class Procedure(Base):
         for i in range(0,len(self._outputs)):
             if self._outputs[i].optional and len(output) < i + 1:
                 continue
-            if type(output[i]) == DataFrame:
-                result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
+            o = output[i]
+            if isinstance(o, DataFrame):
+                result = result.join(o[["valor"]].rename(columns={"valor": self._outputs[i].name}))
             else:
-                result[self._outputs[i].name] = output[i]
+                result[self._outputs[i].name] = o
         if other is not None:
             # must be a a dict where key is the column name and value is the list of values
             for name, values in other.items():
@@ -1417,76 +1433,5 @@ class Procedure(Base):
                 "data": df[[col]]
             }
             for col in df.columns
-        ] 
-
+        ]
     
-# from pydrodelta.procedures.hecras import HecRasProcedureFunction
-# from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
-# from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
-# from pydrodelta.procedures.grp import GRPProcedureFunction
-# from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
-# from pydrodelta.procedures.expression import ExpressionProcedureFunction
-# from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
-# from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedureFunction
-# from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
-# from pydrodelta.procedures.junction import JunctionProcedureFunction
-# from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
-# from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedureFunction
-# from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
-# from pydrodelta.procedures.gr4j import GR4JProcedureFunction
-# from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
-# from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
-# from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
-# from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
-# from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
-# from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
-# from pydrodelta.procedures.difference import DifferenceProcedureFunction
-# from pydrodelta.procedures.linear_net import LinearNetProcedureFunction
-# from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
-# from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
-# from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
-# from pydrodelta.procedures.abstract import AbstractProcedureFunction
-# from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
-# from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
-# from pydrodelta.procedures.analogy import AnalogyProcedureFunction
-# from pydrodelta.procedures.persistence import PersistenceProcedureFunction
-# from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedureFunction
-
-# procedureFunctionDict = {
-#     # "ProcedureFunction": ProcedureFunction,
-#     "AbstractProcedureFunction": AbstractProcedureFunction,
-#     "HecRas": HecRasProcedureFunction,
-#     "HecRasProcedureFunction": HecRasProcedureFunction,
-#     "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,
-#     "Polynomial": PolynomialTransformationProcedureFunction,
-#     "MuskingumChannel": MuskingumChannelProcedureFunction,
-#     "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
-#     "GRP": GRPProcedureFunction,
-#     "GRPProcedureFunction": GRPProcedureFunction,
-#     "LinearCombination": LinearCombinationProcedureFunction,
-#     "LinearCombination2B": LinearCombination2BProcedureFunction,
-#     "LinearCombination3B": LinearCombination3BProcedureFunction,
-#     "LinearCombination4B": LinearCombination4BProcedureFunction,
-#     "Expression": ExpressionProcedureFunction,
-#     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
-#     "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedureFunction,
-#     "SacEnKF": SacEnkfProcedureFunction,
-#     "Junction": JunctionProcedureFunction,
-#     "LinearChannel": LinearChannelProcedureFunction,
-#     "UHLinearChannel": UHLinearChannelProcedureFunction,
-#     "GR4J": GR4JProcedureFunction,
-#     "GR4J_": GR4J_ProcedureFunction,
-#     "HOSH4P1L": HOSH4P1LProcedureFunction,
-#     "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
-#     "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
-#     "Difference": DifferenceProcedureFunction,
-#     "LinearNet": LinearNetProcedureFunction,
-#     "LinearNet3": LinearNet3ProcedureFunction,
-#     "ExponentialFit": ExponentialFitProcedureFunction,
-#     "LinearFit": LinearFitProcedureFunction,
-#     "LagAndRoute": LagAndRouteProcedureFunction,
-#     "LagAndRouteNet": LagAndRouteNetProcedureFunction,
-#     "HIDROSAT": HIDROSATProcedureFunction,
-#     "Analogy": AnalogyProcedureFunction,
-#     "Persistence": PersistenceProcedureFunction
-# }

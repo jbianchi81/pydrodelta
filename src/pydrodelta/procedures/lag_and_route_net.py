@@ -1,4 +1,5 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure import Procedure
+from ..procedure_function_results import ProcedureFunctionResults
 from ..function_boundary import FunctionBoundary
 from ..pydrology import LagAndRoute
 from ..descriptors.int_descriptor import IntDescriptor 
@@ -7,12 +8,14 @@ from ..procedure_boundary import ProcedureBoundary
 from ..types.procedure_boundary_dict import ProcedureBoundaryDict
 from ..types.enhanced_typed_list import EnhancedTypedList
 import numpy as np
-from typing import List
+from typing import List, Tuple
+from ..types import ExecInput
+from pandas import DataFrame
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
 
-class LagAndRouteNetProcedureFunction(ProcedureFunction):
+class LagAndRouteNetProcedure(Procedure):
     """
     LagAndRouteNet procedure function with any number of input nodes. See ..pydrology.LagAndRoute
     """
@@ -74,17 +77,23 @@ class LagAndRouteNetProcedureFunction(ProcedureFunction):
     ]
 
     @property
-    def coefficients(self):
+    def coefficients(self) -> List[List[float]]:
         """Lag and route net coefficients (list of 3-tuples)"""
-        result = [
-            (self.parameters["lag_1"],self.parameters["k_1"], self.parameters["n_1"]),
-            (self.parameters["lag_2"],self.parameters["k_2"], self.parameters["n_2"]),
-        ]
+        if isinstance(self.parameters, list):
+            result : List[List[float]]= [
+                [self.parameters[0],self.parameters[1], self.parameters[2]],
+                [self.parameters[3],self.parameters[4], self.parameters[5]],
+            ]
+        else:
+            result = [
+                [self.parameters["lag_1"],self.parameters["k_1"], self.parameters["n_1"]],
+                [self.parameters["lag_2"],self.parameters["k_2"], self.parameters["n_2"]],
+            ]
         for i in range(2,len(self.boundaries)):
             # if "k_%i" % i not in self.parameters:
             #     return result
             result.append(
-                (self.parameters["lag_%i" % i],self.parameters["k_%i" % i], self.parameters["n_%i" % i])
+                [self.parameters[i * 3],self.parameters[i * 3 + 1], self.parameters[i * 3 + 2]] if isinstance(self.parameters,list) else [self.parameters["lag_%i" % i],self.parameters["k_%i" % i], self.parameters["n_%i" % i]]
             )
         return result
 
@@ -108,30 +117,30 @@ class LagAndRouteNetProcedureFunction(ProcedureFunction):
         super().__init__(parameters=parameters, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 
-    @property
-    def pars_list(self) -> list:
-        pars_list = []
-        for i, boundary in enumerate(self.boundaries):
-            lag_key = "lag_%i" % (i + 1)
-            if lag_key not in self.parameters:
-                raise ValueError("Missing parameter %s" % lag_key)
-            k_key = "k_%i" % (i + 1)
-            if k_key not in self.parameters:
-                raise ValueError("Missing parameter %s" % k_key)
-            n_key = "n_%i" % (i + 1)
-            if n_key not in self.parameters:
-                raise ValueError("Missing parameter %s" % n_key)
-            pars_list.append(
-                [
-                    self.parameters[lag_key],
-                    self.parameters[k_key],
-                    self.parameters[n_key]
-                ]
-            )
-        return pars_list
+    # @property
+    # def pars_list(self) -> list:
+    #     pars_list = []
+    #     for i, boundary in enumerate(self.boundaries):
+    #         lag_key = "lag_%i" % (i + 1)
+    #         if lag_key not in self.parameters:
+    #             raise ValueError("Missing parameter %s" % lag_key)
+    #         k_key = "k_%i" % (i + 1)
+    #         if k_key not in self.parameters:
+    #             raise ValueError("Missing parameter %s" % k_key)
+    #         n_key = "n_%i" % (i + 1)
+    #         if n_key not in self.parameters:
+    #             raise ValueError("Missing parameter %s" % n_key)
+    #         pars_list.append(
+    #             [
+    #                 self.parameters[lag_key],
+    #                 self.parameters[k_key],
+    #                 self.parameters[n_key]
+    #             ]
+    #         )
+    #     return pars_list
 
     @property
-    def engine(self) -> LagAndRoute:
+    def engine(self) -> List[LagAndRoute]:
         """Reference to instance of GR4J procedure engine"""
         return self._engine
 
@@ -145,18 +154,20 @@ class LagAndRouteNetProcedureFunction(ProcedureFunction):
         input : List[float] - Boundary conditions: list of (pmad : float, etpd : float)"""
         self._engine = [
                 LagAndRoute(
-                pars= self.pars_list[i],
+                pars= self.coefficients[i],
                 Boundaries=[boundary],
-                InitialConditions=self.initial_states[i] if self.initial_states is not None and len(self.initial_states) - 1 >= i else [0],
+                InitialConditions=[self.initial_states[i]] if isinstance(self.initial_states,list) and len(self.initial_states) - 1 >= i else [0],
                 dt = self.dt)
             for i, boundary in enumerate(input)]
 
-    def run(
+    def exec(
         self,
-        input : list = None
+        input : ExecInput = None
         ) -> tuple:
         if input is None:
-            input = self._procedure.loadInput(inplace=False)
+            input = self.loadInput(inplace=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         input_list = self.extractListsFromInput(input, allow_na=[False,True])
         self.setEngine(input_list)
         outflows = []
@@ -166,7 +177,7 @@ class LagAndRouteNetProcedureFunction(ProcedureFunction):
             while len(outflow) < len(input[0]):
                 outflow.append(np.nan)
             outflows.append(outflow)
-        outflow_sum = [sum(x) for x in zip(*outflows)]
+        outflow_sum = [float(sum(x)) for x in zip(*outflows)]
         dict_outflows = {
                 "outflow_%i" % (i + 1): outflow
             for i, outflow in enumerate(outflows) 

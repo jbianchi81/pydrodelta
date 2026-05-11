@@ -1,18 +1,18 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "hosh4p1lprocedurefunction.json",
-    "title": "HOSH4P1LProcedureFunction",
+    "$id": "hosh4p1lprocedure.json",
+    "title": "HOSH4P1LProcedure",
     "type": "object",
     "description": "Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base).",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH"]
+            "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH","HOSH4P1LProcedure","HOSH4P1LNashProcedure","HOSH4P1lUHProcedure"]
         },
         "initial_states": {
             "type": "array",

@@ -1,11 +1,13 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from a5client import createEmptyObsDataFrame
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any, Mapping
 from pandas import DataFrame
+from ..types import ExecInput
 
-class PolynomialTransformationProcedureFunction(ProcedureFunction):
+class PolynomialTransformationProcedure(Procedure):
     """Polynomial transformation procedure"""
 
     _boundaries = [
@@ -19,11 +21,15 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
     @property
     def coefficients(self) -> List[float]:
         """coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic"""
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return self.parameters["coefficients"]
     
     @property
     def intercept(self) -> float:
         """intercept : float - default 0"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return self.parameters["intercept"] if "intercept" in self.parameters else 0
     
     @property
@@ -33,7 +39,7 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
 
     def __init__(
         self,
-        parameters : Union[dict,list,tuple],
+        parameters : Union[List[Any], Mapping[str, Any]],
         **kwargs
         ):
         """_summary_
@@ -75,9 +81,9 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
             result = result + value**exponent * c
             exponent = exponent + 1
         return result
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
+        input : ExecInput = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -89,12 +95,14 @@ class PolynomialTransformationProcedureFunction(ProcedureFunction):
         Returns:
         Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        elif isinstance(input, DataFrame):
+            input = [input]
         output  = []
         results_data = createEmptyObsDataFrame() # output_obs[["output"]].rename(columns={"output":"obs"})
         for i, serie in enumerate(input):
             output_serie = serie.copy()
-            output_serie.valor = [self.transformation_function(valor) for valor in output_serie.valor]
+            output_serie["valor"] = [self.transformation_function(valor) for valor in output_serie.valor]
             output.append(output_serie)
             colname = "input_%i" % (i + 1)
             results_data = results_data.join(serie.rename(columns={"valor": colname}))

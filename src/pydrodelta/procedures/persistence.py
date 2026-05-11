@@ -3,11 +3,12 @@ from dateutil.relativedelta import relativedelta
 from matplotlib import pyplot as plt
 import numpy as np
 import logging
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 from pandas import DataFrame, concat, DatetimeIndex
 from matplotlib import pyplot as plt
 from datetime import datetime
@@ -15,8 +16,10 @@ from dateutil.relativedelta import relativedelta
 from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
 from pydrodelta.descriptors.float_descriptor import FloatDescriptor
 from pydrodelta.procedures.analogy import CreaVariablesTemporales, month2Date
+from ..types import ExecInput
+from pathlib import Path
 
-class PersistenceProcedureFunction(ProcedureFunction):
+class PersistenceProcedure(Procedure):
     """Persistence forecast procedure"""
 
     _boundaries = [
@@ -30,16 +33,22 @@ class PersistenceProcedureFunction(ProcedureFunction):
     @property
     def search_length(self) -> int:
         """search_length : longitud de la serie para buscar Analogas"""
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return int(self.parameters["search_length"]) if "search_length" in self.parameters else 6
 
     @property
     def forecast_length(self) -> int:
         """forecast_length : longitud del pronostico"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return int(self.parameters["forecast_length"]) if "forecast_length" in self.parameters else 4 
     
     @property
-    def time_window(self) -> int:
+    def time_window(self) -> str:
         """Ventana temporal"""
+        if isinstance(self.parameters, list):
+            return self.parameters[2]
         return self.parameters["time_window"] if "time_window" in self.parameters else "month"
 
     @property
@@ -52,13 +61,14 @@ class PersistenceProcedureFunction(ProcedureFunction):
 
     @property
     def skip_first_years(self) -> int:
-        return self.extra_pars.get("skip_first_years") if "skip_first_years" in self.extra_pars else 2
+        v = self.extra_pars.get("skip_first_years")
+        return v if v is not None else 2
 
     errores = DataFrameDescriptor()
 
     df_prono = DataFrameDescriptor()
 
-    data = DataFrameDescriptor()
+    _data = DataFrameDescriptor()
 
     error_stats = DataFrameDescriptor()
 
@@ -97,20 +107,20 @@ class PersistenceProcedureFunction(ProcedureFunction):
         getSchemaAndValidate(dict(kwargs, type = "Persistence", parameters = parameters),"PersistenceProcedureFunction")
         self.errores = None
         self.df_prono = None
-        self.data = None
+        self.data_ = None
         self.error_stats = None
         self.percentil = None
 
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None,
-        forecast_date : datetime = None,
-        save_results : str = None,
-        add_error_band : bool = None,
-        skip_first_years : int = None, 
-        only_last_years : int = None, 
-        vent_resamp_range : Tuple[int,int] = None,
-        error_forecast_date_window : int = None
+        input : ExecInput = None,
+        forecast_date : Optional[datetime] = None,
+        save_results : Optional[Union[Path, str]] = None,
+        add_error_band : Optional[bool] = None,
+        skip_first_years : Optional[int] = None, 
+        only_last_years : Optional[int] = None, 
+        vent_resamp_range : Optional[Tuple[int,int]] = None,
+        error_forecast_date_window : Optional[int] = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -141,7 +151,7 @@ class PersistenceProcedureFunction(ProcedureFunction):
         # error_forecast_date_window = error_forecast_date_window if error_forecast_date_window is not None else self.error_forecast_date_window
 
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         
         if not isinstance(input,list):
             raise ValueError("Input must be a list of DataFrame")
@@ -165,13 +175,13 @@ class PersistenceProcedureFunction(ProcedureFunction):
                 mes_select = forecast_date.month - 1
                 yr_select = forecast_date.year
 
-        self.data = input[0].copy()
-        CreaVariablesTemporales(self.data)
+        self._data = input[0].copy()
+        CreaVariablesTemporales(self._data)
 
         ### Metodo Persistencia.
 
         self.df_prono, self.percentil = MetodoPersistencia(
-            self.data,
+            self._data,
             "valor",
             mes_select,
             yr_select,
@@ -193,7 +203,7 @@ class PersistenceProcedureFunction(ProcedureFunction):
             #     vent_resamp_range = (steps[(forecast_date.month - error_forecast_date_window - 1) % len(steps)],steps[(forecast_date.month + error_forecast_date_window - 1)  % len(steps)])
             self.errores = ErrorXPersistencia(
                 self.boundaries[0].node_id,
-                self.data,
+                self._data,
                 "valor",
                 self.search_length,
                 self.forecast_length,
@@ -428,8 +438,8 @@ def ErrorXPersistencia(nomEst : str,
     # Corta el df. Saca los primeros años y los ultimos l_prono meses
     df_clip = df[skip_first_years * 12:-l_prono].dropna() #l_obs
 
+    NombreTabla = 'Salidas_Persist'
     if connBBDD != None:
-        NombreTabla = 'Salidas_Persist'
         cur = connBBDD.cursor()
         cur.execute('DROP TABLE IF EXISTS '+NombreTabla+';')
     

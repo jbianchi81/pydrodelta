@@ -5,8 +5,7 @@ import numpy as np
 from pandas import DataFrame, Series, concat, Timestamp
 from datetime import datetime
 from ..util import get_stats, StatsDict
-
-from ..procedure_function import ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
 import pydrodelta.procedures.sacramento_simplified as sac
 
 from ..descriptors.list_descriptor import ListDescriptor
@@ -51,7 +50,7 @@ class RqRule(NamedTuple):
     var : float
     bias : float
 
-class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
+class SacEnkfProcedure(sac.SacramentoSimplifiedProcedure):
     """Simplified (10-parameter) Sacramento for precipitation - discharge transformation - ensemble with data assimilation. 
     
     Reference: https://www.researchgate.net/publication/348234919_Implementacion_de_un_procedimiento_de_pronostico_hidrologico_para_el_alerta_de_inundaciones_utilizando_datos_de_sensores_remotos"""
@@ -675,7 +674,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         """Generate single-row DataFrame from simulation states and outputs"""
         return DataFrame([[timestart, x1, x2, x3, x4, q4, smc]], columns= ["timestart", "x1", "x2", "x3", "x4", "q4", "smc"])
 
-    def run(
+    def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]]=None
         ) -> Tuple[List[DataFrame], ProcedureFunctionResults]:
@@ -686,9 +685,7 @@ class SacEnkfProcedureFunction(sac.SacramentoSimplifiedProcedureFunction):
         denom_rk = (2,2,1)
         
         if input is None:
-            if self._procedure is None:
-                raise Exception("procedure is not defined")
-            input = cast(List[DataFrame],self._procedure.loadInput(inplace=False,pivot=False))
+            input = cast(List[DataFrame],self.loadInput(inplace=False,pivot=False))
         elif isinstance(input,DataFrame):
             input = [input]
         results = DataFrame({

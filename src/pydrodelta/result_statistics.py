@@ -1,7 +1,7 @@
 import logging
 from pandas import DataFrame, Timestamp
 import math
-from typing import List, Tuple, Optional, TypedDict, cast
+from typing import List, Tuple, Optional, TypedDict, cast, Union
 from datetime import datetime
 
 
@@ -36,7 +36,7 @@ class ResultStatistics:
         obs : list = list(),
         sim : list = list(),
         metadata: Optional[dict] = None,
-        calibration_period : Optional[Tuple[Timestamp, Timestamp]] = None,
+        calibration_period : Optional[Tuple[Union[datetime,Timestamp], Union[datetime,Timestamp]]] = None,
         group : str = "cal",
         compute : bool = False,
         procedure = None,

@@ -1,49 +1,61 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "lagandrouteprocedurefunction.json",
-    "title": "LagAndRouteProcedureFunction",
+    "schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "muskingumchannelprocedure.json",
+    "title": "MuskingumChannelProcedure",
     "type": "object",
-    "description": "Lag and route procedure function",
+    "description": "Método de tránsito hidrológico de la Oficina del río Muskingum. Dos parámetros: Tiempo de Tránsito (K) y Factor de forma (X) [Proc='Muskingum'] o . Condiciones Iniciales (initial_states): matriz de condiciones iniciales o valor escalar constante. Condiciones de borde: Hidrograma en nodo superior de tramo.",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "LagAndRoute"
+                "MuskingumChannel",
+                "MuskingumChannelProcedure"
             ]
         },
         "parameters": {
             "type": "object",
-            "desciption": "Model parameters",
+            "description": "Parámetros: Tiempo de Tránsito (K) y Factor de forma (X)",
             "properties": {
-                "lag": {
+                "K": {
                     "type": "number",
-                    "description": "celerity (in dt units)"
+                    "description": "Tiempo de tránsito"
                 },
-                "k": {
+                "X": {
                     "type": "number",
-                    "description": "residence time"
-                },
-                "n": {
-                    "type": "number",
-                    "description": "number of reservoirs"
-                }
+                    "minimum": 0,
+                    "maximum": 0.5,
+                    "description": "Factor de forma. 0 <= X <= 0.5"
+                }        
             },
-            "required": ["lag", "k"],
+            "required": ["K","X"],
             "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
             "properties": {
-                "dt": {
-                    "type": "number",
-                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                "Proc": {
+                    "type": "string",
+                    "description": "variante del método",
+                    "enum": [
+                        "Muskingum"
+                    ]
                 }
             }
+        },
+        "initial_states": {
+            "anyOf": [
+                {
+                    "type": "array"
+                },
+                {
+                    "type": "number"
+                }
+            ]
         },
         "boundaries": {
             "type": "array",
@@ -54,14 +66,14 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "enum": ["input_1", "input_2"]
+                                "enum": ["input"]
                             }
                         }
                     }
                 ]
             },
             "minItems": 1,
-            "maxItems": 2
+            "maxItems": 1
         },
         "outputs": {
             "type": "array",
@@ -83,7 +95,6 @@
         }
     },
     "required": [
-        "type",
         "parameters"
     ]
 }

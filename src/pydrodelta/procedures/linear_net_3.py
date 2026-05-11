@@ -1,14 +1,17 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure import Procedure
+from ..procedure_function_results import ProcedureFunctionResults
 from ..function_boundary import FunctionBoundary
 from ..pydrology import LinearNet
 from ..descriptors.int_descriptor import IntDescriptor 
 from ..model_parameter import ModelParameter
 import numpy as np
+from ..types import ExecInput
+from pandas import DataFrame
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
 
-class LinearNet3ProcedureFunction(ProcedureFunction):
+class LinearNet3Procedure(Procedure):
     """
     LinearNet procedure function with 3 input nodes. See ..pydrology.LinearNet
     """
@@ -37,6 +40,12 @@ class LinearNet3ProcedureFunction(ProcedureFunction):
     @property
     def coefficients(self):
         """Linear net coefficients (list of 2-tuples)"""
+        if isinstance(self.parameters, list):
+            return [
+                (self.parameters[0],self.parameters[1]),
+                (self.parameters[2],self.parameters[3]),
+                (self.parameters[4],self.parameters[5])
+            ]
         return [
             (self.parameters["k_1"], self.parameters["n_1"]),
             (self.parameters["k_2"], self.parameters["n_2"]),
@@ -68,12 +77,12 @@ class LinearNet3ProcedureFunction(ProcedureFunction):
         super().__init__(parameters=parameters, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
  
-    def run(
+    def exec(
         self,
-        input : list = None
+        input : ExecInput = None
         ) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
 
         Parameters:
@@ -86,18 +95,23 @@ class LinearNet3ProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         data = None
         input_colnames = []
+        i = 0
         for i in range(3):
             data = input[i][["valor"]].rename(columns={"valor":"input"}) if data is None else data.join(input[i][["valor"]].rename(columns={"valor":"input"}))
             if not len(data.dropna().index):
-                raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self._procedure.id, i))
+                raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self.id, i))
             last_date = max(data.dropna().index)
             if True in np.isnan(data[data.index <= last_date]["input"].values):
                 raise Exception("NaN values found in input before last date %s" % last_date.isoformat())
             data = data.rename(columns={"input": "input_%i" % (i + 1)})
             input_colnames.append("input_%i" % (i + 1))
+        if data is None:
+            raise ValueError("Input has no length")
         input_data = data.dropna()
         linear_net_input = [ input_data[input_colname].values for input_colname in input_colnames ]
 

@@ -1,13 +1,12 @@
 import logging
 from typing import Optional, List
-from pydrodelta.series_data import SeriesData
 from pandas import DataFrame, Timestamp
 from math import sqrt
-from typing import Union, Tuple, NamedTuple, Dict, TypedDict, cast, Literal
+from typing import Union, Tuple, NamedTuple, Dict, TypedDict, cast, Mapping, Any
 import numpy as np
 
-from ..procedure_function import ProcedureFunctionResults
-from ..procedures.pq import PQProcedureFunction
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedures.pq import PQProcedure
 from ..util import interval2timedelta, relativedeltaToSeconds, IntervalDict
 from ..validation import getSchemaAndValidate
 from ..model_parameter import ModelParameter
@@ -91,7 +90,7 @@ class SmTransform():
             "intercept": self.intercept
         }
 
-class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
+class SacramentoSimplifiedProcedure(PQProcedure):
     """Simplified (10-parameter) Sacramento for precipitation - discharge transformation. 
     
     Reference: https://www.researchgate.net/publication/348234919_Implementacion_de_un_procedimiento_de_pronostico_hidrologico_para_el_alerta_de_inundaciones_utilizando_datos_de_sensores_remotos"""
@@ -362,7 +361,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         self.volume = 0
         self.sm_obs = []
         self.sm_sim = []
-        self.x = States(*[self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)])
+        self.x = States(*[self.constraint(self.initial_states_list[i],self._statenames[i]) for i in range(4)])
         self.X = []
         self.Xw = []
         self.flows = None
@@ -516,15 +515,16 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
 
         return x_, npasos
 
-    def run(self,input: Optional[Union[List[DataFrame],DataFrame]]=None) -> Tuple[List[DataFrame], ProcedureFunctionResults]:
+    def exec(
+            self,
+            input: Optional[Union[List[DataFrame],DataFrame]]=None
+            ) -> Tuple[List[DataFrame], ProcedureFunctionResults]:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            if self._procedure is None:
-                raise ValueError("procedure not defined")
-            input = cast(DataFrame, self._procedure.loadInput(
+            input = cast(DataFrame, self.loadInput(
                 inplace=False,
                 pivot=True,
                 use_boundary_name=True,
@@ -533,7 +533,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             input = input[0]
         
         # initialize states
-        self.x = States(*[self.constraint(self.initial_states[i],self._statenames[i]) for i in range(4)])
+        self.x = States(*[self.constraint(self.initial_states_list[i],self._statenames[i]) for i in range(4)])
         step = 0
         if self.compute_mass_balance:
             self.flows = DataFrame(columns = ["step", "substep", "substep_duration", "p", "sr", "et1", "int", "pc", "et2", "gw", "bf", "q2", "q3","deep_perc", "x1", "x2", "x3", "x4", "X1", "X2", "X3", "X4"])
@@ -645,11 +645,11 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
             procedure_results
         )
 
-    def setParameters(
-        self, 
-        parameters: Union[List,Tuple] = [],
-        reset: bool = True) -> None:
-        super().setParameters(parameters, reset)
+    # def setParameters(
+    #     self, 
+    #     parameters: Union[list, tuple, Mapping[str, Any]] = [],
+    #     reset: bool = True) -> None:
+    #     super().setParameters(parameters, reset)
     
     def setInitialStates(
         self, 
@@ -662,7 +662,7 @@ class SacramentoSimplifiedProcedureFunction(PQProcedureFunction):
         integrated_flows = self.integrateFlows()
         r = {
             **integrated_flows,
-            "initial_storage": sum(self.initial_states),
+            "initial_storage": sum(self.initial_states_list),
             "final_storage":  sum(self.x),
         }
         r["mass_balance"] = r["p"] - r["et1"] - r["et2"] - r["q3"] - r["deep_perc"]

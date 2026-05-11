@@ -1,52 +1,62 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "polynomialtransformationprocedurefunction.json",
-    "title": "PolynomialTransformationProcedureFunction",
+    "$id": "linearnet3procedure.json",
+    "title": "LinearNet3Procedure",
     "type": "object",
-    "description": "Polynomial transformation procedure function. Being x the input values, it returns intercept + x**1 * coefficient[0] [ + x**2 * coefficient[1] ] and so on for additional coefficients.",
+    "description": "Nash linear net procedure for 3 inputs and 1 output",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "Polynomial"
+                "LinearNet3",
+                "LinearNet3Procedure"
             ]
         },
         "parameters": {
             "type": "object",
-            "description": "Model parameters",
+            "desciption": "Model parameters",
             "properties": {
-                "coefficients": {
-                    "type": "array",
-                    "items": {
-                        "type": "number"
-                    },
-                    "description": "ordered coefficients starting from the linear (mandatory), then the cuadratic, and so on",
-                    "minItems": 1
-                },
-                "intercept": {
+                "k_1": {
                     "type": "number",
-                    "description": "intercept of the linear transformation. Defaults to 0"
-                }        
+                    "description": "residence time"
+                },
+                "n_1": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "k_2": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_2": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                },
+                "k_3": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n_3": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
             },
-            "required": ["coefficients"],
+            "required": ["k_1","n_1","k_2","n_2","k_3","n_3"],
             "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
-            "description": "additional parameters",
             "properties": {
-                "allow_na": {
-                    "type": "boolean",
-                    "description": "allow for null values in input",
-                    "default": false
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
                 }
-            },
-            "additionalProperties": false
+            }
         },
         "boundaries": {
             "type": "array",
@@ -57,14 +67,14 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "enum": ["input"]
+                                "enum": ["input_1", "input_2", "input_3"]
                             }
                         }
                     }
                 ]
             },
-            "minItems": 1,
-            "maxItems": 1
+            "minItems": 3,
+            "maxItems": 3
         },
         "outputs": {
             "type": "array",

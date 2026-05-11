@@ -1,4 +1,5 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from ..util import adjustSeries
@@ -12,7 +13,7 @@ from pandas import DataFrame
 from datetime import datetime
 import logging
 
-class LinearFitProcedureFunction(ProcedureFunction):
+class LinearFitProcedure(Procedure):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
 
     _boundaries = [
@@ -78,13 +79,13 @@ class LinearFitProcedureFunction(ProcedureFunction):
 
         self.type = "linear"
 
-    def run(
+    def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]] = None,
         output_obs : Optional[Union[DataFrame,List[DataFrame]]] = None
         ) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         
         Parameters:
@@ -97,15 +98,11 @@ class LinearFitProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            if self._procedure is None:
-                raise ValueError("If procedure is not set, input must be passed as an argument to run()")    
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         elif isinstance(input, DataFrame):
             input = [input]
         if output_obs is None:
-            if self._procedure is None:
-                raise ValueError("If procedure is not set, output_obs must be passed as an argument to run()")
-            output_obs = self._procedure.output_obs if self._procedure.output_obs is not None else self._procedure.loadOutputObs()
+            output_obs = self.output_obs if self.output_obs is not None else self.loadOutputObs()
             if isinstance(output_obs, DataFrame):
                 output_obs = [output_obs]
         elif isinstance(output_obs, DataFrame):
@@ -141,7 +138,7 @@ class LinearFitProcedureFunction(ProcedureFunction):
                 drop_warmup=self.drop_warmup
             )
         except ValueError as e:
-            logging.error("Adjust series error at procedure %s: %s" % (self._procedure.id if self._procedure is not None else "unknown", str(e)))
+            logging.error("Adjust series error at procedure %s: %s" % (self.id, str(e)))
             raise e
         output_data = input_data.copy()
         output_data["valor"] = output_serie

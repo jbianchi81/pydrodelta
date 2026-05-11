@@ -1,11 +1,11 @@
 
-from .sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from .sacramento_simplified import SacramentoSimplifiedProcedure
 from ..model_parameter import ModelParameter
 from ..validation import getSchemaAndValidate
 from typing import Union
 import numpy as np
 
-class SacramentoSimplifiedFixedParsProcedureFunction(SacramentoSimplifiedProcedureFunction):
+class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
     """sacramento simplified with fixed soil parameters"""
 
     # _parameters = [
@@ -120,6 +120,8 @@ class SacramentoSimplifiedFixedParsProcedureFunction(SacramentoSimplifiedProcedu
                 Initial model states (x1,x2,x3,x4)
                 """
         kwargs["type"] = "SacramentoSimplified"
+        if not isinstance(parameters, dict):
+            raise TypeError("parameters must be dict")
         merged_parameters = {
             **parameters,
             **fixed_parameters
@@ -144,7 +146,7 @@ class SacramentoSimplifiedFixedParsProcedureFunction(SacramentoSimplifiedProcedu
         # self.Xw = []
         # self.flows = None
 
-    def setParameters(
-        self, 
-        parameters: Union[list,tuple] = ...) -> None:
-        super().setParameters(parameters, False)
+    # def setParameters(
+    #     self, 
+    #     parameters: Union[list,tuple] = ...) -> None:
+    #     super().setParameters(parameters, False)

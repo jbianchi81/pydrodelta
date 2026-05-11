@@ -1,7 +1,4 @@
-from pydrodelta.procedure_function import ProcedureFunctionResults
 from pydrodelta.validation import getSchemaAndValidate
-from pydrodelta.function_boundary import FunctionBoundary
-from pydrodelta.pydrology import LinearChannel
 from pydrodelta.procedures import GenericLinearChannelProcedure
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
@@ -19,6 +16,8 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedure):
     @property
     def coefficients(self):
         """Linear channel coefficients (k, n)"""
+        if isinstance(self.parameters, list):
+            return [self.parameters[0],self.parameters[1]]
         return [self.parameters["k"], self.parameters["n"]]
 
     @property

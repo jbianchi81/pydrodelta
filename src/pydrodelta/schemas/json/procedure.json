@@ -15,7 +15,7 @@
     },
     "type": {
       "type": "string",
-      "description": "The id or class name of the procedureFunction type. Either 'ProcedureFunction' or a derived type identifier"
+      "description": "The id or class name of the procedureFunction type. Either 'Procedure' or a derived type identifier"
     },
     "parameters": {
       "description": "list of function parameter values",
@@ -62,36 +62,48 @@
     "boundaries": {
       "oneOf": [
         {
+          "type": "array",
+          "maxItems": 0
+        },
+        {
           "description": "List of boundary conditions. Each item has a name <string> and a node_variable <NodeVariableIdTuple>",
           "type": "array",
           "items": {
             "$ref": "procedureboundary.json"
-          }
+          },
+          "minItems": 1
         },
         {
           "type": "array",
           "description": "list of lists of observations",
           "items": {
             "$ref": "observationlist.json"
-          }
+          },
+          "minItems": 1
         }
       ]
     },
     "outputs": {
       "oneOf": [
         {
+          "type": "array",
+          "maxItems": 0
+        },
+        {
           "description": "list of procedure outputs. Each item has a name <string> and a node_variable tuple <NodeVariableIdTuple>",
           "type": "array",
           "items": {
             "$ref": "procedureboundary.json"
-          }
+          },
+          "minItems": 1
         },
         {
           "type": "array",
           "description": "list of lists of observations",
           "items": {
             "$ref": "observationlist.json"
-          }
+          },
+          "minItems": 1
         }
       ]
     },

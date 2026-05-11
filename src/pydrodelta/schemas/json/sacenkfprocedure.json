@@ -1,19 +1,20 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sacenkfprocedurefunction.json",
-    "title": "SacEnKFProcedureFunction",
+    "$id": "sacenkfprocedure.json",
+    "title": "SacEnKFProcedure",
     "type": "object",
     "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation - ensemble with data assimilation",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         },
         {
             "properties": {
                 "type": {
                     "type": "string",
                     "enum": [
-                        "SacEnKF"
+                        "SacEnKF",
+                        "SacEnKFProcedure"
                     ]
                 },
                 "initial_states": {

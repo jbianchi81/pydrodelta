@@ -1,12 +1,12 @@
-from pandas import DataFrame
-from pandas import Series
+from pandas import DataFrame, Series
 from datetime import timedelta, datetime
 from sklearn.linear_model import LinearRegression
 import scipy.stats as stats
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import  ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, cast, Mapping, Any
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
@@ -16,6 +16,7 @@ from ..types.forecast_step_dict import ForecastStepDict
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
 from ..result_statistics import ResultStatistics
 from ..util import groupByCalibrationPeriod
+from ..types import ExecInput
 import json
 import logging
 
@@ -117,7 +118,7 @@ class ForecastStep():
 
 
 
-class LinearCombinationProcedureFunction(ProcedureFunction):
+class LinearCombinationProcedure(Procedure):
     """Multivariable linear combination procedure function - one linear combination for each forecast horizon. Being x [, y, ...] the boundary series, for each forecast time step t it returns intercept[t] + [ x[-l] * coefficients[t]boundaries['x'][l] for l in 1..lookback_steps ] and so on for additional boundaries and lookback steps."""
     
     _boundaries = [
@@ -177,12 +178,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     @property
     def error_band(self) -> Union[List[float],None]:
         """Error band half-widths for each step in the forecast horizon"""
-        if self._procedure is not None and self._procedure.calibration is not None and self._procedure.calibration.result is not None and "scores" in self._procedure.calibration.result and self._procedure.calibration.result["scores"] is not None:
+        if self.calibration is not None and self.calibration.result is not None and "scores" in self.calibration.result and self.calibration.result["scores"] is not None:
             error_band = []
-            for i, step in enumerate(self._procedure.calibration.result["scores"]):
+            for i, step in enumerate(self.calibration.result["scores"]):
                 rse = step["rse_val"] if step["rse_val"] is not None else step["rse"]
                 if rse is None:
-                    raise ValueError("rse not found for step %i of procedure %s" % (i, self._procedure.id))
+                    raise ValueError("rse not found for step %i of procedure %s" % (i, self.id))
                 error_band.append(self.Z * rse)
             return error_band
         else:
@@ -217,15 +218,13 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         if len(self.parameters["coefficients"]) > self.forecast_steps:
             raise Exception("length of coefficients exceeds forecast_steps")
         # set warmup_steps
-        if self._procedure is not None and self._procedure.calibration is not None and self._procedure.calibration.calibrate == True:
+        if self.calibration is not None and self.calibration.calibrate == True:
             pass
         else:
             for boundary in self.boundaries:
                 boundary.warmup_steps = self.lookback_steps
-        # for forecast_step in self.parameters["coefficients"]:
-        #     self._coefficients.append(ForecastStep(**forecast_step, procedure_function = self))
     
-    def run(
+    def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]] = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
@@ -240,27 +239,27 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         
         Raises:
             Exception : If data is missing in a boundary at a required timestep"""
-        if self._procedure is None:
-            raise RuntimeError("procedure not set")
         if isinstance(input, DataFrame):
             input = [input]
         elif input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         output = []
         error_band = self.error_band
         if self.coefficients is None:
             raise RuntimeError("Coefficients not set")
+        initial_forecast_date = self._plan.forecast_date if self._plan is not None else input[0].index[-1]
+        time_interval = self._plan.time_interval if self._plan is not None else input[0].index[-1] - input[0].index[-2]
         for t_index, forecast_step in enumerate(self.coefficients):
-            forecast_date = self._procedure._plan.forecast_date + (t_index + 1) * self._procedure._plan.time_interval
+            forecast_date = initial_forecast_date + (t_index + 1) * time_interval
             result = 1 * forecast_step.intercept
             for b_index, boundary in enumerate(forecast_step.boundaries):
                 for c_index, coefficient in enumerate(boundary.values):
-                    lookback_date = self._procedure._plan.forecast_date - c_index * self._procedure._plan.time_interval
+                    lookback_date = initial_forecast_date - c_index * time_interval
                     if lookback_date not in input[b_index].index:
-                        raise Exception("Procedure %s: missing index at %s for %s" % (str(self._procedure.id),str(lookback_date), boundary.name))
+                        raise Exception("Procedure %s: missing index at %s for %s" % (str(self.id),str(lookback_date), boundary.name))
                     if input[b_index].at[lookback_date,"valor"] is None:
-                        raise Exception("Procedure %s: missing value at %s for %s" % (str(self._procedure.id),str(lookback_date), boundary.name))
-                    result = result + coefficient * float(input[b_index].at[lookback_date,"valor"])
+                        raise Exception("Procedure %s: missing value at %s for %s" % (str(self.id),str(lookback_date), boundary.name))
+                    result = result + coefficient * float(cast(float,input[b_index].at[lookback_date,"valor"]))
             output.append({
                 "timestart": forecast_date,
                 "valor": result 
@@ -289,9 +288,9 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     
     def linearRegression(
         self,
-        input : List[DataFrame] = None,
-        calibration_period : Tuple[datetime, datetime] = None
-        ) -> List[dict]:
+        input : ExecInput = None,
+        calibration_period : Optional[Tuple[datetime, datetime]] = None
+        ) -> tuple[LinearCombinationParametersDict, DataFrame, List[ResultStatistics]]:
         """
         Fit linear regression coefficients
         
@@ -304,7 +303,9 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
         is_optional = [x.optional for x in self.boundaries]
         for b in self.boundaries:
             b.optional = True
-        input = input if input is not None else self._procedure.loadInput(inplace=False,pivot=False)
+        input = input if input is not None else self.loadInput(inplace=False,pivot=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         for i, b in enumerate(self.boundaries):
             b.optional = is_optional[i]
         results = DataFrame({
@@ -320,7 +321,7 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
             "nse_val": Series(dtype="float"),
             "rse_val": Series(dtype="float"),
         })
-        stats_all = []
+        stats_all : List[ResultStatistics] = []
         fitted_parameters : LinearCombinationParametersDict = {
             "forecast_steps": self.forecast_steps,
             "lookback_steps": self.lookback_steps,
@@ -388,10 +389,10 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     def getTrainingData(
         self,
         horiz : Union[int,timedelta] = 0,
-        input : List[DataFrame] = None,
+        input : Optional[List[DataFrame]] = None,
         dropna : bool = False,
-        calibration_period : Tuple[datetime,datetime] = None 
-        ) -> Tuple[DataFrame, DataFrame]:
+        calibration_period : Optional[Tuple[datetime,datetime]] = None 
+        ) -> Tuple[DataFrame, Optional[DataFrame]]:
         """
         Get training set for linear regression. input[0] is the target. One feature of the training set is generated for each input + lag (1 to self.lookback_steps) combination 
         
@@ -409,12 +410,12 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 First element: Training set of len(input) * self.lookback_steps columns
                 Second element: Validation set of len(input) * self.lookback_steps columns. None if calibration_period is not set or no validation data is found 
         """
-        input = input if input is not None else self._procedure.loadInput(inplace=False,pivot=False)
+        input = input if input is not None else self.loadInput(inplace=False,pivot=False)
         data = input[0][["valor"]].rename(columns={"valor": "target"})
         for i, feature in enumerate(input):
             for lag in range(1,self.lookback_steps+1):
                 feature_name = "input_%i_lag_%i" % (i, lag)
-                feature_ = feature[["valor"]].shift(horiz) if type(horiz) == int else feature[["valor"]].shift(freq=horiz)
+                feature_ = feature[["valor"]].shift(horiz) if isinstance(horiz, int) else feature[["valor"]].shift(freq=horiz)
                 feature_ = feature_.shift(lag)
                 data = data.join(feature_.rename(columns={"valor": feature_name}))
         if dropna:
@@ -428,12 +429,15 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
     
     def setParameters(
         self,
-        parameters : LinearCombinationParametersDict = None,
-        forecast_steps : int = None,
-        lookback_steps : int = None,
-        coefficients : List[ForecastStepDict] = None        
+        parameters : Union[List,Tuple,Mapping[str, Any]] = [], # Optional[LinearCombinationParametersDict]
+        reset : bool = False,
+        forecast_steps : Optional[int] = None,
+        lookback_steps : Optional[int] = None,
+        coefficients : Optional[List[ForecastStepDict]] = None        
     ) -> None:
         if parameters is not None:
+            if not isinstance(parameters, Mapping):
+                raise TypeError("parameters must be LinearCombinationParametersDict")
             self.parameters = parameters
         else:
             if forecast_steps is None:
@@ -446,8 +450,4 @@ class LinearCombinationProcedureFunction(ProcedureFunction):
                 "forecast_steps": forecast_steps,
                 "lookback_steps": lookback_steps,
                 "coefficients": coefficients
-            }            
-        
-
-
-
+            }

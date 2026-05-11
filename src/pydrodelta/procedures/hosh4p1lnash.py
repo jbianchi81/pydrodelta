@@ -1,9 +1,9 @@
-from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
+from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedure
 from pydrodelta.model_parameter import ModelParameter
 from numpy import inf
 from typing import Union
 
-class HOSH4P1LNashProcedureFunction(HOSH4P1LProcedureFunction):
+class HOSH4P1LNashProcedure(HOSH4P1LProcedure):
     """Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base).
     
     Routing with Nash cascade"""
@@ -41,7 +41,8 @@ class HOSH4P1LNashProcedureFunction(HOSH4P1LProcedureFunction):
 
     def setParameters(
         self, 
-        parameters : Union[list,tuple] = []
+        parameters : Union[list,tuple] = [],
+        reset : bool=False
         ) -> None:
         """Parameters setter
         

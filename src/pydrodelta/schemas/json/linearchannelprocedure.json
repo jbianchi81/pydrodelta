@@ -1,52 +1,36 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "linearnet3procedurefunction.json",
-    "title": "LinearNet3ProcedureFunction",
+    "$id": "linearchannelprocedure.json",
+    "title": "LinearChannelProcedure",
     "type": "object",
-    "description": "Nash linear net procedure function for 3 inputs and 1 output",
+    "description": "Nash linear channel procedure",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "LinearNet3"
+                "LinearChannel",
+                "LinearChannelProcedure"
             ]
         },
         "parameters": {
             "type": "object",
             "desciption": "Model parameters",
             "properties": {
-                "k_1": {
+                "k": {
                     "type": "number",
                     "description": "residence time"
                 },
-                "n_1": {
-                    "type": "number",
-                    "description": "number of reservoirs"
-                },
-                "k_2": {
-                    "type": "number",
-                    "description": "residence time"
-                },
-                "n_2": {
-                    "type": "number",
-                    "description": "number of reservoirs"
-                },
-                "k_3": {
-                    "type": "number",
-                    "description": "residence time"
-                },
-                "n_3": {
+                "n": {
                     "type": "number",
                     "description": "number of reservoirs"
                 }
             },
-            "required": ["k_1","n_1","k_2","n_2","k_3","n_3"],
-            "additionalProperties": false
+            "required": ["k","n"]
         },
         "extra_pars": {
             "type": "object",
@@ -66,14 +50,14 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "enum": ["input_1", "input_2", "input_3"]
+                                "enum": ["input"]
                             }
                         }
                     }
                 ]
             },
-            "minItems": 3,
-            "maxItems": 3
+            "minItems": 1,
+            "maxItems": 1
         },
         "outputs": {
             "type": "array",

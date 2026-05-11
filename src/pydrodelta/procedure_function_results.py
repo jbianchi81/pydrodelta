@@ -3,7 +3,7 @@ from pydrodelta.config import config
 from pandas import DataFrame
 import numpy as np
 import logging
-from typing import Optional, Union, List, TypedDict
+from typing import Optional, Union, List, TypedDict, Mapping, Any
 import os
 import json
 from .util import createParent, make_serializable
@@ -25,7 +25,7 @@ class ProcedureFunctionResults:
         border_conditions : Optional[Union[List[DataFrame],DataFrame]] = None,
         initial_states : Optional[Union[list,dict]] = None,
         states : Optional[Union[list,DataFrame]] = None,
-        parameters : Optional[Union[list,dict]] = None,
+        parameters : Optional[Union[list,Mapping[str, Any]]] = None,
         statistics : Optional[Union[list,dict]] = None,
         statistics_val : Optional[list] = None,
         data : Optional[DataFrame] = None,

@@ -1,4 +1,4 @@
-from ..procedure_function import ProcedureFunction
+from ..procedure import Procedure
 
-class AbstractProcedureFunction(ProcedureFunction):
+class AbstractProcedure(Procedure):
     """Abstract procedure function"""

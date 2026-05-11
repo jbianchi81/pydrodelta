@@ -1,30 +1,40 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "junctionprocedurefunction.json",
-    "title": "junctionProcedureFunction",
+    "$id": "genericfitprocedure.json",
+    "title": "GenericFitProcedure",
     "type": "object",
-    "description": "Junction addition. Adds input variables into the output.",
+    "description": "Abstract class to create regression procedures",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
-        "type": {
-            "type": "string",
-            "enum": [
-                "Junction",
-                "Difference"
-            ]
-        },
         "extra_pars": {
             "type": "object",
             "properties": {
-                "truncate_negative": {
+                "warmup_steps": {
+                    "type": "integer",
+                    "description": "Skip this number of initial steps from the fit procedure",
+                    "default": 0
+                },
+                "tail_steps": {
+                    "type": "integer",
+                    "description": "Use only this number of final steps for the fit procedure",
+                    "default": 0
+                },
+                "use_forecast_range": {
                     "type": "boolean",
-                    "description": "Option to replace negative values with zero"
+                    "description": "Fit using only pairs where sim is within forecasted range of values",
+                    "default": false
+                },
+                "drop_warmup": {
+                    "type": "boolean",
+                    "description": "Eliminate warmup steps from output",
+                    "default": false
                 }
-            }
+            },
+            "description": "Additional parameters"
         },
         "boundaries": {
             "type": "array",
@@ -42,7 +52,7 @@
                     }
                 ]
             },
-            "minItems": 2
+            "minItems": 1
         },
         "outputs": {
             "type": "array",
@@ -62,8 +72,5 @@
             "minItems": 1,
             "maxItems": 1
         }
-    },
-    "required": [
-        "type"
-    ]
+    }
 }

@@ -1,18 +1,21 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "hidrosatprocedurefunction.json",
-    "title": "HIDROSATProcedureFunction",
+    "$id": "hidrosatprocedure.json",
+    "title": "HIDROSATProcedure",
     "type": "object",
     "description": "HIDROSAT",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["HIDROSAT"]
+            "enum": [
+                "HIDROSAT",
+                "HIDROSATProcedure"
+            ]
         },
         "initial_states": {
             "type": "array",

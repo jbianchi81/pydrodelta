@@ -1,12 +1,14 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from pandas import DataFrame
+from ..types import ExecInput
 
-class JunctionProcedureFunction(ProcedureFunction):
-    """Procedure function that represents the addition of two or more inputs"""
+class JunctionProcedure(Procedure):
+    """Procedure that represents the addition of two or more inputs"""
     
     _boundaries = [
         FunctionBoundary({"name": "input_1"}),
@@ -44,9 +46,9 @@ class JunctionProcedureFunction(ProcedureFunction):
         super().__init__(extra_pars = extra_pars, **kwargs)
         getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")
 
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
+        input : ExecInput = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the procedure
         
@@ -58,12 +60,15 @@ class JunctionProcedureFunction(ProcedureFunction):
         Returns:
         --------
         Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
+        if isinstance(input, DataFrame):
+            input = [input]
         return self.runJunction(input=input,substract=False)
+    
     def runJunction(
         self,
-        input : List[DataFrame] = None,
-        substract : bool = False,
-        truncate_negative : bool = None
+        input : Optional[List[DataFrame]] = None,
+        substract : Optional[bool] = False,
+        truncate_negative : Optional[bool] = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run junction procedure
 
@@ -78,7 +83,7 @@ class JunctionProcedureFunction(ProcedureFunction):
         truncate_negative = truncate_negative if truncate_negative is not None else self.truncate_negative
         sign = -1 if substract else 1
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         output = input[0][["valor"]].rename(columns={"valor": "valor_1"})
         output["valor"] = output["valor_1"]
         for i, serie in enumerate(input):
@@ -90,7 +95,7 @@ class JunctionProcedureFunction(ProcedureFunction):
             if truncate_negative:
                 output["valor"] = output.apply(lambda row: max(0,row['valor']) if not np.isnan(row['valor']) else None, axis=1)
         # results_data = output.join(output_obs[["valor_1"]].rename(columns={"valor_1":"valor_obs"}),how="outer")
-        output_obs = self._procedure.loadOutputObs(False)
+        output_obs = self.loadOutputObs(False)
         output = output.join(output_obs[0][["valor"]].rename(columns={"valor":"output_obs"}))
         return (
             [output[["valor"]]], 

@@ -1,12 +1,12 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "analogyprocedurefunction.json",
-    "title": "AnalogyProcedureFunction",
+    "$id": "analogyprocedure.json",
+    "title": "AnalogyProcedure",
     "type": "object",
-    "description": "Procedure function that finds analogs in the history of the timeseries",
+    "description": "Procedure that finds analogs in the history of the timeseries",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {

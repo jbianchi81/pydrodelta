@@ -1,60 +1,53 @@
 {
-    "schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "muskingumchannelprocedurefunction.json",
-    "title": "MuskingumChannelProcedureFunction",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "polynomialtransformationprocedure.json",
+    "title": "PolynomialTransformationProcedure",
     "type": "object",
-    "description": "Método de tránsito hidrológico de la Oficina del río Muskingum. Dos parámetros: Tiempo de Tránsito (K) y Factor de forma (X) [Proc='Muskingum'] o . Condiciones Iniciales (initial_states): matriz de condiciones iniciales o valor escalar constante. Condiciones de borde: Hidrograma en nodo superior de tramo.",
+    "description": "Polynomial transformation procedure. Being x the input values, it returns intercept + x**1 * coefficient[0] [ + x**2 * coefficient[1] ] and so on for additional coefficients.",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "MuskingumChannel"
+                "Polynomial",
+                "PolynomialProcedure"
             ]
         },
         "parameters": {
             "type": "object",
-            "description": "Parámetros: Tiempo de Tránsito (K) y Factor de forma (X)",
+            "description": "Model parameters",
             "properties": {
-                "K": {
-                    "type": "number",
-                    "description": "Tiempo de tránsito"
+                "coefficients": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    },
+                    "description": "ordered coefficients starting from the linear (mandatory), then the cuadratic, and so on",
+                    "minItems": 1
                 },
-                "X": {
+                "intercept": {
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 0.5,
-                    "description": "Factor de forma. 0 <= X <= 0.5"
+                    "description": "intercept of the linear transformation. Defaults to 0"
                 }        
             },
-            "required": ["K","X"],
+            "required": ["coefficients"],
             "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
+            "description": "additional parameters",
             "properties": {
-                "Proc": {
-                    "type": "string",
-                    "description": "variante del método",
-                    "enum": [
-                        "Muskingum"
-                    ]
+                "allow_na": {
+                    "type": "boolean",
+                    "description": "allow for null values in input",
+                    "default": false
                 }
-            }
-        },
-        "initial_states": {
-            "anyOf": [
-                {
-                    "type": "array"
-                },
-                {
-                    "type": "number"
-                }
-            ]
+            },
+            "additionalProperties": false
         },
         "boundaries": {
             "type": "array",
@@ -94,6 +87,7 @@
         }
     },
     "required": [
+        "type",
         "parameters"
     ]
 }

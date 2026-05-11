@@ -1,42 +1,34 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "linearchannelprocedurefunction.json",
-    "title": "LinearChannelProcedureFunction",
+    "$id": "expressionprocedure.json",
+    "title": "ExpressionProcedure",
     "type": "object",
-    "description": "Nash linear channel procedure function",
+    "description": "Expression procedure. It evaluates each the given python expression replacing 'value' placeholder for the given input value. ",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "LinearChannel"
+                "Expression",
+                "ExpressionProcedure"
             ]
         },
-        "parameters": {
-            "type": "object",
-            "desciption": "Model parameters",
-            "properties": {
-                "k": {
-                    "type": "number",
-                    "description": "residence time"
-                },
-                "n": {
-                    "type": "number",
-                    "description": "number of reservoirs"
-                }
-            },
-            "required": ["k","n"]
+        "expression": {
+            "type": "string",
+            "description": "python expression. Each occurence of 'value' will be replaced with the given input value"
         },
         "extra_pars": {
             "type": "object",
+            "description": "additional parameters",
             "properties": {
-                "dt": {
-                    "type": "number",
-                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
+                "allow_na": {
+                    "type": "boolean",
+                    "description": "Allow for null values in input",
+                    "default": false
                 }
             }
         },
@@ -79,6 +71,6 @@
     },
     "required": [
         "type",
-        "parameters"
+        "expression"
     ]
 }

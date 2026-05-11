@@ -1,6 +1,6 @@
 class FunctionBoundary():
     """
-    A boundary condition definition for a procedure function class
+    A boundary condition definition for a procedure
     """
     def __init__(self,params):
         self.name = params["name"]

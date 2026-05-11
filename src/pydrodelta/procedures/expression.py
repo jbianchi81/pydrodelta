@@ -1,9 +1,12 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
+from typing import Union, List, Optional
+from pandas import DataFrame
 import math
 
-class ExpressionProcedureFunction(ProcedureFunction):
+class ExpressionProcedure(Procedure):
     """Procedure function that evaluates an arbitrary expression where 'value' is replaced with the values of input"""
     _boundaries = [
         FunctionBoundary({"name": "input"})
@@ -58,12 +61,12 @@ class ExpressionProcedureFunction(ProcedureFunction):
             return None
         result = eval(self.expression)
         return result
-    def run(
+    def exec(
         self,
-        input : list = None
+        input : Optional[Union[List[DataFrame], DataFrame]] = None
         ) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
         
         Parameters:
@@ -76,8 +79,10 @@ class ExpressionProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         output  = []
+        if isinstance(input, DataFrame):
+            input = [input]
         for in_df in input:
             out_df = in_df.copy()
             if hasattr(out_df, "map"):

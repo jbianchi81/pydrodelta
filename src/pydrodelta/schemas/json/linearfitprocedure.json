@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "linearfitprocedure.json",
+    "title": "LinearFitProcedure",
+    "type": "object",
+    "description": "Procedure that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output",
+    "allOf": [
+        {
+            "$ref": "genericfitprocedure.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "LinearFit",
+                "LinearFitProcedure"
+            ]
+        }
+    },
+    "required": [
+        "type"
+    ]
+}

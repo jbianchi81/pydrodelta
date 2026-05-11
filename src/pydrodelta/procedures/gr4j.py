@@ -1,41 +1,53 @@
 import numpy as np
 from pandas import DataFrame
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 import logging
 
-from ..procedure_function import ProcedureFunctionResults
-from ..procedures.pq import PQProcedureFunction
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedures.pq import PQProcedure
 from ..pydrology import GR4J
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
 from numpy import inf
 
-class GR4JProcedureFunction(PQProcedureFunction):
+class GR4JProcedure(PQProcedure):
     """Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo almacenamiento en reservorio de propagación, coeficiente de intercambio."""
 
     @property
     def X0(self) -> float:
         """capacite du reservoir de production (mm)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return self.parameters["X0"]
     @property
     def X1(self) -> float:
         """capacite du reservoir de routage (mm)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return self.parameters["X1"]
     @property
     def X2(self) -> float:
         """facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[2]
         return self.parameters["X2"]
     @property
     def X3(self) -> float:
         """temps de base de l'hydrogramme unitaire (d)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[3]
         return self.parameters["X3"]
     @property
     def Sk_init(self) -> float:
         """Initial soil storage"""
+        if isinstance(self.initial_states, list):
+            return self.initial_states[0]
         return self.initial_states["Sk"] if "Sk" in self.initial_states else 0
     @property
     def Rk_init(self) -> float:
         """Initial routing storage"""
+        if isinstance(self.initial_states, list):
+            return self.initial_states[1]
         return self.initial_states["Rk"] if "Rk" in self.initial_states else 0
     @property
     def dt(self) -> float:
@@ -70,6 +82,8 @@ class GR4JProcedureFunction(PQProcedureFunction):
     @property
     def engine(self) -> GR4J:
         """Reference to instance of GR4J procedure engine"""
+        if self._engine is None:
+            raise RuntimeError("engine not set")
         return self._engine
 
     _required_extra_pars : list = ["area", "ae", "rho", "wp"]
@@ -79,8 +93,8 @@ class GR4JProcedureFunction(PQProcedureFunction):
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
-        initial_states : Union[list,tuple,dict] = None,
-        extra_pars : dict = None,
+        initial_states : Optional[Union[list,tuple,dict]] = None,
+        extra_pars : dict = dict(),
         **kwargs
         ):
         """
@@ -123,10 +137,10 @@ class GR4JProcedureFunction(PQProcedureFunction):
             **kwargs)
         self._engine = None
     
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
-        ) -> Tuple[list, dict]:
+        input : Optional[Union[List[DataFrame],DataFrame]] = None
+        ) -> Tuple[List[DataFrame], ProcedureFunctionResults]:
         """
         Runs the procedure function.
         
@@ -145,7 +159,9 @@ class GR4JProcedureFunction(PQProcedureFunction):
             Devuelve una lista de DataFrames (uno por output del procedimiento) y opcionalmente un objeto ProcedureFunctionResults
         """
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         self.setEngine([ list(input[0].valor), list(input[1].valor) ]) #modificados a lista (se cambió adaptor para evitar crash en Pydrology 20240607)
         self.engine.executeRun()
         q = [x / 1000 / 24 / 60 / 60 / self.dt * self.area * self.ae for x in self.engine.Q][0:len(input[0].index)]
@@ -196,7 +212,8 @@ class GR4JProcedureFunction(PQProcedureFunction):
     
     def setParameters(
         self,
-        parameters : Union[list, tuple] = []
+        parameters : Union[list, tuple] = [],
+        reset : bool = False
         ) -> None:
         """Set parameters from ordered list
         

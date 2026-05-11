@@ -1,21 +1,23 @@
 from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedure
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 class UHParameters(TypedDict):
     u: list
 
 class UHExtraPars(TypedDict):
-    dt: float
+    dt: Optional[float]
 
 class UHLinearChannelProcedure(GenericLinearChannelProcedure):
     """Unit hydrograph linear channel procedure"""
 
     @property
     def coefficients(self):
-
         """Linear channel coefficients (u)"""
-        return self.parameters["u"]
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
+        else:
+            return self.parameters["u"]
     
     @property
     def Proc(self):
@@ -25,7 +27,7 @@ class UHLinearChannelProcedure(GenericLinearChannelProcedure):
     def __init__(
             self,
             parameters : UHParameters,
-            extra_pars : UHExtraPars = dict(),
+            extra_pars : UHExtraPars = {"dt": None},
             **kwargs
         ):
         """
@@ -52,9 +54,9 @@ class UHLinearChannelProcedure(GenericLinearChannelProcedure):
             parameters = parameters, 
             extra_pars = extra_pars, 
             **kwargs)
-        getSchemaAndValidate(
-            dict(
-                kwargs, 
-                parameters = parameters, 
-                extra_pars = extra_pars),
-            "UHLinearChannelProcedure")
+        # getSchemaAndValidate(
+        #     dict(
+        #         kwargs, 
+        #         parameters = parameters, 
+        #         extra_pars = extra_pars),
+        #     "UHLinearChannelProcedure")

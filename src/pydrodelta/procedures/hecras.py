@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 # from pydrodelta.validation import getSchema, validate
-from pydrodelta.procedure_function import ProcedureFunction, ProcedureFunctionResults
+from pydrodelta.procedure import Procedure
+from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pathlib import Path
 # import jsonschema
 import yaml
@@ -34,7 +35,7 @@ class ModelConfig():
         self.plan_file = params["plan_file"]
         self.unsteady_file = params["unsteady_file"]
 
-class HecRasProcedureFunction(ProcedureFunction):
+class HecRasProcedure(Procedure):
     def __init__(self,params,procedure):
         super().__init__(params,procedure)
         # jsonschema.validate(
@@ -104,7 +105,7 @@ class HecRasProcedureFunction(ProcedureFunction):
         # df_SeccSalidas = pd.read_csv(self.workspace+'2_Lista_Salidas.csv',sep=',')
         # df_SeccSalidas['River_Stat'] = df_SeccSalidas['River_Stat'].astype(int)
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=True)
+            input = self.loadInput(inplace=False,pivot=True)
         
         # df_base = pd.DataFrame()
         for boundary in self._procedure.boundaries: #df_ListaCB.iterrows():

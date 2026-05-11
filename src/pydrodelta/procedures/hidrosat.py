@@ -2,57 +2,76 @@ import logging
 import numpy as np
 from pandas import DataFrame, Series, concat
 from typing import Union, List, Tuple
-from ..procedure_function import ProcedureFunctionResults
-from ..procedures.pq import PQProcedureFunction
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedures.pq import PQProcedure
 from ..pydrology import HIDROSAT, HIDROSATPowerLawReservoir, RetentionReservoir, LinearReservoirCascade
 from ..model_state import ModelState
+from ..types import ExecInput
 
-class HIDROSATProcedureFunction(PQProcedureFunction):
+class HIDROSATProcedure(PQProcedure):
     """Modelo PQ HIDROSAT para macrosistemas de llanura húmeda"""
 
     @property
     def S0(self) -> float:
         """Almacenamiento máximo en reservorio de retención (Agua de Tensión en perfil de suelo) / Maximum Retention Capacity [mm]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return self.parameters["S0"]
     
     @property
     def K(self) -> float:
         """Tiempo de residencia (propagación escorrentía de interfluvios a flujo encauzado en valle) / Residence Time delayed runoff - Discrete Linear Reservoir Cascade Approach - [days]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return self.parameters["K"]
     
     @property
     def N(self) -> float:
         """Número de reservorios en serie (propagación escorrentía de interfluvios a flujo encauzado en valle) / Number of Reservoirs - Discrete Linear Reservoir Cascade Approach - [1]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[2]
         return self.parameters["N"]
     
     @property
     def W0(self) -> float:
         """Almacenamiento Máximo en reservorio de Detención (valle) / Maximum Detention Capacity [mm]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[3]
         return self.parameters["W0"]
     
     @property
     def Q0(self) -> float:
         """Caudal Máximo (flujo encauzado en valle) / Maximum Discharge [mm]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[4]
         return self.parameters["Q0"]
     
     @property
     def gamma(self) -> float:
         """Factor de forma. Ley de Potencia reservorio de Detención / shape factor power law reservoir [-]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[5]
         return self.parameters["gamma"]
     
     @property
     def maxFlooded(self) -> float:
         """Área anegada máxima (fracción del sistema) / maximum flooded area [-]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[6] if len(self.parameters)  >= 7 else 1
         return self.parameters["maxFlooded"] if "maxFlooded" in self.parameters else 1
     
     @property
     def detentionRatio(self) -> float:
         """Coeficiente de prorateo entre aporte directo y aporte demorado en red de drenaje  / diversion ratio direct rainfall (detention/drainfall) [-]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[7] if len(self.parameters)  >= 8 else 1
         return self.parameters["detentionRatio"] if "detentionRatio" in self.parameters else 1
     
     @property
     def epsilon(self) -> float:
         """Valor umbral de tolerancia error en Newton-Raphson / Tolerance threshold Newton-Raphson [mm]"""
+        if isinstance(self.parameters, list):
+            return self.parameters[8] if len(self.parameters)  >= 9 else 0.0001
         return self.parameters["epsilon"] if "epsilon" in self.parameters else 0.0001
     
     @property
@@ -63,22 +82,30 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
     @property
     def soilStorage(self) -> float:
         """Almacenamiento inicial en reservorio de retención / Initial tension water storage [mm]"""
-        return self.initial_states[0] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["soilStorage"] if isinstance(self.initial_states,dict) and "soilStorage" in self.initial_states  else [0]
+        if isinstance(self.initial_states, (tuple,list)):
+            return self.initial_states[0] if len(self.parameters)  > 1 else 0
+        return self.initial_states["soilStorage"] if "soilStorage" in self.initial_states  else 0
     
     @property
     def Runoff(self) -> float:
         """Escorrentía inicial / Initial Runoff [mm]"""
-        return self.initial_states[1] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["Runoff"] if isinstance(self.initial_states,dict) and "Runoff" in self.initial_states  else [0]
+        if isinstance(self.initial_states, (tuple,list)):
+            return self.initial_states[1] if len(self.parameters)  > 1 else 0
+        return self.initial_states["Runoff"] if "Runoff" in self.initial_states  else 0
     
     @property
     def floodPlainStorage(self) -> float:
         """Almacenamiento inicial en reservorio de detención / Initial floodplain Storage [mm]"""
-        return self.initial_states[1] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["floodPlainStorage"] if isinstance(self.initial_states,dict) and "floodPlainStorage" in self.initial_states  else [0]
+        if isinstance(self.initial_states, (tuple,list)):
+            return self.initial_states[1] if len(self.parameters)  > 1 else 0
+        return self.initial_states["floodPlainStorage"] if "floodPlainStorage" in self.initial_states  else 0
     
     @property
     def Flooded(self) -> float:
         """Extensión inicial de anegamiento  / Initial flooded area [mm]"""
-        return self.initial_states[1] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["Flooded"] if isinstance(self.initial_states,dict) and "Flooded" in self.initial_states  else [0]
+        if isinstance(self.initial_states, (tuple,list)):
+            return self.initial_states[1] if len(self.parameters)  > 1 else 0
+        return self.initial_states["Flooded"] if "Flooded" in self.initial_states  else 0
     
     @property
     def engine(self) -> HIDROSAT:
@@ -105,7 +132,7 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
-        extra_pars : Union[list,tuple,dict],
+        extra_pars : dict,
         initial_states : Union[list,tuple,dict],
         **kwargs):
         """
@@ -131,9 +158,9 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
             initial_states = initial_states,
             **kwargs)
         
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
+        input : ExecInput = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -145,7 +172,9 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
         Returns:
         Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         pma = list(input[0].valor) 
         etp = list(input[1].valor)
         if len(etp) < len(pma):
@@ -208,7 +237,7 @@ class HIDROSATProcedureFunction(PQProcedureFunction):
         ev = self.engine.EVSoil.sum() + self.engine.EVFloodPlain.sum()
         i_o = p - ev - q
 
-        (s_f - s_i) * 0.1, i_o * 0.1
+        # (s_f - s_i) * 0.1, i_o * 0.1
         r = {
             "p": p,
             "ev": ev,

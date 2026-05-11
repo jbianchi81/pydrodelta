@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "exponentialfitprocedure.json",
+    "title": "ExponentialFitProcedure",
+    "type": "object",
+    "description": "Procedure that fits an exponential function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output",
+    "allOf": [
+        {
+            "$ref": "genericfitprocedure.json"
+        }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "ExponentialFit",
+                "ExponentialFitProcedure"
+            ]
+        }
+    }
+}

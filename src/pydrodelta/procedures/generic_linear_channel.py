@@ -1,5 +1,5 @@
 from ..procedure import Procedure
-from ..procedure_function import ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
 from ..function_boundary import FunctionBoundary
 from ..pydrology import LinearChannel
 from ..descriptors.int_descriptor import IntDescriptor 
@@ -32,7 +32,7 @@ class GenericLinearChannelProcedure(Procedure):
         return []
 
     @property
-    def Proc(self):
+    def Proc(self) -> Optional[str]:
         """Linear channel procedure"""
         return None
 

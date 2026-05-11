@@ -1,49 +1,99 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sacramentosimplifiedprocedurefunction.json",
-    "title": "SacramentoSimplifiedProcedureFunction",
+    "$id": "sacramentosimplifiedfixedparsprocedure.json",
+    "title": "SacramentoSimplifiedFixedParsProcedure",
     "type": "object",
-    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation",
+    "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation with fixed soil parameters",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
-        },
-        {
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "SacramentoSimplified"
-                    ]
-                },
-                "initial_states": {
-                    "type": "array",
-                    "description": "Initial storages: [x1,x2,x3,x4]",
-                    "minItems": 4,
-                    "maxItems": 4,
-                    "items": {
-                        "type": "number"
-                    }
-                },
-                "parameters": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
-                },
-                "extra_pars": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
-                }
-            },
-            "required": [
-                "type",
-                "parameters",
-                "extra_pars",
-                "initial_states"
-            ]
+            "$ref": "procedure.json"
         }
+    ],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "SacramentoSimplifiedFixedPars",
+                "SacramentoSimplifiedFixedParsProcedure"
+            ]
+        },
+        "initial_states": {
+            "type": "array",
+            "description": "Initial storages: [x1,x2,x3,x4]",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+                "type": "number"
+            }
+        },
+        "parameters": {
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/Parameters"
+        },
+        "fixed_parameters": {
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/FixedParameters"
+        },
+        "extra_pars": {
+            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/ExtraPars"
+        }
+    },
+    "required": [
+        "type",
+        "parameters",
+        "extra_pars",
+        "initial_states"
     ],
     "$defs": {
         "Parameters": {
             "type": "object",
             "description": "Model parameters object",
+            "properties": {
+                "x1_0": {
+                    "type": "number",
+                    "description": "top soil layer storage capacity [L]"
+                },
+                "x2_0": {
+                    "type": "number",
+                    "description": "bottom soil layer storage capacity [L]"
+                },
+                "m1": {
+                    "type": "number",
+                    "description": "runoff function exponent [-]"
+                },
+                "c1": {
+                    "type": "number",
+                    "description": "interflow function coefficient [1/T]"
+                },
+                "c2": {
+                    "type": "number",
+                    "description": "percolation function coefficient [-]"
+                },                                
+                "c3": {
+                    "type": "number",
+                    "description": "base flow recession rate [1/T]"
+                },
+                "mu": {
+                    "type": "number",
+                    "description": "base flow/deep percolation partition parameter [-]"
+                },
+                "alfa": {
+                    "type": "number",
+                    "description": "linear reservoir coefficient [1/T]"
+                },
+                "m2": {
+                    "type": "number",
+                    "description": "percolation function exponent [-]"
+                },
+                "m3": {
+                    "type": "number",
+                    "description": "evapotranspiration function exponent [-]"
+                }     
+            },
+            "required": ["x1_0","x2_0","m1","c1","c2","c3","mu","alfa","m2","m3"],
+            "additionalProperties": false
+        },
+        "FixedParameters": {
+            "type": "object",
+            "description": "Overrides parameters. The parameters declared here will skip calibration.",
             "properties": {
                 "x1_0": {
                     "type": "number",
@@ -86,18 +136,6 @@
                     "description": "evapotranspiration function exponent [-]"
                 }
             },
-            "required": [
-                "x1_0",
-                "x2_0",
-                "m1",
-                "c1",
-                "c2",
-                "c3",
-                "mu",
-                "alfa",
-                "m2",
-                "m3"
-            ],
             "additionalProperties": false
         },
         "ExtraPars": {
@@ -109,7 +147,7 @@
                 "dt": {
                     "$ref": "timeinterval.json"
                 },
-                "rho": {
+                "rho":  {
                     "type": "number",
                     "description": "soil porosity (0-1)"
                 },
@@ -119,7 +157,7 @@
                 },
                 "ae": {
                     "type": "number",
-                    "description": "effective area   (00-1)"
+                    "description": "effective area (0-1)"
                 },
                 "wp": {
                     "type": "number",
@@ -182,12 +220,7 @@
                     "description": "bankfull discharge"
                 }
             },
-            "required": [
-                "CN2",
-                "hp1dia",
-                "hp2dias",
-                "Qbanca"
-            ],
+            "required": ["CN2", "hp1dia", "hp2dias", "Qbanca"],
             "additionalProperties": false
         }
     }

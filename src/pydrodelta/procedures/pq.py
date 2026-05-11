@@ -1,10 +1,10 @@
-from ..procedure_function import ProcedureFunction
+from ..procedure import Procedure
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 
 import logging
 
-class PQProcedureFunction(ProcedureFunction):
+class PQProcedure(Procedure):
     _boundaries = [
         FunctionBoundary({"name": "pma"}),
         FunctionBoundary({"name": "etp"}),

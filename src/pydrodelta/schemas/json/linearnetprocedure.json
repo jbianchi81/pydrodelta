@@ -1,19 +1,20 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "linearnetprocedurefunction.json",
-    "title": "LinearNetProcedureFunction",
+    "$id": "linearnetprocedure.json",
+    "title": "LinearNetProcedure",
     "type": "object",
-    "description": "Nash linear net procedure function for 2 or more inputs and 1 output",
+    "description": "Nash linear net procedure for 2 or more inputs and 1 output",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "LinearNet"
+                "LinearNet",
+                "LinearNetProcedure"
             ]
         },
         "parameters": {

@@ -1,12 +1,12 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "pqprocedurefunction.json",
-    "title": "PQProcedureFunction",
+    "$id": "pqprocedure.json",
+    "title": "PQProcedure",
     "type": "object",
-    "description": "Generic class for precipitation - discharge procedure function. Default order of boundaries is: precipitation, potential evapotranspiration, dicharge, soil moisture. Properties for parameters and initial conditions are not set here thus should be set in derived classes",
+    "description": "Generic class for precipitation - discharge procedure. Default order of boundaries is: precipitation, potential evapotranspiration, dicharge, soil moisture. Properties for parameters and initial conditions are not set here thus should be set in derived classes",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         },
         {
             "properties": {
@@ -14,15 +14,15 @@
                     "type": "string",
                     "enum": [
                         "PQ",
-                        "PQProcedureFunction",
+                        "PQProcedure",
                         "GRP",
-                        "GRPProcedureFunction",
+                        "GRPProcedure",
                         "GR4J",
                         "GR4J_",
-                        "GR4JProcedureFunction",
+                        "GR4JProcedure",
                         "SacramentoSimplified",
-                        "SacramentoSimplifiedProcedureFunction",
-                        "SacEnKGProcedureFunction",
+                        "SacramentoSimplifiedProcedure",
+                        "SacEnKGProcedure",
                         "SacEnKF",
                         "HOSH4P1L",
                         "HOSH4P2L",

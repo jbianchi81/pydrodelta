@@ -411,7 +411,7 @@ class ProcedureFunction:
     def pivotInputOutput(
             self, 
             input : List[DataFrame], 
-            output : List[DataFrame] = [], 
+            output : List[Union[DataFrame, List[float]]] = [], 
             other : Optional[dict] = None) -> DataFrame:
         if not len(input):
             raise ValueError("input must be of length 1 or greater")
@@ -423,10 +423,11 @@ class ProcedureFunction:
         for i in range(0,len(self._outputs)):
             if self._outputs[i].optional and len(output) < i + 1:
                 continue
-            if type(output[i]) == DataFrame:
-                result = result.join(output[i][["valor"]].rename(columns={"valor": self._outputs[i].name}))
+            o = output[i]
+            if isinstance(o, DataFrame):
+                result = result.join(o[["valor"]].rename(columns={"valor": self._outputs[i].name}))
             else:
-                result[self._outputs[i].name] = output[i]
+                result[self._outputs[i].name] = o
         if other is not None:
             # must be a a dict where key is the column name and value is the list of values
             for name, values in other.items():

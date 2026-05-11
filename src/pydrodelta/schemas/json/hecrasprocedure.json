@@ -1,11 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "hecrasprocedurefunction.json",
-    "title": "HecRasProcedureFunction",
+    "$id": "hecrasprocedure.json",
+    "title": "HecRasProcedure",
     "type": "object",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {

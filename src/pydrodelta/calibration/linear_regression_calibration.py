@@ -137,8 +137,8 @@ class LinearRegressionCalibration(Calibration):
             )
         # self.runReturnScore(parameters=fitted_parameters, objective_function=self.objective_function)
         self.scores = results
-        self._procedure.function.setParameters(fitted_parameters)
-        self._procedure.run()
+        self._procedure.setParameters(fitted_parameters)
+        self._procedure.exec()
         if inplace:
             self._calibration_result = (fitted_parameters,results["rmse"][0])
         else:

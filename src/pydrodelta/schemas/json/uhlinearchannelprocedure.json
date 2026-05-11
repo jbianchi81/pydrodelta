@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "uhlinearchannelprocedurefunction.json",
-    "title": "UHLinearChannelProcedureFunction",
+    "$id": "uhlinearchannelprocedure.json",
+    "title": "UHLinearChannelProcedure",
     "type": "object",
     "description": "Unit Hydrograph linear channel procedure function",
     "allOf": [

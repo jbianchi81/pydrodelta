@@ -124,7 +124,12 @@ def integrate(lista_valores : Union[List[float],NDArray[np.float64]], dt : float
         integral=integral+(lista_valores[i]+lista_valores[i-1])*dt/2
     return(integral)
 
-def triangularDistribution(pars : Union[List[float],float],distribution : str ='Symmetric',dt : float =0.01,shift : bool =True,approx: bool=True) -> NDArray[np.float64]:
+def triangularDistribution(
+        pars : Union[List[float],float],
+        distribution : str ='Symmetric',
+        dt : float =0.01,
+        shift : bool =True,
+        approx: bool=True) -> NDArray[np.float64]:
     """Computa Hidrogramas Unitarios Triangulares (función respuesta a pulso unitario, función de transferencia) 
     
     Args:

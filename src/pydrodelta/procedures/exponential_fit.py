@@ -1,6 +1,6 @@
-from .linear_fit import LinearFitProcedureFunction
+from .linear_fit import LinearFitProcedure
 
-class ExponentialFitProcedureFunction(LinearFitProcedureFunction):
+class ExponentialFitProcedureFunction(LinearFitProcedure):
     """Procedure function that fits an exponential function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
 
     def __init__(

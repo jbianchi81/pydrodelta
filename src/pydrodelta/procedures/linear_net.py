@@ -1,4 +1,5 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
 from ..pydrology import LinearNet
 from ..descriptors.int_descriptor import IntDescriptor 
@@ -36,7 +37,7 @@ class ParamsDict(TypedDict):
     k_10 : NotRequired[Optional[float]]
     n_10 : NotRequired[Optional[float]]
 
-class LinearNetProcedureFunction(ProcedureFunction):
+class LinearNetProcedure(Procedure):
     """
     LinearNet procedure function with any number of input nodes. See ..pydrology.LinearNet
     """
@@ -127,12 +128,12 @@ class LinearNetProcedureFunction(ProcedureFunction):
         super().__init__(parameters=parameters, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
  
-    def run(
+    def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]] = None
         ) -> tuple:
         """
-        Ejecuta la función. Si input es None, ejecuta self._procedure.loadInput para generar el input. input debe ser una lista de objetos SeriesData
+        Ejecuta la función. Si input es None, ejecuta self.loadInput para generar el input. input debe ser una lista de objetos SeriesData
         Devuelve una lista de objetos SeriesData y opcionalmente un objeto ProcedureFunctionResults
 
         Parameters:
@@ -145,9 +146,7 @@ class LinearNetProcedureFunction(ProcedureFunction):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object
         """
         if input is None:
-            if self._procedure is None:
-                raise RuntimeError("procedure not set")
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         elif isinstance(input,DataFrame):
             input = [input]
         data = None
@@ -156,7 +155,7 @@ class LinearNetProcedureFunction(ProcedureFunction):
         for i in range(len(input)):
             data = input[i][["valor"]].astype(float).rename(columns={"valor":"input"}) if data is None else data.join(input[i][["valor"]].astype(float).rename(columns={"valor":"input"}))
             if not len(data.dropna().index):
-                raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self._procedure.id if self._procedure is not None else "unknown", i))
+                raise Exception("Procedure %s: Missing input data: no valid values found at boundary %i" % (self.id, i))
             last_date = max(data.dropna().index)
             if True in np.isnan(data[data.index <= last_date]["input"].values):
                 raise Exception("NaN values found in input before last date %s" % last_date.isoformat())

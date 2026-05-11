@@ -1,17 +1,15 @@
 import logging
-# from numpy import tanh
-# from typing import Optional
-# from pydrodelta.series_data import SeriesData
 import numpy as np
-from pandas import DataFrame, Series, concat
-from typing import Union, List, Tuple
+from pandas import DataFrame
+from typing import Union, List, Tuple, Optional
 
-from ..procedure_function import ProcedureFunctionResults
-from ..procedures.pq import PQProcedureFunction
+from ..procedure_function_results import ProcedureFunctionResults
+from ..procedures.pq import PQProcedure
 from ..pydrology import HOSH4P1L, triangularDistribution
 from ..model_state import ModelState
+from ..types import ExecInput
 
-class HOSH4P1LProcedureFunction(PQProcedureFunction):
+class HOSH4P1LProcedure(PQProcedure):
     """Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base)."""
 
     _states = [
@@ -23,26 +21,36 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
     @property
     def maxSurfaceStorage(self) -> float:
         "Maximum surface storage (model parameter)"
+        if isinstance(self.parameters, list):
+            return self.parameters[0]
         return self.parameters["maxSurfaceStorage"]
     
     @property
     def maxSoilStorage(self) -> float:
         """Maximum soil storage (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[1]
         return self.parameters["maxSoilStorage"]
     
     @property
     def Proc(self) -> str:
         """Routing procedure (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[2] if len(self.parameters) >=3 else "UH"
         return self.parameters["Proc"] if "Proc" in self.parameters else "UH"
     
     @property
-    def T(self) -> float:
+    def T(self) -> Optional[float]:
         """Triangular hydrogram time to peak (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[3] if len(self.parameters) >=4 else None
         return self.parameters["T"] if "T" in self.parameters else None
     
     @property
     def distribution(self) -> str:
         """Triangular hydrogram distribution (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[4] if len(self.parameters) >=5 else "Symmetric"
         return self.parameters["distribution"] if "distribution" in self.parameters else "Symmetric"
 
     @property
@@ -61,24 +69,32 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
         return bool(self.extra_pars["approx"]) if "approx" in self.extra_pars else False
            
     @property
-    def k(self) -> float:
+    def k(self) -> Optional[float]:
         """Nash linear channel coefficient k (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[5] if len(self.parameters) >=6 else None
         return self.parameters["k"] if "k" in self.parameters else None
 
     @property
-    def n(self) -> float:
+    def n(self) -> Optional[float]:
         """Nash linear channel number of reservoirs n (model parameter)"""
+        if isinstance(self.parameters, list):
+            return self.parameters[6] if len(self.parameters) >=7 else None
         return self.parameters["n"] if "n" in self.parameters else None
         
     @property
     def SurfaceStorage(self) -> float:
         """Initial surface storage [mm] (model initial state)"""
-        return self.initial_states[0] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 0 else self.initial_states["SurfaceStorage"] if isinstance(self.initial_states,dict) and "SurfaceStorage" in self.initial_states  else [0]
+        if isinstance(self.initial_states,(list,tuple)):
+            return self.initial_states[0]  if len(self.initial_states) > 0 else 0 
+        return self.initial_states["SurfaceStorage"] if "SurfaceStorage" in self.initial_states  else 0
 
     @property
     def SoilStorage(self) -> float:
         """Initial soil storage [mm] (model initial state)"""
-        return self.initial_states[1] if isinstance(self.initial_states,(list,tuple)) and len(self.initial_states) > 1 else self.initial_states["SoilStorage"] if isinstance(self.initial_states,dict) and "SoilStorage" in self.initial_states  else [0]
+        if isinstance(self.initial_states,(list,tuple)):
+            return self.initial_states[1]  if len(self.initial_states) > 1 else 0 
+        return self.initial_states["SoilStorage"] if "SoilStorage" in self.initial_states  else 0
     
     @property
     def engine(self) -> HOSH4P1L:
@@ -95,12 +111,14 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             input : list - boundary conditions: list of (pmad, etpd)
         """
         if self.Proc == 'UH':
+            if self.T is None:
+                raise ValueError("T is not set")
             dist = triangularDistribution(
                 self.T,
                 distribution = self.distribution,
                 dt = self.dt,
-                shift = "T" if self.shift else "F",
-                approx="T" if self.approx else "F")
+                shift = self.shift,
+                approx= self.approx)
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,dist]
         else:
             hosh_pars = [self.maxSurfaceStorage,self.maxSoilStorage,self.k,self.n] #línea corregida, estaba invertido el orden de pars k y n LMG 2024/04
@@ -116,7 +134,7 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
     def __init__(
         self,
         parameters : Union[list,tuple,dict],
-        extra_pars : Union[list,tuple,dict],
+        extra_pars : dict,
         initial_states : Union[list,tuple,dict],
         **kwargs):
         """
@@ -144,9 +162,9 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
             raise Exception("Missing parameter k")
         if self.Proc == "Nash" and self.n is None:
             raise Exception("Missing parameter n")
-    def run(
+    def exec(
         self,
-        input : List[DataFrame] = None
+        input : ExecInput = None
         ) -> Tuple[List[DataFrame],ProcedureFunctionResults]:
         """Run the function procedure
         
@@ -158,7 +176,9 @@ class HOSH4P1LProcedureFunction(PQProcedureFunction):
         Returns:
         Tuple[List[DataFrame],ProcedureFunctionResults] : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         pma = list(input[0].valor) # input[0]["valor"].to_list()
         etp = list(input[1].valor) #input[1]["valor"].to_list()
         if len(etp) < len(pma):

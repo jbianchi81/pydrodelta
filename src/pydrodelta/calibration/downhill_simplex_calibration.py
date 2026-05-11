@@ -311,7 +311,7 @@ class DownhillSimplexCalibration(Calibration):
         max_stagnations = max_stagnations if max_stagnations is not None else self.max_stagnations
         max_iter = max_iter if max_iter is not None else self.max_iter
         save_simplex = save_simplex if save_simplex is not None else self.save_simplex
-        self._procedure.loadInputDefault()
+        self.loadInputDefault()
         self._procedure.loadOutputObs()
         downhill_simplex = DownhillSimplex(
             self.runReturnScore, 

@@ -1,13 +1,15 @@
-from pydrodelta.procedure_function import ProcedureFunctionResults
+from pydrodelta.procedure_function_results import ProcedureFunctionResults
 from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LagAndRoute
-from pydrodelta.procedure_function import ProcedureFunction
+from pydrodelta.procedure import Procedure
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
 from typing import Union, List
+from ..types import ExecInput
+from pandas import DataFrame
 
-class LagAndRouteProcedureFunction(ProcedureFunction):
+class LagAndRouteProcedure(Procedure):
     """LagAndRoute"""
 
     _parameters = [
@@ -40,16 +42,23 @@ class LagAndRouteProcedureFunction(ProcedureFunction):
                 self.parameters["lag"],
                 self.parameters["k"],
                 self.parameters["n"]
+            ] if isinstance(self.parameters, dict) else [
+                self.parameters[0],
+                self.parameters[1],
+                self.parameters[2]
             ]
         else:
             return [
                 self.parameters["lag"],
                 self.parameters["k"]
+            ] if isinstance(self.parameters, dict) else [
+                self.parameters[0],
+                self.parameters[1]
             ]
 
     def __init__(
         self,
-        parameters : Union[dict,list,tuple],
+        parameters : Union[dict,list],
         **kwargs
         ):
         """
@@ -87,15 +96,17 @@ class LagAndRouteProcedureFunction(ProcedureFunction):
         self._engine = LagAndRoute(
             pars= self.pars_list,
             Boundaries=input,
-            InitialConditions=self.initial_states,
+            InitialConditions=self.initial_states if isinstance(self.initial_states, list) else list(self.initial_states.values()),
             dt = self.dt)
 
-    def run(
+    def exec(
         self,
-        input : list = None
+        input : ExecInput = None
         ) -> tuple:
         if input is None:
-            input = self._procedure.loadInput(inplace=False)
+            input = self.loadInput(inplace=False)
+        if isinstance(input, DataFrame):
+            input = [input]
         input_list = self.extractListsFromInput(input, allow_na=[False,True])
         self.setEngine(input_list)
         self.engine.executeRun()

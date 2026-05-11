@@ -1,33 +1,48 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "expressionprocedurefunction.json",
-    "title": "ExpressionProcedureFunction",
+    "$id": "lagandrouteprocedure.json",
+    "title": "LagAndRouteProcedure",
     "type": "object",
-    "description": "Expression procedure function. It evaluates each the given python expression replacing 'value' placeholder for the given input value. ",
+    "description": "Lag and route procedure",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "Expression"
+                "LagAndRoute",
+                "LagAndRouteProcedure"
             ]
         },
-        "expression": {
-            "type": "string",
-            "description": "python expression. Each occurence of 'value' will be replaced with the given input value"
+        "parameters": {
+            "type": "object",
+            "desciption": "Model parameters",
+            "properties": {
+                "lag": {
+                    "type": "number",
+                    "description": "celerity (in dt units)"
+                },
+                "k": {
+                    "type": "number",
+                    "description": "residence time"
+                },
+                "n": {
+                    "type": "number",
+                    "description": "number of reservoirs"
+                }
+            },
+            "required": ["lag", "k"],
+            "additionalProperties": false
         },
         "extra_pars": {
             "type": "object",
-            "description": "additional parameters",
             "properties": {
-                "allow_na": {
-                    "type": "boolean",
-                    "description": "Allow for null values in input",
-                    "default": false
+                "dt": {
+                    "type": "number",
+                    "description": "calculation timestep (1 = the timestep of the input series). Default: 1"
                 }
             }
         },
@@ -40,14 +55,14 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "enum": ["input"]
+                                "enum": ["input_1", "input_2"]
                             }
                         }
                     }
                 ]
             },
             "minItems": 1,
-            "maxItems": 1
+            "maxItems": 2
         },
         "outputs": {
             "type": "array",
@@ -70,6 +85,6 @@
     },
     "required": [
         "type",
-        "expression"
+        "parameters"
     ]
 }

@@ -1,19 +1,20 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "lagandroutenetprocedurefunction.json",
-    "title": "LagAndRouteNetProcedureFunction",
+    "$id": "lagandroutenetprocedure.json",
+    "title": "LagAndRouteNetProcedure",
     "type": "object",
-    "description": "Lag and route net procedure function",
+    "description": "Lag and route net procedure",
     "allOf": [
         {
-            "$ref": "procedurefunction.json"
+            "$ref": "procedure.json"
         }
     ],
     "properties": {
         "type": {
             "type": "string",
             "enum": [
-                "LagAndRouteNet"
+                "LagAndRouteNet",
+                "LagAndRouteNetProcedure"
             ]
         },
         "parameters": {

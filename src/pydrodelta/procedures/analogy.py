@@ -1,4 +1,5 @@
-from ..procedure_function import ProcedureFunction, ProcedureFunctionResults
+from ..procedure import Procedure
+from ..procedure_function_results import ProcedureFunctionResults
 from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate, assertDict, PathOrBuf
@@ -17,7 +18,7 @@ from a5client.util_types import Dateable
 import numpy as np
 import logging
 
-class AnalogyProcedureFunction(ProcedureFunction):
+class AnalogyProcedure(Procedure):
     """Analogy forecast procedure"""
 
     _boundaries = [
@@ -102,7 +103,7 @@ class AnalogyProcedureFunction(ProcedureFunction):
 
     df_prono_analog = DataFrameDescriptor()
 
-    data = DataFrameDescriptor()
+    _data : Optional[DataFrame]
 
     error_stats = DataFrameDescriptor()
 
@@ -145,11 +146,11 @@ class AnalogyProcedureFunction(ProcedureFunction):
         getSchemaAndValidate(dict(kwargs, type = "Analogy", parameters = parameters),"AnalogyProcedureFunction")
         self.errores = None
         self.df_prono_analog = None
-        self.data = None
+        self._data = None
         self.error_stats = None
 
     
-    def run(
+    def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]] = None,
         forecast_date : Optional[Dateable] = None,
@@ -189,9 +190,7 @@ class AnalogyProcedureFunction(ProcedureFunction):
         error_forecast_date_window = error_forecast_date_window if error_forecast_date_window is not None else self.error_forecast_date_window
 
         if input is None:
-            if self._procedure is None:
-                raise Exception("_procedure not set")
-            input = self._procedure.loadInput(inplace=False,pivot=False)
+            input = self.loadInput(inplace=False,pivot=False)
         
         if not isinstance(input,list):
             if isinstance(input, DataFrame):
@@ -220,14 +219,14 @@ class AnalogyProcedureFunction(ProcedureFunction):
                 mes_select = forecast_date.month - 1
                 yr_select = forecast_date.year
 
-        self.data = input[0].copy()
-        CreaVariablesTemporales(self.data)
+        self._data = input[0].copy()
+        CreaVariablesTemporales(self._data)
 
         ### Metodo Analogias.
 
         ## 1 - 1MesPart x Analogia
         # Transfroma los datos
-        TransfDatos(self.data,"valor",self.time_window,PlotTransf=False, make_positive=True)
+        TransfDatos(self._data,"valor",self.time_window,PlotTransf=False, make_positive=True)
         self.df_prono_analog = MetodoAnalogia(self.data,"valor",mes_select,yr_select,self.time_window,self.search_length, self.forecast_length, self.order_by, self.ascending, self.number_of_analogs, make_positive=True)
         
         # Mes a formato fecha
@@ -241,7 +240,7 @@ class AnalogyProcedureFunction(ProcedureFunction):
                 # set forecast date window for seasonsized error
                 steps = range(1,53 if self.time_window == "week" else 13,1)
                 vent_resamp_range = (steps[(forecast_date.month - error_forecast_date_window - 1) % len(steps)],steps[(forecast_date.month + error_forecast_date_window - 1)  % len(steps)])
-            self.errores = MetodoAnalogia_errores_v2(self.boundaries[0].node_id,self.data,"valor",self.time_window,self.parameters_with_defaults,outputfile=save_results,skip_first_years=skip_first_years, only_last_years=only_last_years, vent_resamp_range=vent_resamp_range) # connBBDD=conn
+            self.errores = MetodoAnalogia_errores_v2(self.boundaries[0].node_id,self._data,"valor",self.time_window,self.parameters_with_defaults,outputfile=save_results,skip_first_years=skip_first_years, only_last_years=only_last_years, vent_resamp_range=vent_resamp_range) # connBBDD=conn
 
             error_stats = self.errores[["Dif_Prono"]].groupby(level="mes_ant").agg(['count','mean','std']).reset_index()
             self.error_stats = error_stats["Dif_Prono"] 
