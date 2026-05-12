@@ -1,5 +1,4 @@
 from pydrodelta.procedure_function_results import ProcedureFunctionResults
-from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.function_boundary import FunctionBoundary
 from pydrodelta.pydrology import LagAndRoute
 from pydrodelta.procedure import Procedure
@@ -82,7 +81,7 @@ class LagAndRouteProcedure(Procedure):
             dt : float calculation timestep
         """
         super().__init__(parameters = parameters, **kwargs)
-        getSchemaAndValidate(dict(kwargs,parameters = parameters),"LagAndRouteProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs,parameters = parameters),"LagAndRouteProcedureFunction")
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 
     def setEngine(

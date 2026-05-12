@@ -807,7 +807,7 @@ def extrapolate_linear(data : pandas.DataFrame, column : str="valor", extrapolat
     # limit extrapolation
     indexes_of_nans = indexes_of_nans[0:extrapolation_limit]
     # extrapolate nans using fitted coefficients # 
-    data.loc[indexes_of_nans, column] = [x.timestamp() * coef[0] + intercept for x in indexes_of_nans]
+    data.loc[indexes_of_nans, column] = indexes_of_nans.astype(int) // 10**9 * coef[0] + intercept # [x.timestamp() * coef[0] + intercept for x in indexes_of_nans]
     return data
 
 def plot_prono(
@@ -1008,7 +1008,7 @@ def plot_prono(
         #print(df_prono)
         cell_text = []
         for row in range(len(df_prono)):
-            cell_text.append(df_prono[table_columns].iloc[row])
+            cell_text.append(df_prono[table_columns].iloc[row].values.tolist())
             #print(cell_text)
         # columns = table_columns # ('Fecha','Nivel',)
         if len(cell_text):

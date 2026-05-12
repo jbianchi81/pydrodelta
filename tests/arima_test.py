@@ -1,7 +1,7 @@
 from unittest import TestCase
 from pydrodelta.arima import adjustSeriesArima
 from pydrodelta.util import adjustSeries
-from pydrodelta.procedure import Procedure
+from pydrodelta.create_procedure import createProcedure
 from pandas import DataFrame, date_range
 from numpy import nan
 import json
@@ -55,24 +55,22 @@ class Test_ARIMA(TestCase):
         })
         data = data.set_index("timestart")
 
-        procedure = Procedure(
+        procedure = createProcedure(
+            "Expression",
             id = "test adj arima",
-            function = {
-                "type": "Expression",
-                "expression": "value + 0.5",
-                "boundaries": [
-                    {
-                        "name": "input",
-                        "node_variable": [0,0]
-                    }
-                ],
-                "outputs": [
-                    {
-                        "name": "output",
-                        "node_variable": [1,0]
-                    }
-                ]
-            },
+            expression="value + 0.5",
+            boundaries = [
+                {
+                    "name": "input",
+                    "node_variable": [0,0]
+                }
+            ],
+            outputs= [
+                {
+                    "name": "output",
+                    "node_variable": [1,0]
+                }
+            ],
             adjust = True,
             adjust_method = "arima",
             warmup_steps = None,

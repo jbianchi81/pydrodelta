@@ -1,6 +1,5 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from a5client import createEmptyObsDataFrame
 from typing import Union, List, Tuple, Any, Mapping
@@ -55,7 +54,7 @@ class PolynomialTransformationProcedure(Procedure):
         **kwargs : see ..procedure_function.ProcedureFunction
         """
         super().__init__(parameters = parameters, **kwargs)
-        getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")
         if self.allow_na:
             self.boundaries[0].optional = True
     

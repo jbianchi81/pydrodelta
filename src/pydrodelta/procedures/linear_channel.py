@@ -1,10 +1,9 @@
-from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.procedures import GenericLinearChannelProcedure
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
 from typing import Union
 
-class LinearChannelProcedureFunction(GenericLinearChannelProcedure):
+class LinearChannelProcedure(GenericLinearChannelProcedure):
     """Nash Linear channel procedure (gamma distribution)"""
 
     _parameters = [
@@ -50,7 +49,7 @@ class LinearChannelProcedureFunction(GenericLinearChannelProcedure):
             dt : float calculation timestep
         """
         super().__init__(parameters = parameters, **kwargs)
-        getSchemaAndValidate(dict(kwargs,parameters = parameters),"LinearChannelProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs,parameters = parameters),"LinearChannelProcedureFunction")
         # self.coefficients = np.array([self.parameters["k"], self.parameters["n"]])
         # self.Proc = "Nash"
         

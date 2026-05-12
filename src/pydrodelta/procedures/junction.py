@@ -1,6 +1,5 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 import numpy as np
 from typing import List, Tuple, Optional
@@ -44,7 +43,7 @@ class JunctionProcedure(Procedure):
         \\**kwargs (see [..procedure_function.ProcedureFunction][])
         """        
         super().__init__(extra_pars = extra_pars, **kwargs)
-        getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")
 
     def exec(
         self,

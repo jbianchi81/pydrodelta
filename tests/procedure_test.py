@@ -209,7 +209,7 @@ class Test_Procedure(TestCase):
 
     def test_raise_bad_procedure_type(self):
         self.assertRaises(
-            KeyError, 
+            ValueError, 
             createProcedure,
             "BadProcedureType",
             id="uh_test",

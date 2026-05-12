@@ -20,7 +20,7 @@ class Test_LinearExtrapolate(TestCase):
         
 
         self.assertEqual(len(result[notnull(data["valor"])]),8, "expected 8 non-nulls: 5 given, 3 extrapolated")
-        self.assertAlmostEqual(float(result["valor"][7]), 3.5, 2, "Expected 3.5, got %f" % result["valor"][7])
+        self.assertAlmostEqual(float(result["valor"].iloc[7]), 3.5, 2, "Expected 3.5, got %f" % result["valor"].iloc[7])
 
     def test_raise_not_enough_obs(self):
         data = DataFrame({

@@ -27,13 +27,13 @@
                     }
                 },
                 "parameters": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/Parameters"
                 },
                 "extra_pars": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/ExtraPars"
                 },
                 "asim_pars": {
-                    "$ref": "sacenkfprocedurefunction.json#/$defs/AsimPars"
+                    "$ref": "sacenkfprocedure.json#/$defs/AsimPars"
                 }
             },
             "required": [

@@ -44,15 +44,14 @@ topology:
         series_id: 2
 procedures:
 - id: nash_linear_channel
-  function:
-    type: LinearChannel
-    parameters:
-      k: 1
-      n: 2
-    boundaries:
-    - name: input
-      node_variable: [1,40]
-    outputs:
-    - name: output
-      node_variable: [2,40]
+  type: LinearChannel
+  parameters:
+    k: 1
+    n: 2
+  boundaries:
+  - name: input
+    node_variable: [1,40]
+  outputs:
+  - name: output
+    node_variable: [2,40]
   save_results: ../results/lc_results.csv

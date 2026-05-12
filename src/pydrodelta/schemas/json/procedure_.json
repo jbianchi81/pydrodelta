@@ -22,73 +22,73 @@
       "function": {
         "anyOf": [
           {
-            "$ref": "abstractprocedurefunction.json"
+            "$ref": "abstractprocedure.json"
           },
           {
-            "$ref": "hecrasprocedurefunction.json"
+            "$ref": "hecrasprocedure.json"
           },
           {
-            "$ref": "polynomialtransformationprocedurefunction.json"
+            "$ref": "polynomialtransformationprocedure.json"
           },
           {
-            "$ref": "linearcombinationprocedurefunction.json"
+            "$ref": "linearcombinationprocedure.json"
           },
           {
-            "$ref": "expressionprocedurefunction.json"
+            "$ref": "expressionprocedure.json"
           },
           {
-            "$ref": "sacramentosimplifiedprocedurefunction.json"
+            "$ref": "sacramentosimplifiedprocedure.json"
           },
           {
-            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json"
+            "$ref": "sacramentosimplifiedfixedparsprocedure.json"
           },
           {
-            "$ref": "pqprocedurefunction.json"
+            "$ref": "pqprocedure.json"
           },
           {
-            "$ref": "sacenkfprocedurefunction.json"
+            "$ref": "sacenkfprocedure.json"
           },
           {
-            "$ref": "junctionprocedurefunction.json"
+            "$ref": "junctionprocedure.json"
           },
           {
-            "$ref": "linearchannelprocedurefunction.json"
+            "$ref": "linearchannelprocedure.json"
           },
           {
-            "$ref": "uhlinearchannelprocedurefunction.json"
+            "$ref": "uhlinearchannelprocedure.json"
           },
           {
-            "$ref": "muskingumchannelprocedurefunction.json"
+            "$ref": "muskingumchannelprocedure.json"
           },
           {
-            "$ref": "hosh4p1lprocedurefunction.json"
+            "$ref": "hosh4p1lprocedure.json"
           },
           {
-            "$ref": "linearnetprocedurefunction.json"
+            "$ref": "linearnetprocedure.json"
           },
           {
-            "$ref": "linearnet3procedurefunction.json"
+            "$ref": "linearnet3procedure.json"
           },
           {
-            "$ref": "exponentialfitprocedurefunction.json"
+            "$ref": "exponentialfitprocedure.json"
           },
           {
-            "$ref": "linearfitprocedurefunction.json"
+            "$ref": "linearfitprocedure.json"
           },
           {
-            "$ref": "lagandrouteprocedurefunction.json"
+            "$ref": "lagandrouteprocedure.json"
           },
           {
-            "$ref": "lagandroutenetprocedurefunction.json"
+            "$ref": "lagandroutenetprocedure.json"
           },
           {
-            "$ref": "hidrosatprocedurefunction.json"
+            "$ref": "hidrosatprocedure.json"
           },
           {
-            "$ref": "analogyprocedurefunction.json"
+            "$ref": "analogyprocedure.json"
           },
           {
-            "$ref": "persistenceprocedurefunction.json"
+            "$ref": "persistenceprocedure.json"
           }
         ]
       },

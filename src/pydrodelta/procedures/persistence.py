@@ -5,7 +5,6 @@ import numpy as np
 import logging
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate
 from typing import Union, List, Tuple, Optional
@@ -104,7 +103,7 @@ class PersistenceProcedure(Procedure):
         **kwargs : see ..procedure_function.ProcedureFunction
         """
         super().__init__(parameters = parameters, **kwargs)
-        getSchemaAndValidate(dict(kwargs, type = "Persistence", parameters = parameters),"PersistenceProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs, type = "Persistence", parameters = parameters),"PersistenceProcedureFunction")
         self.errores = None
         self.df_prono = None
         self.data_ = None

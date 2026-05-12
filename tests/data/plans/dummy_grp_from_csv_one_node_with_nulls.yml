@@ -49,34 +49,33 @@
     days: 1
   procedures:
   - id: 1
-    function:
-      type: GRP
-      initial_states:
-        Sk: 50
-        Rk: 10
-      parameters:
-        X0: 106.576
-        X1: 1101.94
-        X2: 1.20439
-        X3: 8.11073
-        area: 16095267887.9854
-        wp: 0.03
-        rho: 0.5
-      extra_pars:
-        area: 43634867978
-        fill_nulls: true
-      boundaries:
-      - name: smc_obs
-        node_variable: [1, 20]
-      - name: q_obs
-        node_variable: [1, 4]
-      - name: etp
-        node_variable: [1, 15]
-      - name: pma
-        node_variable: [1, 1]
-      outputs:
-      - name: smc_sim
-        node_variable: [1, 20]
-      - name: q_sim
-        node_variable: [1, 4]
+    type: GRP
+    initial_states:
+      Sk: 50
+      Rk: 10
+    parameters:
+      X0: 106.576
+      X1: 1101.94
+      X2: 1.20439
+      X3: 8.11073
+      area: 16095267887.9854
+      wp: 0.03
+      rho: 0.5
+    extra_pars:
+      area: 43634867978
+      fill_nulls: true
+    boundaries:
+    - name: smc_obs
+      node_variable: [1, 20]
+    - name: q_obs
+      node_variable: [1, 4]
+    - name: etp
+      node_variable: [1, 15]
+    - name: pma
+      node_variable: [1, 1]
+    outputs:
+    - name: smc_sim
+      node_variable: [1, 20]
+    - name: q_sim
+      node_variable: [1, 4]
     save_results: ../results/grp_dummy.csv

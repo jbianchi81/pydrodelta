@@ -15,7 +15,7 @@
     },
     "type": {
       "type": "string",
-      "description": "The id or class name of the procedureFunction type. Either 'Procedure' or a derived type identifier"
+      "description": "The id or class name of the procedure type. Either 'Procedure' or a derived type identifier"
     },
     "parameters": {
       "description": "list of function parameter values",

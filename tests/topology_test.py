@@ -251,7 +251,9 @@ class Test_Topology(TestCase):
     def test_plot_prono(self):
         topology = Topology.load(data_dir / "topologies/plot_prono_dummy.yml")
         topology.batchProcessInput(include_prono=False)
+        assert topology.nodes[0].variables[39].series_prono is not None
         self.assertIsNotNone(topology.nodes[0].variables[39].series_prono[0].plot_params)
+        assert topology.nodes[0].variables[39].series_prono[0].plot_params is not None
         self.assertTrue("output_file" in topology.nodes[0].variables[39].series_prono[0].plot_params)
         # output_file path must be a PosixPath:
         self.assertTrue(isinstance(topology.nodes[0].variables[39].series_prono[0].plot_params["output_file"], PosixPath))
@@ -262,6 +264,8 @@ class Test_Topology(TestCase):
 
     def test_plot_bad_qualifier(self):
         topology = Topology.load(data_dir / "topologies/plot_prono_dummy.yml")
+        assert topology.nodes[0].variables[39].series_prono is not None
+        assert topology.nodes[0].variables[39].series_prono[0].plot_params is not None
         topology.nodes[0].variables[39].series_prono[0].plot_params["errorBand"] = ["inferior", "superior"]
         self.assertRaises(ValueError, topology.batchProcessInput, include_prono=False)
 
@@ -269,9 +273,13 @@ class Test_Topology(TestCase):
         topology = Topology.load(data_dir / "topologies/save_series_dummy.yml")
         topology.batchProcessInput(include_prono=False)
         # output_file path must be resolved to absolute:
+        assert topology.nodes[0].variables[39].series is not None
+        assert topology.nodes[0].variables[39].series[0].output_file is not None
         self.assertTrue(Path(topology.nodes[0].variables[39].series[0].output_file).is_absolute())
         file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series[0].output_file)
         self.assertTrue(file_mtime  > time.time() - 10)
+        assert topology.nodes[0].variables[39].series_prono is not None        
+        assert topology.nodes[0].variables[39].series_prono[0].output_file is not None        
         # output_file path must be resolved to absolute:
         self.assertTrue(Path(topology.nodes[0].variables[39].series_prono[0].output_file).is_absolute())
         file_mtime = os.path.getmtime(topology.nodes[0].variables[39].series_prono[0].output_file)

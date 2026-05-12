@@ -1,6 +1,5 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from ..util import adjustSeries
 import math

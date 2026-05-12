@@ -27,13 +27,13 @@
             }
         },
         "parameters": {
-            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/Parameters"
+            "$ref": "sacramentosimplifiedfixedparsprocedure.json#/$defs/Parameters"
         },
         "fixed_parameters": {
-            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/FixedParameters"
+            "$ref": "sacramentosimplifiedfixedparsprocedure.json#/$defs/FixedParameters"
         },
         "extra_pars": {
-            "$ref": "sacramentosimplifiedfixedparsprocedurefunction.json#/$defs/ExtraPars"
+            "$ref": "sacramentosimplifiedfixedparsprocedure.json#/$defs/ExtraPars"
         }
     },
     "required": [
@@ -173,7 +173,7 @@
                     }
                 },
                 "par_fg": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ParFG"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/ParFG"
                 },
                 "max_npasos": {
                     "type": "integer",

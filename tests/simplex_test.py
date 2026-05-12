@@ -11,19 +11,19 @@ class Test_Simplex(TestCase):
     def test_make_simplex(self):
         plan_config = yaml.load(open(data_dir / "plans/dummy_sac.yml"),yaml.CLoader)
         plan = Plan(**plan_config)
-        simplex = plan.procedures[0].function.makeSimplex()
+        simplex = plan.procedures[0].makeSimplex()
         self.assertTrue(isinstance(simplex,list))
         self.assertEqual(
             len(simplex),
-            len(plan.procedures[0].function._parameters) + 1
+            len(plan.procedures[0]._parameters) + 1
         )
         for point in simplex:
             self.assertTrue(isinstance(point,list))
             self.assertEqual(
                 len(point),
-                len(plan.procedures[0].function._parameters)
+                len(plan.procedures[0]._parameters)
             )
             for i, value in enumerate(point):
                 self.assertTrue(isinstance(value,float))        
-                self.assertTrue(value >= plan.procedures[0].function._parameters[i].min)
-                self.assertTrue(value <= plan.procedures[0].function._parameters[i].max)
+                self.assertTrue(value >= plan.procedures[0]._parameters[i].min)
+                self.assertTrue(value <= plan.procedures[0]._parameters[i].max)

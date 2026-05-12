@@ -35,7 +35,7 @@ class Test_Plan_Graph(TestCase):
         assert plan.topology is not None
         plan.exportGraph(nodes=plan.topology.nodes, output_file= data_dir / "results/linear_channel_dummy.json")
         graph = json.load(open(data_dir / "results/linear_channel_dummy.json"))
-        for key in ['directed', 'multigraph', 'graph', 'nodes', 'links']:
+        for key in ['directed', 'multigraph', 'graph', 'nodes', 'edges']:
             self.assertTrue(key in graph)
         self.assertEqual(
             len([ n for n in  graph["nodes"] if n["object"]["node_type"] == "station"] ),
@@ -46,7 +46,7 @@ class Test_Plan_Graph(TestCase):
             1
         )
         self.assertEqual(
-            len(graph["links"]),
+            len(graph["edges"]),
             2
         )
 

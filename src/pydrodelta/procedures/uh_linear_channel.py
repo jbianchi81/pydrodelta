@@ -1,4 +1,3 @@
-from pydrodelta.validation import getSchemaAndValidate
 from pydrodelta.procedures.generic_linear_channel import GenericLinearChannelProcedure
 from typing import TypedDict, Optional
 
@@ -27,7 +26,7 @@ class UHLinearChannelProcedure(GenericLinearChannelProcedure):
     def __init__(
             self,
             parameters : UHParameters,
-            extra_pars : UHExtraPars = {"dt": None},
+            extra_pars : UHExtraPars = {"dt": 1},
             **kwargs
         ):
         """

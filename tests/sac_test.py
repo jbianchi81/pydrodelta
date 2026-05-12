@@ -1,5 +1,5 @@
 from pydrodelta.plan import Plan
-from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
+from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedure
 from pydrodelta.util import createDatetimeSequence
 from pandas import DataFrame, read_csv
 from unittest import TestCase
@@ -23,12 +23,12 @@ class Test_SacramentoSimplified(TestCase):
         self.assertTrue(isinstance(plan.procedures[0].calibration.calibration_result[0],list))
         self.assertEqual(
             len(plan.procedures[0].calibration.calibration_result[0]),
-            len(plan.procedures[0].function._parameters)
+            len(plan.procedures[0]._parameters)
         )
         for i, value in enumerate(plan.procedures[0].calibration.calibration_result[0]):
             self.assertTrue(isinstance(value,float))
-            self.assertTrue(value >= plan.procedures[0].function._parameters[i].min)
-            self.assertTrue(value <= plan.procedures[0].function._parameters[i].max)
+            self.assertTrue(value >= plan.procedures[0]._parameters[i].min)
+            self.assertTrue(value <= plan.procedures[0]._parameters[i].max)
         plan.procedures[0].calibration.saveResult(
             data_dir / "results/dummy_sac_cal_result.yml",
             format = "yaml"
@@ -52,12 +52,12 @@ class Test_SacramentoSimplified(TestCase):
         self.assertTrue(isinstance(saved_result["parameters"],list))
         self.assertEqual(
             len(saved_result["parameters"]),
-            len(plan.procedures[0].function._parameters)
+            len(plan.procedures[0]._parameters)
         )
         for i, value in enumerate(saved_result["parameters"]):
             self.assertTrue(isinstance(value,float))        
-            self.assertTrue(value >= plan.procedures[0].function._parameters[i].min)
-            self.assertTrue(value <= plan.procedures[0].function._parameters[i].max)
+            self.assertTrue(value >= plan.procedures[0]._parameters[i].min)
+            self.assertTrue(value <= plan.procedures[0]._parameters[i].max)
 
         self.assertTrue("scores" in saved_result)
         self.assertTrue(isinstance(saved_result["scores"], list))
@@ -67,7 +67,7 @@ class Test_SacramentoSimplified(TestCase):
         )
 
     def test_water_balance(self):
-        pf = SacramentoSimplifiedProcedureFunction(
+        pf = SacramentoSimplifiedProcedure(
             parameters = {
                 "x1_0": 10,
                 "x2_0": 10,

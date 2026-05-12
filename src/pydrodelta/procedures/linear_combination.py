@@ -4,7 +4,6 @@ from sklearn.linear_model import LinearRegression
 import scipy.stats as stats
 from ..procedure_function_results import  ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from typing import Union, List, Tuple, Optional, cast, Mapping, Any
 from ..descriptors.float_descriptor import FloatDescriptor
@@ -211,7 +210,7 @@ class LinearCombinationProcedure(Procedure):
             Exception: _description_
         """
         super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
-        getSchemaAndValidate(dict(kwargs, parameters = parameters),"LinearCombinationProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs, parameters = parameters),"LinearCombinationProcedureFunction")
         # self._coefficients = list()
         if len(self.parameters["coefficients"]) < self.forecast_steps:
             raise Exception("length of coefficients is shorter than forecast_steps")

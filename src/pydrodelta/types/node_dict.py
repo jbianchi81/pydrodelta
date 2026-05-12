@@ -1,6 +1,8 @@
-from typing import TypedDict, List, Union
+from typing import TypedDict, List, Union, Any
+from typing_extensions import NotRequired
 from .hec_node_dict import HecNodeDict
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from .derived_node_variable_dict import DerivedNodeVariableDict
 from .observed_node_variable_dict import ObservedNodeVariableDict
 from .basin_pars_dict import BasinParsDict
@@ -46,16 +48,16 @@ class NodeDict(TypedDict):
     id : int
     name : str
     time_interval : Union[dict,int]
-    tipo : str
-    timestart : datetime
-    timeend : datetime
-    forecast_timeend : datetime
-    plan : any
-    time_offset : timedelta
-    topology : any
-    hec_node : HecNodeDict
-    variables : List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict]]
-    node_type : str
-    description : str
-    basin_pars : BasinParsDict
-    api_config : ApiConfigDict
+    tipo : NotRequired[str]
+    timestart : NotRequired[datetime]
+    timeend : NotRequired[datetime]
+    forecast_timeend : NotRequired[datetime]
+    plan : NotRequired[Any]
+    time_offset : NotRequired[Union[timedelta, relativedelta]]
+    topology : NotRequired[Any]
+    hec_node : NotRequired[HecNodeDict]
+    variables : NotRequired[List[Union[DerivedNodeVariableDict,ObservedNodeVariableDict]]]
+    node_type : NotRequired[str]
+    description : NotRequired[str]
+    basin_pars : NotRequired[BasinParsDict]
+    api_config : NotRequired[ApiConfigDict]

@@ -27,10 +27,10 @@
                     }
                 },
                 "parameters": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/Parameters"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/Parameters"
                 },
                 "extra_pars": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ExtraPars"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/ExtraPars"
                 }
             },
             "required": [
@@ -136,7 +136,7 @@
                     }
                 },
                 "par_fg": {
-                    "$ref": "sacramentosimplifiedprocedurefunction.json#/$defs/ParFG"
+                    "$ref": "sacramentosimplifiedprocedure.json#/$defs/ParFG"
                 },
                 "max_npasos": {
                     "type": "integer",

@@ -9,8 +9,12 @@ class Test_Polynomial(TestCase):
 
     def test_init(self):
         plan = Plan.load(data_dir / "plans/dummy_polynomial_with_nulls.yml")
+        assert plan.topology is not None
         plan.topology.batchProcessInput()
         plan.procedures[0].run()
+        assert plan.procedures is not None
+        assert plan.procedures[0] is not None
+        assert plan.procedures[0].output is not None
         self.assertEqual(len(plan.procedures[0].output),1)
         self.assertEqual(len(plan.procedures[0].output[0]),3)
         self.assertTrue(isnan(plan.procedures[0].output[0].loc["2022-07-16T03:00:00.000Z"]["valor"]))

@@ -1,6 +1,5 @@
 from ..procedure import Procedure
 from ..procedure_function_results import ProcedureFunctionResults
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate, assertDict, PathOrBuf
 # from a5client import createEmptyObsDataFrame
@@ -143,7 +142,7 @@ class AnalogyProcedure(Procedure):
         **kwargs : see ..procedure_function.ProcedureFunction
         """
         super().__init__(parameters = parameters, **kwargs)
-        getSchemaAndValidate(dict(kwargs, type = "Analogy", parameters = parameters),"AnalogyProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs, type = "Analogy", parameters = parameters),"AnalogyProcedureFunction")
         self.errores = None
         self.df_prono_analog = None
         self._data = None

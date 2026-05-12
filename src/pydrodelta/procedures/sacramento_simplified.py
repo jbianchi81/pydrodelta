@@ -8,7 +8,6 @@ import numpy as np
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedures.pq import PQProcedure
 from ..util import interval2timedelta, relativedeltaToSeconds, IntervalDict
-from ..validation import getSchemaAndValidate
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
 from ..descriptors.float_descriptor import FloatDescriptor
@@ -357,7 +356,7 @@ class SacramentoSimplifiedProcedure(PQProcedure):
             parameters = parameters, 
             initial_states = initial_states,
             **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
-        getSchemaAndValidate(dict(kwargs, parameters = parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")
+        # getSchemaAndValidate(dict(kwargs, parameters = parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")
         self.volume = 0
         self.sm_obs = []
         self.sm_sim = []

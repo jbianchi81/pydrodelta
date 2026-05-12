@@ -47,7 +47,7 @@
                     "description": "Model parameters"
                 },
                 "extra_pars": {
-                    "$ref": "pqprocedurefunction.json#/$defs/ExtraPars"
+                    "$ref": "pqprocedure.json#/$defs/ExtraPars"
                 }
             },
             "required": [

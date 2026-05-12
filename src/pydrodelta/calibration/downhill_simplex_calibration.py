@@ -36,8 +36,8 @@ class DownhillSimplexCalibration(Calibration):
                 raise ValueError("Invalid ranges argument. Must be a list")
             if self._procedure is None:
                 raise RuntimeError("_procedure not set")
-            if len(ranges) != len(self._procedure.function._parameters):
-                raise ValueError("Invalid ranges argument length. Must be equal the number of parameters of the procedure function (_procedure.function._parameters) =  %i. Instead, length is %i" % (len(self._procedure.function._parameters), len(ranges)))
+            if len(ranges) != len(self._procedure._parameters):
+                raise ValueError("Invalid ranges argument length. Must be equal the number of parameters of the procedure function (_procedure.function._parameters) =  %i. Instead, length is %i" % (len(self._procedure._parameters), len(ranges)))
             self._ranges = list()
             for i, r in enumerate(ranges):
                 if not isinstance(r,(list,tuple)):
@@ -234,7 +234,7 @@ class DownhillSimplexCalibration(Calibration):
         ranges = ranges if ranges is not None else self.ranges
         if self._procedure is None:
             raise RuntimeError("_procedure not set")
-        points = self._procedure.function.makeSimplex(sigma=sigma, limit=limit, ranges=ranges)
+        points = self._procedure.makeSimplex(sigma=sigma, limit=limit, ranges=ranges)
         simplex = list()
         for i, p in enumerate(points):
             logging.debug("vertex: %s" % str(p))
@@ -302,7 +302,7 @@ class DownhillSimplexCalibration(Calibration):
         ranges = ranges if ranges is not None else self.ranges
         if self._procedure is None:
             raise RuntimeError("_procedure not set")
-        points = self._procedure.function.makeSimplex(
+        points = self._procedure.makeSimplex(
             sigma=sigma, 
             limit=limit, 
             ranges=ranges
@@ -311,7 +311,7 @@ class DownhillSimplexCalibration(Calibration):
         max_stagnations = max_stagnations if max_stagnations is not None else self.max_stagnations
         max_iter = max_iter if max_iter is not None else self.max_iter
         save_simplex = save_simplex if save_simplex is not None else self.save_simplex
-        self.loadInputDefault()
+        self._procedure.loadInputDefault()
         self._procedure.loadOutputObs()
         downhill_simplex = DownhillSimplex(
             self.runReturnScore, 
@@ -320,10 +320,10 @@ class DownhillSimplexCalibration(Calibration):
             max_stagnations=max_stagnations, 
             max_iter=max_iter,
             limit = limit,
-            limits = ranges if ranges is not None else self._procedure.function.limits,
+            limits = ranges if ranges is not None else self._procedure.limits,
             maximize = True if self.objective_function in ["nse","r","cov","kge"] else False,
             save_simplex = save_simplex,
-            minmax = self._procedure.function.limits
+            minmax = self._procedure.limits
         )
         if inplace:
             self._downhill_simplex = downhill_simplex

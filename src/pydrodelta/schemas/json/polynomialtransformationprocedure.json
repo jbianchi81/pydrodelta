@@ -14,7 +14,8 @@
             "type": "string",
             "enum": [
                 "Polynomial",
-                "PolynomialProcedure"
+                "PolynomialProcedure",
+                "PolynomialTransformationProcedure"
             ]
         },
         "parameters": {

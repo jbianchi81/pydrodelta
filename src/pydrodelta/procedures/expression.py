@@ -1,6 +1,5 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..function_boundary import FunctionBoundary
 from typing import Union, List, Optional
 from pandas import DataFrame
@@ -33,12 +32,12 @@ class ExpressionProcedure(Procedure):
         
         \\**kwargs : keyword arguments (see ProcedureFunction)
         """
-        super().__init__(**kwargs)
-        getSchemaAndValidate(
-            dict(
-                kwargs, 
-                expression = expression),
-            "ExpressionProcedureFunction")
+        super().__init__(expression=expression, **kwargs)
+        # getSchemaAndValidate(
+        #     dict(
+        #         kwargs, 
+        #         expression = expression),
+        #     "ExpressionProcedureFunction")
         self.expression = expression
         if self.allow_na:
             self.boundaries[0].optional = True

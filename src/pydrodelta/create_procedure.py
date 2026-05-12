@@ -4,81 +4,109 @@ import yaml
 from pydrodelta.util import toMapping
 
 from pydrodelta.procedure import Procedure
-# from pydrodelta.procedures.hecras import HecRasProcedureFunction
-# from pydrodelta.procedures.polynomial import PolynomialTransformationProcedureFunction
-# from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedureFunction
-# from pydrodelta.procedures.grp import GRPProcedureFunction
-# from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
-# from pydrodelta.procedures.expression import ExpressionProcedureFunction
-# from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedureFunction
-# from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedureFunction
-# from pydrodelta.procedures.sac_enkf import SacEnkfProcedureFunction
-# from pydrodelta.procedures.junction import JunctionProcedureFunction
-# from pydrodelta.procedures.linear_channel import LinearChannelProcedureFunction
+from pydrodelta.procedures.hecras import HecRasProcedure
+from pydrodelta.procedures.polynomial import PolynomialTransformationProcedure
+from pydrodelta.procedures.muskingumchannel import MuskingumChannelProcedure
+from pydrodelta.procedures.grp import GRPProcedure
+from pydrodelta.procedures.linear_combination import LinearCombinationProcedure
+from pydrodelta.procedures.expression import ExpressionProcedure
+from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedure
+from pydrodelta.procedures.sacramento_simplified_fixed_pars import SacramentoSimplifiedFixedParsProcedure
+from pydrodelta.procedures.sac_enkf import SacEnkfProcedure
+from pydrodelta.procedures.junction import JunctionProcedure
+from pydrodelta.procedures.linear_channel import LinearChannelProcedure
 from pydrodelta.procedures.uh_linear_channel import UHLinearChannelProcedure
-# from pydrodelta.procedures.gr4j_ import GR4JProcedureFunction as GR4J_ProcedureFunction
-# from pydrodelta.procedures.gr4j import GR4JProcedureFunction
-# from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedureFunction
-# from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedureFunction
-# from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedureFunction
-# from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedureFunction
-# from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedureFunction
-# from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedureFunction
-# from pydrodelta.procedures.difference import DifferenceProcedureFunction
-# from pydrodelta.procedures.linear_net import LinearNetProcedureFunction
-# from pydrodelta.procedures.linear_net_3 import LinearNet3ProcedureFunction
-# from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
-# from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
-# from pydrodelta.procedures.abstract import AbstractProcedureFunction
-# from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
-# from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
-# from pydrodelta.procedures.analogy import AnalogyProcedureFunction
-# from pydrodelta.procedures.persistence import PersistenceProcedureFunction
-# from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedureFunction
+from pydrodelta.procedures.gr4j_ import GR4JProcedure as GR4J_Procedure
+from pydrodelta.procedures.gr4j import GR4JProcedure
+from pydrodelta.procedures.linear_combination_2b import LinearCombination2BProcedure
+from pydrodelta.procedures.linear_combination_3b import LinearCombination3BProcedure
+from pydrodelta.procedures.linear_combination_4b import LinearCombination4BProcedure
+from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedure
+from pydrodelta.procedures.hosh4p1lnash import HOSH4P1LNashProcedure
+from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedure
+from pydrodelta.procedures.difference import DifferenceProcedure
+from pydrodelta.procedures.linear_net import LinearNetProcedure
+from pydrodelta.procedures.linear_net_3 import LinearNet3Procedure
+from pydrodelta.procedures.exponential_fit import ExponentialFitProcedure
+from pydrodelta.procedures.linear_fit import LinearFitProcedure
+from pydrodelta.procedures.abstract import AbstractProcedure
+from pydrodelta.procedures.lag_and_route import LagAndRouteProcedure
+from pydrodelta.procedures.hidrosat import HIDROSATProcedure
+from pydrodelta.procedures.analogy import AnalogyProcedure
+from pydrodelta.procedures.persistence import PersistenceProcedure
+from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedure
 
 PROCEDURES : Dict[str, Type[Procedure]]  = {
-#     # "ProcedureFunction": ProcedureFunction,
-#     "AbstractProcedureFunction": AbstractProcedureFunction,
-#     "HecRas": HecRasProcedureFunction,
-#     "HecRasProcedureFunction": HecRasProcedureFunction,
-#     "PolynomialTransformationProcedureFunction": PolynomialTransformationProcedureFunction,
-#     "Polynomial": PolynomialTransformationProcedureFunction,
-#     "MuskingumChannel": MuskingumChannelProcedureFunction,
-#     "MuskingumChannelProcedureFunction": MuskingumChannelProcedureFunction,
-#     "GRP": GRPProcedureFunction,
-#     "GRPProcedureFunction": GRPProcedureFunction,
-#     "LinearCombination": LinearCombinationProcedureFunction,
-#     "LinearCombination2B": LinearCombination2BProcedureFunction,
-#     "LinearCombination3B": LinearCombination3BProcedureFunction,
-#     "LinearCombination4B": LinearCombination4BProcedureFunction,
-#     "Expression": ExpressionProcedureFunction,
-#     "SacramentoSimplified": SacramentoSimplifiedProcedureFunction,
-#     "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedureFunction,
-#     "SacEnKF": SacEnkfProcedureFunction,
-#     "Junction": JunctionProcedureFunction,
-#     "LinearChannel": LinearChannelProcedureFunction,
-     "UHLinearChannel": UHLinearChannelProcedure,
-#     "GR4J": GR4JProcedureFunction,
-#     "GR4J_": GR4J_ProcedureFunction,
-#     "HOSH4P1L": HOSH4P1LProcedureFunction,
-#     "HOSH4P1LNash": HOSH4P1LNashProcedureFunction,
-#     "HOSH4P1LUH": HOSH4P1LUHProcedureFunction,
-#     "Difference": DifferenceProcedureFunction,
-#     "LinearNet": LinearNetProcedureFunction,
-#     "LinearNet3": LinearNet3ProcedureFunction,
-#     "ExponentialFit": ExponentialFitProcedureFunction,
-#     "LinearFit": LinearFitProcedureFunction,
-#     "LagAndRoute": LagAndRouteProcedureFunction,
-#     "LagAndRouteNet": LagAndRouteNetProcedureFunction,
-#     "HIDROSAT": HIDROSATProcedureFunction,
-#     "Analogy": AnalogyProcedureFunction,
-#     "Persistence": PersistenceProcedureFunction
+    "AbstractProcedure": AbstractProcedure,
+    "HecRas": HecRasProcedure,
+    "HecRasProcedure": HecRasProcedure,
+    "PolynomialTransformationProcedure": PolynomialTransformationProcedure,
+    "PolynomialProcedure": PolynomialTransformationProcedure,
+    "Polynomial": PolynomialTransformationProcedure,
+    "MuskingumChannel": MuskingumChannelProcedure,
+    "MuskingumChannelProcedure": MuskingumChannelProcedure,
+    "GRP": GRPProcedure,
+    "GRPProcedure": GRPProcedure,
+    "LinearCombination": LinearCombinationProcedure,
+    "LinearCombinationProcedure": LinearCombinationProcedure,
+    "LinearCombination2B": LinearCombination2BProcedure,
+    "LinearCombination2BProcedure": LinearCombination2BProcedure,
+    "LinearCombination3B": LinearCombination3BProcedure,
+    "LinearCombination3BProcedure": LinearCombination3BProcedure,
+    "LinearCombination4B": LinearCombination4BProcedure,
+    "LinearCombination4BProcedure": LinearCombination4BProcedure,
+    "Expression": ExpressionProcedure,
+    "ExpressionProcedure": ExpressionProcedure,
+    "SacramentoSimplified": SacramentoSimplifiedProcedure,
+    "SacramentoSimplifiedProcedure": SacramentoSimplifiedProcedure,
+    "SacramentoSimplifiedFixedPars": SacramentoSimplifiedFixedParsProcedure,
+    "SacramentoSimplifiedFixedParsProcedure": SacramentoSimplifiedFixedParsProcedure,
+    "SacEnKF": SacEnkfProcedure,
+    "SacEnKFProcedure": SacEnkfProcedure,
+    "Junction": JunctionProcedure,
+    "JunctionProcedure": JunctionProcedure,
+    "LinearChannel": LinearChannelProcedure,
+    "LinearChannelProcedure": LinearChannelProcedure,
+    "UHLinearChannel": UHLinearChannelProcedure,
+    "UHLinearChannelProcedure": UHLinearChannelProcedure,
+    "GR4J": GR4JProcedure,
+    "GR4JProcedure": GR4JProcedure,
+    "GR4J_": GR4J_Procedure,
+    "GR4J_Procedure": GR4J_Procedure,
+    "HOSH4P1L": HOSH4P1LProcedure,
+    "HOSH4P1LProcedure": HOSH4P1LProcedure,
+    "HOSH4P1LNash": HOSH4P1LNashProcedure,
+    "HOSH4P1LNashProcedure": HOSH4P1LNashProcedure,
+    "HOSH4P1LUH": HOSH4P1LUHProcedure,
+    "HOSH4P1LUHProcedure": HOSH4P1LUHProcedure,
+    "Difference": DifferenceProcedure,
+    "DifferenceProcedure": DifferenceProcedure,
+    "LinearNet": LinearNetProcedure,
+    "LinearNetProcedure": LinearNetProcedure,
+    "LinearNet3": LinearNet3Procedure,
+    "LinearNet3Procedure": LinearNet3Procedure,
+    "ExponentialFit": ExponentialFitProcedure,
+    "ExponentialFitProcedure": ExponentialFitProcedure,
+    "LinearFit": LinearFitProcedure,
+    "LinearFitProcedure": LinearFitProcedure,
+    "LagAndRoute": LagAndRouteProcedure,
+    "LagAndRouteProcedure": LagAndRouteProcedure,
+    "LagAndRouteNet": LagAndRouteNetProcedure,
+    "LagAndRouteNetProcedure": LagAndRouteNetProcedure,
+    "HIDROSAT": HIDROSATProcedure,
+    "HIDROSATProcedure": HIDROSATProcedure,
+    "Analogy": AnalogyProcedure,
+    "AnalogyProcedure": AnalogyProcedure,
+    "Persistence": PersistenceProcedure,
+    "PersistenceProcedure": PersistenceProcedure
 }
 
 def createProcedure(
         procedure_type : str,
         **kwargs: Any
     ) -> Procedure:
+    if procedure_type not in PROCEDURES:
+        raise ValueError(f"Invalid procedure_type='{procedure_type}'. Valid values: {",".join(["'%s'" % k for k in PROCEDURES.keys()])}")
     cls = PROCEDURES[procedure_type]
     return cls(**kwargs)
 

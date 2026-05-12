@@ -31,7 +31,8 @@ class Base():
         input_api_config : Optional[ApiConfigDict] = None, 
         output_api_config : Optional[ApiConfigDict] = None, 
         s3_config : Optional[s3ConfigDict] = None,
-        base_path : Optional[Union[str,Path]] = None
+        base_path : Optional[Union[str,Path]] = None,
+        **kwargs # ignored
         ):
         self.input_api_config = coalesce(input_api_config,config["input_api"] if "input_api" in config else None)
         self.output_api_config = coalesce(output_api_config,config["output_api"] if "output_api" in config else None)

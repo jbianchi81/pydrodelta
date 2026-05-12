@@ -27,30 +27,28 @@ topology:
       - series_id: 2
 procedures:
 - id: 1
-  function:
-    type: Polynomial
-    parameters:
-      intercept: 1.0
-      coefficients: [2.0]
-    boundaries:
-    - name: input
-      node_variable: [1,1]
-    outputs:
-    - name: output
-      node_variable: [1,2]
-    extra_pars:
-      allow_na: true
+  type: Polynomial
+  parameters:
+    intercept: 1.0
+    coefficients: [2.0]
+  boundaries:
+  - name: input
+    node_variable: [1,1]
+  outputs:
+  - name: output
+    node_variable: [1,2]
+  extra_pars:
+    allow_na: true
 - id: 2
-  function:
-    type: Polynomial
-    parameters:
-      intercept: 1.0
-      coefficients: [2.0]
-    boundaries:
-    - name: input
-      node_variable: [1,1]
-    outputs:
-    - name: output
-      node_variable: [1,2]
-    extra_pars:
-      allow_na: false
+  type: Polynomial
+  parameters:
+    intercept: 1.0
+    coefficients: [2.0]
+  boundaries:
+  - name: input
+    node_variable: [1,1]
+  outputs:
+  - name: output
+    node_variable: [1,2]
+  extra_pars:
+    allow_na: false

@@ -18,14 +18,13 @@ topology:
       - series_id: 3051
 procedures:
 - id: 1
-  function:
-    type: Polynomial
-    parameters:
-      intercept: 22.0
-      coefficients: [4.0]
-    boundaries:
-    - name: input
-      node_variable: [1,2]
-    outputs:
-    - name: output
-      node_variable: [1,2]
+  type: Polynomial
+  parameters:
+    intercept: 22.0
+    coefficients: [4.0]
+  boundaries:
+  - name: input
+    node_variable: [1,2]
+  outputs:
+  - name: output
+    node_variable: [1,2]

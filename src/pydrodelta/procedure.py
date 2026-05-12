@@ -386,8 +386,9 @@ class Procedure(Base):
                 "outputs": outputs if outputs is not None else [],
                 "extra_pars": extra_pars,
                 "forecast_date": forecast_date,
+                **kwargs
             },
-            "Procedure")
+            type(self).__name__)
         
         self.id : Union[int,str] = id
         """Identifier of the procedure"""

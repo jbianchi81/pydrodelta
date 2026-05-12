@@ -1,6 +1,5 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
-from ..validation import getSchemaAndValidate
 from ..pydrology import MuskingumChannel
 from pandas import DataFrame
 from ..function_boundary import FunctionBoundary

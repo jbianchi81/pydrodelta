@@ -4,7 +4,7 @@ import logging
 from numpy import tanh, inf
 from typing import Union
 
-class GR4JProcedureFunction(GRPProcedure):
+class GR4JProcedure(GRPProcedure):
 
     _parameters = [
         #  id  | model_id | nombre | lim_inf | range_min | range_max | lim_sup  | orden 
@@ -25,7 +25,7 @@ class GR4JProcedureFunction(GRPProcedure):
         ):
         super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         # overrides UH1, SH1 from super
-        self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedureFunction.createUnitHydrograph2(self.X3, self.alpha)
+        self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedure.createUnitHydrograph2(self.X3, self.alpha)
 
     @staticmethod
     def createUnitHydrograph2(X3,alpha):
@@ -101,5 +101,5 @@ class GR4JProcedureFunction(GRPProcedure):
 
     def setParameters(self, parameters: Union[list,tuple] = [], reset : bool = False):
         super().setParameters(parameters)
-        self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedureFunction.createUnitHydrograph2(self.X3, self.alpha)
+        self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedure.createUnitHydrograph2(self.X3, self.alpha)
     
