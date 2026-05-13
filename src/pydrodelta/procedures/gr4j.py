@@ -1,6 +1,6 @@
 import numpy as np
 from pandas import DataFrame
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, Mapping, Any
 import logging
 
 from ..procedure_function_results import ProcedureFunctionResults
@@ -212,7 +212,7 @@ class GR4JProcedure(PQProcedure):
     
     def setParameters(
         self,
-        parameters : Union[list, tuple] = [],
+        parameters : Union[List,Tuple,Mapping[str, Any]] = [],
         reset : bool = False
         ) -> None:
         """Set parameters from ordered list

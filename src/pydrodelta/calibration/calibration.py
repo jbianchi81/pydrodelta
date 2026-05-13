@@ -16,6 +16,7 @@ from a5client.util_types import Dateable
 
 if TYPE_CHECKING:
     from pydrodelta.procedure import Procedure
+    from pydrodelta.calibration.linear_regression_calibration import LinearCombinationParametersDict
 
 class Calibration:
     """Calibration base/abstract class"""
@@ -195,7 +196,7 @@ class Calibration:
         inplace : bool = True, 
         save_result : Optional[str] = None,
         **kwargs
-        ) -> Union[None,Tuple[List[float],float]]:
+        ) -> Union[None,Tuple[Union[List[float],LinearCombinationParametersDict],float]]:
         """
         Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
         

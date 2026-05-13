@@ -175,7 +175,7 @@ class LinearCombinationProcedure(Procedure):
         return 2 * float(stats.norm.cdf(self.Z)) - 1
 
     @property
-    def error_band(self) -> Union[List[float],None]:
+    def _error_band(self) -> Union[List[float],None]:
         """Error band half-widths for each step in the forecast horizon"""
         if self.calibration is not None and self.calibration.result is not None and "scores" in self.calibration.result and self.calibration.result["scores"] is not None:
             error_band = []
@@ -243,11 +243,11 @@ class LinearCombinationProcedure(Procedure):
         elif input is None:
             input = self.loadInput(inplace=False,pivot=False)
         output = []
-        error_band = self.error_band
+        error_band = self._error_band
         if self.coefficients is None:
             raise RuntimeError("Coefficients not set")
         initial_forecast_date = self._plan.forecast_date if self._plan is not None else input[0].index[-1]
-        time_interval = self._plan.time_interval if self._plan is not None else input[0].index[-1] - input[0].index[-2]
+        time_interval = self._plan.time_interval if self._plan is not None and self._plan.time_interval is not None else input[0].index[-1] - input[0].index[-2]
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = initial_forecast_date + (t_index + 1) * time_interval
             result = 1 * forecast_step.intercept

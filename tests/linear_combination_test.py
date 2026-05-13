@@ -6,7 +6,7 @@ import os
 import math
 from pydrodelta.config import config
 from pathlib import Path
-from pydrodelta.procedures.linear_combination import LinearCombinationProcedureFunction
+from pydrodelta.procedures.linear_combination import LinearCombinationProcedure
 
 data_dir = Path(__file__).parent / "data"
 
@@ -24,19 +24,19 @@ class Test_LinearCombination(TestCase):
         assert plan.topology is not None
         plan.topology.batchProcessInput()
         pr = plan.procedures[0]
-        assert isinstance(pr.function,LinearCombinationProcedureFunction)
-        fitted_parameters, results, stats_all = pr.function.linearRegression()
-        self.assertEqual(pr.function.parameters["forecast_steps"], fitted_parameters["forecast_steps"])
-        self.assertEqual(pr.function.parameters["lookback_steps"], fitted_parameters["lookback_steps"])
-        self.assertEqual(pr.function.parameters["forecast_steps"], len(fitted_parameters["coefficients"]))
+        assert isinstance(pr,LinearCombinationProcedure)
+        fitted_parameters, results, stats_all = pr.linearRegression()
+        self.assertEqual(pr.parameters["forecast_steps"], fitted_parameters["forecast_steps"])
+        self.assertEqual(pr.parameters["lookback_steps"], fitted_parameters["lookback_steps"])
+        self.assertEqual(pr.parameters["forecast_steps"], len(fitted_parameters["coefficients"]))
         for i, step in enumerate(fitted_parameters["coefficients"]):
             self.assertEqual(i, step["step"])
             self.assertTrue(isinstance(step["intercept"],(float,int)))
             self.assertFalse(math.isnan(step["intercept"]))
-            self.assertEqual(len(pr.function.boundaries), len(step["boundaries"]))
+            self.assertEqual(len(pr.boundaries), len(step["boundaries"]))
             for j, boundary in enumerate(step["boundaries"]):
-                self.assertEqual(pr.function.boundaries[j].name, boundary["name"])
-                self.assertEqual(pr.function.parameters["lookback_steps"], len(boundary["values"]))
+                self.assertEqual(pr.boundaries[j].name, boundary["name"])
+                self.assertEqual(pr.parameters["lookback_steps"], len(boundary["values"]))
                 for k, value in enumerate(boundary["values"]):
                     self.assertTrue(isinstance(step["intercept"],(float,int)))
                     self.assertFalse(math.isnan(value))
@@ -46,12 +46,12 @@ class Test_LinearCombination(TestCase):
         assert plan.topology is not None
         plan.topology.batchProcessInput()
         pr = plan.procedures[0]
-        assert isinstance(pr.function, LinearCombinationProcedureFunction)
-        fitted_parameters, results, stats_all = pr.function.linearRegression()
-        self.assertEqual(pr.function.parameters["forecast_steps"], len(results))
+        assert isinstance(pr, LinearCombinationProcedure)
+        fitted_parameters, results, stats_all = pr.linearRegression()
+        self.assertEqual(pr.parameters["forecast_steps"], len(results))
         for i, step in enumerate(fitted_parameters["coefficients"]):
             self.assertEqual(i, int(results["horiz"][i]))
-            n = len(pr.loadInput(inplace=False)[0]) - pr.function.parameters["lookback_steps"] - i
+            n = len(pr.loadInput(inplace=False)[0]) - pr.parameters["lookback_steps"] - i
             self.assertEqual(n, int(results["n"][i]))
             if i == 0:
                 self.assertTrue(results["r"][i] >= 0.99)
@@ -74,10 +74,10 @@ class Test_LinearCombination(TestCase):
         self.assertEqual(len(pr.calibration.scores),3)
         assert pr.calibration.calibration_result is not None
         cr = pr.calibration.calibration_result[0]
-        assert isinstance(pr.function.parameters, dict)
+        assert isinstance(pr.parameters, dict)
         for i, step in enumerate(cr["coefficients"]):
             self.assertEqual(i, int(pr.calibration.scores["horiz"][i]))
-            n = len(pr.loadInput(inplace=False)[0]) - pr.function.parameters["lookback_steps"] - pr.calibration.scores["n_val"][i] - i
+            n = len(pr.loadInput(inplace=False)[0]) - pr.parameters["lookback_steps"] - pr.calibration.scores["n_val"][i] - i
             self.assertEqual(n, int(pr.calibration.scores["n"][i]))
             if i == 0:
                 self.assertTrue(pr.calibration.scores["r"][i] >= 0.98)
@@ -115,17 +115,14 @@ class Test_LinearCombination(TestCase):
         pr.calibration.saveResult(data_dir / "results/lc_dummy_result.yml", format="yaml")
         saved_result = yaml.load(open(data_dir / "results/lc_dummy_result.yml"),yaml.CLoader)
         self.assertTrue("parameters" in saved_result)
-        assert isinstance(pr.function.parameters, dict)
-        self.assertEqual(saved_result["parameters"]["forecast_steps"], pr.function.parameters["forecast_steps"])
-        self.assertEqual(saved_result["parameters"]["lookback_steps"], pr.function.parameters["lookback_steps"])
-        self.assertEqual(len(saved_result["parameters"]["coefficients"]), len(pr.function.parameters["coefficients"]))
+        assert isinstance(pr.parameters, dict)
+        self.assertEqual(saved_result["parameters"]["forecast_steps"], pr.parameters["forecast_steps"])
+        self.assertEqual(saved_result["parameters"]["lookback_steps"], pr.parameters["lookback_steps"])
+        self.assertEqual(len(saved_result["parameters"]["coefficients"]), len(pr.parameters["coefficients"]))
     
     def test_assert_missing_parameters(self):
         self.assertRaises(
-            TypeError,
-            Procedure,
-            1,
-            {
-                "type": "LinearCombination"
-            }
+            Exception,
+            LinearCombinationProcedure,
+            1
         )

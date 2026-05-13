@@ -25,7 +25,7 @@ from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
-from numpy import array
+from numpy import array, ndarray
 from pandas import DataFrame
 from datetime import datetime
 from .types.typed_list import TypedList
@@ -35,6 +35,10 @@ from .util import getInputListFromDataFrame, tvpListToDataFrame
 from .model_parameter import ModelParameter
 from a5client.util_types import TVPList
 from pydrodelta.validation import getSchemaAndValidate
+from .custom_errors import DuplicateKeyError
+
+if TYPE_CHECKING:
+    from .plan import Plan
 
 class StatsDict(TypedDict):
     procedure_id : Union[str,int]
@@ -52,17 +56,14 @@ class Procedure(Base):
     id : int or str
         Identifier of the procedure
 
-    function : dict
-        ProcedureFunction configuration dict (see ProcedureFunction)
-
     plan : Plan
         Plan containing this procedure
 
     initial_states : list or None
-        List of procedure initial states. The order of the states is defined in .function._states
+        List of procedure initial states. The order of the states is defined in ._states
 
     parameters : list or None
-        List of procedure parameters. The order of the parameters is defined in .function._model_parameters 
+        List of procedure parameters. The order of the parameters is defined in ._model_parameters 
 
     time_interval : str or dict (time duration)
         Time step duration of the procedure
@@ -125,7 +126,7 @@ class Procedure(Base):
     linear_model = DictDescriptor()
     """Linear model fit results"""
 
-    error_band = BoolOrNoneDescriptor()
+    error_band : Optional[bool]
     """Add error band series to adjusted result"""
 
     read_sim = BoolDescriptor()
@@ -139,6 +140,10 @@ class Procedure(Base):
 
     drop_warmup = BoolDescriptor()
     """Eliminate warmup steps of adjusted output"""
+
+    @property
+    def function(self) -> Procedure:
+        return self
 
     @property
     def data(self) -> Optional[DataFrame]:
@@ -303,10 +308,20 @@ class Procedure(Base):
 
     save_results : Optional[Path]
 
+    @property
+    def parameters_for_calibration(self) -> List[ModelParameter]:
+        if self._parameters_for_calibration is not None:
+            return self._parameters_for_calibration
+        else:
+            return self._parameters
+    @parameters_for_calibration.setter
+    def parameters_for_calibration(self, values : Optional[List[ModelParameter]]) -> None:
+        self._parameters_for_calibration = values
+
     def __init__(
         self,
-        id : Union[int, str],
-        plan = None,
+        id : Union[int, str] = 0,
+        plan : Optional[Plan] = None,
         initial_states : Union[list, dict] = [],
         parameters : Union[List[Any], Mapping[str, Any]] = [],
         time_interval : Optional[Union[float,util.IntervalDict]] = None,
@@ -328,6 +343,7 @@ class Procedure(Base):
         outputs : Optional[Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
         extra_pars : dict = dict(),
         forecast_date : Optional[datetime] = None,
+        parameters_for_calibration : Optional[List[ModelParameter]] = None,
         **kwargs
         ):
         """A procedure
@@ -356,6 +372,9 @@ class Procedure(Base):
             
         save_results : str = None
             save results into file. Defaults to save_results of plan
+
+        parameters_for_calibration : Optional[List[ModelParameter]] = None
+            parameter definition for calibration
         """
         if "type" in kwargs:
             del kwargs["type"]
@@ -388,12 +407,13 @@ class Procedure(Base):
                 "forecast_date": forecast_date,
                 **kwargs
             },
-            type(self).__name__)
+            # type(self).__name__)
+            [type_.__name__ for type_ in type(self).__mro__][:-2])
         
-        self.id : Union[int,str] = id
-        """Identifier of the procedure"""
         self._plan = plan
         """Plan containing this procedure"""
+        self.id : Union[int,str] = id
+        """Identifier of the procedure"""
         self.save_results = self.resolve_path(save_results)
         """Save procedure results into this file (csv pivoted table)"""
         self.initial_states = initial_states
@@ -416,8 +436,7 @@ class Procedure(Base):
         self.boundaries = boundaries if boundaries is not None else []
         self.outputs = outputs if outputs is not None else []
         self.extra_pars = extra_pars
-        if forecast_date is not None:
-            self.forecast_date = forecast_date
+        self.forecast_date = forecast_date if forecast_date is not None else self._plan.forecast_date if self._plan is not None else None
         
         self.time_interval : Optional[relativedelta] = util.interval2timedelta(time_interval) if time_interval is not None else None
         """Time step duration of the procedure"""
@@ -438,6 +457,7 @@ class Procedure(Base):
         self.overwrite_original : bool = bool(overwrite_original)
         """When exporting procedure results into the topology, overwrite observations in NodeVariable.original_data"""
         # self.simplex : list = None
+        self.parameters_for_calibration = parameters_for_calibration
         self.calibration = calibration
         """Configuration for calibration"""
         self.adjust = adjust
@@ -755,9 +775,9 @@ class Procedure(Base):
         #     raise Exception("length of obs must be equal than length of sim")
         for i, o in enumerate(self.outputs):
             if len(sim) < i + 1:
-                raise Exception("List of sim outputs is shorter than function.outputs (%i < %i" % (len(sim), len(self.outputs)))
+                raise Exception("List of sim outputs is shorter than .outputs (%i < %i" % (len(sim), len(self.outputs)))
             if len(obs) < i + 1:
-                raise Exception("List of obs outputs is smaller than function.outputs (%i < %i" % (len(obs), len(self.outputs)))
+                raise Exception("List of obs outputs is smaller than .outputs (%i < %i" % (len(obs), len(self.outputs)))
             df_obs = obs[i].iloc[warmup:].copy() if warmup is not None else obs[i]
             df_obs = cast(DataFrame,df_obs.tail(tail)) if tail is not None else cast(DataFrame,df_obs)
             df_sim = sim[i].iloc[warmup:].copy() if warmup is not None else sim[i]
@@ -933,6 +953,7 @@ class Procedure(Base):
         tail_steps = tail_steps if tail_steps is not None else self.tail_steps
         error_band = util.coalesce(error_band,self.error_band,True)
         drop_warmup = drop_warmup if drop_warmup is not None else self.drop_warmup
+        
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -947,6 +968,7 @@ class Procedure(Base):
         else:
             # logging.debug("Input already loaded")
             input = self.input
+        
         # loads observed outputs
         if load_output_obs:
             # logging.debug("Loading output obs")
@@ -954,13 +976,21 @@ class Procedure(Base):
         else:
             # logging.debug("Output obs already loaded")
             output_obs = self.output_obs
-        # runs procedure function
-        output, procedure_function_results = self.rerun(input = input, parameters = parameters, initial_states = initial_states)
+        
+        # runs procedure
+        if parameters is not None:
+            self.setParameters(parameters)
+        if initial_states is not None:
+            self.setInitialStates(initial_states)
+        output, procedure_function_results = self.exec(input)
+        
         # sets procedure_function_results
         self.procedure_function_results = ProcedureFunctionResults(**procedure_function_results) if isinstance(procedure_function_results, dict) else procedure_function_results
+        
         # sets states
         if self.procedure_function_results.states is not None:
             self.states = self.procedure_function_results.states
+        
         # compute statistics
         if not self._no_sim:
             if inplace:
@@ -977,6 +1007,7 @@ class Procedure(Base):
         else:
             if inplace:
                 self.output = output
+        
         # adjust
         if adjust:
             if self.output_obs is None:
@@ -1008,16 +1039,19 @@ class Procedure(Base):
                     o["inferior"] = o["valor"] - self.linear_model["quant_Err"][0.950]
                     o["superior"] = o["valor"] + self.linear_model["quant_Err"][0.950]
                 self.procedure_function_results.setAdjustResults(lm_stats)
+        
         # saves results to file
         if bool(save_results):
             self.procedure_function_results.save(output=save_results)
         if bool(save_dict):
             self.saveDict(output=save_dict)
+        
         # returns
         if inplace:
             return
         else:
             return output
+        
     def getOutputNodeData(
         self,
         node_id : int,
@@ -1108,6 +1142,8 @@ class Procedure(Base):
         """Set index of data frame from topology begin and end dates and time_interval"""
         if self._plan is None:
             raise Exception("Plan is not set")
+        if self._plan.topology is None:
+            raise Exception("Topology is not set")
         data = util.serieRegular(
             data = data,
             time_interval  = time_interval if time_interval is not None else util.decimal_days_to_relativedelta(self._plan.time_interval) if isinstance(self._plan.time_interval,int) else self._plan.time_interval,
@@ -1213,7 +1249,8 @@ class Procedure(Base):
     def setParameters(
         self,
         parameters : Union[List,Tuple,Mapping[str, Any]] = [],
-        reset : bool = True
+        reset : bool = True,
+        keys : Optional[List[str]] = None
         ) -> None:
         """
         Generic self.parameters setter. If self._parameters is not empty, uses name of each item to set self.parameters as a dict. Else will set a list
@@ -1224,14 +1261,23 @@ class Procedure(Base):
             Procedure function parameters to set
         reset : bool = True
             Start new parameter set from empty dict
+        keys : Optional[List[str]] = None
+            set only these parameter keys
         """
         if len(self._parameters):
             if reset:
                 self.parameters = {}
             if not isinstance(self.parameters, dict):
                 raise RuntimeError("parameters must be a dict")
+            if keys is not None:
+                for i, k in enumerate(keys):
+                    if isinstance(parameters, (tuple,list,ndarray)):
+                        self.parameters[k] = parameters[i]    
+                    else:
+                        self.parameters[k] = parameters[k]
+                return
             for i, p in enumerate(self._parameters):                    
-                if isinstance(parameters, (tuple,list)):
+                if isinstance(parameters, (tuple,list,ndarray)):
                     if len(parameters) - 1 < i:
                         raise ValueError("parameters list is too short: %i item is missing" % i)
                     self.parameters[p.name] = parameters[i]
@@ -1240,7 +1286,7 @@ class Procedure(Base):
                         raise ValueError(f"Missing key '{p.name}' in parameters dict")
                     self.parameters[p.name] = parameters[p.name]
         else:
-            if isinstance(parameters, (list,tuple)):
+            if isinstance(parameters, (list,tuple,ndarray)):
                 self.parameters = list(parameters)
             else:
                 self.parameters = parameters
@@ -1264,34 +1310,6 @@ class Procedure(Base):
                 self.initial_states[p.name] = states[i]
         else:
             self.initial_states = list(states)
-
-    def rerun(
-        self,
-        input : Optional[Union[DataFrame,List[DataFrame]]] = None,
-        parameters : Optional[Union[list,tuple]] = None, 
-        initial_states : Optional[Union[list,tuple]] = None
-        ) -> Tuple[Union[DataFrame,List[DataFrame]], ProcedureFunctionResults]:
-        """Execute the procedure with the given parameters and initial_states
-        
-        Parameters:
-        -----------
-        input : list if DataFrames
-            Procedure input (boundary conditions). If None, loads using .loadInput()
-        
-        parameters : list or tuple
-            Set procedure parameters (self.parameters).
-        
-        initial_states : list or tuple
-            Set initial states (self.initial_states)
-        
-        Returns:
-        --------
-        2-tuple : first element is the procedure output (list of DataFrames), while second is a ProcedureFunctionResults object"""
-        if parameters is not None:
-            self.setParameters(parameters)
-        if initial_states is not None:
-            self.setInitialStates(initial_states)
-        return self.exec(input)
 
     def exec(
         self,
@@ -1322,7 +1340,7 @@ class Procedure(Base):
         ) -> List[List[float]]:
         """Generate Simplex from procedure function parameters. 
         
-        Generates a list of len(self._parameters)+1 parameter sets randomly using a normal distribution centered in the corresponding parameter range and with variance=sigma
+        Generates a list of len(self._parameters)+1 (or len(self._parameters_for_calibration)+1 if self._parameters_for_calibration is set) parameter sets randomly using a normal distribution centered in the corresponding parameter range and with variance=sigma
         
         Parameters:
         -----------
@@ -1338,12 +1356,14 @@ class Procedure(Base):
         Returns:
         --------
         list : list of  length = len(self._parameters) + 1 where each element is a list of floats of length = len(self._parameters)"""
-        if not len(self._parameters):
-            raise Exception("_parameters not set for this class")
+        
+        if not len(self.parameters_for_calibration):
+            raise Exception("_parameters or parameters_for_calibration not set for this class")
+        
         points : List[List[float]] = []
-        for i in range(len(self._parameters)+1):
+        for i in range(len(self.parameters_for_calibration)+1):
             point : List[float] = []
-            for j, p in enumerate(self._parameters):
+            for j, p in enumerate(self.parameters_for_calibration):
                 if ranges is not None and len(ranges) - 1 >= j:
                     if len(ranges[j]) < 2:
                         raise ValueError("ranges must be a list of 2-tuples")

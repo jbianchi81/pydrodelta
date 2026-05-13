@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List, Union, Tuple
+from typing import Optional, List, Union, Tuple, Protocol
 from .calibration import Calibration
 from ..types.linear_combination_parameters_dict import LinearCombinationParametersDict
 from ..config import config
@@ -9,14 +9,29 @@ import os
 from datetime import datetime
 from pathlib import Path
 from ..util import createParent
+from ..types import ExecInput
+from ..result_statistics import ResultStatistics
+
+class LinearCombinationCallable(Protocol):
+    def __call__(
+        self,
+        *,
+        input: "ExecInput" = None,
+        calibration_period: Optional[Tuple[datetime, datetime]] = None,
+    ) -> Tuple[
+        "LinearCombinationParametersDict",
+        DataFrame,
+        List["ResultStatistics"]
+    ]:
+        ...
 
 class LinearRegressionCalibration(Calibration):
     """Calibration procedure using linear regression - least squares"""
     
     def linearRegression(
         self,
-        calibration_period : Tuple[datetime,datetime] = None
-        ) -> Tuple[LinearCombinationParametersDict,DataFrame] :
+        calibration_period : Optional[Tuple[datetime,datetime]] = None
+        ) -> Tuple[LinearCombinationParametersDict,DataFrame, List[ResultStatistics]] :
         """Perform linear regression
 
         Args:
@@ -27,6 +42,8 @@ class LinearRegressionCalibration(Calibration):
             LinearCombinationParametersDict : resulting parameters
             DataFrame : resulting scores"""
         calibration_period = calibration_period if calibration_period is not None else self.calibration_period
+        if self._linearRegression is None:
+            raise RuntimeError("linear regression not available for this procedure type")
         return self._linearRegression(calibration_period=calibration_period)
 
     def __init__(
@@ -35,8 +52,8 @@ class LinearRegressionCalibration(Calibration):
             calibrate : bool = True,
             result_index : int = 0,
             objective_function : str = 'rmse',
-            save_result : str = None,
-            calibration_period : list = None,
+            save_result : Optional[str] = None,
+            calibration_period : Optional[List[datetime]] = None,
             base_path : Union[str,Path,None] = None
             ):
         """
@@ -61,7 +78,7 @@ class LinearRegressionCalibration(Calibration):
 
             Save calibration result into this file
         
-        calibration_period : Tuple[datetime,datetime] = None
+        calibration_period : Optional[List[datetime]] = None
 
             Begin and end dates of training set. Data outside this period is used for validation. If not set, validation is not performed
         """
@@ -73,7 +90,7 @@ class LinearRegressionCalibration(Calibration):
             objective_function = "rmse",
             result_index = 0,
             base_path = base_path)
-        self._linearRegression = getattr(self._procedure.function, "linearRegression", None)
+        self._linearRegression : Optional[LinearCombinationCallable] = getattr(self._procedure, "linearRegression", None)
         if not callable(self._linearRegression):
             raise Exception("linear regression not available for this procedure function")
 
@@ -97,8 +114,9 @@ class LinearRegressionCalibration(Calibration):
     def run(
         self, 
         inplace : bool = True, 
-        save_result : Optional[str] = None,
-        calibration_period : Optional[Tuple[datetime,datetime]] = None
+        save_result : Optional[Union[Path,str]] = None,
+        calibration_period : Optional[Tuple[datetime,datetime]] = None,
+        **kwargs # ignored
         ) -> Union[None,Tuple[LinearCombinationParametersDict,float]]:
         """
         Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
@@ -137,8 +155,14 @@ class LinearRegressionCalibration(Calibration):
             )
         # self.runReturnScore(parameters=fitted_parameters, objective_function=self.objective_function)
         self.scores = results
+        if self._procedure is None:
+            raise RuntimeError("procedure not set")
         self._procedure.setParameters(fitted_parameters)
-        self._procedure.exec()
+        # self._procedure.exec()
+        self._procedure.run(
+            load_input=False, 
+            load_output_obs=False
+        )
         if inplace:
             self._calibration_result = (fitted_parameters,results["rmse"][0])
         else:

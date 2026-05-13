@@ -1,5 +1,5 @@
 from pydrodelta.plan import Plan
-from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedureFunction
+from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedure
 from unittest import TestCase
 import yaml
 import os
@@ -10,7 +10,7 @@ from pydrodelta.util import createDatetimeSequence
 class Test_LagAndRouteNetProcedure(TestCase):
 
     def test_run(self):
-        procedure_function = LagAndRouteNetProcedureFunction(
+        procedure = LagAndRouteNetProcedure(
             parameters = {
                 "lag_1": 2,
                 "k_1": 2,
@@ -70,7 +70,7 @@ class Test_LagAndRouteNetProcedure(TestCase):
             )
         ]
 
-        output, procedure_function_results = procedure_function.run(input_data)
+        output, procedure_function_results = procedure.exec(input_data)
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),31)
         self.assertAlmostEqual(6.06, output[0]["valor"].max(),2)

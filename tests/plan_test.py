@@ -5,9 +5,10 @@ import os
 from pandas import DataFrame
 from pydrodelta.types.typed_list import TypedList
 from pydrodelta.procedure import Procedure
-from pydrodelta.procedures.abstract import AbstractProcedureFunction
+from pydrodelta.procedures.abstract import AbstractProcedure
 from pydrodelta.config import config
 from pathlib import Path
+from pydrodelta.custom_errors import DuplicateKeyError
 
 data_dir = Path(__file__).parent / "data"
 
@@ -18,11 +19,13 @@ class Test_Plan(TestCase):
         self.assertEqual(plan.name,"linear_channel_dummy")
         self.assertEqual(plan.id, 505)
         self.assertEqual(plan.forecast_date.isoformat(), "2024-01-03T00:00:00-03:00")
+        assert plan.topology is not None
         self.assertEqual(len(plan.topology.nodes),2)
         self.assertEqual(len(plan.procedures),1)
 
     def test_analysis(self):
         plan = Plan.load(data_dir / "plans/linear_channel_dummy.yml")
+        assert plan.topology is not None
         plan.topology.batchProcessInput()
         for n in plan.topology.nodes:
             for v in n.variables:
@@ -35,16 +38,23 @@ class Test_Plan(TestCase):
         plan = Plan.load(data_dir / "plans/linear_channel_dummy.yml")
         plan.execute(upload=False)
         for p in plan.procedures:
+            assert p.input is not None
             for i in p.input:
                 self.assertTrue(isinstance(i,DataFrame))
+                assert isinstance(i, DataFrame)
                 self.assertEqual(len(i),15)
                 self.assertEqual(min(i.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
                 self.assertEqual(max(i.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
+            assert p.output is not None
             for o in p.output:
                 self.assertTrue(isinstance(o,DataFrame))
+                assert isinstance(o, DataFrame)
                 self.assertEqual(len(o),15)
                 self.assertEqual(min(o.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-01T00:00:00-03:00")
                 self.assertEqual(max(o.index).tz_convert("America/Argentina/Buenos_Aires").isoformat(),"2024-01-15T00:00:00-03:00")
+        assert plan.topology is not None
+        assert plan.topology.nodes is not None
+        assert plan.topology.nodes[1].variables[40].series_sim is not None
         for s in plan.topology.nodes[1].variables[40].series_sim:
             self.assertTrue(isinstance(s.data,DataFrame))
             self.assertEqual(len(s.data),15)
@@ -57,6 +67,7 @@ class Test_Plan(TestCase):
     
     def test_api(self):
         plan = Plan.load(data_dir / "plans/dummy_polynomial.yml")
+        assert plan.topology is not None
         plan.topology.batchProcessInput(
             input_api_config = {
                 "url": "https://alerta.ina.gob.ar/a5",
@@ -71,9 +82,9 @@ class Test_Plan(TestCase):
 
     def test_api_basin_pars(self):
         plan = Plan.load(data_dir / "plans/dummy_sac_basin_pars_from_api.yml")
-        self.assertTrue("area" in plan.procedures[0].function.extra_pars)
-        self.assertIsNotNone(plan.procedures[0].function.extra_pars["area"])
-        self.assertAlmostEqual(plan.procedures[0].function.extra_pars["area"], 45250735227.4144,1)
+        self.assertTrue("area" in plan.procedures[0].extra_pars)
+        self.assertIsNotNone(plan.procedures[0].extra_pars["area"])
+        self.assertAlmostEqual(plan.procedures[0].extra_pars["area"], 45250735227.4144,1)
         plan.execute(
             upload = False
         )
@@ -105,7 +116,7 @@ class Test_Plan(TestCase):
         calibration = plan.procedures[0].calibration.toDict()
         self.assertEqual(len(calibration["calibration_result"][0]),10)
         for i, x in enumerate(calibration["calibration_result"][0]):
-            self.assertEqual(x, plan.procedures[0].function.parameter_list[i])
+            self.assertEqual(x, plan.procedures[0].parameter_list[i])
         self.assertEqual(calibration["calibration_result"][1], stats["results"][0]["oneminusr"])
         self.assertEqual(len(calibration["limits"]),10)
 
@@ -146,21 +157,29 @@ class Test_Plan(TestCase):
         )
         self.assertIsInstance(
             plan.procedures,
-            TypedList
+            list
         )
+
+        assert len(plan.procedures) == 0
+
         procedure = Procedure(
             1,
-            {
-                "type": "ProcedureFunction"
-            }
+            type= "Procedure"
         )
         plan.procedures.append(procedure)
+
+        assert len(plan.procedures) == 1
+
+        for p in plan.procedures:
+            assert isinstance(p, Procedure)
+
+
 
     def test_duplicate_procedure(self):
         plan = Plan(
             "plan 0",
             123,
-            {
+            topology = {
                 "timestart": "2000-01-01T12:00:00.000Z",
                 "timeend": "2000-01-06T12:00:00.000Z",
                 "time_offset": { "hours": 9},
@@ -169,30 +188,29 @@ class Test_Plan(TestCase):
             procedures = [
                 {
                     "id": 1,
-                    "function": {
-                        "type": "AbstractProcedureFunction",
-                        "parameters": [],
-                        "boundaries": [],
-                        "outputs": []                        
-                    }
+                    "type": "AbstractProcedure",
+                    "parameters": [],
+                    "boundaries": [],
+                    "outputs": []                        
                 }
             ]
         )
         self.assertIsInstance(
             plan.procedures,
-            TypedList
+            list
         )
+        for p in plan.procedures:
+            assert isinstance(p, Procedure)
+        
         procedure = Procedure(
             1,
-            {
-                "type": "AbstractProcedureFunction",
-                "parameters": [],
-                "boundaries": [],
-                "outputs": []                        
-            }
+            type = "AbstractProcedure",
+            parameters = [],
+            boundaries = [],
+            outputs = []
         )
         self.assertRaises(
-            ValueError,
+            DuplicateKeyError,
             plan.procedures.append,
             procedure
         )
@@ -297,48 +315,46 @@ class Test_Plan(TestCase):
 
     dummy_procedure = {
         "id": "Yacyretá/Pilco - Corrientes",
-        "function": {
-            "type": "LinearNet3",
-            "boundaries": [
-                {
-                    "name": "input_1",
-                    "node_variable": [
-                        0,
-                        40
-                    ]
-                },
-                {
-                    "name": "input_2",
-                    "node_variable": [
-                        1,
-                        40
-                    ]
-                },
-                {
-                    "name": "input_3",
-                    "node_variable": [
-                        2,
-                        40
-                    ]
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "output",
-                    "node_variable": [
-                        3,
-                        40
-                    ]
-                }
-            ],
-            "parameters": {
-                "k_1": 3,
-                "n_1": 2,
-                "k_2": 5,
-                "n_2": 2,
-                "k_3": 2.45,
-                "n_3": 2
+        "type": "LinearNet3",
+        "boundaries": [
+            {
+                "name": "input_1",
+                "node_variable": [
+                    0,
+                    40
+                ]
+            },
+            {
+                "name": "input_2",
+                "node_variable": [
+                    1,
+                    40
+                ]
+            },
+            {
+                "name": "input_3",
+                "node_variable": [
+                    2,
+                    40
+                ]
             }
+        ],
+        "outputs": [
+            {
+                "name": "output",
+                "node_variable": [
+                    3,
+                    40
+                ]
+            }
+        ],
+        "parameters": {
+            "k_1": 3,
+            "n_1": 2,
+            "k_2": 5,
+            "n_2": 2,
+            "k_3": 2.45,
+            "n_3": 2
         }
     }
 
@@ -356,6 +372,7 @@ class Test_Plan(TestCase):
         self.assertEqual(plan.name,"test_nan")
         self.assertEqual(plan.id, 111)
         self.assertEqual(plan.forecast_date.isoformat(), "2000-01-03T00:00:00-03:00")
+        assert plan.topology is not None
         self.assertEqual(len(plan.topology.nodes),4)
         self.assertEqual(len(plan.procedures),1)
         
@@ -425,6 +442,7 @@ class Test_Plan(TestCase):
 
         plan.procedures[0].loadInput()
 
+        assert plan.procedures[0].input is not None
         self.assertEqual(len(plan.procedures[0].input),3)
         self.assertEqual(len(plan.procedures[0].input[0].dropna()),5)
         self.assertEqual(len(plan.procedures[0].input[1].dropna()),5)
@@ -432,11 +450,88 @@ class Test_Plan(TestCase):
 
         plan.procedures[0].loadOutputObs()
 
+        assert plan.procedures[0].output_obs is not None
         self.assertEqual(len(plan.procedures[0].output_obs),1)
         self.assertEqual(len(plan.procedures[0].output_obs[0].dropna()),0)
 
         plan.procedures[0].run()
 
+        assert plan.procedures[0].output is not None
         self.assertEqual(len(plan.procedures[0].output),1)
         self.assertEqual(len(plan.procedures[0].output[0].dropna()),5)
 
+    def test_raise_duplicate_proc_id(self):
+        self.assertRaises(
+            DuplicateKeyError, 
+            Plan,
+            id=9999,
+            name="test raise duplicate",
+            topology = {
+                "timestart": "2022-07-15T03:00:00.000Z",
+                "timeend": "2022-07-17T03:00:00.000Z",
+                "nodes": [
+                    {
+                        "id": 1,
+                        "name": "andresito",
+                        "time_interval": {"days": 1},
+                        "variables": [
+                            {
+                                "id": 2,
+                                "series": [
+                                    {
+                                        "series_id": 8
+                                    }
+                                ],
+                                "series_sim": [
+                                    {
+                                        "series_id": 3051
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            procedures = [
+                {
+                    "id": "duplicate",
+                    "type": "Polynomial",
+                    "parameters": {
+                        "intercept": 22.0,
+                        "coefficients": [4.0]
+                    },
+                    "boundaries": [
+                        {
+                            "name": "input",
+                            "node_variable": [1,2]
+                        }
+                    ],
+                    "outputs": [
+                        {
+                            "name": "output",
+                            "node_variable": [1,2]
+                        }
+                    ]
+                },
+                {
+                    "id": "duplicate",
+                    "type": "Polynomial",
+                    "parameters": {
+                        "intercept": 22.0,
+                        "coefficients": [4.0]
+                    },
+                    "boundaries": [
+                        {
+                            "name": "input",
+                            "node_variable": [1,2]
+                        }
+                    ],
+                    "outputs": [
+                        {
+                            "name": "output",
+                            "node_variable": [1,2]
+                        }
+                    ]
+                }
+            ]
+        )

@@ -5,7 +5,7 @@ import os
 from pydrodelta.config import config
 from pandas import DataFrame
 from pathlib import Path
-from pydrodelta.procedures.lag_and_route import LagAndRouteProcedureFunction
+from pydrodelta.procedures.lag_and_route import LagAndRouteProcedure
 
 data_dir = Path(__file__).parent / "data"
 
@@ -13,8 +13,8 @@ class Test_LagAndRouteProcedure(TestCase):
 
     def test_run(self):
         plan = Plan.load(data_dir / "plans/lar_dummy.yml")
-        pf = plan.procedures[0].function
-        assert isinstance(pf, LagAndRouteProcedureFunction)
+        pf = plan.procedures[0]
+        assert isinstance(pf, LagAndRouteProcedure)
         self.assertEqual(pf.pars_list[0], 3)
         self.assertTrue(pf.pars_list[1], 0.5)
         self.assertTrue(pf.pars_list[2], 2)

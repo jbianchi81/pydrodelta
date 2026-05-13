@@ -1,6 +1,6 @@
 
 from .sacramento_simplified import SacramentoSimplifiedProcedure
-from typing import Union
+from typing import Union, List, Tuple, Mapping, Any, Dict, Optional
 import numpy as np
 
 class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
@@ -55,6 +55,12 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
     # def c2(self) -> float:
     #     """percolation function coefficient [-]"""
     #     return self.extra_pars["c2"]
+
+    _fixed_parameters : Dict[str, float]
+
+    @property
+    def calibration_parameters(self) -> List[str]:
+        return [p.name for p in self._parameters if p.name not in self._fixed_parameters.keys()]
     
     def __init__(
         self,
@@ -120,21 +126,20 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
         kwargs["type"] = "SacramentoSimplified"
         if not isinstance(parameters, dict):
             raise TypeError("parameters must be dict")
-        merged_parameters = {
-            **parameters,
-            **fixed_parameters
-        }
-            
-        super().__init__(
-            parameters = merged_parameters, 
-            initial_states = initial_states,
-            **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         
+        self._fixed_parameters = fixed_parameters
+
         reduced_parameters = []
         for p in self._parameters:
             if p.name not in fixed_parameters.keys():
                 reduced_parameters.append(p)
-        self._parameters = reduced_parameters
+
+        super().__init__(
+            parameters = {**parameters, **fixed_parameters}, 
+            initial_states = initial_states,
+            parameters_for_calibration = reduced_parameters,
+            **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
+        
         # getSchemaAndValidate(dict(kwargs, parameters = merged_parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")
         # self.volume = 0
         # self.sm_obs = []
@@ -144,7 +149,10 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
         # self.Xw = []
         # self.flows = None
 
-    # def setParameters(
-    #     self, 
-    #     parameters: Union[list,tuple] = ...) -> None:
-    #     super().setParameters(parameters, False)
+    def setParameters(
+        self,
+        parameters : Union[List,Tuple,Mapping[str, Any]] = [],
+        reset : bool = True,
+        keys : Optional[List[str]] = None
+        ) -> None:
+        super().setParameters(parameters, False, keys=self.calibration_parameters)

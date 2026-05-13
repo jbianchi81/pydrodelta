@@ -36,7 +36,7 @@ class DownhillSimplexCalibration(Calibration):
                 raise ValueError("Invalid ranges argument. Must be a list")
             if self._procedure is None:
                 raise RuntimeError("_procedure not set")
-            if len(ranges) != len(self._procedure._parameters):
+            if len(ranges) != len(self._procedure.parameters_for_calibration):
                 raise ValueError("Invalid ranges argument length. Must be equal the number of parameters of the procedure function (_procedure.function._parameters) =  %i. Instead, length is %i" % (len(self._procedure._parameters), len(ranges)))
             self._ranges = list()
             for i, r in enumerate(ranges):

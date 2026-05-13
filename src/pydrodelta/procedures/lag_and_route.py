@@ -35,25 +35,35 @@ class LagAndRouteProcedure(Procedure):
         return self._engine
 
     @property
-    def pars_list(self) -> list:
+    def pars_list(self) -> List[float]:
         if "n" in self.parameters:
-            return [
-                self.parameters["lag"],
-                self.parameters["k"],
-                self.parameters["n"]
-            ] if isinstance(self.parameters, dict) else [
+            if isinstance(self.parameters, dict):
+                return [
+                    self.parameters["lag"],
+                    self.parameters["k"],
+                    self.parameters["n"]
+                ]
+            elif isinstance(self.parameters, (list, tuple)):
+                return [
                 self.parameters[0],
                 self.parameters[1],
                 self.parameters[2]
-            ]
+                ]
+            else:
+                raise TypeError("parameters must be dict or list")
         else:
-            return [
-                self.parameters["lag"],
-                self.parameters["k"]
-            ] if isinstance(self.parameters, dict) else [
-                self.parameters[0],
-                self.parameters[1]
-            ]
+            if isinstance(self.parameters, dict):
+                return [
+                    self.parameters["lag"],
+                    self.parameters["k"]
+                ] 
+            elif isinstance(self.parameters, (list, tuple)):
+                return[
+                    self.parameters[0],
+                    self.parameters[1]
+                ]
+            else:
+                raise TypeError("parameters must be dict or list")
 
     def __init__(
         self,

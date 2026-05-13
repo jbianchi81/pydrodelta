@@ -34,16 +34,42 @@ class Node:
     """Type of node according to its geometry. Either 'puntual', 'areal' or 'raster'"""
     name = StringDescriptor()
     """Name of the node"""
-    timestart = DatetimeDescriptor()
-    """Start time of the observations"""
-    timeend = DatetimeDescriptor()
-    """End time of the observations"""
-    forecast_timeend = DatetimeDescriptor()
-    """Time end of the forecast"""
+    
+    @property
+    def timestart(self) -> Optional[datetime]:
+        """Start time of the observations"""
+        return self._timestart if self._timestart is not None else self._topology.timestart if self._topology is not None else None
+    @timestart.setter
+    def timestart(self, value : Optional[Dateable]) -> None:
+        self._timestart = tryParseAndLocalizeDate(value) if value is not None else None   
+
+    @property
+    def timeend(self) -> Optional[datetime]:
+        """End time of the observations"""
+        return self._timeend if self._timeend is not None else self._topology.timeend if self._topology is not None else None
+    @timeend.setter
+    def timeend(self, value : Optional[Dateable]) -> None:
+        self._timeend = tryParseAndLocalizeDate(value) if value is not None else None   
+
+    @property
+    def forecast_timeend(self) -> Optional[datetime]:
+        """Time end of the forecast"""
+        return self._forecast_timeend if self._forecast_timeend is not None else self._topology.forecast_timeend if self._topology is not None else None
+    @forecast_timeend.setter
+    def forecast_timeend(self, value : Optional[Dateable]) -> None:
+        self._forecast_timeend = tryParseAndLocalizeDate(value) if value is not None else None   
+    
+    @property
+    def time_offset(self) -> Optional[relativedelta]:
+        """Start time of the observations/forecasts relative to zero local time"""
+        return self._time_offset if self._time_offset is not None else self._topology.time_offset_start if self._topology is not None else None
+    @time_offset.setter
+    def time_offset(self, value : Optional[Intervaleable]) -> None:
+        self._time_offset = interval2relativedelta(value) if value is not None else None   
+
     time_interval : relativedelta
     """Intended time step of the observations/forecasts"""
-    time_offset : Optional[relativedelta]
-    """Start time of the observations/forecasts relative to zero local time"""
+    
     hec_node = DictDescriptor()
     """Mapping of this node to HECRAS geometry"""
     description = StringDescriptor()
@@ -61,6 +87,7 @@ class Node:
         if variables is not None:
             for variable in variables:
                 if isinstance(variable, (DerivedNodeVariable,ObservedNodeVariable)):
+                    variable._node = self
                     self._variables[variable["id"]] = variable
                 else:
                     if "derived" in variable and variable["derived"] == True:
@@ -96,8 +123,13 @@ class Node:
     _crud : Crud
     """Input api client"""
 
-    base_path : Optional[Path]
-    """Base path. Used to resolve input/output relative paths"""
+    @property
+    def base_path(self) -> Optional[Path]:
+        """Base path. Used to resolve input/output relative paths"""
+        return self._base_path if self._base_path is not None else self._topology.base_path if self._topology is not None else None
+    @base_path.setter
+    def base_path(self, value : Optional[Union[str, Path]]) -> None:
+        self._base_path = resolve_path(value) if value is not None else None
 
     def __init__(
             self,
@@ -197,7 +229,7 @@ class Node:
         if self.api_config is None:
             self.api_config = config["input_api"]
         self._crud = Crud(**self.api_config)
-        self.base_path = resolve_path(base_path) if base_path is not None else None
+        self.base_path = base_path
         self.variables = variables
         self.node_type = node_type
         self.description = description

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from pydrodelta.procedures.hidrosat import HIDROSATProcedureFunction
+from pydrodelta.procedures.hidrosat import HIDROSATProcedure
 from pandas import DataFrame
 from pydrodelta.util import createDatetimeSequence
 import numpy as np
@@ -8,7 +8,7 @@ class HidrosatTest(TestCase):
 
     def test_hidrosat(self):
 
-        pf = HIDROSATProcedureFunction(
+        procedure = HIDROSATProcedure(
           boundaries= [
             {
               "name": "pma",
@@ -63,7 +63,7 @@ class HidrosatTest(TestCase):
         )
 
         dti = createDatetimeSequence(timeInterval={"days":1}, timestart=(2000,1,1), timeend=(2001,1,4))
-        output, results = pf.run([
+        output, results = procedure.exec([
             DataFrame(index=dti, data={"valor":[10,0,0,0,0,15,0,0,0,0] * 37}),
             DataFrame(index=dti, data={"valor":[2] * 370}),
             # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
@@ -71,16 +71,16 @@ class HidrosatTest(TestCase):
         ])
         self.assertEqual(len(output),2)
         self.assertEqual(len(output[0]),len(dti))
-        s_i = pf.engine.soilStorage[0] + pf.engine.floodplainStorage[0]
-        s_f = pf.engine.soilStorage[len(dti)-1] + pf.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
-        i_o = pf.engine.Precipitation.sum() - pf.engine.EVSoil.sum() - pf.engine.EVFloodPlain.sum() - pf.engine.Q[:-1].sum()
+        s_i = procedure.engine.soilStorage[0] + procedure.engine.floodplainStorage[0]
+        s_f = procedure.engine.soilStorage[len(dti)-1] + procedure.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
+        i_o = procedure.engine.Precipitation.sum() - procedure.engine.EVSoil.sum() - procedure.engine.EVFloodPlain.sum() - procedure.engine.Q[:-1].sum()
 
         self.assertAlmostEqual((s_f - s_i) * 0.1, i_o * 0.1, 0)
 
 
     def test_hidrosat_init_soil(self):
 
-        pf = HIDROSATProcedureFunction(
+        procedure = HIDROSATProcedure(
           boundaries= [
             {
               "name": "pma",
@@ -135,7 +135,7 @@ class HidrosatTest(TestCase):
         )
         
         dti = createDatetimeSequence(timeInterval={"days":1}, timestart=(2000,1,1), timeend=(2001,1,4))
-        output, results = pf.run([
+        output, results = procedure.exec([
             DataFrame(index=dti, data={"valor":[10,0,0,0,0,15,0,0,0,0] * 37}),
             DataFrame(index=dti, data={"valor":[2] * 370}),
             # DataFrame(index=dti, data={"valor":[np.nan] * 370}),
@@ -143,13 +143,13 @@ class HidrosatTest(TestCase):
         ])
         self.assertEqual(len(output),2)
         self.assertEqual(len(output[0]),len(dti))
-        s_i = pf.engine.soilStorage[0] + pf.engine.floodplainStorage[0]
-        s_f = pf.engine.soilStorage[len(dti)-1] + pf.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
-        i_o = pf.engine.Precipitation.sum() - pf.engine.EVSoil.sum() - pf.engine.EVFloodPlain.sum() - pf.engine.Q[:-1].sum()
+        s_i = procedure.engine.soilStorage[0] + procedure.engine.floodplainStorage[0]
+        s_f = procedure.engine.soilStorage[len(dti)-1] + procedure.engine.floodplainStorage[len(dti)-1] # + pf.engine.routingSystem.Storage[1]
+        i_o = procedure.engine.Precipitation.sum() - procedure.engine.EVSoil.sum() - procedure.engine.EVFloodPlain.sum() - procedure.engine.Q[:-1].sum()
 
         self.assertAlmostEqual((s_f - s_i) * 0.1, i_o * 0.1, 0)
 
-        mass_balance = pf.massBalance()
+        mass_balance = procedure.massBalance()
 
         self.assertAlmostEqual(mass_balance["discrepancy"]*0.1,0,0)
 

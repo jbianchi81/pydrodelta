@@ -15,6 +15,7 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 import pandas as pd
 from pathlib import Path, PosixPath
+from a5client.util_types import IntervalDict
 
 data_dir = Path(__file__).parent / "data"
 
@@ -23,25 +24,25 @@ class Test_Topology(TestCase):
     def test_topology_load_api_len(self):
         timestart = "2023-04-23T03:00:00.000Z"
         timeend = "2023-04-25T02:00:00.000Z"
-        time_interval = { "hours": 1}
+        time_interval : IntervalDict = {"hours": 1}
         topology = Topology(
             timestart = timestart,
             timeend = timeend,                    
             nodes = [
-                {
-                    "id": 1,
-                    "name": "node 1",
-                    "time_interval": time_interval,
-                    "variables": [
-                        {
-                            "id": 2,
-                            "series": [
+                Node(
+                    id= 1,
+                    name= "node 1",
+                    time_interval= time_interval,
+                    variables= [
+                        ObservedNodeVariable(
+                            id= 2,
+                            series= [
                                 {
                                     "series_id": 100007,
                                     "tipo": "puntual"
                                 }
                             ],
-                            "series_prono": [
+                            series_prono= [
                                 {
                                     "cal_id": 544,
                                     "cor_id": 1917,
@@ -49,9 +50,9 @@ class Test_Topology(TestCase):
                                     "tipo":  "puntual"
                                 }
                             ]
-                        }
+                        )
                     ]
-                }
+                )
             ]
         )
         topology.loadData(
@@ -59,6 +60,9 @@ class Test_Topology(TestCase):
                 "url": "https://alerta.ina.gob.ar/test",
                 "token": "test_reader"
             })   
+        assert topology.nodes[0].variables[2].series is not None
+        assert topology.nodes[0].variables[2].series[0].data is not None
+        assert topology.nodes[0].variables[2].series_prono is not None
         self.assertEqual(len(topology.nodes[0].variables[2].series[0].data.dropna()),49)
         self.assertEqual(len(topology.nodes[0].variables[2].series_prono[0].data.dropna()),50)
         
@@ -110,11 +114,11 @@ class Test_Topology(TestCase):
             interpolation_limit =  {"hours": 12},
             no_metadata = True,
             nodes = [
-              {
-                "id": 1,
-                "name": "pma",
-                "time_interval": {"days": 1},
-                "variables": [
+              Node(
+                id= 1,
+                name= "pma",
+                time_interval= {"days": 1},
+                variables= [
                   {
                     "id": 1,
                     "series": [
@@ -126,7 +130,7 @@ class Test_Topology(TestCase):
                     ]
                   }
                 ]
-              }
+              )
             ]
         )
         topology.loadData(input_api_config = {

@@ -1,5 +1,5 @@
 from pydrodelta.plan import Plan
-from pydrodelta.procedures.analogy import AnalogyProcedureFunction, CreaVariablesTemporales, TransfDatos, CalcIndicXFecha
+from pydrodelta.procedures.analogy import AnalogyProcedure, CreaVariablesTemporales, TransfDatos, CalcIndicXFecha
 from pydrodelta.util import tryParseAndLocalizeDate
 from unittest import TestCase
 from pydrodelta.util import createDatetimeSequence
@@ -65,7 +65,7 @@ class Test_Analogy(TestCase):
         self.assertTrue(df_indicadores["YrSim"].dtype.kind == 'i')
 
     def test_run(self):
-        pf = AnalogyProcedureFunction(
+        procedure = AnalogyProcedure(
             parameters={
                 "search_length":6,
                 "forecast_length": 4
@@ -88,7 +88,7 @@ class Test_Analogy(TestCase):
             self.data.copy()
         ]
 
-        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        output, procedure_results = procedure.exec(input, forecast_date=(2000,1,1))
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),4)
         self.assertTrue("valor" in output[0].columns)
@@ -97,7 +97,7 @@ class Test_Analogy(TestCase):
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
 
     def test_run_error_band(self):
-        pf = AnalogyProcedureFunction(
+        procedure = AnalogyProcedure(
             parameters={
                 "search_length":6,
                 "forecast_length": 4
@@ -125,7 +125,7 @@ class Test_Analogy(TestCase):
             self.data.copy()
         ]
 
-        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        output, procedure_results = procedure.exec(input, forecast_date=(2000,1,1))
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),4)
         self.assertTrue("inferior" in output[0].columns)
@@ -135,23 +135,23 @@ class Test_Analogy(TestCase):
         self.assertIsInstance(output[0]["superior"].sum(),float)
         self.assertNotEqual(output[0]["superior"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
-        assert pf.error_stats is not None
-        self.assertTrue(len(pf.error_stats) <= 4,"error stats horizon longer than expected")
+        assert procedure.error_stats is not None
+        self.assertTrue(len(procedure.error_stats) <= 4,"error stats horizon longer than expected")
         for i, row in output[0].iterrows():
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
-        for i, (_,row) in enumerate(pf.error_stats.iterrows()):
+        for i, (_,row) in enumerate(procedure.error_stats.iterrows()):
             if i > 0:
-                self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
-        assert pf.errores is not None
-        distinct_months = set(pf.errores["month"])
+                self.assertTrue(row["std"] > procedure.error_stats.loc[i-1,"std"])
+        assert procedure.errores is not None
+        distinct_months = set(procedure.errores["month"])
         for month in distinct_months:
             self.assertTrue(month in [12,1,2,3,4,5])
 
 
     def test_run_error_band_relative_window(self):
         only_last_years = 10
-        pf = AnalogyProcedureFunction(
+        procedure = AnalogyProcedure(
             parameters={
                 "search_length":6,
                 "forecast_length": 4
@@ -179,7 +179,7 @@ class Test_Analogy(TestCase):
             self.data.copy()
         ]
 
-        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        output, procedure_results = procedure.exec(input, forecast_date=(2000,1,1))
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),4)
         self.assertTrue("inferior" in output[0].columns)
@@ -192,12 +192,12 @@ class Test_Analogy(TestCase):
         for i, row in output[0].iterrows():
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
-        assert pf.error_stats is not None
-        for i, (_,row) in enumerate(pf.error_stats.iterrows()):
+        assert procedure.error_stats is not None
+        for i, (_,row) in enumerate(procedure.error_stats.iterrows()):
             if i > 0 and i <= 3:
-                self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+                self.assertTrue(row["std"] > procedure.error_stats.loc[i-1,"std"])
                 self.assertTrue(row["count"] >= (only_last_years - 1) * 3 and row["count"] <= only_last_years * 3)
-        assert pf.errores is not None
-        distinct_months = set(pf.errores["month"])
+        assert procedure.errores is not None
+        distinct_months = set(procedure.errores["month"])
         for month in distinct_months:
             self.assertTrue(month in [12,1,2,3,4,5,6])

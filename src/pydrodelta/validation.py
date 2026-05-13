@@ -2,7 +2,7 @@ import os
 import jsonschema
 from pathlib import Path
 import yaml
-from typing import Tuple
+from typing import Tuple, Union, List
 from .config import config
 import logging
 import importlib.resources
@@ -99,7 +99,7 @@ def validate(
 
 def getSchemaAndValidate(
         params : dict,
-        name : str
+        name : Union[str, List[str]]
     ):
     """
     Validate dict against json schema. Schemas are in pydrodelta.schemas.json
@@ -110,9 +110,9 @@ def getSchemaAndValidate(
 
         Dict to validate
 
-    name : str
+    name : Unin[str, List[str]]
 
-        Name of the schema. Used to find the jsonschema file in rel_base_path
+        Name of the schema. Used to find the jsonschema file in rel_base_path. If list, use first matched file
         
     Raises:
     -------
@@ -124,6 +124,16 @@ def getSchemaAndValidate(
 
         if the schema itself is invalid
     """
-    schemas, resolver = getSchema(name)
-    # print("Base URI:", resolver.base_uri)
-    return validate(params, schemas[name], resolver)
+    if isinstance(name, list):
+        errors : List[FileNotFoundError] = []
+        for name_ in name:
+            try:
+                schemas, resolver = getSchema(name_)
+                return validate(params, schemas[name_], resolver)
+            except FileNotFoundError as e:
+                errors.append(e)
+        raise FileNotFoundError("None of the candidate schema files were found: %s" % ", ".join([str(e) for e in errors]))                        
+    else:
+        schemas, resolver = getSchema(name)
+        # print("Base URI:", resolver.base_uri)
+        return validate(params, schemas[name], resolver)

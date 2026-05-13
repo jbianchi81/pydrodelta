@@ -31,6 +31,9 @@
               "type": "string"
             },
             {
+              "$ref": "abstractprocedure.json"
+            },
+            {
               "$ref": "hecrasprocedure.json"
             },
             {
@@ -50,6 +53,9 @@
             },
             {
               "$ref": "grpprocedure.json"
+            },
+            {
+              "$ref": "gr4jprocedure.json"
             },
             {
               "$ref": "sacenkfprocedure.json"

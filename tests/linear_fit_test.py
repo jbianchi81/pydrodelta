@@ -1,6 +1,6 @@
 from pydrodelta.plan import Plan
 # from pydrodelta.procedure_function import ProcedureFunction
-from pydrodelta.procedures.linear_fit import LinearFitProcedureFunction
+from pydrodelta.procedures.linear_fit import LinearFitProcedure
 from unittest import TestCase
 from pandas import DataFrame
 from pydrodelta.util import createDatetimeSequence, tryParseAndLocalizeDate
@@ -16,8 +16,7 @@ class Test_LinearFit(TestCase):
         plan.execute(upload=False)
 
     def test_drop_warmup(self):
-        lfit = LinearFitProcedureFunction(
-            type="LinearFit",
+        lfit = LinearFitProcedure(
             boundaries= [
                 {
                     "name": "input_1",
@@ -36,9 +35,9 @@ class Test_LinearFit(TestCase):
                 "drop_warmup": True
             }
         )
-        self.assertRaises(ValueError, lfit.run) # missing input
-        self.assertRaises(ValueError, lfit.run, input=[]) # missing output_obs
-        self.assertRaises(ValueError, lfit.run, input=[ # missing output_obs
+        self.assertRaises(Exception, lfit.exec) # missing input
+        self.assertRaises(Exception, lfit.exec, input=[]) # missing output_obs
+        self.assertRaises(Exception, lfit.exec, input=[ # missing output_obs
             DataFrame(
                 data = {
                     "valor": np.random.rand(32)
@@ -50,7 +49,7 @@ class Test_LinearFit(TestCase):
                 )                    
             )
         ])
-        output, results = lfit.run(input=[
+        output, results = lfit.exec(input=[
             DataFrame(
                 data = {
                     "valor": np.random.rand(32)

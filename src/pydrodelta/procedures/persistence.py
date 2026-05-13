@@ -17,6 +17,7 @@ from pydrodelta.descriptors.float_descriptor import FloatDescriptor
 from pydrodelta.procedures.analogy import CreaVariablesTemporales, month2Date
 from ..types import ExecInput
 from pathlib import Path
+from a5client.util_types import Dateable
 
 class PersistenceProcedure(Procedure):
     """Persistence forecast procedure"""
@@ -113,7 +114,7 @@ class PersistenceProcedure(Procedure):
     def exec(
         self,
         input : ExecInput = None,
-        forecast_date : Optional[datetime] = None,
+        forecast_date : Optional[Dateable] = None,
         save_results : Optional[Union[Path, str]] = None,
         add_error_band : Optional[bool] = None,
         skip_first_years : Optional[int] = None, 
@@ -128,7 +129,7 @@ class PersistenceProcedure(Procedure):
         input : list of DataFrames
             Boundary conditions. If None, runs .loadInput
         
-        forecast_date : datetime = None
+        forecast_date : datetime | date | tuple[Unknown, ...] | str | int | IntervalDict = None
             forecast date. Defaults to forecast_date of plan
 
         Returns:

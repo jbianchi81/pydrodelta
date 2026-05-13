@@ -1,6 +1,6 @@
 from a5client import Crud, Serie
-from a5client.util_types import TVP, Intervaleable, SeriesDict, ApiConfigDict, TVPserializable, VariableDict, SeriesSerializableDict
-from a5client.util import interval2relativedelta, relativedeltaToSeconds, parseVar
+from a5client.util_types import TVP, Intervaleable, SeriesDict, ApiConfigDict, TVPserializable, VariableDict, SeriesSerializableDict, Dateable
+from a5client.util import interval2relativedelta, relativedeltaToSeconds, parseVar, tryParseAndLocalizeDate
 from .node_serie import NodeSerie
 from .node_serie_prono import NodeSerieProno
 import os
@@ -128,17 +128,43 @@ class NodeVariable:
     def node_id(self) -> Union[int,str]:
         return self._node.id if self._node is not None else "unknown"
     
-    timestart = DatetimeDescriptor()
-    """Begin date (overrides _node.timestart)"""
+    @property
+    def timestart(self) -> datetime:
+        """Begin date (overrides _node.timestart)"""
+        value = self._timestart if self._timestart is not None else self._node.timestart if self._node is not None else None
+        if value is None:
+            raise RuntimeError("timestart not set")
+        return value
+    @timestart.setter
+    def timestart(self, value : Optional[Dateable]) -> None:
+        self._timestart = tryParseAndLocalizeDate(value) if value is not None else None   
 
-    timeend = DatetimeDescriptor()
-    """End date (overrides _node.timeend)"""
+    @property
+    def timeend(self) -> datetime:
+        """End date (overrides _node.timeend)"""
+        value = self._timeend if self._timeend is not None else self._node.timeend if self._node is not None else None
+        if value is None:
+            raise RuntimeError("timeend not set")
+        return value
+    @timeend.setter
+    def timeend(self, value : Optional[Dateable]) -> None:
+        self._timeend = tryParseAndLocalizeDate(value) if value is not None else None   
 
-    time_offset = DurationDescriptor()
-    """Time start offset relative to 00:00 (overrides _node.time_offset)"""
+    @property
+    def time_offset(self) -> Optional[relativedelta]:
+        """Time start offset relative to 00:00 (overrides _node.time_offset)"""
+        return self._time_offset if self._time_offset is not None else self._node.time_offset if self._node is not None else None
+    @time_offset.setter
+    def time_offset(self, value : Optional[Intervaleable]) -> None:
+        self._time_offset = interval2relativedelta(value) if value is not None else None   
 
-    forecast_timeend = DatetimeDescriptor()
-    """Forecast end date"""
+    @property
+    def forecast_timeend(self) -> Optional[datetime]:
+        """Forecast end date"""
+        return self._forecast_timeend if self._forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
+    @forecast_timeend.setter
+    def forecast_timeend(self, value : Optional[Dateable]) -> None:
+        self._forecast_timeend = tryParseAndLocalizeDate(value) if value is not None else None   
 
     base_path : Optional[Path]
 
@@ -260,10 +286,10 @@ class NodeVariable:
                 raise ValueError("Invalid interpolation_limit: must be greater than 0")
         self.name = name if name is not None else "%s_%s" % (self._node.name, self.id) if self._node is not None else "0_%s" % str(self.id)
         self.derived = False
-        self.timestart = timestart if timestart is not None else self._node.timestart if self._node is not None else None
-        self.timeend = timeend if timeend is not None else self._node.timeend if self._node is not None else None
-        self.time_offset = time_offset if time_offset is not None else self._node.time_offset if self._node is not None else None
-        self.forecast_timeend = forecast_timeend if forecast_timeend is not None else self._node.forecast_timeend if self._node is not None else None
+        self.timestart = timestart
+        self.timeend = timeend
+        self.time_offset = time_offset
+        self.forecast_timeend = forecast_timeend
         self.use_filled_truth = use_filled_truth
         self.series = series
         self.series_prono = series_prono

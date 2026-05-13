@@ -49,34 +49,33 @@
     days: 1
   procedures:
   - id: 1
-    function:
-      type: GR4J
-      initial_states:
-        Sk: 0
-        Rk: 0
-      parameters:
-        X0: 100
-        X1: 0
-        X2: 10
-        X3: 1
-      extra_pars:
-        area: 1000000
-        wp: 0.03
-        rho: 0.5
-      boundaries:
-      - name: pma
-        node_variable: 
-        - 1
-        - 1
-      - name: etp
-        node_variable: [1, 15]
-      - name: q_obs
-        node_variable: [1, 4]
-      - name: smc_obs
-        node_variable: [1, 20]
-      outputs:
-      - name: q_sim
-        node_variable: [1, 4]
-      - name: smc_sim
-        node_variable: [1, 20]
+    type: GR4J
+    initial_states:
+      Sk: 0
+      Rk: 0
+    parameters:
+      X0: 100
+      X1: 0
+      X2: 10
+      X3: 1
+    extra_pars:
+      area: 1000000
+      wp: 0.03
+      rho: 0.5
+    boundaries:
+    - name: pma
+      node_variable: 
+      - 1
+      - 1
+    - name: etp
+      node_variable: [1, 15]
+    - name: q_obs
+      node_variable: [1, 4]
+    - name: smc_obs
+      node_variable: [1, 20]
+    outputs:
+    - name: q_sim
+      node_variable: [1, 4]
+    - name: smc_sim
+      node_variable: [1, 20]
     save_results: ../results/gr4j_dummy.csv

@@ -8,7 +8,7 @@ from pydrodelta.procedure import Procedure
 from pydrodelta.types.enhanced_typed_list import EnhancedTypedList
 from pydrodelta.procedure_boundary import ProcedureBoundary
 from pydrodelta.config import config
-from pydrodelta.procedures.exponential_fit import ExponentialFitProcedureFunction
+from pydrodelta.procedures.exponential_fit import ExponentialFitProcedure
 from pathlib import Path
 
 data_dir = Path(__file__).parent / "data"
@@ -24,35 +24,32 @@ class Test_ExponentialFit(TestCase):
         assert p.output is not None
         self.assertEqual(len(p.output),1)
         self.assertEqual(len(p.output[0]),90)
-        assert isinstance(p.function, ExponentialFitProcedureFunction)
-        assert p.function.linear_model is not None
-        self.assertTrue("r2" in p.function.linear_model)
-        self.assertTrue(p.function.linear_model["r2"] > 0.99)
-        self.assertTrue("coef" in p.function.linear_model)
-        self.assertEqual(len(p.function.linear_model["coef"]),1)
-        self.assertTrue("intercept" in p.function.linear_model)
-        self.assertEqual(type(p.function.linear_model["intercept"]),numpy.float64)
+        assert isinstance(p, ExponentialFitProcedure)
+        assert p.linear_model is not None
+        self.assertTrue("r2" in p.linear_model)
+        self.assertTrue(p.linear_model["r2"] > 0.99)
+        self.assertTrue("coef" in p.linear_model)
+        self.assertEqual(len(p.linear_model["coef"]),1)
+        self.assertTrue("intercept" in p.linear_model)
+        self.assertEqual(type(p.linear_model["intercept"]),numpy.float64)
         self.assertTrue("superior" in p.output[0])
         self.assertTrue("inferior" in p.output[0])
 
     def test_boundaries(self):
-        procedure = Procedure(
-            "dummy exponential fit",
-            {
-                "type": "ExponentialFit",
-                "boundaries": [
-                    {
-                        "name": "input_1",
-                        "node_variable": [1,40]
-                    }
-                ],
-                "outputs": [
-                    {
-                        "name": "output",
-                        "node_variable": [1,39]
-                    }
-                ]
-            }
+        procedure = ExponentialFitProcedure(
+            id="dummy exponential fit",
+            boundaries= [
+                {
+                    "name": "input_1",
+                    "node_variable": [1,40]
+                }
+            ],
+            outputs= [
+                {
+                    "name": "output",
+                    "node_variable": [1,39]
+                }
+            ]
         )
         assert isinstance(procedure.function.boundaries, EnhancedTypedList)
         self.assertEqual(len(procedure.function.boundaries),1)
@@ -92,23 +89,20 @@ class Test_ExponentialFit(TestCase):
         )
     
     def test_replace_boundaries(self):
-        procedure = Procedure(
-            "dummy exponential fit",
-            {
-                "type": "ExponentialFit",
-                "boundaries": [
-                    {
-                        "name": "input_1",
-                        "node_variable": [1,40]
-                    }
-                ],
-                "outputs": [
-                    {
-                        "name": "output",
-                        "node_variable": [1,39]
-                    }
-                ]
-            }
+        procedure = ExponentialFitProcedure(
+            id="dummy exponential fit",
+            boundaries=[
+                {
+                    "name": "input_1",
+                    "node_variable": [1,40]
+                }
+            ],
+            outputs=[
+                {
+                    "name": "output",
+                    "node_variable": [1,39]
+                }
+            ]
         )
         boundaries = procedure.function.boundaries
         assert isinstance(boundaries, EnhancedTypedList)
@@ -125,39 +119,33 @@ class Test_ExponentialFit(TestCase):
     
     def test_missing_boundaries(self):
         self.assertRaises(
-            ValueError,
-            Procedure,
-            "dummy exponential fit",
-            {
-                "type": "ExponentialFit",
-                "boundaries": [],
-                "outputs": [
-                    {
-                        "name": "output",
-                        "node_variable": [1,39]
-                    }
-                ]
-            }
+            Exception,
+            ExponentialFitProcedure,
+            id="dummy exponential fit",
+            boundaries=[],
+            outputs= [
+                {
+                    "name": "output",
+                    "node_variable": [1,39]
+                }
+            ]
         )
     
     def test_assert_missing_ids(self):
-        procedure = Procedure(
-            "dummy exponential fit",
-            {
-                "type": "ExponentialFit",
-                "boundaries": [
-                    {
-                        "name": "input_1",
-                        "node_variable": [1,40]
-                    }
-                ],
-                "outputs": [
-                    {
-                        "name": "output",
-                        "node_variable": [1,39]
-                    }
-                ]
-            }
+        procedure = ExponentialFitProcedure(
+            id="dummy exponential fit",
+            boundaries=[
+                {
+                    "name": "input_1",
+                    "node_variable": [1,40]
+                }
+            ],
+            outputs=[
+                {
+                    "name": "output",
+                    "node_variable": [1,39]
+                }
+            ]
         )
         assert isinstance(procedure.function.boundaries, EnhancedTypedList)
         procedure.function.boundaries.assert_missing_ids()

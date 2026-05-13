@@ -1,9 +1,9 @@
 from pydrodelta.plan import Plan
-from pydrodelta.procedures.persistence import PersistenceProcedureFunction, getValueOfQuantile, getQuantile
+from pydrodelta.procedures.persistence import PersistenceProcedure, getValueOfQuantile, getQuantile
 from pydrodelta.util import tryParseAndLocalizeDate
 from unittest import TestCase
 from pydrodelta.util import createDatetimeSequence
-from pandas import DataFrame
+from pandas import DataFrame, DatetimeIndex
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -53,6 +53,7 @@ class Test_Persistence(TestCase):
 
     def test_get_quantile(self):
         data_ = self.data.copy()
+        assert isinstance(data_.index, DatetimeIndex)
         data_["month"] = data_.index.month
         for i, row in data_.tail(12).iterrows():
             quantile = getQuantile(
@@ -67,6 +68,7 @@ class Test_Persistence(TestCase):
 
     def test_get_value_of_quantile(self):
         data_ = self.data.copy()
+        assert isinstance(data_.index, DatetimeIndex)
         data_["month"] = data_.index.month
         for month in range(1,13,1):
             quantile = getValueOfQuantile(data_, month, 0.5, "month", "valor")
@@ -74,7 +76,7 @@ class Test_Persistence(TestCase):
             self.assertTrue(quantile < data_[data_["month"] == month]["valor"].max())
 
     def test_run(self):
-        pf = PersistenceProcedureFunction(
+        procedure = PersistenceProcedure(
             parameters={
                 "search_length":6,
                 "forecast_length": 4
@@ -97,18 +99,19 @@ class Test_Persistence(TestCase):
             self.data.copy()
         ]
 
-        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        output, procedure_results = procedure.exec(input, forecast_date=(2000,1,1))
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),4)
         self.assertTrue("valor" in output[0].columns)
         self.assertIsInstance(output[0]["valor"].sum(),float)
         self.assertNotEqual(output[0]["valor"].sum(),np.nan)
         self.assertEqual(output[0].index[0],tryParseAndLocalizeDate(self.timeend))
-        self.assertTrue(pf.percentil > 0)
-        self.assertTrue(pf.percentil < 1)
+        assert procedure.percentil is not None
+        self.assertTrue(procedure.percentil > 0)
+        self.assertTrue(procedure.percentil < 1)
 
     def test_run_error_band(self):
-        pf = PersistenceProcedureFunction(
+        procedure = PersistenceProcedure(
             parameters={
                 "search_length":6,
                 "forecast_length": 4
@@ -134,7 +137,7 @@ class Test_Persistence(TestCase):
             self.data.copy()
         ]
 
-        output, procedure_results = pf.run(input, forecast_date=(2000,1,1))
+        output, procedure_results = procedure.exec(input, forecast_date=(2000,1,1))
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0]),4)
         self.assertTrue("inferior" in output[0].columns)
@@ -149,9 +152,11 @@ class Test_Persistence(TestCase):
             self.assertTrue(not np.isnan(row["inferior"]))
             self.assertTrue(row["inferior"] < row["valor"])
             self.assertTrue(row["superior"] > row["valor"])
-        for i, row in pf.error_stats.iterrows():
+        assert procedure.error_stats is not None
+        for i, row in procedure.error_stats.iterrows():
+            assert isinstance(i, int)
             if i > 0:
-                self.assertTrue(row["std"] > pf.error_stats.loc[i-1,"std"])
+                self.assertTrue(row["std"] > procedure.error_stats.loc[i-1,"std"])
         # distinct_months = set(pf.errores["month"])
         # for month in distinct_months:
         #     self.assertTrue(month in [12,1,2,3,4,5,6])

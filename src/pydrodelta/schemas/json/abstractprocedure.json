@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "genericfitprocedure.json",
+    "title": "AbstractProcedure",
+    "type": "object",
+    "description": "Abstract class for test purposes",
+    "allOf": [
+        {
+            "$ref": "procedure.json"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["AbstractProcedure", "Abstract"]
+                }
+            }
+        }
+    ]
+}

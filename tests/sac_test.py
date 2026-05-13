@@ -67,7 +67,8 @@ class Test_SacramentoSimplified(TestCase):
         )
 
     def test_water_balance(self):
-        pf = SacramentoSimplifiedProcedure(
+        procedure = SacramentoSimplifiedProcedure(
+            id = "test_water_balance",
             parameters = {
                 "x1_0": 10,
                 "x2_0": 10,
@@ -132,12 +133,12 @@ class Test_SacramentoSimplified(TestCase):
             "smc_obs": [0.0,0,0,0,0,0,0,0]
         })
 
-        output, procedure_results = pf.run(input)
+        output, procedure_results = procedure.exec(input)
 
         self.assertEqual(len(output),2)
         self.assertEqual(len(output[0]),8)
-        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
-        dx = sum(pf.x) - sum(pf.initial_states) 
+        io = procedure.results.pma.sum() - procedure.results.real_et.sum() - sum(procedure.results.x3 * procedure.alfa) - sum(procedure.results.deep_perc)
+        dx = sum(procedure.x) - sum(procedure.initial_states_list) 
         self.assertAlmostEqual(
             io,
             dx,
@@ -147,12 +148,12 @@ class Test_SacramentoSimplified(TestCase):
 
         # no rain, initial storage
 
-        pf.initial_states = [5,0,0,0]
+        procedure.initial_states = [5,0,0,0]
 
-        output, procedure_results = pf.run(input)
+        output, procedure_results = procedure.exec(input)
 
-        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
-        dx = sum(pf.x) - sum(pf.initial_states) 
+        io = procedure.results.pma.sum() - procedure.results.real_et.sum() - sum(procedure.results.x3 * procedure.alfa) - sum(procedure.results.deep_perc)
+        dx = sum(procedure.x) - sum(procedure.initial_states) 
         self.assertAlmostEqual(
             io,
             dx,
@@ -162,7 +163,7 @@ class Test_SacramentoSimplified(TestCase):
 
         # 1 rain pulse
 
-        pf.initial_states = [0,0,0,0]
+        procedure.initial_states = [0,0,0,0]
 
         input = DataFrame({
             "timestart": createDatetimeSequence(None, relativedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
@@ -172,10 +173,10 @@ class Test_SacramentoSimplified(TestCase):
             "smc_obs": [0.0,0,0,0,0,0,0,0]
         })
 
-        output, procedure_results = pf.run(input)
+        output, procedure_results = procedure.exec(input)
 
-        io = pf.results.pma.sum() - pf.results.real_et.sum() - sum(pf.results.x3 * pf.alfa) - sum(pf.results.deep_perc)
-        dx = sum(pf.x) - sum(pf.initial_states) 
+        io = procedure.results.pma.sum() - procedure.results.real_et.sum() - sum(procedure.results.x3 * procedure.alfa) - sum(procedure.results.deep_perc)
+        dx = sum(procedure.x) - sum(procedure.initial_states) 
         self.assertAlmostEqual(
             io,
             dx,
@@ -185,7 +186,7 @@ class Test_SacramentoSimplified(TestCase):
         
         # 1 rain pulse, constant etp
 
-        pf.initial_states = [0,0,0,0]
+        procedure.initial_states = [0,0,0,0]
 
         input = DataFrame({
             "timestart": createDatetimeSequence(None, relativedelta(days=1),datetime(2000,1,1,tzinfo=timezone("UTC")), datetime(2000,1,9,tzinfo=timezone("UTC"))),
@@ -195,11 +196,11 @@ class Test_SacramentoSimplified(TestCase):
             "smc_obs": [0.0,0,0,0,0,0,0,0]
         })
 
-        output, procedure_results = pf.run(input)
+        output, procedure_results = procedure.exec(input)
 
-        mass_balance = pf.massBalance()
+        mass_balance = procedure.massBalance()
         io = mass_balance["p"] - mass_balance["et1"] - mass_balance["et2"] - mass_balance["q3"] - mass_balance["deep_perc"]
-        dx = sum(pf.x) - sum(pf.initial_states) 
+        dx = sum(procedure.x) - sum(procedure.initial_states) 
         self.assertAlmostEqual(
             io,
             dx,

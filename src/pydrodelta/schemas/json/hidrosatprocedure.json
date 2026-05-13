@@ -18,13 +18,49 @@
             ]
         },
         "initial_states": {
-            "type": "array",
-            "description": "Initial states: [SoilStorage, Runoff]",
-            "minItems": 2,
-            "maxItems": 2,
-            "items": {
-                "type": "number"
-            }
+            "oneOf": [
+                {
+                    "type": "array",
+                    "description": "Initial states: [SoilStorage, Runoff]",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                {
+                    "type": "array",
+                    "description": "Initial states: [SoilStorage, Runoff, floodPlainStorage, Flooded]",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                {
+                    "type": "object",
+                    "description": "Initial states: SoilStorage, Runoff",
+                    "properties": {
+                        "soilStorage": {
+                            "type": "number",
+                            "description": "Almacenamiento inicial en reservorio de retención / Initial tension water storage [mm]"
+                        },
+                        "Runoff": {
+                            "type": "number",
+                            "description": "Escorrentía inicial / Initial Runoff [mm]"
+                        },
+                        "floodPlainStorage": {
+                            "type": "number",
+                            "description": "Almacenamiento inicial en reservorio de detención / Initial floodplain Storage [mm]"
+                        },
+                        "Flooded": {
+                            "type": "number",
+                            "description": "Extensión inicial de anegamiento  / Initial flooded area [mm]"
+                        }
+                    },
+                    "required": ["soilStorage", "Runoff"]
+                }
+            ]
         },
         "parameters": {
             "type": "object",

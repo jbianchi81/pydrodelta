@@ -26,6 +26,7 @@ from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.filepath_descriptor import FilepathDescriptor
 from .base import Base
 from .types.typed_list import TypedList
+from .types.unique_id_list import UniqueIdList
 from .types.save_variable_sim_dict import SaveVariableSimDict
 from a5client.util_types import CorridaDict, Dateable, CorridaNoIdSerializableDict
 from .node import Node
@@ -79,7 +80,7 @@ class Plan(Base):
         return self._procedures
     @procedures.setter
     def procedures(self,values : list):
-        self._procedures = [createProcedure(p["type"], plan=self, base_path=self.base_path, **p) for p in values]
+        self._procedures = UniqueIdList[Procedure]([createProcedure(p["type"], plan=self, base_path=self.base_path, **p) for p in values])
         # self._procedures = TypedList(Procedure, *values, unique_id_property = "id", plan = self, base_path=self.base_path) # [x if isinstance(x,Procedure) else Procedure(**x,plan=self) for x in values]
     
     _forecast_date : datetime

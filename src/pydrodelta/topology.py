@@ -73,7 +73,11 @@ class Topology(Base):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file."""
         return self._nodes
     @nodes.setter
-    def nodes(self,nodes : List[NodeDict]):
+    def nodes(self,nodes : Union[List[NodeDict],List[Node]]):
+        for n in nodes:
+            if isinstance(n, Node):
+                n._topology = self
+                n._plan = self._plan
         self._nodes = TypedList(Node, *nodes, unique_id_property = "id", topology = self, plan = self._plan, timestart = self.timestart, timeend = self.timeend, forecast_timeend = self.forecast_timeend, time_offset = self.time_offset_start, base_path = self.base_path)
         # for i, node in enumerate(nodes):
         #     if "id" not in node:
@@ -188,7 +192,7 @@ class Topology(Base):
         time_offset_end : Optional[Intervaleable] = None, 
         interpolation_limit : Optional[Intervaleable] = None,
         extrapolate : bool = False,
-        nodes : List[NodeDict] = list(),
+        nodes : Union[List[NodeDict],List[Node]] = list(),
         cal_id : Union[int,None] = None,
         plot_params : Union[PlotParamsDict,None] = None,
         report_file : Union[str,None] = None,
@@ -320,7 +324,7 @@ class Topology(Base):
             "time_offset_end": time_offset_end, 
             "interpolation_limit": interpolation_limit,
             "extrapolate": extrapolate,
-            "nodes": nodes,
+            "nodes": [] if all([isinstance(n, Node) for n in nodes]) else nodes,
             "cal_id": cal_id,
             "plot_params": plot_params,
             "report_file" : report_file,

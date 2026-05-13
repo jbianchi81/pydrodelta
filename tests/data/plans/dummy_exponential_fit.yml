@@ -35,15 +35,14 @@ topology:
     node_type: station
 procedures:
 - id: dummy exponential fit
-  function:
-    type: ExponentialFit
-    boundaries:
-    - name: input_1
-      node_variable: [1,40]
-    outputs:
-    - name: output
-      node_variable: [1,39]
-    parameters: {}
-    extra_pars:
-      warmup_steps: 0
-      use_forecast_range: true
+  type: ExponentialFit
+  boundaries:
+  - name: input_1
+    node_variable: [1,40]
+  outputs:
+  - name: output
+    node_variable: [1,39]
+  parameters: {}
+  extra_pars:
+    warmup_steps: 0
+    use_forecast_range: true

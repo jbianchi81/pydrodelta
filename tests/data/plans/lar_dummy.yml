@@ -41,17 +41,16 @@ topology:
     node_type: station
 procedures:
 - id: dummy lag and route
-  function:
-    type: LagAndRoute
-    boundaries:
-    - name: input_1
-      node_variable: [1,40]
-    - name: input_2
-      node_variable: [2,40]
-    outputs:
-    - name: output
-      node_variable: [2,40]
-    parameters:
-      lag: 3
-      k: 0.5
-      n: 2
+  type: LagAndRoute
+  boundaries:
+  - name: input_1
+    node_variable: [1,40]
+  - name: input_2
+    node_variable: [2,40]
+  outputs:
+  - name: output
+    node_variable: [2,40]
+  parameters:
+    lag: 3
+    k: 0.5
+    n: 2

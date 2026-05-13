@@ -14,7 +14,8 @@
                     "type": "string",
                     "enum": [
                         "SacEnKF",
-                        "SacEnKFProcedure"
+                        "SacEnKFProcedure",
+                        "SacEnkfProcedure"
                     ]
                 },
                 "initial_states": {

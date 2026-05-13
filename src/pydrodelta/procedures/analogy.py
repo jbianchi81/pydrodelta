@@ -226,7 +226,7 @@ class AnalogyProcedure(Procedure):
         ## 1 - 1MesPart x Analogia
         # Transfroma los datos
         TransfDatos(self._data,"valor",self.time_window,PlotTransf=False, make_positive=True)
-        self.df_prono_analog = MetodoAnalogia(self.data,"valor",mes_select,yr_select,self.time_window,self.search_length, self.forecast_length, self.order_by, self.ascending, self.number_of_analogs, make_positive=True)
+        self.df_prono_analog = MetodoAnalogia(self._data,"valor",mes_select,yr_select,self.time_window,self.search_length, self.forecast_length, self.order_by, self.ascending, self.number_of_analogs, make_positive=True)
         
         # Mes a formato fecha
         self.df_prono_analog['month'] = self.df_prono_analog.apply(lambda x: month2Date(x.year, x.month), axis=1)

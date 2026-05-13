@@ -166,4 +166,5 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
         for procedure in plan.procedures:
             if procedure.calibration is not None and procedure.calibration.calibrate:
                 procedure.calibration.saveResult(save_calibration_result, format="yaml")
+    logging.info(f"Plan {plan.id} executed successfully!")
 

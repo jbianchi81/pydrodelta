@@ -1,0 +1,81 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "gr4jprocedure.json",
+    "title": "GR4JProcedure",
+    "type": "object",
+    "description": "GR4J model",
+    "allOf": [
+        {
+            "$ref": "pqprocedure.json"
+        },
+        {
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "GR4J",
+                        "GR4JProcedure"
+                    ]
+                },
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "X0": {
+                            "type": "number"
+                        },
+                        "X1": {
+                            "type": "number"
+                        },
+                        "X2": {
+                            "type": "number"
+                        },
+                        "X3": {
+                            "type": "number"
+                        }
+                    },
+                    "required": ["X0","X1","X2","X3"]
+                },
+                "extra_pars": {
+                    "type": "object",
+                    "properties": {
+                        "windowsize": {
+                            "type": "number"
+                        },
+                        "rho": {
+                            "type": "number"
+                        },
+                        "wp": {
+                            "type": "number"
+                        },
+                        "ae": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "initial_states": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "Sk": {
+                                    "type": "number"
+                                },
+                                "Rk": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
