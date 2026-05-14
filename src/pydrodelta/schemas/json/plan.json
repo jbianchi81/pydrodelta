@@ -55,6 +55,9 @@
               "$ref": "grpprocedure.json"
             },
             {
+              "$ref": "gr4j_procedure.json"
+            },
+            {
               "$ref": "gr4jprocedure.json"
             },
             {

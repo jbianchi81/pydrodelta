@@ -142,7 +142,7 @@ class Procedure(Base):
     """Eliminate warmup steps of adjusted output"""
 
     @property
-    def function(self) -> Procedure:
+    def function(self) -> "Procedure":
         return self
 
     @property
@@ -321,7 +321,7 @@ class Procedure(Base):
     def __init__(
         self,
         id : Union[int, str] = 0,
-        plan : Optional[Plan] = None,
+        plan : Optional["Plan"] = None,
         initial_states : Union[list, dict] = [],
         parameters : Union[List[Any], Mapping[str, Any]] = [],
         time_interval : Optional[Union[float,util.IntervalDict]] = None,

@@ -196,7 +196,7 @@ class Calibration:
         inplace : bool = True, 
         save_result : Optional[str] = None,
         **kwargs
-        ) -> Union[None,Tuple[Union[List[float],LinearCombinationParametersDict],float]]:
+        ) -> Union[None,Tuple[Union[List[float],"LinearCombinationParametersDict"],float]]:
         """
         Execute calibration. Every parameter is optional. If missing or None, the corresponding instance property is used.
         
