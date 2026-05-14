@@ -8,7 +8,7 @@ from .pydrology import testPlot
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from .calibration.linear_regression_calibration import LinearRegressionCalibration
 from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, cast
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
 from .descriptors.bool_or_none_descriptor import BoolOrNoneDescriptor
@@ -209,7 +209,7 @@ class Procedure(Base):
     @boundaries.setter
     def boundaries(
         self,
-        boundaries : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        boundaries : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
         ) -> None:
         """Setter of boundaries
         
@@ -218,7 +218,9 @@ class Procedure(Base):
         boundaries : list
             List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>. The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
-        if isinstance(boundaries, DataFrame):
+        if isinstance(boundaries, str):
+            boundaries_ = self.csvToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries])
+        elif isinstance(boundaries, DataFrame):
             boundaries_ = self.dfToBoundaryDicts(boundaries)
         else:
             isdict = [isinstance(b, dict) for b in boundaries]
@@ -226,7 +228,7 @@ class Procedure(Base):
                 boundaries_ = cast(List[ProcedureBoundaryDict],boundaries)
             elif not any(isdict):
                 boundaries_no_dict = cast(
-                    list[TVPList] | list[DataFrame],
+                    Union[List[TVPList],List[DataFrame]],
                     boundaries
                 )
                 boundaries_ = [self.tvpListToBoundaryDict(b, i) for (i, b) in enumerate(boundaries_no_dict)]
@@ -248,7 +250,7 @@ class Procedure(Base):
     @outputs.setter
     def outputs(
         self,
-        outputs : Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        outputs : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
         ) -> None:
         """Setter for outputs
         
@@ -257,7 +259,9 @@ class Procedure(Base):
         outputs : list of dict
             list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple (node_id, variable_id). The node_variables must map to plan.topology.nodes[node_id].variables[variable_id]
         """
-        if isinstance(outputs, DataFrame):
+        if isinstance(outputs, str):
+            outputs_ = self.csvToBoundaryDicts(outputs, columns=[b.name for b in self._outputs])
+        elif isinstance(outputs, DataFrame):
             outputs_ = self.dfToBoundaryDicts(outputs)
         else:
             isdict = [isinstance(b, dict) for b in outputs]
@@ -339,8 +343,8 @@ class Procedure(Base):
         sim_index : int = 0,
         save_dict : Optional[str] = None,
         drop_warmup : bool = False,
-        boundaries : Optional[Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
-        outputs : Optional[Union[List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
+        boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
+        outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
         extra_pars : dict = dict(),
         forecast_date : Optional[datetime] = None,
         parameters_for_calibration : Optional[List[ModelParameter]] = None,
@@ -1445,14 +1449,21 @@ class Procedure(Base):
             "data": data
         }
     
-    def dfToBoundaryDicts(self, df : DataFrame) -> List[ProcedureBoundaryDict]:
+    def dfToBoundaryDicts(self, df : DataFrame, columns : Optional[List[str]]=None) -> List[ProcedureBoundaryDict]:
         # each column into a ProcedureBoundaryDict using column names
-        return [
+        boundaries : List[ProcedureBoundaryDict] = [
             {
                 "name": col,
                 "node_variable": (0,0),
-                "data": df[[col]]
+                "data": df[[col]].rename(columns={col: "valor"})
             }
             for col in df.columns
         ]
+        if columns is not None:
+            return [b for b in boundaries if b["name"] in columns]
+        else:
+            return boundaries
     
+    def csvToBoundaryDicts(self, filename : str, columns : Optional[List[str]]=None) -> List[ProcedureBoundaryDict]:
+        df = read_csv(self.resolve_path(filename), parse_dates=True, index_col=0)
+        return self.dfToBoundaryDicts(df, columns)

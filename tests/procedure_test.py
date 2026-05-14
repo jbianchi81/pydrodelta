@@ -241,3 +241,33 @@ class Test_Procedure(TestCase):
                 ],columns=["timestart","valor"])
             ]
         )
+
+    def test_from_csv(self):
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= "tests/data/csv/inputoutput.csv",
+            outputs="tests/data/csv/inputoutput.csv"     
+        )
+
+        p.run(load_output_obs=True)
+
+        assert p.output_obs is not None
+        assert len(p.output_obs) == 1
+        assert isinstance(p.output_obs[0], DataFrame)
+        assert len(p.output_obs[0]) == 8
+        assert "valor" in p.output_obs[0].columns
+
+        assert p.output is not None
+        assert len(p.output) == 1
+        assert isinstance(p.output[0], DataFrame)
+        assert len(p.output[0]) == 8
+        assert "valor" in p.output[0].columns
+
+        assert isinstance(p.data, DataFrame)
+        assert len(p.data) == 8
+        assert "input" in p.data.columns
+        assert "output" in p.data.columns
+        assert "output_obs" in p.data.columns
