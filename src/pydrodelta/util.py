@@ -18,7 +18,7 @@ from matplotlib.transforms import Bbox
 import csv
 import os.path
 from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
-from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList
+from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList, TVPAllowNone
 from .types.linear_combination_dict import LinearCombinationDict
 from a5client import observacionesListToDataFrame
 
@@ -29,7 +29,7 @@ Series = pandas.Series
 import numpy as np
 from pathlib import Path
 import statistics
-from a5client.util import tryParseAndLocalizeDate
+from a5client.util import tryParseAndLocalizeDate, freq_to_relativedelta
 from os import PathLike
 import sys
 
@@ -297,7 +297,7 @@ def createDatetimeSequence(
         timeend = datetime_index.max()
     else:
         timeend = tryParseAndLocalizeDate(timeend)
-    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else relativedelta(days=timeInterval) if isinstance(timeInterval, int) else timeInterval
+    timeInterval = relativedelta(**timeInterval) if isinstance(timeInterval,dict) else timedelta_to_relativedelta(timeInterval) if isinstance(timeInterval,timedelta) else relativedelta(days=timeInterval) if isinstance(timeInterval, int) else freq_to_relativedelta(timeInterval) if isinstance(timeInterval, str) else timeInterval
     timeOffset = relativedelta(**timeOffset) if isinstance(timeOffset,dict) else timeOffset
     timestart = roundDate(timestart,timeInterval,timeOffset,"up")
     timeend = roundDate(timeend,timeInterval,timeOffset,"down")
@@ -1057,11 +1057,16 @@ def readCsvFile(csv_file : FileDescriptorOrPath):
     with open(csv_file, newline='') as csvfile:
         return [row for row in csv.DictReader(csvfile)]
 
-def parseObservations(observations:Union[List[TVPdateable],Tuple[Dateable],Tuple[Dateable,float],List[Any]]) -> List[TVP]:
-    result = []
+def parseObservations(
+        observations : Union[List[TVPdateable],Tuple[Dateable],Tuple[Dateable,float],List[float],List[TVPAllowNone],TVPList],
+        begin_datetime : Optional[datetime]=None,
+        timestep : Optional[relativedelta] = None) -> List[TVPAllowNone]:
+    begin_datetime = begin_datetime or datetime(2000,1,1,tzinfo=datetime.now().astimezone().tzinfo)
+    timestep = timestep or relativedelta(days=1)
+    result : List[TVPAllowNone] = []
     for i, o in enumerate(observations):
         # option 1: dict { "timestart": str, "valor": number }
-        if type(o) == dict:
+        if isinstance(o,dict):
             if "timestart" not in o:
                 raise Exception("timestart missing from observations item %i" % i)
             result.append({
@@ -1069,17 +1074,39 @@ def parseObservations(observations:Union[List[TVPdateable],Tuple[Dateable],Tuple
                 "valor": float(o["valor"]) if "valor" in o and o["valor"] is not None else None
             })
         # option 2: list
-        elif type(o) == list or type(o) == tuple:
+        elif isinstance(o, (list, tuple)):
             if len(o) == 0:
                 continue
             result.append({
                 "timestart": tryParseAndLocalizeDate(o[0]),
                 "valor": float(o[1]) if len(o) > 1 and o[1] is not None else None
             })
+        elif isinstance(o, (int,float)) or o is None:
+            result.append({
+                "timestart": begin_datetime + timestep * i,
+                "valor": float(o) if o is not None else None
+            })
+        else:
+            raise TypeError(f"Bad type at index {i} of observations list: {type(o)}")
+            
     return result
 
-def tvpListToDataFrame(data : TVPList) -> DataFrame:
-    data_ = parseObservations(data)
+def tvpListToDataFrame(
+        data : Union[TVPList, List[float]], 
+        begin_datetime: Optional[datetime] = None,
+        timestep: Optional[relativedelta] = None
+        ) -> pandas.DataFrame:
+    """Parse list of time-value pairs
+
+    Args:
+        data (Union[TVPList, List[float]]): accepted types: List[TVPdateable] | List[TVP] | List[Tuple[datetime | date | tuple[Unknown, ...] | str | int | IntervalDict, float]] | List[float]
+        begin_datetime (datetime, optional):  Only used when no datetime index.. Defaults to datetime(2000, 1, 1, tzinfo=datetime.now().astimezone().tzinfo).
+        timestep (relativedelta, optional): Only used when no datetime index.. Defaults to relativedelta(days=1). 
+
+    Returns:
+        pandas.DataFrame: with DatetimeIndex and single column "valor" of type float
+    """
+    data_ = parseObservations(data, begin_datetime=begin_datetime, timestep=timestep)
     return observacionesListToDataFrame(data_)
 
 def readDataFromCsvFile(csv_file: FileDescriptorOrPath,series_id: int,timestart=None,timeend=None) -> list:
@@ -1176,12 +1203,12 @@ def mad(l : list) -> float:
 def filter_func(ind, base : datetime, dt: relativedelta) -> bool:
     return ind >= base and ind < base + dt
 
-def getRowsWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta) -> DataFrame:
+def getRowsWithinTimestep(data : pandas.DataFrame, base : datetime, dt : relativedelta) -> pandas.DataFrame:
     dti = DatetimeIndex(data.index)
     mask = list(map(filter_func, dti, [base for x in dti], [dt for x in dti]))
     return data.loc[mask]
 
-def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
+def aggregateValuesWithinTimestep(data : pandas.DataFrame, base : datetime, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> float:
     valid_agg_func = {
         "sum": np.sum,
         "first": first,
@@ -1202,7 +1229,7 @@ def aggregateValuesWithinTimestep(data : DataFrame, base : datetime, dt : relati
         return np.nan  
     return valid_agg_func[agg_func](rows[column])
 
-def aggregateByTimestep(data : DataFrame, index : DatetimeIndex, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> Series:
+def aggregateByTimestep(data : pandas.DataFrame, index : pandas.DatetimeIndex, dt : relativedelta, column: str = "valor", pass_nan : bool = True, agg_func : str = "sum") -> pandas.Series:
     """For each timestamp in index, return aggregate function agg_func column column of matching rows of data. data.index must be a DatetimeIndex. For a given index item i, matching rows are those where row index is greater than or equal to i and lower than i + dt
 
     Args:
@@ -1295,7 +1322,7 @@ def multiply_relativedelta(rd: relativedelta, n: int) -> relativedelta:
         weeks=rd.weeks * n
     )
 
-def interpolate_or_copy_closest(data : Series,interpolation_limit : Union[timedelta, relativedelta]) -> Series:
+def interpolate_or_copy_closest(data : pandas.Series,interpolation_limit : Union[timedelta, relativedelta]) -> pandas.Series:
 
     # Forward and backward fills
     ffill = data.ffill(limit=None)
@@ -1328,7 +1355,7 @@ def interpolate_or_copy_closest(data : Series,interpolation_limit : Union[timede
 
     return filled
 
-def getInputListFromDataFrame(df : DataFrame, allow_na : bool=False, procedure_id : Optional[Union[str,int]] = None) -> List[float]:
+def getInputListFromDataFrame(df : pandas.DataFrame, allow_na : bool=False, procedure_id : Optional[Union[str,int]] = None) -> List[float]:
     data = df[["valor"]].rename(columns={"valor":"input"})
     if not len(data.dropna().index):
         if allow_na:
@@ -1362,7 +1389,7 @@ def decimal_days_to_relativedelta(days : Union[int, float]) -> relativedelta:
         seconds= int(days * 3600 * 24)
     )
 
-def make_serializable(df: DataFrame) -> DataFrame:
+def make_serializable(df: pandas.DataFrame) -> pandas.DataFrame:
     df = df.copy()
     df = df.replace({np.nan:None})
     for col in df.select_dtypes(include=["datetime64[ns]", "datetimetz"]):
@@ -1434,3 +1461,81 @@ def relativedelta_to_iso(rd: relativedelta) -> str:
         parts.extend(time_parts)
 
     return "".join(parts) if len(parts) > 1 else "P0D"
+
+from datetime import datetime
+from typing import Union
+
+import pandas as pd
+from pandas import DataFrame, Series, DatetimeIndex
+
+
+@overload
+def ensure_datetime_index(
+    data: pandas.DataFrame,
+    start: Optional[Union[datetime,str]] = None,
+    freq: Optional[Union[str, relativedelta]] = None,
+    index_name: Optional[str] = None
+) -> pandas.DataFrame: ...
+@overload
+def ensure_datetime_index(
+    data: pandas.Series,
+    start: Optional[Union[datetime,str]] = None,
+    freq: Optional[Union[str, relativedelta]] = None,
+    index_name: Optional[str] = None
+) -> pandas.Series: ...
+def ensure_datetime_index(
+    data: Union[pandas.DataFrame, pandas.Series],
+    start: Optional[Union[datetime,str]] = None,
+    freq: Optional[Union[str, relativedelta]] = None,
+    index_name: Optional[str] = None
+) -> Union[pandas.DataFrame, pandas.Series]:
+    """
+    Ensure input has a DatetimeIndex.
+
+    If index is not DatetimeIndex, replace it with an
+    artificial datetime sequence starting at `start`
+    with timestep `freq`.
+
+    Parameters
+    ----------
+    data : DataFrame or Series
+        Input timeseries.
+
+    start : str, default="2000-01-01"
+        Start datetime for generated index.
+
+    freq : str, default="1D"
+        Pandas frequency string.
+
+    index_name : str, default="timestart"
+        Rename index to this string
+
+    Returns
+    -------
+    DataFrame or Series
+    """
+
+    if index_name is None:
+        index_name = "timestart"
+
+    if isinstance(data.index, DatetimeIndex):
+        data.index.name = index_name
+        return data
+    
+    if start is None:
+        start = "2000-01-01"
+    if freq is None:
+        freq = "1D"
+    elif isinstance(freq, relativedelta):
+        freq = relativedelta_to_freq(freq)
+
+    result = data.copy()
+
+    result.index = pd.date_range(
+        start=start,
+        periods=len(result),
+        freq=freq,
+        name=index_name
+    )
+
+    return result

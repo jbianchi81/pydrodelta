@@ -6,6 +6,7 @@ from ..descriptors.int_descriptor import IntDescriptor
 import numpy as np
 from pandas import DataFrame
 from typing import List, Union, Optional
+from typing_extensions import Unpack
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
@@ -43,7 +44,7 @@ class GenericLinearChannelProcedure(Procedure):
         self,
         **kwargs):
         """
-        /**kwargs : keyword arguments
+        **kwargs : keyword arguments
 
         Keyword arguments:
         ------------------
@@ -52,6 +53,7 @@ class GenericLinearChannelProcedure(Procedure):
             dt : float 
                 calculation timestep
         """
+
         super().__init__(**kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
         # self.Proc = None

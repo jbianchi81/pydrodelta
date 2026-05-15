@@ -26,14 +26,15 @@ from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
 from numpy import array, ndarray
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from datetime import datetime
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .function_boundary import FunctionBoundary
 from .util import getInputListFromDataFrame, tvpListToDataFrame
 from .model_parameter import ModelParameter
-from a5client.util_types import TVPList
+from a5client.util_types import TVPList, Dateable, Intervaleable
+from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
 from pydrodelta.validation import getSchemaAndValidate
 from .custom_errors import DuplicateKeyError
 
@@ -45,6 +46,9 @@ class StatsDict(TypedDict):
     function_type : str
     results : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
     results_val : Optional[List[Union[ResultStatisticsDict, ResultStatisticsShortDict, None]]] 
+
+class ExtraParsDict(TypedDict):
+    pass
 
 class Procedure(Base):
     """
@@ -209,7 +213,7 @@ class Procedure(Base):
     @boundaries.setter
     def boundaries(
         self,
-        boundaries : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        boundaries : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame]
         ) -> None:
         """Setter of boundaries
         
@@ -221,14 +225,14 @@ class Procedure(Base):
         if isinstance(boundaries, str):
             boundaries_ = self.csvToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries])
         elif isinstance(boundaries, DataFrame):
-            boundaries_ = self.dfToBoundaryDicts(boundaries)
+            boundaries_ = self.dfToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries])
         else:
             isdict = [isinstance(b, dict) for b in boundaries]
             if all(isdict):
                 boundaries_ = cast(List[ProcedureBoundaryDict],boundaries)
             elif not any(isdict):
                 boundaries_no_dict = cast(
-                    Union[List[TVPList],List[DataFrame]],
+                    Union[List[TVPList],List[DataFrame],List[Series],List[List[float]]],
                     boundaries
                 )
                 boundaries_ = [self.tvpListToBoundaryDict(b, i) for (i, b) in enumerate(boundaries_no_dict)]
@@ -250,7 +254,7 @@ class Procedure(Base):
     @outputs.setter
     def outputs(
         self,
-        outputs : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]
+        outputs : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame]
         ) -> None:
         """Setter for outputs
         
@@ -262,14 +266,14 @@ class Procedure(Base):
         if isinstance(outputs, str):
             outputs_ = self.csvToBoundaryDicts(outputs, columns=[b.name for b in self._outputs])
         elif isinstance(outputs, DataFrame):
-            outputs_ = self.dfToBoundaryDicts(outputs)
+            outputs_ = self.dfToBoundaryDicts(outputs, columns=[b.name for b in self._outputs])
         else:
             isdict = [isinstance(b, dict) for b in outputs]
             if all(isdict):
                 outputs_ = cast(List[ProcedureBoundaryDict],outputs)
             elif not any(isdict):
                 outputs_no_dict = cast(
-                    list[TVPList] | list[DataFrame],
+                    Union[list[TVPList],List[DataFrame],List[Series],List[List[float]]],
                     outputs
                 )
                 outputs_ = [self.tvpListToBoundaryDict(b, i,is_output=True) for (i, b) in enumerate(outputs_no_dict)]
@@ -322,14 +326,41 @@ class Procedure(Base):
     def parameters_for_calibration(self, values : Optional[List[ModelParameter]]) -> None:
         self._parameters_for_calibration = values
 
+    _timestart : Optional[datetime]
+
+    @property
+    def timestart(self) -> Optional[datetime]:
+        return self._timestart if self._timestart is not None else self._plan._topology.timestart if self._plan is not None and self._plan._topology is not None else None
+    @timestart.setter
+    def timestart(self, value : Optional[Dateable]) -> None:
+        self._timestart = tryParseAndLocalizeDate(value) if value is not None else None
+
+    _timeend : Optional[datetime]
+
+    @property
+    def timeend(self) -> Optional[datetime]:
+        return self._timeend if self._timeend is not None else self._plan._topology.timeend if self._plan is not None and self._plan._topology is not None else None
+    @timeend.setter
+    def timeend(self, value : Optional[Dateable]) -> None:
+        self._timeend = tryParseAndLocalizeDate(value) if value is not None else None
+
+    _time_interval : Optional[relativedelta]
+
+    @property
+    def time_interval(self) -> Optional[relativedelta]:
+        return self._time_interval if self._time_interval is not None else self._plan.time_interval if self._plan is not None else None
+    @time_interval.setter
+    def time_interval(self, value : Optional[Intervaleable]) -> None:
+        self._time_interval = interval2relativedelta(value) if value is not None else None
+
     def __init__(
         self,
         id : Union[int, str] = 0,
         plan : Optional["Plan"] = None,
         initial_states : Union[list, dict] = [],
         parameters : Union[List[Any], Mapping[str, Any]] = [],
-        time_interval : Optional[Union[float,util.IntervalDict]] = None,
-        time_offset : Optional[Union[float,util.IntervalDict]] = None,
+        time_interval : Optional[Intervaleable] = None,
+        time_offset : Optional[Intervaleable] = None,
         save_results : Optional[str] = None,
         overwrite : bool = False,
         overwrite_original : bool = False,
@@ -343,42 +374,71 @@ class Procedure(Base):
         sim_index : int = 0,
         save_dict : Optional[str] = None,
         drop_warmup : bool = False,
-        boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
-        outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],DataFrame]] = [],
-        extra_pars : dict = dict(),
+        boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],List[Series],DataFrame]] = None,
+        outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],List[Series],DataFrame]] = None,
+        extra_pars : Optional[ExtraParsDict] = None,
         forecast_date : Optional[datetime] = None,
         parameters_for_calibration : Optional[List[ModelParameter]] = None,
+        timestart : Optional[Dateable] = None,
+        timeend : Optional[Dateable] = None,
         **kwargs
         ):
-        """A procedure
-        
-        Parameters:
-        -----------
-        parameters : list or dict of floats 
-        
-            function parameter values. Ordered list or dict
-            
-        initial_states : list or dict of floats
-        
-            list of function initial state values. Ordered list or dict
-        
-        boundaries : list of dict
-        
-            List of boundary conditions. Each item is a dict with a name <string> and a node_variable <NodeVariableIdTuple>
-        
-        outputs : list of dict
-        
-            list of procedure outputs. Each item is a dict with a name <string> and a node_variable tuple <NodeVariableIdTuple>
-        
-        extra_pars: dict
-        
-            Additional (non-calibratable) parameters
-            
-        save_results : str = None
-            save results into file. Defaults to save_results of plan
+        """
+        A procedure.
 
-        parameters_for_calibration : Optional[List[ModelParameter]] = None
-            parameter definition for calibration
+        Parameters
+        ----------
+        parameters : list or dict of float
+            Function parameter values. Ordered list or dictionary.
+
+        initial_states : list or dict of float
+            Initial state values. Ordered list or dictionary.
+
+        boundaries : Optional[Union[str, List[ProcedureBoundaryDict], List[TVPList], List[DataFrame], DataFrame]], default=[]
+            Boundary conditions.
+
+            Accepted values:
+
+            str
+                CSV file path where the first column is ISO datetime and
+                remaining columns are boundaries with headers matching
+                procedure boundary names.
+
+            List[ProcedureBoundaryDict]
+                List of dictionaries where:
+
+                - 'name' matches procedure boundary names
+                - 'node_variable' is a NodeVariableIdTuple:
+                (node_id: int, var_id: int)
+
+                Optionally, 'data' may contain a DataFrame or TVPList,
+                in which case 'node_variable' is ignored.
+
+            List[TVPList]
+                Ordered list of TVPLists.
+
+            List[DataFrame]
+                Ordered list of DataFrames.
+
+            DataFrame
+                DataFrame with DatetimeIndex and column labels matching
+                procedure boundary names.
+
+        outputs : Optional[Union[str, List[ProcedureBoundaryDict], List[TVPList], List[DataFrame], DataFrame]], default=[]
+            Procedure outputs.
+
+            Same accepted formats as `boundaries`.
+
+        extra_pars : dict
+            Additional non-calibratable parameters.
+
+        save_results : Optional[str], default=None
+            Save results into file.
+            Defaults to plan.save_results.
+
+        parameters_for_calibration : Optional[List[ModelParameter]], default=None
+            Parameter definitions for calibration.
+
         """
         if "type" in kwargs:
             del kwargs["type"]
@@ -405,9 +465,9 @@ class Procedure(Base):
                 "sim_index": sim_index,
                 "save_dict": save_dict,
                 "drop_warmup": drop_warmup,
-                "boundaries": boundaries if boundaries is not None else [],
-                "outputs": outputs if outputs is not None else [],
-                "extra_pars": extra_pars,
+                "boundaries": self.dfToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries]) if isinstance(boundaries, DataFrame) else boundaries if boundaries is not None else [],
+                "outputs": self.dfToBoundaryDicts(outputs, columns=[b.name for b in self._outputs]) if isinstance(outputs, DataFrame) else outputs if outputs is not None else [],
+                "extra_pars": extra_pars or {},
                 "forecast_date": forecast_date,
                 **kwargs
             },
@@ -437,14 +497,16 @@ class Procedure(Base):
         #     f.close()
         self.parameters = dict(parameters) if isinstance(parameters, Mapping) else parameters
         """List of procedure parameters"""
+        self.time_interval = time_interval
+        """Time step duration of the procedure"""
+        self.timestart = timestart
+        self.timeend = timeend
         self.boundaries = boundaries if boundaries is not None else []
         self.outputs = outputs if outputs is not None else []
-        self.extra_pars = extra_pars
+        self.extra_pars = extra_pars or {}
         self.forecast_date = forecast_date if forecast_date is not None else self._plan.forecast_date if self._plan is not None else None
         
-        self.time_interval : Optional[relativedelta] = util.interval2timedelta(time_interval) if time_interval is not None else None
-        """Time step duration of the procedure"""
-        self.time_offset : Optional[relativedelta] = util.interval2timedelta(time_offset) if time_offset is not None else None
+        self.time_offset : Optional[relativedelta] = interval2relativedelta(time_offset) if time_offset is not None else None
         """Time offset duration of the procedure"""
         self.input : Optional[Union[DataFrame,List[DataFrame]]] = None # <- boundary conditions
         """Ordered list of input DataFrames of the procedure (the boundary conditions). Run .loadInput(inplace=True) to populate"""
@@ -1421,7 +1483,7 @@ class Procedure(Base):
     
     def tvpListToBoundaryDict(
             self, 
-            b : Union[TVPList,DataFrame], 
+            b : Union[TVPList,DataFrame,Series,List[float]], 
             index : int=0, 
             is_output : bool=False
             ) -> ProcedureBoundaryDict:
@@ -1440,9 +1502,11 @@ class Procedure(Base):
             else:
                 name = self._boundaries[index].name
         if isinstance(b, DataFrame):
-            data = b
+            data = util.ensure_datetime_index(b, start=self.timestart, freq=self.time_interval)
+        elif isinstance(b, Series):
+            data = util.ensure_datetime_index(b, start=self.timestart, freq=self.time_interval).to_frame(name="valor")
         else:
-            data = tvpListToDataFrame(b)
+            data = tvpListToDataFrame(b, begin_datetime=self.timestart, timestep=self.time_interval)
         return {
             "name": name,
             "node_variable": (0,0),
@@ -1451,6 +1515,7 @@ class Procedure(Base):
     
     def dfToBoundaryDicts(self, df : DataFrame, columns : Optional[List[str]]=None) -> List[ProcedureBoundaryDict]:
         # each column into a ProcedureBoundaryDict using column names
+        df = util.ensure_datetime_index(df)
         boundaries : List[ProcedureBoundaryDict] = [
             {
                 "name": col,

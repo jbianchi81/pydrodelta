@@ -32,6 +32,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        {
+            "type": "string",
+            "description": "String representation of frequency, i.e. '1D'"
         }
     ],
     "description": "Represents a time duration. If a number, it is read as a decimal number of days. If object, one or more integer properties from hours, minutes, seconds, days, weeks, months or years must be used",

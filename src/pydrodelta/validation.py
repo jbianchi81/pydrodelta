@@ -2,14 +2,14 @@ import os
 import jsonschema
 from pathlib import Path
 import yaml
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, cast
 from .config import config
 import logging
 import importlib.resources
 from datetime import datetime, date
 from collections.abc import Mapping
-from pandas import DataFrame
-from .util import make_serializable
+from pandas import DataFrame, Series, DatetimeIndex
+from .util import make_serializable, ensure_datetime_index
 
 def to_json_types(obj):
     if isinstance(obj, Path):
@@ -25,8 +25,19 @@ def to_json_types(obj):
         return [to_json_types(v) for v in obj]
     
     if isinstance(obj, DataFrame):
-        return make_serializable(obj).to_dict(orient="records")
+        obj = ensure_datetime_index(obj)
+        return make_serializable(obj.reset_index()).to_dict(orient="records")
 
+    if isinstance(obj, Series):
+        obj = ensure_datetime_index(obj)
+        assert isinstance(obj.index, DatetimeIndex)
+        return [
+            {
+                "timestart": cast(datetime, ts).strftime("%Y-%m-%d %H:%M:%S"),
+                "valor": float(value),
+            }
+            for ts, value in obj.items()
+        ]
     return obj
 
 def getSchema(

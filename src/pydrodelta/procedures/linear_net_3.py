@@ -6,7 +6,22 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..model_parameter import ModelParameter
 import numpy as np
 from ..types import ExecInput
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from pandas import DataFrame
+from typing_extensions import TypedDict, Unpack
+from typing import Optional
+
+class LinearNet3ParametersDict(TypedDict):
+    k_1 : float
+    n_1 : int
+    k_2 : float
+    n_2 : int
+    k_3 : float
+    n_3 : int
+
+class ExtraParsDict(TypedDict, total=False):
+    # calculation timestep
+    dt: float
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
@@ -62,9 +77,11 @@ class LinearNet3Procedure(Procedure):
 
     def __init__(
         self,
-        parameters : dict,
-        **kwargs):
+        parameters : LinearNet3ParametersDict,
+        extra_pars : Optional[ExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
+        parameters : LinearNet3ParametersDict
         /**kwargs : keyword arguments
 
         Keyword arguments:
@@ -74,7 +91,7 @@ class LinearNet3Procedure(Procedure):
             dt : float 
                 calculation timestep
         """
-        super().__init__(parameters=parameters, **kwargs)
+        super().__init__(parameters=parameters, extra_pars=extra_pars, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
  
     def exec(
