@@ -1,13 +1,46 @@
 import logging
 import numpy as np
 from pandas import DataFrame
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, Any, TypedDict, Literal
+from typing_extensions import Unpack, NotRequired
 
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedures.pq import PQProcedure
 from ..pydrology import HOSH4P1L, triangularDistribution
 from ..model_state import ModelState
 from ..types import ExecInput
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+from .pq import PQExtraParsDict
+
+class HOSHParsDict(TypedDict):
+    maxSurfaceStorage : float
+    """Maximum surface storage (model parameter)"""
+    maxSoilStorage : float
+    """Maximum soil storage (model parameter)"""
+    Proc : Literal["Nash", "UH"]
+    """Routing procedure (model parameter). Default: 'UH'"""
+    T : NotRequired[Optional[float]]
+    """Triangular hydrogram time to peak (model parameter)"""
+    distribution : NotRequired[Optional[Literal["Symmetric","SCS","pbT"]]]
+    """Triangular hydrogram distribution (model parameter). Default = 'Symmetric'"""
+    k : NotRequired[Optional[float]]
+    """Nash linear channel coefficient k (model parameter)"""
+    n : NotRequired[Optional[float]]
+    """Nash linear channel number of reservoirs n (model parameter)"""
+
+class HOSHExtraParsDict(PQExtraParsDict):
+    dt : NotRequired[Optional[float]]
+    """Computation step (procedure configuration). Default = 0.01"""
+    shift : NotRequired[Optional[bool]]
+    """shift (procedure configuration). Default = False"""
+    approx : NotRequired[Optional[bool]]
+    """approx (procedure configuration). Default = False"""
+
+class HOSHInitialStatesDict(TypedDict):
+    SurfaceStorage : NotRequired[Optional[float]]
+    """Initial surface storage [mm] (model initial state). Default = 0"""
+    SoilStorage : NotRequired[Optional[float]]
+    """Initial soil storage [mm] (model initial state). Default = 0"""
 
 class HOSH4P1LProcedure(PQProcedure):
     """Modelo Operacional de Transformación de Precipitación en Escorrentía de 4 parámetros (estimables). Hidrología Operativa Síntesis de Hidrograma. Método NRCS, perfil de suelo con 2 reservorios de retención (sin efecto de base)."""
@@ -33,7 +66,7 @@ class HOSH4P1LProcedure(PQProcedure):
         return self.parameters["maxSoilStorage"]
     
     @property
-    def Proc(self) -> str:
+    def Proc(self) -> Literal["Nash", "UH"]:
         """Routing procedure (model parameter)"""
         if isinstance(self.parameters, list):
             return self.parameters[2] if len(self.parameters) >=3 else "UH"
@@ -47,7 +80,7 @@ class HOSH4P1LProcedure(PQProcedure):
         return self.parameters["T"] if "T" in self.parameters else None
     
     @property
-    def distribution(self) -> str:
+    def distribution(self) -> Literal["Symmetric","SCS","pbT"]:
         """Triangular hydrogram distribution (model parameter)"""
         if isinstance(self.parameters, list):
             return self.parameters[4] if len(self.parameters) >=5 else "Symmetric"
@@ -133,10 +166,10 @@ class HOSH4P1LProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[list,tuple,dict],
-        extra_pars : dict,
-        initial_states : Union[list,tuple,dict],
-        **kwargs):
+        parameters : Union[List[Any], HOSHParsDict],
+        initial_states: Union[List[Any], HOSHInitialStatesDict],
+        extra_pars: Optional[HOSHExtraParsDict],
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         parameters  : Union[list,tuple,dict]
             

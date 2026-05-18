@@ -1,12 +1,50 @@
 import logging
 import numpy as np
 from pandas import DataFrame, Series, concat
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any, Mapping, Optional, TypedDict
+from typing_extensions import NotRequired, Unpack
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedures.pq import PQProcedure
 from ..pydrology import HIDROSAT, HIDROSATPowerLawReservoir, RetentionReservoir, LinearReservoirCascade
 from ..model_state import ModelState
 from ..types import ExecInput
+from .pq import PQExtraParsDict
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
+
+class HidrosatInitialStatesDict(TypedDict):
+    soilStorage : NotRequired[float]
+    """Almacenamiento inicial en reservorio de retención / Initial tension water storage [mm]. Default = 0"""
+    Runoff : NotRequired[float]
+    """Escorrentía inicial / Initial Runoff [mm]. Default = 1"""
+    floodPlainStorage : NotRequired[float]
+    """Almacenamiento inicial en reservorio de detención / Initial floodplain Storage [mm]. Default = 0"""
+    Flooded : NotRequired[float]
+    """Extensión inicial de anegamiento  / Initial flooded area [mm]. Default = 0"""
+
+class HidrosatExtraParsDict(PQExtraParsDict):
+    dt : float
+    """Longitud de subpaso de cómputo en Newton-Raphson / time step resolution Newton-Raphson [-]"""    
+
+class HidrosatParsDict(TypedDict):
+    S0 : float
+    """Almacenamiento máximo en reservorio de retención (Agua de Tensión en perfil de suelo) / Maximum Retention Capacity [mm]"""
+    K : float
+    """Tiempo de residencia (propagación escorrentía de interfluvios a flujo encauzado en valle) / Residence Time delayed runoff - Discrete Linear Reservoir Cascade Approach - [days]"""
+    N : float
+    """Número de reservorios en serie (propagación escorrentía de interfluvios a flujo encauzado en valle) / Number of Reservoirs - Discrete Linear Reservoir Cascade Approach - [1]"""
+    W0 : float
+    """Almacenamiento Máximo en reservorio de Detención (valle) / Maximum Detention Capacity [mm]"""
+    Q0  : float
+    """Caudal Máximo (flujo encauzado en valle) / Maximum Discharge [mm]"""
+    gamma : float
+    """Factor de forma. Ley de Potencia reservorio de Detención / shape factor power law reservoir [-]"""
+    maxFlooded : NotRequired[float] # (optional, by default 1)
+    """Área anegada máxima (fracción del sistema) / maximum flooded area [-]. Default = 1"""
+    detentionRatio : NotRequired[float] # (optional, by default 1)
+    """Coeficiente de prorateo entre aporte directo y aporte demorado en red de drenaje  / diversion ratio direct rainfall (detention/drainfall) [-]. Default = 1"""
+    epsilon : NotRequired[float] # (optional, by default 0.001)
+    """Valor umbral de tolerancia error en Newton-Raphson / Tolerance threshold Newton-Raphson [mm]. Default = 0.001"""
 
 class HIDROSATProcedure(PQProcedure):
     """Modelo PQ HIDROSAT para macrosistemas de llanura húmeda"""
@@ -131,10 +169,10 @@ class HIDROSATProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[list,tuple,dict],
-        extra_pars : dict,
-        initial_states : Union[list,tuple,dict],
-        **kwargs):
+        parameters : Union[List[Any], HidrosatParsDict],
+        initial_states: Union[List[Any], HidrosatInitialStatesDict],
+        extra_pars: Optional[HidrosatExtraParsDict],
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         parameters  : Union[list,tuple,dict]
             

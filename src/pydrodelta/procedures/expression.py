@@ -4,6 +4,8 @@ from ..function_boundary import FunctionBoundary
 from typing import Union, List, Optional
 from pandas import DataFrame
 import math
+from ..types.procedure_full_init_kwargs import ProcedureFullInitKwargs
+from typing_extensions import Unpack
 
 class ExpressionProcedure(Procedure):
     """Procedure function that evaluates an arbitrary expression where 'value' is replaced with the values of input"""
@@ -24,7 +26,7 @@ class ExpressionProcedure(Procedure):
     def __init__(
         self,
         expression : str,
-        **kwargs):
+        **kwargs : Unpack[ProcedureFullInitKwargs]):
         """
         expression :str
 

@@ -14,11 +14,14 @@ from .procedure_boundary_dict import ProcedureBoundaryDict
 from a5client.util_types import TVPList, Intervaleable, Dateable
 from pandas import DataFrame, Series
 from ..model_parameter import ModelParameter
+from numpy import floating
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from ..plan import Plan
 
 from ..util import IntervalDict
+from .any_calibration_dict import AnyCalibrationDict
 
 class ProcedureInitKwargs(TypedDict, total=False):
     """
@@ -30,14 +33,12 @@ class ProcedureInitKwargs(TypedDict, total=False):
 
     plan: Optional["Plan"]
 
-    initial_states: Union[list, dict]
-
     time_interval: Optional[
         Intervaleable
     ]
 
     time_offset: Optional[
-        Union[float, IntervalDict]
+        Intervaleable
     ]
 
     save_results: Optional[str]
@@ -46,7 +47,7 @@ class ProcedureInitKwargs(TypedDict, total=False):
 
     overwrite_original: bool
 
-    calibration: Optional[dict]
+    calibration: Optional[AnyCalibrationDict]
 
     adjust: bool
 
@@ -75,6 +76,7 @@ class ProcedureInitKwargs(TypedDict, total=False):
             List[DataFrame],
             List[Series],
             DataFrame,
+            NDArray[floating]
         ]
     ]
 
@@ -87,6 +89,7 @@ class ProcedureInitKwargs(TypedDict, total=False):
             List[DataFrame],
             List[Series],
             DataFrame,
+            NDArray[floating]
         ]
     ]
 

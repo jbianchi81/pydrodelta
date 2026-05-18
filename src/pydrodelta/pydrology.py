@@ -1,7 +1,7 @@
 #/usr/bin/python3
 #Librería de métodos para modelación hidrológica SSIyAH-INA, 2022 (modelación dinámica)
 import math
-from typing import Optional, Union, List, Tuple, cast, Any, overload
+from typing import Optional, Union, List, Tuple, cast, Any, overload, Literal
 from sys import maxsize
 from zlib import MAX_WBITS
 from .pydrology_procedure_interface import PydrologyProcedureInterface
@@ -126,7 +126,7 @@ def integrate(lista_valores : Union[List[float],NDArray[np.float64]], dt : float
 
 def triangularDistribution(
         pars : Union[List[float],float],
-        distribution : str ='Symmetric',
+        distribution : Literal["Symmetric","SCS","pbT"] ='Symmetric',
         dt : float =0.01,
         shift : bool =True,
         approx: bool=True) -> NDArray[np.float64]:
@@ -1448,7 +1448,7 @@ class HOSH4P1L(PydrologyProcedureInterface):
         else:
             return None
     
-    def __init__(self,pars : List[Union[float,List[float]]],Boundaries : Union[List[List[float]],NDArray[np.float64]] =[[0],[0]],InitialConditions : Union[List[Tuple[float,float]],List[float]] =[0,0],Proc : str ='Nash'):
+    def __init__(self,pars : List[Union[float,List[float]]],Boundaries : Union[List[List[float]],NDArray[np.float64]] =[[0],[0]],InitialConditions : Union[List[Tuple[float,float]],List[float]] =[0,0],Proc : Literal["Nash", "UH"] ='Nash'):
         """
             pars : List[List[float]]
                 Lista con los valores de maxSurFaceStorage (reservorio de abstracción), maxSoilStorage (reservorio de producción) y parámetros tiempo de residencia (k) y n reservorios (caso Proc='Nash') o con último elemento como con ordenadas de Hidrograma Unitario (caso Proc='UH') 

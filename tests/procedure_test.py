@@ -3,6 +3,8 @@ from pydrodelta.procedures import UHLinearChannelProcedure
 from unittest import TestCase
 from pandas import DataFrame, read_csv, to_datetime, DatetimeIndex
 from pydrodelta.create_procedure import createProcedure, loadProcedure
+from numpy.typing import NDArray
+from numpy import array
 
 class Test_Procedure(TestCase):
     
@@ -361,6 +363,29 @@ class Test_Procedure(TestCase):
         assert isinstance(p.data.index, DatetimeIndex)
         assert min(p.data.index).isoformat()[0:19] == '2026-05-01T00:00:00'
         assert max(p.data.index).isoformat()[0:19] == '2026-05-01T07:00:00'
+
+    def test_from_array(self):
+
+        data = read_csv("tests/data/csv/inputoutput.csv")
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= array([data.input.tolist()]),
+            outputs= array([data.output.tolist()]),
+            timestart="2026-05-01",
+            time_interval="1h"
+        )
+
+        p.run(load_output_obs=True)
+
+        run_assertions(p)
+        assert p.data is not None
+        assert isinstance(p.data.index, DatetimeIndex)
+        assert min(p.data.index).isoformat()[0:19] == '2026-05-01T00:00:00'
+        assert max(p.data.index).isoformat()[0:19] == '2026-05-01T07:00:00'
+
 
 def run_assertions(p):
     assert p.output_obs is not None

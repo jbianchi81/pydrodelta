@@ -1,14 +1,39 @@
 import numpy as np
 from pandas import DataFrame
-from typing import Union, List, Tuple, Optional, Mapping, Any
+from typing import Union, List, Tuple, Optional, Mapping, Any, TypedDict
 import logging
+from typing_extensions import Unpack
 
+from ..types.procedure_full_init_kwargs import ProcedureFullInitKwargs
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedures.pq import PQProcedure
 from ..pydrology import GR4J
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
+from .pq import PQExtraParsDict
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
 from numpy import inf
+
+class GR4JInitialStatesDict(TypedDict):
+    Sk_init : float
+    # Initial soil storage [mm]
+    Rk_init : float
+    # Initial routing storage [mm]
+
+class GR4JParsDict(TypedDict):
+    X0 : float
+    # capacite du reservoir de production (mm)
+    X1 : float
+    # capacite du reservoir de routage (mm)
+    X2 : float
+    # facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
+    X3 : float
+    #	temps de base de l'hydrogramme unitaire (d)
+
+
+class GR4JExtraParsDict(PQExtraParsDict, total=False):
+    dt : int
 
 class GR4JProcedure(PQProcedure):
     """Modelo Operacional de Transformación de Precipitación en Escorrentía de Ingeniería Rural de 4 parámetros (CEMAGREF). A diferencia de la versión original, la convolución se realiza mediante producto de matrices. Parámetros: Máximo almacenamiento en reservorio de producción, tiempo al pico (hidrograma unitario),máximo almacenamiento en reservorio de propagación, coeficiente de intercambio."""
@@ -92,10 +117,10 @@ class GR4JProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[list,tuple,dict],
-        initial_states : Optional[Union[list,tuple,dict]] = None,
-        extra_pars : dict = dict(),
-        **kwargs
+        parameters : GR4JParsDict,
+        initial_states : GR4JInitialStatesDict,
+        extra_pars : GR4JExtraParsDict,
+        **kwargs : ProcedureInitKwargs
         ):
         """
         parameters : list or tuple or dict
@@ -213,7 +238,8 @@ class GR4JProcedure(PQProcedure):
     def setParameters(
         self,
         parameters : Union[List,Tuple,Mapping[str, Any]] = [],
-        reset : bool = False
+        reset : bool = False,
+        keys : Optional[List[str]] = None
         ) -> None:
         """Set parameters from ordered list
         
@@ -230,7 +256,7 @@ class GR4JProcedure(PQProcedure):
             - X3:	temps de base de l'hydrogramme unitaire (d)
 
         """
-        super().setParameters(parameters)
+        super().setParameters(parameters, reset, keys)
 
     def setInitialStates(
         self,

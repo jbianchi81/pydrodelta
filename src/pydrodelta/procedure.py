@@ -25,11 +25,13 @@ from .types.procedure_boundary_dict import ProcedureBoundaryDict
 from .descriptors.list_descriptor import ListDescriptor
 from .descriptors.list_or_dict_descriptor import ListOrDictDescriptor
 from pydrodelta.descriptors.datetime_descriptor import DatetimeDescriptor
-from numpy import array, ndarray
+from numpy import array, ndarray, integer, floating
+from numpy.typing import NDArray
 from pandas import DataFrame, Series
 from datetime import datetime
 from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
+from .types.any_calibration_dict import AnyCalibrationDict
 from .function_boundary import FunctionBoundary
 from .util import getInputListFromDataFrame, tvpListToDataFrame
 from .model_parameter import ModelParameter
@@ -105,7 +107,7 @@ class Procedure(Base):
     def calibration(self) -> Union[DownhillSimplexCalibration, LinearRegressionCalibration,None]:
         return self._calibration
     @calibration.setter
-    def calibration(self,calibration : Optional[dict]) -> None:
+    def calibration(self,calibration : Optional[AnyCalibrationDict]) -> None:
         if calibration is not None:
             if "method" not in calibration:
                 raise KeyError("Required key 'method' missing from calibration argument")
@@ -195,7 +197,7 @@ class Procedure(Base):
             raise TypeError("parameters must be a list or a dict. Instead, it is a %s " % type(self.parameters).__name__)
 
 
-    initial_states : Union[List[float],Dict[str,float]] # = ListOrDictDescriptor()
+    initial_states : Union[List[Any], Mapping[str, Any]] # = ListOrDictDescriptor()
     """list or dict of function initial state values"""
 
     @property
@@ -213,7 +215,7 @@ class Procedure(Base):
     @boundaries.setter
     def boundaries(
         self,
-        boundaries : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame]
+        boundaries : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]
         ) -> None:
         """Setter of boundaries
         
@@ -226,6 +228,8 @@ class Procedure(Base):
             boundaries_ = self.csvToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries])
         elif isinstance(boundaries, DataFrame):
             boundaries_ = self.dfToBoundaryDicts(boundaries, columns=[b.name for b in self._boundaries])
+        elif isinstance(boundaries, ndarray):
+            boundaries_ = self.arrayBoundaryToDicts(boundaries, columns=[b.name for b in self._boundaries])
         else:
             isdict = [isinstance(b, dict) for b in boundaries]
             if all(isdict):
@@ -254,7 +258,7 @@ class Procedure(Base):
     @outputs.setter
     def outputs(
         self,
-        outputs : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame]
+        outputs : Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]
         ) -> None:
         """Setter for outputs
         
@@ -267,6 +271,8 @@ class Procedure(Base):
             outputs_ = self.csvToBoundaryDicts(outputs, columns=[b.name for b in self._outputs])
         elif isinstance(outputs, DataFrame):
             outputs_ = self.dfToBoundaryDicts(outputs, columns=[b.name for b in self._outputs])
+        elif isinstance(outputs, ndarray):
+            outputs_ = self.arrayBoundaryToDicts(outputs, columns=[b.name for b in self._outputs])
         else:
             isdict = [isinstance(b, dict) for b in outputs]
             if all(isdict):
@@ -357,14 +363,14 @@ class Procedure(Base):
         self,
         id : Union[int, str] = 0,
         plan : Optional["Plan"] = None,
-        initial_states : Union[list, dict] = [],
+        initial_states : Optional[Union[List[Any], Mapping[str, Any]]] = [],
         parameters : Union[List[Any], Mapping[str, Any]] = [],
         time_interval : Optional[Intervaleable] = None,
         time_offset : Optional[Intervaleable] = None,
         save_results : Optional[str] = None,
         overwrite : bool = False,
         overwrite_original : bool = False,
-        calibration : Optional[dict] = None,
+        calibration : Optional[AnyCalibrationDict] = None,
         adjust : bool = False,
         adjust_method : Literal['lfit', 'arima'] = "lfit",
         warmup_steps : Optional[int] = None,
@@ -374,8 +380,8 @@ class Procedure(Base):
         sim_index : int = 0,
         save_dict : Optional[str] = None,
         drop_warmup : bool = False,
-        boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],List[Series],DataFrame]] = None,
-        outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[DataFrame],List[Series],DataFrame]] = None,
+        boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]] = None,
+        outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]] = None,
         extra_pars : Optional[ExtraParsDict] = None,
         forecast_date : Optional[datetime] = None,
         parameters_for_calibration : Optional[List[ModelParameter]] = None,
@@ -480,7 +486,7 @@ class Procedure(Base):
         """Identifier of the procedure"""
         self.save_results = self.resolve_path(save_results)
         """Save procedure results into this file (csv pivoted table)"""
-        self.initial_states = initial_states
+        self.initial_states = initial_states if initial_states is not None else []
         """List of procedure initial states"""
         # if type(function) != dict:
         #     if type(function) != str:
@@ -1483,7 +1489,7 @@ class Procedure(Base):
     
     def tvpListToBoundaryDict(
             self, 
-            b : Union[TVPList,DataFrame,Series,List[float]], 
+            b : Union[TVPList,DataFrame,Series,List[float],NDArray[floating]], 
             index : int=0, 
             is_output : bool=False
             ) -> ProcedureBoundaryDict:
@@ -1532,3 +1538,28 @@ class Procedure(Base):
     def csvToBoundaryDicts(self, filename : str, columns : Optional[List[str]]=None) -> List[ProcedureBoundaryDict]:
         df = read_csv(self.resolve_path(filename), parse_dates=True, index_col=0)
         return self.dfToBoundaryDicts(df, columns)
+
+    def arrayBoundaryToDicts(self, arr : NDArray, columns : List[str]) -> List[ProcedureBoundaryDict]:
+        shp = arr.shape
+        if len(shp) == 1:
+            if len(columns) < 1:
+                raise ValueError("Column name missing for position 0")
+            boundaries : List[ProcedureBoundaryDict] = [{
+                "name": columns[0],
+                "node_variable": (0,0),
+                "data": util.ensure_datetime_index(DataFrame(arr, columns=["valor"]), self.timestart, self.time_interval)
+            }]
+        elif len(shp) == 2:
+            if len(columns) < shp[0]:
+                raise ValueError(f"Column name missing for position {len(columns)}")
+            boundaries : List[ProcedureBoundaryDict] = [
+                {
+                    "name": columns[i],
+                    "node_variable": (0,0),
+                    "data": util.ensure_datetime_index(DataFrame(data, columns=["valor"]), self.timestart, self.time_interval)
+                }
+                for i, data in enumerate(arr)
+            ]
+        else:
+            raise ValueError("Bad number of dimensions of arr : NDArray")
+        return boundaries

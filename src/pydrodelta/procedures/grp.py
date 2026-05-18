@@ -1,7 +1,7 @@
 import logging
 from numpy import tanh
 from pandas import DataFrame
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, Mapping, Any, TypedDict
 from numpy import inf, isnan
 
 from ..procedure_function_results import ProcedureFunctionResults
@@ -11,6 +11,19 @@ from .pq import PQProcedure
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
 from ..types import ExecInput
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+from .pq import PQExtraParsDict
+
+class GRPParsDict(TypedDict):
+    X0 : float #	capacite du reservoir de production (mm)
+    X1 : float #	capacite du reservoir de routage (mm)
+    X2 : float #	facteur de l'ajustement multiplicatif de la pluie efficace (sans dimension)
+    X3 : float #	temps de base de l'hydrogramme unitaire (d)
+
+class GRPInitialStatesDict(TypedDict):
+    Sk_init : float # Initial soil storage [mm]
+    Rk_init : float # Initial routing storage [mm]
 
 class GRPProcedure(PQProcedure):
     """L'équipe du Cemagref a développé un logiciel de prévision hydrologique (GRP) pour le Service central d'hydrométéorologie et d'appui à la prévision des inondations (SCHAPI), conçu pour prédire les crues des cours d'eau. Les chercheurs expliquent que les observations et prévisions des précipitations du réseau Météo-France pour les bassins correspondants sont exploitées par le logiciel. L'indice d'humidité des sols est également un facteur pris en compte par le logiciel."""
@@ -116,10 +129,11 @@ class GRPProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[list,tuple,dict],
-        initial_states : Union[list,tuple,dict] = [],
+        parameters : Union[List[Any], GRPParsDict],
+        initial_states : Optional[Union[List[Any], GRPInitialStatesDict]] = None,
+        extra_pars: Optional[PQExtraParsDict] = None,
         update = False,
-        **kwargs):
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         parameters : list or tuple or dict
 
@@ -152,6 +166,7 @@ class GRPProcedure(PQProcedure):
         super().__init__(
             parameters = parameters,
             initial_states = initial_states,
+            extra_pars = extra_pars,
             **kwargs)
         
         self.UH1, self.SH1 = GRPProcedure.createUnitHydrograph(self.X3, self.alpha)
@@ -372,8 +387,9 @@ class GRPProcedure(PQProcedure):
     
     def setParameters(
         self,
-        parameters : Union[list,tuple] = [],
-        reset : bool=False
+        parameters : Union[list,tuple,Mapping[str, Any]] = [],
+        reset : bool=False,
+        keys : Optional[List[str]] = None
         ) -> None:
         """
         Setter for self.parameters.
@@ -384,7 +400,7 @@ class GRPProcedure(PQProcedure):
 
             GRP parameters to set (X0,X1,X2,X3)
         """
-        super().setParameters(parameters)
+        super().setParameters(parameters, reset=reset, keys=keys)
         self.UH1, self.SH1 = GRPProcedure.createUnitHydrograph(self.X3, self.alpha)
     
     def setInitialStates(self,states:Union[list,tuple]=[]):

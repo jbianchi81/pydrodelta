@@ -10,6 +10,7 @@ from datetime import datetime, date
 from collections.abc import Mapping
 from pandas import DataFrame, Series, DatetimeIndex
 from .util import make_serializable, ensure_datetime_index
+from numpy import ndarray
 
 def to_json_types(obj):
     if isinstance(obj, Path):
@@ -38,6 +39,10 @@ def to_json_types(obj):
             }
             for ts, value in obj.items()
         ]
+
+    if isinstance(obj, ndarray):
+        return obj.tolist()
+
     return obj
 
 def getSchema(

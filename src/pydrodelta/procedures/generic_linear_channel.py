@@ -7,6 +7,7 @@ import numpy as np
 from pandas import DataFrame
 from typing import List, Union, Optional
 from typing_extensions import Unpack
+from ..types.procedure_full_init_kwargs import ProcedureFullInitKwargs
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
@@ -42,7 +43,7 @@ class GenericLinearChannelProcedure(Procedure):
 
     def __init__(
         self,
-        **kwargs):
+        **kwargs : Unpack[ProcedureFullInitKwargs]):
         """
         **kwargs : keyword arguments
 

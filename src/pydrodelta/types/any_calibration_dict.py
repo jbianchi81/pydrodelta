@@ -1,0 +1,5 @@
+from typing import Union
+from .linear_regression_calibration_dict import LinearRegressionCalibrationDict
+from .downhill_simplex_calibration_dict import DownhillSimplexCalibrationDict
+
+AnyCalibrationDict = Union[LinearRegressionCalibrationDict, DownhillSimplexCalibrationDict]

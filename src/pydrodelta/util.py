@@ -8,6 +8,7 @@ import pandas
 from datetime import timedelta, datetime, date as datetime_date, tzinfo
 # from zoneinfo import ZoneInfo
 import numpy as np
+from numpy.typing import NDArray
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
@@ -26,7 +27,6 @@ import random
 DataFrame = pandas.DataFrame
 DatetimeIndex = pandas.DatetimeIndex
 Series = pandas.Series
-import numpy as np
 from pathlib import Path
 import statistics
 from a5client.util import tryParseAndLocalizeDate, freq_to_relativedelta
@@ -268,11 +268,11 @@ def relativedelta_to_freq(rd: relativedelta) -> str:
     if rd.days:
         return f"{rd.days}D"
     if rd.hours:
-        return f"{rd.hours}H"
+        return f"{rd.hours}h"
     if rd.minutes:
-        return f"{rd.minutes}T"
+        return f"{rd.minutes}min"
     if rd.seconds:
-        return f"{rd.seconds}S"
+        return f"{rd.seconds}s"
     raise ValueError("Unsupported relativedelta")
 
 def createDatetimeSequence(
@@ -1058,7 +1058,7 @@ def readCsvFile(csv_file : FileDescriptorOrPath):
         return [row for row in csv.DictReader(csvfile)]
 
 def parseObservations(
-        observations : Union[List[TVPdateable],Tuple[Dateable],Tuple[Dateable,float],List[float],List[TVPAllowNone],TVPList],
+        observations : Union[List[TVPdateable],Tuple[Dateable],Tuple[Dateable,float],List[float],List[TVPAllowNone],TVPList, NDArray[np.floating]],
         begin_datetime : Optional[datetime]=None,
         timestep : Optional[relativedelta] = None) -> List[TVPAllowNone]:
     begin_datetime = begin_datetime or datetime(2000,1,1,tzinfo=datetime.now().astimezone().tzinfo)
@@ -1081,7 +1081,7 @@ def parseObservations(
                 "timestart": tryParseAndLocalizeDate(o[0]),
                 "valor": float(o[1]) if len(o) > 1 and o[1] is not None else None
             })
-        elif isinstance(o, (int,float)) or o is None:
+        elif isinstance(o, (int, float, np.integer, np.floating)) or o is None:
             result.append({
                 "timestart": begin_datetime + timestep * i,
                 "valor": float(o) if o is not None else None
@@ -1092,7 +1092,7 @@ def parseObservations(
     return result
 
 def tvpListToDataFrame(
-        data : Union[TVPList, List[float]], 
+        data : Union[TVPList, List[float],NDArray[np.floating]], 
         begin_datetime: Optional[datetime] = None,
         timestep: Optional[relativedelta] = None
         ) -> pandas.DataFrame:

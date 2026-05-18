@@ -152,5 +152,3 @@ class HidrosatTest(TestCase):
         mass_balance = procedure.massBalance()
 
         self.assertAlmostEqual(mass_balance["discrepancy"]*0.1,0,0)
-
-

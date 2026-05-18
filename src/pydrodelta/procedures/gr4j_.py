@@ -1,8 +1,11 @@
-from pydrodelta.procedures.grp import GRPProcedure
+from pydrodelta.procedures.grp import GRPProcedure, GRPParsDict, GRPInitialStatesDict
 from pydrodelta.model_parameter import ModelParameter
 import logging
 from numpy import tanh, inf
-from typing import Union
+from typing import Union, Mapping, Any, Optional, List
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+from .pq import PQExtraParsDict
 
 class GR4JProcedure(GRPProcedure):
 
@@ -21,9 +24,16 @@ class GR4JProcedure(GRPProcedure):
 
     def __init__(
         self,
-        **kwargs
+        parameters : Union[List[Any], GRPParsDict],
+        initial_states : Optional[Union[List[Any], GRPInitialStatesDict]] = None,
+        extra_pars: Optional[PQExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
-        super().__init__(**kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
+        super().__init__(
+            parameters = parameters,
+            initial_states = initial_states,
+            extra_pars = extra_pars,
+            **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         # overrides UH1, SH1 from super
         self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedure.createUnitHydrograph2(self.X3, self.alpha)
 
@@ -99,7 +109,7 @@ class GR4JProcedure(GRPProcedure):
             j = j + 1
         return Quh
 
-    def setParameters(self, parameters: Union[list,tuple] = [], reset : bool = False):
-        super().setParameters(parameters)
+    def setParameters(self, parameters: Union[list,tuple,Mapping[str, Any]] = [], reset : bool = False, keys : Optional[List[str]]=None):
+        super().setParameters(parameters, reset=reset, keys=keys)
         self.UH1, self.SH1, self.UH2, self.SH2  = GR4JProcedure.createUnitHydrograph2(self.X3, self.alpha)
     

@@ -3,7 +3,8 @@ from ..procedure_function_results import ProcedureFunctionResults
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate, assertDict, PathOrBuf
 # from a5client import createEmptyObsDataFrame
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, TypedDict, Any, Mapping
+from typing_extensions import NotRequired, Unpack
 from pandas import DataFrame, concat, DatetimeIndex, Series
 from matplotlib import pyplot as plt
 from datetime import datetime
@@ -13,9 +14,16 @@ import time
 import pytz
 from pydrodelta.descriptors.dataframe_descriptor import DataFrameDescriptor
 from a5client.util_types import Dateable
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 
 import numpy as np
 import logging
+
+class AnalogyExtraParsDict(TypedDict,total=False):
+    add_error_band : NotRequired[Optional[bool]]
+    skip_first_years : int
+    only_last_years : int
+    vent_resamp_range : NotRequired[Optional[Tuple[int,int]]]
 
 class AnalogyProcedure(Procedure):
     """Analogy forecast procedure"""
@@ -109,7 +117,9 @@ class AnalogyProcedure(Procedure):
     def __init__(
         self,
         parameters : dict,
-        **kwargs
+        initial_states: Optional[Union[List[Any], Mapping[str, Any]]]=None,
+        extra_pars : Optional[AnalogyExtraParsDict]=None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """_summary_
 
@@ -141,7 +151,7 @@ class AnalogyProcedure(Procedure):
         
         **kwargs : see ..procedure_function.ProcedureFunction
         """
-        super().__init__(parameters = parameters, **kwargs)
+        super().__init__(parameters = parameters, initial_states = initial_states, extra_pars = extra_pars, **kwargs)
         # getSchemaAndValidate(dict(kwargs, type = "Analogy", parameters = parameters),"AnalogyProcedureFunction")
         self.errores = None
         self.df_prono_analog = None

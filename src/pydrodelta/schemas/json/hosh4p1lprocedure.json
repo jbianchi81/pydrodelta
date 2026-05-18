@@ -15,13 +15,28 @@
             "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH","HOSH4P1LProcedure","HOSH4P1LNashProcedure","HOSH4P1lUHProcedure"]
         },
         "initial_states": {
-            "type": "array",
-            "description": "Initial storages: [SurfaceStorage,SoilStorage]",
-            "minItems": 2,
-            "maxItems": 2,
-            "items": {
-                "type": "number"
-            }
+            "oneOf": [
+                {
+                    "type": "array",
+                    "description": "Initial storages: [SurfaceStorage,SoilStorage]",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "SoilStorage": {
+                            "type": "number" 
+                        },
+                        "SurfaceStorage": {
+                            "type": "number"
+                        }
+                    }
+                }
+            ]
         },
         "parameters": {
             "$ref": "hosh4p1lprocedure.json#/$defs/Parameters"
