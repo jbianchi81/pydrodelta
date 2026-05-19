@@ -317,8 +317,15 @@ class Procedure(Base):
     _no_sim : bool = False
     """Set to True if procedure function produces only forecast (no simulation)"""
 
-    forecast_date = DatetimeDescriptor()
-    """Forecast date. By default, copies value from plan"""
+    _forecast_date : Optional[datetime] = None
+
+    @property
+    def forecast_date(self) -> Optional[datetime]:
+        return self._forecast_date
+
+    @forecast_date.setter
+    def forecast_date(self, value : Optional[Dateable]) -> None:
+        self._forecast_date = tryParseAndLocalizeDate(value) if value is not None else None
 
     save_results : Optional[Path]
 
@@ -383,7 +390,7 @@ class Procedure(Base):
         boundaries : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]] = None,
         outputs : Optional[Union[str,List[ProcedureBoundaryDict],List[TVPList],List[List[float]],List[DataFrame],List[Series],DataFrame,NDArray[floating]]] = None,
         extra_pars : Optional[ExtraParsDict] = None,
-        forecast_date : Optional[datetime] = None,
+        forecast_date : Optional[Dateable] = None,
         parameters_for_calibration : Optional[List[ModelParameter]] = None,
         timestart : Optional[Dateable] = None,
         timeend : Optional[Dateable] = None,
@@ -1504,7 +1511,7 @@ class Procedure(Base):
             if index + 1 > len(self._boundaries):
                 if not self._additional_boundaries:
                     raise ValueError("Invalid index for boundary. Index exceeds procedure boundaries length and additional boundaries are not allowed")
-                name = f"input_{index - 1}"
+                name = f"input_{index + 1}"
             else:
                 name = self._boundaries[index].name
         if isinstance(b, DataFrame):
@@ -1512,7 +1519,7 @@ class Procedure(Base):
         elif isinstance(b, Series):
             data = util.ensure_datetime_index(b, start=self.timestart, freq=self.time_interval).to_frame(name="valor")
         else:
-            data = tvpListToDataFrame(b, begin_datetime=self.timestart, timestep=self.time_interval)
+            data = tvpListToDataFrame(b, begin_datetime=self.timestart, timestep=self.time_interval) if len(b) else createEmptyObsDataFrame()
         return {
             "name": name,
             "node_variable": (0,0),

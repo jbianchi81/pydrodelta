@@ -4,9 +4,27 @@ from pydrodelta.pydrology import LagAndRoute
 from pydrodelta.procedure import Procedure
 from pydrodelta.model_parameter import ModelParameter
 import numpy as np
-from typing import Union, List
+from typing import Union, List, TypedDict, Tuple, Optional, Mapping, Any
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from ..types import ExecInput
 from pandas import DataFrame
+
+class LagAndRouteParsDict(TypedDict):
+       lag : float
+       """lag in steps (0 = no lag)"""
+       k : float
+       """shape coeficient"""
+       n : float
+       """number of reservoirs"""
+
+class LagAndRouteExtraParsDict(TypedDict, total=False):
+    dt : float
+    """calculation timestep"""
+
+class LagAndRouteInitialStatesDict(TypedDict):
+    S : float
+    """initial storage of the reservoir"""
 
 class LagAndRouteProcedure(Procedure):
     """LagAndRoute"""
@@ -67,8 +85,10 @@ class LagAndRouteProcedure(Procedure):
 
     def __init__(
         self,
-        parameters : Union[dict,list],
-        **kwargs
+        parameters : Union[List[float],LagAndRouteParsDict],
+        initial_states: Union[List[float], LagAndRouteInitialStatesDict],
+        extra_pars: Optional[LagAndRouteExtraParsDict],
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
         Lag and Route
@@ -90,7 +110,7 @@ class LagAndRouteProcedure(Procedure):
             properties
             dt : float calculation timestep
         """
-        super().__init__(parameters = parameters, **kwargs)
+        super().__init__(parameters = parameters, initial_states=initial_states, extra_pars=extra_pars, **kwargs)
         # getSchemaAndValidate(dict(kwargs,parameters = parameters),"LagAndRouteProcedureFunction")
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 

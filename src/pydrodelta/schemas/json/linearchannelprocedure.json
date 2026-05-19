@@ -42,40 +42,74 @@
             }
         },
         "boundaries": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["input"]
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "allOf": [
+                            { "$ref": "procedureboundary.json"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "enum": ["input"]
+                                    }
+                                }
                             }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 1
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "array",
+                    "description": "list of lists of observations",
+                    "items": {
+                        "$ref": "observationlist.json"
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "string",
+                    "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate input names"
+                }
+            ]
         },
         "outputs": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["output"]
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "allOf": [
+                            { "$ref": "procedureboundary.json"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "enum": ["output"]
+                                    }
+                                }
                             }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 1
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "array",
+                    "description": "list of lists of observations",
+                    "items": {
+                        "$ref": "observationlist.json"
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "string",
+                    "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate output names"
+                }
+            ]
         }
     },
     "required": [

@@ -92,40 +92,74 @@
             }
         },
         "boundaries": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["input_1","input_2","input_3","input_4","input_5","input_6","input_7","input_8","input_9","input_10","input_11","input_12","input_13","input_14","input_15","input_16"]
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "allOf": [
+                            { "$ref": "procedureboundary.json"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "enum": ["input_1","input_2","input_3","input_4","input_5","input_6","input_7","input_8","input_9","input_10","input_11","input_12","input_13","input_14","input_15","input_16"]
+                                    }
+                                }
                             }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 16
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 16
+                },
+                {
+                    "type": "array",
+                    "description": "list of lists of observations",
+                    "items": {
+                        "$ref": "observationlist.json"
+                    },
+                    "minItems": 1,
+                    "maxItems": 16
+                },
+                {
+                    "type": "string",
+                    "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate input names"
+                }  
+            ]
         },
         "outputs": {
-            "type": "array",
-            "items": {
-                "allOf": [
-                    { "$ref": "procedureboundary.json"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "enum": ["output"]
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "allOf": [
+                            { "$ref": "procedureboundary.json"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "enum": ["output"]
+                                    }
+                                }
                             }
-                        }
-                    }
-                ]
-            },
-            "minItems": 1,
-            "maxItems": 1
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "array",
+                    "description": "list of lists of observations",
+                    "items": {
+                        "$ref": "observationlist.json"
+                    },
+                    "minItems": 1,
+                    "maxItems": 1
+                },
+                {
+                    "type": "string",
+                    "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate output names"
+                }  
+            ]
         }
     },
     "required": [

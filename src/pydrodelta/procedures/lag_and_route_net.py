@@ -8,9 +8,50 @@ from ..procedure_boundary import ProcedureBoundary
 from ..types.procedure_boundary_dict import ProcedureBoundaryDict
 from ..types.enhanced_typed_list import EnhancedTypedList
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, TypedDict, Union, Optional
+from typing_extensions import NotRequired, Unpack
 from ..types import ExecInput
 from pandas import DataFrame
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
+class LagAndRouteNetParsDict(TypedDict):
+       lag_1 : float
+       """lag of first input"""
+       k_1 : float
+       """shape coeficient k of first input"""
+       n_1 : float
+       """number of reservoirs of first input"""
+       lag_2 : float
+       k_2 : float
+       n_2 : float
+       lag_3 : NotRequired[float]
+       k_3 : NotRequired[float]
+       n_3 : NotRequired[float]
+       lag_4 : NotRequired[float]
+       k_4 : NotRequired[float]
+       n_4 : NotRequired[float]
+       lag_5 : NotRequired[float]
+       k_5 : NotRequired[float]
+       n_5 : NotRequired[float]
+       lag_6 : NotRequired[float]
+       k_6 : NotRequired[float]
+       n_6 : NotRequired[float]
+       lag_7 : NotRequired[float]
+       k_7 : NotRequired[float]
+       n_7 : NotRequired[float]
+       lag_8 : NotRequired[float]
+       k_8 : NotRequired[float]
+       n_8 : NotRequired[float]
+       lag_9 : NotRequired[float]
+       k_9 : NotRequired[float]
+       n_9 : NotRequired[float]
+       lag_10 : NotRequired[float]
+       k_10 : NotRequired[float]
+       n_10 : NotRequired[float]
+
+
+class LagAndRouteNetExtraParsDict(TypedDict, total=False):
+    dt : float
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
@@ -102,19 +143,21 @@ class LagAndRouteNetProcedure(Procedure):
 
     def __init__(
         self,
-        parameters : dict,
-        **kwargs):
+        parameters : Union[List[float],LagAndRouteNetParsDict],
+        extra_pars : Optional[LagAndRouteNetExtraParsDict] = {},
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         /**kwargs : keyword arguments
 
         Keyword arguments:
         ------------------
-        extra_pars : dict
+        parameters : Union[List[float],LagAndRouteNetParsDict]
+        extra_pars:
             properties:
             dt : float 
                 calculation timestep
         """
-        super().__init__(parameters=parameters, **kwargs)
+        super().__init__(parameters=parameters, extra_pars = extra_pars, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 
     # @property
@@ -141,7 +184,7 @@ class LagAndRouteNetProcedure(Procedure):
 
     @property
     def engine(self) -> List[LagAndRoute]:
-        """Reference to instance of GR4J procedure engine"""
+        """Reference to instance of LagAndRoute class instance used as engine of the procedure. Each boundary condition starts one engine, so this is a list of LagAndRoute instances."""
         return self._engine
 
     def setEngine(

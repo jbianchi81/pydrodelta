@@ -93,7 +93,7 @@ class ProcedureInitKwargs(TypedDict, total=False):
         ]
     ]
 
-    forecast_date: Optional[datetime]
+    forecast_date: Optional[Dateable]
 
     parameters_for_calibration: Optional[
         List[ModelParameter]

@@ -12,7 +12,7 @@ from ..types import ExecInput
 from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from .pq import PQExtraParsDict
 
-class HOSHParsDict(TypedDict):
+class HOSH4P1LParsDict(TypedDict):
     maxSurfaceStorage : float
     """Maximum surface storage (model parameter)"""
     maxSoilStorage : float
@@ -166,7 +166,7 @@ class HOSH4P1LProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[List[Any], HOSHParsDict],
+        parameters : Union[List[Any], HOSH4P1LParsDict],
         initial_states: Union[List[Any], HOSHInitialStatesDict],
         extra_pars: Optional[HOSHExtraParsDict],
         **kwargs : Unpack[ProcedureInitKwargs]):

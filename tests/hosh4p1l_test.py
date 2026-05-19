@@ -1,17 +1,14 @@
 from unittest import TestCase
 from pydrodelta.procedures.hosh4p1l import HOSH4P1LProcedure
-from pandas import DataFrame
-from pydrodelta.util import createDatetimeSequence
-import numpy as np
 
 class HOSH4P1LTest(TestCase):
 
-    def test_hoshp1l(self):
+    def test_hosh4p1l(self):
 
         procedure = HOSH4P1LProcedure(
           boundaries= [
-              [0,0,0,0,80,0,0,0],
-              [1,1,1,1,1,1,1,1],
+              [0,80,0,0,0,0,40,0,0,0,0,0,0,0,0,0],
+              [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
               [200,180,160,140,160,180,200,180],
               [0.2,0.18,0.16,0.14,0.16,0.18,0.20,0.18],
             ],
@@ -26,8 +23,8 @@ class HOSH4P1LTest(TestCase):
                 "shift": False
             },
             initial_states = {
-                "SoilStorage": 0.1,
-                "SurfaceStorage": 0.1
+                "SoilStorage": 150,
+                "SurfaceStorage": 150
             },
             outputs = [
               [200,180,160,140,160,180,200,180],
@@ -35,14 +32,22 @@ class HOSH4P1LTest(TestCase):
             ],
             parameters = {
               "distribution": "Symmetric",
-              "k": 1,
+              "k": 0.5,
               "maxSoilStorage": 200,
               "maxSurfaceStorage": 200,
               "n": 2,
               "Proc": "UH",
-              "T": 1.2
+              "T": 3.2
             }
         )
 
-        procedure.exec()
+        procedure.run()
         assert len(procedure.outputs)
+        assert procedure.data is not None
+        assert len(procedure.data.q_sim.dropna()) == 16
+        # control balance #
+        initial_storage = procedure.engine.SoilStorage[0] + procedure.engine.SurfaceStorage[0]
+        final_storage = procedure.engine.SoilStorage[-1] + procedure.engine.SurfaceStorage[-1]
+        gain = sum(procedure.engine.Precipitation)
+        loss = sum(procedure.engine.EVR1) + sum(procedure.engine.EVR2) + sum(procedure.engine.Q)
+        self.assertAlmostEqual(initial_storage + gain - loss, final_storage,2)

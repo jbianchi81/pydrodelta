@@ -7,6 +7,7 @@ import math
 from pydrodelta.config import config
 from pathlib import Path
 from pydrodelta.procedures.linear_combination import LinearCombinationProcedure
+from numpy import nan
 
 data_dir = Path(__file__).parent / "data"
 
@@ -126,3 +127,68 @@ class Test_LinearCombination(TestCase):
             LinearCombinationProcedure,
             1
         )
+
+    def test_direct(self):
+        procedure = LinearCombinationProcedure(
+            parameters = {
+                "forecast_steps": 3,
+                "lookback_steps": 2,
+                "coefficients": [
+                    {
+                        "step": 0,
+                        "intercept": 0.5,
+                        "boundaries": [
+                            {
+                                "name": "input_1",
+                                "values": [0.5, 0.5]
+                            },
+                            {
+                                "name": "input_2",
+                                "values": [0.5, 0.5]
+                            }
+                        ]
+                    },
+                    {
+                        "step": 1,
+                        "intercept": 0.3,
+                        "boundaries": [
+                            {
+                                "name": "input_1",
+                                "values": [0.3, 0.3]
+                            },
+                            {
+                                "name": "input_2",
+                                "values": [0.3, 0.3]
+                            }
+                        ]
+                    },
+                    {
+                        "step": 2,
+                        "intercept": 0.1,
+                        "boundaries": [
+                            {
+                                "name": "input_1",
+                                "values": [0.1, 0.1]
+                            },
+                            {
+                                "name": "input_2",
+                                "values": [0.1, 0.1]
+                            }
+                        ]
+                    }
+                ]
+            },
+            boundaries = [
+                [1.5,2.0,3.0,nan,nan,nan],
+                [2.5,3.0,4.0,nan,nan,nan]
+            ],
+            outputs = [
+                [3.5,4.5,5.5,nan,nan,nan]
+            ],
+            timestart = "2000-01-01",
+            forecast_date = "2000-01-03"
+        )
+        procedure.run()
+        self.assertIsNotNone(procedure.data)
+        assert procedure.data is not None
+        assert len(procedure.data.output.dropna()) == 3

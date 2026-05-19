@@ -12,7 +12,7 @@
     "properties": {
         "type": {
             "type": "string",
-            "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH","HOSH4P1LProcedure","HOSH4P1LNashProcedure","HOSH4P1lUHProcedure"]
+            "enum": ["HOSH4P1L","HOSH4P1LNash","HOSH4P1lUH","HOSH4P1LProcedure","HOSH4P1LNashProcedure","HOSH4P1lUHProcedure","HOSH4P1LUHProcedure"]
         },
         "initial_states": {
             "oneOf": [

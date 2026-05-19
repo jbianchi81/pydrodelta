@@ -5,7 +5,7 @@ import scipy.stats as stats
 from ..procedure_function_results import  ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
-from typing import Union, List, Tuple, Optional, cast, Mapping, Any
+from typing import Union, List, Tuple, Optional, cast, Mapping, Any, TypedDict
 from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
@@ -16,8 +16,14 @@ from ..types.linear_combination_parameters_dict import LinearCombinationParamete
 from ..result_statistics import ResultStatistics
 from ..util import groupByCalibrationPeriod
 from ..types import ExecInput
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 import json
 import logging
+
+class LinearCombinationExtraParsDict(TypedDict, total=False):
+    Z : float
+    """Confidence level multiplier (e.g., Z = 1.96 for 95% confidence)"""
 
 class BoundaryCoefficients():
     """Linear combination coefficients for a boundary at a given forecast step"""
@@ -191,8 +197,8 @@ class LinearCombinationProcedure(Procedure):
     def __init__(
         self,
         parameters : LinearCombinationParametersDict,
-        extra_pars : dict = {},
-        **kwargs
+        extra_pars : Optional[LinearCombinationExtraParsDict] = {},
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
         Args:
@@ -246,7 +252,7 @@ class LinearCombinationProcedure(Procedure):
         error_band = self._error_band
         if self.coefficients is None:
             raise RuntimeError("Coefficients not set")
-        initial_forecast_date = self._plan.forecast_date if self._plan is not None else input[0].index[-1]
+        initial_forecast_date = self.forecast_date or input[0].index[-1]
         time_interval = self._plan.time_interval if self._plan is not None and self._plan.time_interval is not None else input[0].index[-1] - input[0].index[-2]
         for t_index, forecast_step in enumerate(self.coefficients):
             forecast_date = initial_forecast_date + (t_index + 1) * time_interval
@@ -430,6 +436,7 @@ class LinearCombinationProcedure(Procedure):
         self,
         parameters : Union[List,Tuple,Mapping[str, Any]] = [], # Optional[LinearCombinationParametersDict]
         reset : bool = False,
+        keys : Optional[List[str]] = None,
         forecast_steps : Optional[int] = None,
         lookback_steps : Optional[int] = None,
         coefficients : Optional[List[ForecastStepDict]] = None        

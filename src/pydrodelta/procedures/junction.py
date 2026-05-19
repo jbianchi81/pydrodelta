@@ -2,9 +2,14 @@ from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, TypedDict, Any
 from pandas import DataFrame
 from ..types import ExecInput
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
+class JunctionParsDict(TypedDict, total=False):
+    truncate_negative : bool
 
 class JunctionProcedure(Procedure):
     """Procedure that represents the addition of two or more inputs"""
@@ -30,8 +35,8 @@ class JunctionProcedure(Procedure):
 
     def __init__(
         self,
-        extra_pars : dict = dict(),
-        **kwargs):
+        extra_pars : JunctionParsDict = {},
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         extra_pars :dict
 
@@ -42,7 +47,9 @@ class JunctionProcedure(Procedure):
 
         \\**kwargs (see [..procedure_function.ProcedureFunction][])
         """        
-        super().__init__(extra_pars = extra_pars, **kwargs)
+        super().__init__(
+            extra_pars = extra_pars, 
+            **kwargs)
         # getSchemaAndValidate(dict(kwargs,extra_pars = extra_pars),"JunctionProcedureFunction")
 
     def exec(
