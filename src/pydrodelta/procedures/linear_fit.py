@@ -7,10 +7,22 @@ from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.dict_descriptor import DictDescriptor
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
-from typing import Tuple, Optional, List, Union
+from typing import Tuple, Optional, List, Union, TypedDict
 from pandas import DataFrame
 from datetime import datetime
 import logging
+from typing_extensions import Unpack, cast
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
+class LinearFitExtraParsDict(TypedDict, total=False):
+    warmup_steps: int
+    """Skip this number of initial steps for fit procedure. If not provided, no steps will be skipped."""
+    drop_warmup: bool
+    """Eliminate warmup steps from output"""
+    tail_steps: int
+    """Use only this number of final steps for fit procedure"""
+    use_forecast_range: bool
+    """Fit using only pairs where sim is within forecasted range of values"""
 
 class LinearFitProcedure(Procedure):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
@@ -51,12 +63,13 @@ class LinearFitProcedure(Procedure):
 
     def __init__(
         self,
-        **kwargs):
+        extra_pars : Optional[LinearFitExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         
         **kwargs : keyword arguments (see ProcedureFunction)
         """
-        super().__init__(**kwargs)
+        super().__init__(extra_pars = extra_pars, **kwargs)
         if "warmup_steps" in self.extra_pars:
             self.warmup_steps = self.extra_pars["warmup_steps"]
             self.drop_warmup = self.extra_pars["drop_warmup"] if "drop_warmup" in self.extra_pars else False
@@ -149,7 +162,7 @@ class LinearFitProcedure(Procedure):
             ProcedureFunctionResults(
                 border_conditions = input,
                 data = input[0][["valor"]].rename(columns={"valor":"input"}).join(output_obs[0][["valor"]].rename(columns={"valor": "output_obs"})).join(output_data[["valor"]].rename(columns={"valor":"output"})),
-                extra_pars = self.extra_pars,
+                extra_pars = cast(dict, self.extra_pars),
                 adjust_results = self.linear_model
             )
         )

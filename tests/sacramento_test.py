@@ -1,11 +1,10 @@
 from pydrodelta.plan import Plan
 from pydrodelta.procedures.sacramento_simplified import SacramentoSimplifiedProcedure
 from pydrodelta.util import createDatetimeSequence
-from pandas import DataFrame, read_csv
+from pandas import DataFrame
 from unittest import TestCase
 import yaml
-from pydrodelta.config import config
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from pathlib import Path
@@ -83,8 +82,8 @@ class Test_SacramentoSimplified(TestCase):
             },
             initial_states = [0, 0, 0, 0],
             extra_pars = {
-                "area": 86400000,
                 "ae": 1,
+                "area": 86400000.0,
                 "rho": 0.5,
                 "wp": 0.03,
                 "fill_nulls": False,
@@ -96,29 +95,29 @@ class Test_SacramentoSimplified(TestCase):
             boundaries = [
                 {
                     "name": "pma",
-                    "node_variable": [1,1]
+                    "node_variable": (1,1)
                 },
                 {
                     "name": "etp",
-                    "node_variable": [1,15]
+                    "node_variable": (1,15)
                 },
                 {
                     "name": "q_obs",
-                    "node_variable": [1,40]
+                    "node_variable": (1,40)
                 },
                 {
                     "name": "smc_obs",
-                    "node_variable": [1,20]
+                    "node_variable": (1,20)
                 }
             ],
             outputs = [
                 {
                     "name": "q_sim",
-                    "node_variable": [1,40]
+                    "node_variable": (1,40)
                 },
                 {
                     "name": "smc_sim",
-                    "node_variable": [1,20]
+                    "node_variable": (1,20)
                 }
             ]
         )
@@ -211,4 +210,44 @@ class Test_SacramentoSimplified(TestCase):
         self.assertEqual(dx, mass_balance["storage_difference"])
         self.assertAlmostEqual(mass_balance["discrepancy"],0,0)
 
+    def test_direct(self):
+        input = DataFrame({
+            "pma": [5,0,0,0,0,0,0,0],
+            "etp": [1,1,1,1,1,1,1,1],
+            "q_obs": [0.0,0,0,0,0,0,0,0],
+            "smc_obs": [0.0,0,0,0,0,0,0,0]
+        })
+        procedure = SacramentoSimplifiedProcedure(
+            parameters = {
+                "x1_0": 10,
+                "x2_0": 10,
+                "m1": 1,
+                "c1": 0,
+                "c2": 0.0001,
+                "c3": 0.02,
+                "mu": 0,
+                "alfa": 0.5,
+                "m2": 1,
+                "m3": 1
+            },
+            initial_states = [0, 0, 0, 0],
+            extra_pars = {
+                "ae": 1,
+                "area": 86400000.0,
+                "rho": 0.5,
+                "wp": 0.03,
+                "fill_nulls": False,
+                "no_check1": False,
+                "no_check2": False,
+                "mock_run": False,
+                "compute_mass_balance": True
+            },
+            boundaries = input,
+            outputs = [ [], []],
+            timestart = (2026,1,1),
+            time_interval = "1D"
+        )
+        procedure.run()
+        assert procedure.data is not None
+        assert len(procedure.data.q_sim.dropna()) == len(input)
 

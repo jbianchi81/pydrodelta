@@ -1535,7 +1535,8 @@ def ensure_datetime_index(
         start=start,
         periods=len(result),
         freq=freq,
-        name=index_name
+        name=index_name,
+        tz = localtz if isinstance(start,str) or start.tzinfo is None else start.tzinfo 
     )
 
     return result

@@ -2,11 +2,12 @@ import logging
 from typing import Optional, List
 from pandas import DataFrame, Timestamp
 from math import sqrt
-from typing import Union, Tuple, NamedTuple, Dict, TypedDict, cast, Mapping, Any
+from typing import Union, Tuple, NamedTuple, Dict, TypedDict, cast
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 import numpy as np
-
 from ..procedure_function_results import ProcedureFunctionResults
-from ..procedures.pq import PQProcedure
+from ..procedures.pq import PQProcedure, PQExtraParsDict
 from ..util import interval2timedelta, relativedeltaToSeconds, IntervalDict
 from ..model_parameter import ModelParameter
 from ..model_state import ModelState
@@ -14,17 +15,41 @@ from ..descriptors.float_descriptor import FloatDescriptor
 from ..descriptors.list_descriptor import ListDescriptor
 from ..descriptors.dataframe_descriptor import DataFrameDescriptor
 
+class SacInitialStatesDict(TypedDict):
+    x1 : float
+    x2 : float
+    x3 : float
+    x4 : float
+
+class SacParsDict(TypedDict):
+    x1_0 : float
+    """top soil layer storage capacity [L]"""
+    x2_0 : float
+    """bottom soil layer storage capacity [L]"""
+    m1 : float
+    """runoff function exponent [-]"""
+    c1 : float
+    """interflow function coefficient [1/T]"""
+    c2 : float
+    """percolation function coefficient [-]"""
+    c3 : float
+    """base flow recession rate [1/T]"""
+    mu : float
+    """base flow/deep percolation partition parameter [-]"""
+    alfa : float
+    """linear reservoir coefficient [1/T]"""
+    m2 : float
+    """percolation function exponent [-]"""
+    m3 : float
+    """evapotranspiration function exponent [-]"""
+
 class ParFgDict(TypedDict):
       CN2: float
       hp1dia: float
       hp2dias: float
       Qbanca: float
 
-class ExtraParsDict(TypedDict, total=False):
-    area: float
-    ae: float
-    rho: float
-    wp: float
+class SacExtraParsDict(PQExtraParsDict, total=False):
     windowsize: int
     dt: IntervalDict
     sm_transform: List[float]
@@ -34,6 +59,7 @@ class ExtraParsDict(TypedDict, total=False):
     no_check2: bool
     rk2: bool
     mock_run: bool
+    compute_mass_balance : bool
 
 
 class States(NamedTuple):
@@ -183,7 +209,7 @@ class SacramentoSimplifiedProcedure(PQProcedure):
         """evapotranspiration function exponent [-]"""
         return self.parameters["m3"]
 
-    extra_pars : ExtraParsDict
+    extra_pars : SacExtraParsDict
 
     @property
     def windowsize(self) -> Union[int, None]:
@@ -293,9 +319,10 @@ class SacramentoSimplifiedProcedure(PQProcedure):
 
     def __init__(
         self,
-        parameters : Union[dict,list,tuple],
-        initial_states : list,
-        **kwargs
+        parameters : Union[List[float],SacParsDict],
+        initial_states : Union[List[float], SacInitialStatesDict],
+        extra_pars : Optional[SacExtraParsDict]=None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
         parameters : Union[dict,list,tuple]
@@ -351,10 +378,10 @@ class SacramentoSimplifiedProcedure(PQProcedure):
         
                 Initial model states (x1,x2,x3,x4)
                 """
-        kwargs["type"] = "SacramentoSimplified"
         super().__init__(
             parameters = parameters, 
             initial_states = initial_states,
+            extra_pars = extra_pars,
             **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         # getSchemaAndValidate(dict(kwargs, parameters = parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")
         self.volume = 0
@@ -493,7 +520,6 @@ class SacramentoSimplifiedProcedure(PQProcedure):
                         self.flows.loc[len(self.flows)] = [step, substep, 1 / npasos, *self.computeMeanFlows(flows, x_n, 4), *x_n, *Xw]
                     break
         return States(out[0], out[1], out[2], out[3])
-
 
     def advance_step(self,x : States, pma : float, etp : float, step : Union[Timestamp,int]) -> Tuple[States, int]:
         x_ = States(*x)

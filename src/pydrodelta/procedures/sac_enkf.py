@@ -1,5 +1,7 @@
 import logging
 from typing import Optional, List, Tuple, Union, Literal, TypedDict, cast, NamedTuple
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from ..series_data import SeriesData
 import numpy as np 
 from pandas import DataFrame, Series, concat, Timestamp
@@ -173,9 +175,11 @@ class SacEnkfProcedure(sac.SacramentoSimplifiedProcedure):
 
     def __init__(
         self,
-        extra_pars : sac.ExtraParsDict = {},
+        parameters : Union[List[float], sac.SacParsDict],
+        initial_states : Union[List[float], sac.SacInitialStatesDict],
+        extra_pars : sac.SacExtraParsDict = {},
         asim_pars : AsimParsDict = {},
-        **kwargs
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
         sim_pars : AsimParsDict = {}
@@ -191,7 +195,11 @@ class SacEnkfProcedure(sac.SacramentoSimplifiedProcedure):
             - update : 4-tuple or str or None - Option to correct model states via data assimilation (x1, x2, x3, x4)
             - xpert : bool - Option to add noise to model states at the beginning of each step
             - replicates : int - Number of ensemble members"""
-        super().__init__(extra_pars = extra_pars, **kwargs)
+        super().__init__(
+            parameters=parameters,
+            initial_states=initial_states,
+            extra_pars = extra_pars, 
+            **kwargs)
         self.asim_pars = asim_pars
         # self.c1dia = self.c1
         # self.c3dia = self.c3

@@ -2,9 +2,20 @@ from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
 from a5client import createEmptyObsDataFrame
-from typing import Union, List, Tuple, Any, Mapping
+from typing import Union, List, Tuple, Any, Mapping, TypedDict, Optional
+from typing_extensions import Unpack, NotRequired
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from pandas import DataFrame
 from ..types import ExecInput
+
+class PolynomialParsDict(TypedDict):
+    coefficients : List[float]
+    """coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic"""
+    intercept : NotRequired[float]
+
+class PolynomialExtraParsDict(TypedDict, total=False):
+    allow_na : bool
+    """allow for null values in input. Defaults to False"""
 
 class PolynomialTransformationProcedure(Procedure):
     """Polynomial transformation procedure"""
@@ -38,23 +49,28 @@ class PolynomialTransformationProcedure(Procedure):
 
     def __init__(
         self,
-        parameters : Union[List[Any], Mapping[str, Any]],
-        **kwargs
+        parameters : Union[List[float], PolynomialParsDict],
+        extra_pars : Optional[PolynomialExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
-        """_summary_
+        """Polynomial procedure
 
         Arguments:
         ----------
-        parameters (Union[dict,list,tuple]): Model parameters
+        parameters (Union[List[float], PolynomialParsDict): Model parameters
             
             Properties:
             - coefficients : list of float of length >= 1 - first is the linear coefficient, second is the quadratic coefficient, and so on
             - intercept : float - default 0
         
-        **kwargs : see ..procedure_function.ProcedureFunction
+        extra_pars: Optional[PolynomialExtraParsDict] = None
+
+            Properties:
+            - allow_na : bool - allow for null values in input. Defaults to False
+        
+        **kwargs : see ..procedure_function.Procedure
         """
-        super().__init__(parameters = parameters, **kwargs)
-        # getSchemaAndValidate(dict(kwargs, parameters = parameters),"PolynomialTransformationProcedureFunction")
+        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
         if self.allow_na:
             self.boundaries[0].optional = True
     

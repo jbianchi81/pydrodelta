@@ -1,10 +1,8 @@
-from pydrodelta.plan import Plan
 from pydrodelta.procedures.persistence import PersistenceProcedure, getValueOfQuantile, getQuantile
 from pydrodelta.util import tryParseAndLocalizeDate
 from unittest import TestCase
 from pydrodelta.util import createDatetimeSequence
 from pandas import DataFrame, DatetimeIndex
-import matplotlib.pyplot as plt
 import numpy as np
 
 class Test_Persistence(TestCase):
@@ -84,13 +82,13 @@ class Test_Persistence(TestCase):
             boundaries = [
                 {
                     "name": "input",
-                    "node_variable": [1,1]
+                    "node_variable": (1,1)
                 }
             ],
             outputs = [
                 {
                     "name": "output",
-                    "node_variable": [1,1]
+                    "node_variable": (1,1)
                 }
             ]
         )
@@ -119,13 +117,13 @@ class Test_Persistence(TestCase):
             boundaries = [
                 {
                     "name": "input",
-                    "node_variable": [1,1]
+                    "node_variable": (1,1)
                 }
             ],
             outputs = [
                 {
                     "name": "output",
-                    "node_variable": [1,1]
+                    "node_variable": (1,1)
                 }
             ],
             extra_pars = {
@@ -161,6 +159,19 @@ class Test_Persistence(TestCase):
         # for month in distinct_months:
         #     self.assertTrue(month in [12,1,2,3,4,5,6])
 
+    def test_direct(self):
+        procedure = PersistenceProcedure(
+            parameters={
+                "forecast_length": 4,
+                "search_length": 6
+            },
+            boundaries= self.data.copy().rename(columns={"valor": "input"}),
+            outputs = [ [] ],
+            forecast_date= (1999,9,1)
+        )
+        procedure.run()
+        assert procedure.data is not None
+        assert len(procedure.data.output.dropna()) == 4
 
     # def test_run_error_band_relative_window(self):
     #     only_last_years = 10

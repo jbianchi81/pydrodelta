@@ -86,8 +86,8 @@ class LagAndRouteProcedure(Procedure):
     def __init__(
         self,
         parameters : Union[List[float],LagAndRouteParsDict],
-        initial_states: Union[List[float], LagAndRouteInitialStatesDict],
-        extra_pars: Optional[LagAndRouteExtraParsDict],
+        initial_states: Optional[Union[List[float], LagAndRouteInitialStatesDict]]=None,
+        extra_pars: Optional[LagAndRouteExtraParsDict]=None,
         **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
@@ -110,7 +110,7 @@ class LagAndRouteProcedure(Procedure):
             properties
             dt : float calculation timestep
         """
-        super().__init__(parameters = parameters, initial_states=initial_states, extra_pars=extra_pars, **kwargs)
+        super().__init__(parameters = parameters, initial_states=initial_states if initial_states is not None else [0], extra_pars=extra_pars, **kwargs)
         # getSchemaAndValidate(dict(kwargs,parameters = parameters),"LagAndRouteProcedureFunction")
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
 

@@ -1,7 +1,30 @@
 
-from .sacramento_simplified import SacramentoSimplifiedProcedure
-from typing import Union, List, Tuple, Mapping, Any, Dict, Optional
-import numpy as np
+from .sacramento_simplified import SacramentoSimplifiedProcedure, SacParsDict, SacExtraParsDict, SacInitialStatesDict
+from typing import Union, List, Tuple, Mapping, Any, Dict, Optional, TypedDict
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
+
+class SacParsPartialDict(TypedDict, total=False):
+    x1_0 : float
+    """top soil layer storage capacity [L]"""
+    x2_0 : float
+    """bottom soil layer storage capacity [L]"""
+    m1 : float
+    """runoff function exponent [-]"""
+    c1 : float
+    """interflow function coefficient [1/T]"""
+    c2 : float
+    """percolation function coefficient [-]"""
+    c3 : float
+    """base flow recession rate [1/T]"""
+    mu : float
+    """base flow/deep percolation partition parameter [-]"""
+    alfa : float
+    """linear reservoir coefficient [1/T]"""
+    m2 : float
+    """percolation function exponent [-]"""
+    m3 : float
+    """evapotranspiration function exponent [-]"""
 
 class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
     """sacramento simplified with fixed soil parameters"""
@@ -31,32 +54,7 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
     #         #  238 |       27 | m3     |   1e-09 |         1 |         5 | Infinity |    10
     # ]
 
-    # @property
-    # def x1_0(self) -> float:
-    #     """top soil layer storage capacity [L]"""
-    #     return self.extra_pars["x1_0"]
-    
-    # @property
-    # def x2_0(self) -> float:
-    #     """bottom soil layer storage capacity [L]"""
-    #     return self.extra_pars["x2_0"]
-    
-    # @property
-    # def m1(self) -> float:
-    #     """runoff function exponent [-]"""
-    #     return self.extra_pars["m1"]
-    
-    # @property
-    # def c1(self) -> float:
-    #     return self.extra_pars["c1"]
-    #     """interflow function coefficient [1/T]"""
-        
-    # @property
-    # def c2(self) -> float:
-    #     """percolation function coefficient [-]"""
-    #     return self.extra_pars["c2"]
-
-    _fixed_parameters : Dict[str, float]
+    _fixed_parameters : SacParsPartialDict
 
     @property
     def calibration_parameters(self) -> List[str]:
@@ -64,10 +62,11 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
     
     def __init__(
         self,
-        parameters : Union[dict,list,tuple],
-        initial_states : list,
-        fixed_parameters : dict,
-        **kwargs
+        parameters : Union[List[float], SacParsDict],
+        initial_states : Union[List[float], SacInitialStatesDict],
+        fixed_parameters : SacParsPartialDict,
+        extra_pars : Optional[SacExtraParsDict]=None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
         """
         parameters : Union[dict,list,tuple]
@@ -123,7 +122,6 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
         
                 Initial model states (x1,x2,x3,x4)
                 """
-        kwargs["type"] = "SacramentoSimplified"
         if not isinstance(parameters, dict):
             raise TypeError("parameters must be dict")
         
@@ -133,11 +131,11 @@ class SacramentoSimplifiedFixedParsProcedure(SacramentoSimplifiedProcedure):
         for p in self._parameters:
             if p.name not in fixed_parameters.keys():
                 reduced_parameters.append(p)
-
+        kwargs["parameters_for_calibration"] = reduced_parameters
         super().__init__(
             parameters = {**parameters, **fixed_parameters}, 
             initial_states = initial_states,
-            parameters_for_calibration = reduced_parameters,
+            extra_pars = extra_pars,
             **kwargs) # super(PQProcedureFunction,self).__init__(params,procedure)
         
         # getSchemaAndValidate(dict(kwargs, parameters = merged_parameters, initial_states = initial_states),"SacramentoSimplifiedProcedureFunction")

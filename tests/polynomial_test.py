@@ -2,6 +2,7 @@ from unittest import TestCase
 from pydrodelta.plan import Plan
 from numpy import isnan
 from pathlib import Path
+from pydrodelta.procedures.polynomial import PolynomialTransformationProcedure
 
 data_dir = Path(__file__).parent / "data"
 
@@ -22,4 +23,21 @@ class Test_Polynomial(TestCase):
             Exception, 
             plan.procedures[1].run
         )
+
+    def test_direct(self):
+        procedure = PolynomialTransformationProcedure(
+            parameters={
+                "coefficients": [2],
+                "intercept": 1
+            },
+            boundaries = [
+                [1,2,3,4,5]
+            ],
+            outputs = [[]]
+        )
+        procedure.run()
+        assert procedure.data is not None
+        assert len(procedure.data.output.dropna()) == 5
+        for i, row in procedure.data.iterrows():
+            self.assertAlmostEqual(row.output, row.input * 2 + 1, 7)
         

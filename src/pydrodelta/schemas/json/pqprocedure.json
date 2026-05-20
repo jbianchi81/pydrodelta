@@ -11,25 +11,7 @@
         {
             "properties": {
                 "type": {
-                    "type": "string",
-                    "enum": [
-                        "PQ",
-                        "PQProcedure",
-                        "GRP",
-                        "GRPProcedure",
-                        "GR4J",
-                        "GR4J_",
-                        "GR4JProcedure",
-                        "SacramentoSimplified",
-                        "SacramentoSimplifiedProcedure",
-                        "SacEnKGProcedure",
-                        "SacEnKF",
-                        "HOSH4P1L",
-                        "HOSH4P2L",
-                        "HOSH4P1LNash",
-                        "HOSH4P1LUH",
-                        "HIDROSAT"
-                    ]
+                    "type": "string"
                 },
                 "initial_states": {
                     "oneOf": [
@@ -48,12 +30,85 @@
                 },
                 "extra_pars": {
                     "$ref": "pqprocedure.json#/$defs/ExtraPars"
+                },
+                "boundaries": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "allOf": [
+                                    { "$ref": "procedureboundary.json"},
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "enum": ["pma","etp","q_obs","smc_obs"]
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                            "minItems": 2,
+                            "maxItems": 4
+                        },
+                        {
+                            "type": "array",
+                            "description": "list of lists of observations",
+                            "items": {
+                                "$ref": "observationlist.json"
+                            },
+                            "minItems": 2,
+                            "maxItems": 4
+                        },
+                        {
+                            "type": "string",
+                            "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate input names: 'pma', 'etp', 'q_obs', 'smc_obs'"
+                        }
+                    ]
+                },
+                "outputs": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "allOf": [
+                                    { "$ref": "procedureboundary.json"},
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "enum": ["q_sim", "smc_sim"]
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                            "minItems": 1,
+                            "maxItems": 2
+                        },
+                        {
+                            "type": "array",
+                            "description": "list of lists of observations",
+                            "items": {
+                                "$ref": "observationlist.json"
+                            },
+                            "minItems": 1,
+                            "maxItems": 2
+                        },
+                        {
+                            "type": "string",
+                            "description": "Path to CSV file. First column must be the datetime index. Headers (first row) must indicate output names"
+                        }
+                    ]
                 }
             },
             "required": [
                 "type",
                 "parameters",
-                "extra_pars"
+                "extra_pars",
+                "boundaries",
+                "outputs"
             ]
         }
     ],

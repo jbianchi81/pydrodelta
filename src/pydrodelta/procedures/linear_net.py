@@ -4,22 +4,28 @@ from ..function_boundary import FunctionBoundary
 from ..pydrology import LinearNet
 from ..descriptors.int_descriptor import IntDescriptor 
 from ..model_parameter import ModelParameter
-from ..procedure_boundary import ProcedureBoundary
-from ..types.procedure_boundary_dict import ProcedureBoundaryDict
-from ..types.enhanced_typed_list import EnhancedTypedList
 import numpy as np
 from typing import List, TypedDict, Optional, cast, Union, Tuple
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, Unpack
 from pandas import DataFrame
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 
 # schemas, resolver = getSchema("UHLinearChannelProcedureFunction","schemas/json")
 # schema = schemas["UHLinearChannelProcedureFunction"]
 
-class ParamsDict(TypedDict):
+class LinearNetExtraParsDict(TypedDict):
+    dt : float
+    """time step of procedure"""
+
+class LinearNetParamsDict(TypedDict):
     k_1 : float
+    """shape coeficient of first input"""
     n_1 : float
+    """number of reservoirs of first input"""
     k_2 : float
+    """shape coeficient of second input"""
     n_2 : float
+    """number of reservoirs of second input"""
     k_3 : NotRequired[Optional[float]]
     n_3 : NotRequired[Optional[float]]
     k_4 : NotRequired[Optional[float]]
@@ -92,14 +98,14 @@ class LinearNetProcedure(Procedure):
     def coefficients(self) -> List[Tuple[float,float]]:
         """Linear net coefficients (list of 2-tuples)"""
         result = [
-            (cast(ParamsDict,self.parameters)["k_1"], cast(ParamsDict,self.parameters)["n_1"]),
-            (cast(ParamsDict,self.parameters)["k_2"], cast(ParamsDict,self.parameters)["n_2"])
+            (cast(LinearNetParamsDict,self.parameters)["k_1"], cast(LinearNetParamsDict,self.parameters)["n_1"]),
+            (cast(LinearNetParamsDict,self.parameters)["k_2"], cast(LinearNetParamsDict,self.parameters)["n_2"])
         ]
         for i in range(2,len(self.boundaries)):
             # if "k_%i" % i not in self.parameters:
             #     return result
             result.append(
-                (cast(ParamsDict,self.parameters)["k_%i" % i], cast(ParamsDict,self.parameters)["n_%i" % i])
+                (cast(LinearNetParamsDict,self.parameters)["k_%i" % i], cast(LinearNetParamsDict,self.parameters)["n_%i" % i])
             )
         return result
 
@@ -113,8 +119,9 @@ class LinearNetProcedure(Procedure):
 
     def __init__(
         self,
-        parameters : ParamsDict,
-        **kwargs):
+        parameters : LinearNetParamsDict,
+        extra_pars : Optional[LinearNetExtraParsDict]=None,
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         /**kwargs : keyword arguments
 
@@ -125,9 +132,9 @@ class LinearNetProcedure(Procedure):
             dt : float 
                 calculation timestep
         """
-        super().__init__(parameters=parameters, **kwargs)
+        super().__init__(parameters=parameters, extra_pars = extra_pars, **kwargs)
         self.dt = self.extra_pars["dt"] if "dt" in self.extra_pars else 1
- 
+
     def exec(
         self,
         input : Optional[Union[DataFrame,List[DataFrame]]] = None

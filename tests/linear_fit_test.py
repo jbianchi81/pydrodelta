@@ -5,6 +5,7 @@ from unittest import TestCase
 from pandas import DataFrame
 from pydrodelta.util import createDatetimeSequence, tryParseAndLocalizeDate
 import numpy as np
+from numpy import nan
 from pathlib import Path
 
 data_dir = Path(__file__).parent / "data"
@@ -20,16 +21,15 @@ class Test_LinearFit(TestCase):
             boundaries= [
                 {
                     "name": "input_1",
-                    "node_variable": [1,40]
+                    "node_variable": (1,40)
                 }
             ],
             outputs = [
                 {
                     "name": "output",
-                    "node_variable": [1,39]
+                    "node_variable": (1,39)
                 }
             ],
-            parameters = {},
             extra_pars = {
                 "warmup_steps": 10,
                 "drop_warmup": True
@@ -76,3 +76,21 @@ class Test_LinearFit(TestCase):
         self.assertEqual(len(output),1)
         self.assertEqual(len(output[0].dropna()), 32 - 10)
         self.assertEqual(output[0].dropna().index[0],tryParseAndLocalizeDate((2020,1,11)))
+
+    def test_direct(self):
+        procedure = LinearFitProcedure(
+            boundaries = [
+                [1.2,3.4,4.5,5.6,6.7,7.8,8.9,10.0],
+                [2.3,3.4,4.5,5.6,6.7,7.8,8.9,10.0]
+            ],
+            outputs = [
+                [1.0,2.0,3.0,4.0,5.0,nan,nan,nan]
+            ]
+        )
+        procedure.run()
+        assert procedure.data is not None
+        assert len(procedure.data.output.dropna()) == 8
+        self.assertAlmostEqual(procedure.data.output.iloc[7],8.0,2)
+        assert procedure.linear_model is not None
+        assert procedure.linear_model["method"] == "lfit"
+        self.assertAlmostEqual(procedure.linear_model["r2"], 1.0, 2)

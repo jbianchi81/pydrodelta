@@ -5,9 +5,25 @@ from pandas import DataFrame
 from ..function_boundary import FunctionBoundary
 from ..model_parameter import ModelParameter
 from numpy import inf
-from typing import Union, Optional, List, Tuple, Mapping, Any
+from typing import Union, Optional, List, Tuple, Mapping, Any, TypedDict, Literal
+from typing_extensions import Unpack, NotRequired
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 import logging
 from ..types import ExecInput
+
+class MuskingumChannelParsDict(TypedDict):
+    K : float
+    """transit time"""
+    X : float
+    """shape factor"""
+
+class MuskingumChannelExtraParsDict(TypedDict, total=False):
+    Proc : Literal["Muskingum"]
+    dt : float
+    """Calculation step"""
+
+class MuskingumChannelInitialStatesDict(TypedDict, total=False):
+    initial_output_q : float
 
 class MuskingumChannelProcedure(Procedure):
     """Método de tránsito hidrológico de la Oficina del río Muskingum. Parámetros: Tiempo de Tránsito (K) y Factor de forma (X). Condiciones de borde: Hidrograma en nodo superior de tramo."""
@@ -65,9 +81,10 @@ class MuskingumChannelProcedure(Procedure):
     
     def __init__(
         self,
-        parameters : dict,
-        initial_states : Union[list,dict] = [0],
-        **kwargs):
+        parameters : Union[List[float], MuskingumChannelParsDict],
+        initial_states : Union[List[float],MuskingumChannelInitialStatesDict] = [0],
+        extra_pars : Optional[MuskingumChannelExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]):
         """
         Arguments:
             parameters : dict
@@ -83,14 +100,11 @@ class MuskingumChannelProcedure(Procedure):
         Keyword arguments:
             See ..procedure_function.ProcedureFunction
         """
-        super().__init__(**kwargs, parameters = parameters, initial_states = initial_states)
-        # getSchemaAndValidate(
-        #     dict(
-        #         kwargs, 
-        #         parameters = parameters,
-        #         initial_states = initial_states
-        #     ),
-        #     "MuskingumChannelProcedureFunction")
+        super().__init__(
+            parameters = parameters, 
+            initial_states = initial_states, 
+            extra_pars = extra_pars,
+            **kwargs)
         self._engine = None
 
     def exec(
@@ -111,9 +125,6 @@ class MuskingumChannelProcedure(Procedure):
         2-tuple : first element is the procedure function output (list of DataFrames), while second is a ProcedureFunctionResults object"""
         if input is None:
             input = self.loadInput(inplace=False,pivot=False)
-        # logging.debug(input)
-        # if self.initial_states is None:
-        #     self.initial_states = [input[0].dropna().valor[0], input[1].dropna().valor[0]]
         if isinstance(input, DataFrame):
             input = [input]
         self.setEngine(input[0])
@@ -145,19 +156,20 @@ class MuskingumChannelProcedure(Procedure):
     
     def setParameters(
         self,
-        parameters : Union[List,Tuple,Mapping[str, Any]] = [],
-        reset : bool = True
+        parameters : Union[List[float],Tuple,Mapping[str, Any]] = [],
+        reset : bool = True,
+        keys : Optional[List[str]] = None
         ) -> None:
         """
         Setter for self.parameters.
 
         Parameters:
         -----------
-        parameters : list or tuple
+        parameters : list, tuple or dict
 
             Muskingum procedure function parameters to set (K : float, X : float)
         """
-        super().setParameters(parameters)
+        super().setParameters(parameters, reset = reset, keys = keys)
     
     def setInitialStates(
         self,

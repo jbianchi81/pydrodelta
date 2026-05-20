@@ -8,11 +8,10 @@ from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from ..descriptors.dataframe_descriptor import DataFrameDescriptor
-from ..config import config
-import os
 import yaml
 from pathlib import Path
 from a5client.util_types import Dateable
+from numpy import nan
 
 if TYPE_CHECKING:
     from pydrodelta.procedure import Procedure
@@ -188,6 +187,8 @@ class Calibration:
         if self._procedure.procedure_function_results.statistics is None:
             raise RuntimeError("statistics not set")
         value = getattr(self._procedure.procedure_function_results.statistics[result_index],objective_function)
+        if value is None:
+            raise RuntimeError("Objective function resulted to None")
         # logging.debug((parameters, value))
         return value
 

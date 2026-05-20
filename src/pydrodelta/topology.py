@@ -1787,13 +1787,15 @@ class Topology(Base):
 
     def storeSeriesData(
             self,
-            bucket_name : str
+            bucket_name : Optional[str]=None
             ) -> None:
         if self.s3_client is None:
             raise Exception("s3 client not set")
         self.s3_client.assertClient()
         if bucket_name is None:
-            bucket_name = self.s3_client.bucket_name
+            if self.s3_client.bucket_name is None:
+                raise ValueError("missing bucket_name")
+            bucket_name = self.s3_client.bucket_name        
         for node in self.nodes:
             node_id = node.id
             for var_id, variable in node.variables.items():

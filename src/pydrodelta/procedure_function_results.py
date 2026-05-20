@@ -23,7 +23,7 @@ class ProcedureFunctionResults:
     def __init__(
         self,
         border_conditions : Optional[Union[List[DataFrame],DataFrame]] = None,
-        initial_states : Optional[Union[list,dict]] = None,
+        initial_states : Optional[Union[List[float],Mapping[str,Any]]] = None,
         states : Optional[Union[list,DataFrame]] = None,
         parameters : Optional[Union[list,Mapping[str, Any]]] = None,
         statistics : Optional[Union[list,dict]] = None,
@@ -76,7 +76,7 @@ class ProcedureFunctionResults:
         """Initial states"""
         self.states = states
         """State timeseries"""
-        self.parameters : Optional[Union[list,dict]] = parameters
+        self.parameters : Optional[Union[list,Mapping[str, Any]]] = parameters
         """Procedure function calibratable  parameters"""
         self.statistics : Optional[List[ResultStatistics]] = [ResultStatistics(**x) for x in statistics] if isinstance(statistics,(list,tuple)) else [ResultStatistics(**statistics)] if statistics is not None else None
         """Result statistics"""

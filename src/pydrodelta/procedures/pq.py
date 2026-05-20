@@ -1,20 +1,21 @@
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
 from typing import TypedDict, Optional, Union, List, Any, Mapping
-from typing_extensions import NotRequired
+from typing_extensions  import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 
 import logging
 
-class PQExtraParsDict(TypedDict):
-    fill_nulls : NotRequired[bool]
+class PQExtraParsDict(TypedDict, total=False):
+    fill_nulls : bool
     """If missing PMAD values, fill up with zeros"""
     area : float
     """basin area in square meters"""
-    ae : NotRequired[float]
+    ae : float
     """effective area (0-1)"""
-    rho : NotRequired[float]
+    rho : float
     """soil porosity (0-1)"""
-    wp : NotRequired[float]
+    wp : float
     """wilting point of soil (0-1)"""
 
 class PQProcedure(Procedure):
@@ -66,10 +67,11 @@ class PQProcedure(Procedure):
     def __init__(
         self,
         parameters : Union[List[Any], Mapping[str, Any]],
+        initial_states : Union[List[Any], Mapping[str, Any]],
         extra_pars : Optional[PQExtraParsDict],
-        **kwargs):
+        **kwargs : Unpack[ProcedureInitKwargs]):
         self.extra_pars = extra_pars if extra_pars is not None else {}
-        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
+        super().__init__(parameters = parameters, initial_states = initial_states, extra_pars = extra_pars, **kwargs)
         # getSchemaAndValidate(dict(kwargs, extra_pars = extra_pars),"PQProcedureFunction")
         if self.fill_nulls:
             logging.debug("PQProcedure - fillnulls: setting pma boundary to optional")

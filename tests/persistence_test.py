@@ -18,6 +18,7 @@ class PersistenceTest(TestCase):
             "secret_key": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
             "bucket_name": bucket_name
             })
+        assert plan_0.topology is not None
         plan_0.topology.batchProcessInput()
         nodes_data = {}
         for n in plan_0.topology.nodes:
@@ -80,6 +81,7 @@ class PersistenceTest(TestCase):
             "secret_key": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
             "bucket_name": bucket_name
             })
+        assert plan_1.topology is not None
         plan_1.topology.restoreSeriesData()
 
         for n in plan_1.topology.nodes:

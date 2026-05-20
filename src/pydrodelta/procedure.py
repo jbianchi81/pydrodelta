@@ -456,6 +456,12 @@ class Procedure(Base):
         if "type" in kwargs:
             del kwargs["type"]
         super().__init__(**kwargs)
+        self._plan = plan
+        """Plan containing this procedure"""
+        self.time_interval = time_interval
+        """Time step duration of the procedure"""
+        self.timestart = timestart
+        self.timeend = timeend
         getSchemaAndValidate(
             {
                 "id": id,
@@ -487,8 +493,6 @@ class Procedure(Base):
             # type(self).__name__)
             [type_.__name__ for type_ in type(self).__mro__][:-2])
         
-        self._plan = plan
-        """Plan containing this procedure"""
         self.id : Union[int,str] = id
         """Identifier of the procedure"""
         self.save_results = self.resolve_path(save_results)
@@ -510,10 +514,7 @@ class Procedure(Base):
         #     f.close()
         self.parameters = dict(parameters) if isinstance(parameters, Mapping) else parameters
         """List of procedure parameters"""
-        self.time_interval = time_interval
-        """Time step duration of the procedure"""
-        self.timestart = timestart
-        self.timeend = timeend
+        
         self.boundaries = boundaries if boundaries is not None else []
         self.outputs = outputs if outputs is not None else []
         self.extra_pars = extra_pars or {}
@@ -1528,7 +1529,7 @@ class Procedure(Base):
     
     def dfToBoundaryDicts(self, df : DataFrame, columns : Optional[List[str]]=None) -> List[ProcedureBoundaryDict]:
         # each column into a ProcedureBoundaryDict using column names
-        df = util.ensure_datetime_index(df)
+        df = util.ensure_datetime_index(df, start=self.timestart, freq=self.time_interval)
         boundaries : List[ProcedureBoundaryDict] = [
             {
                 "name": col,

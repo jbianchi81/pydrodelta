@@ -279,7 +279,7 @@ class Test_Procedure(TestCase):
         run_assertions(p)
         assert p.data is not None
         assert isinstance(p.data.index, DatetimeIndex)
-        assert min(p.data.index).isoformat() == '2000-01-01T00:00:00'
+        assert min(p.data.index).isoformat()[0:10] == '2000-01-01'
 
     def test_from_dflist_no_datetimeindex(self):
 
@@ -298,7 +298,7 @@ class Test_Procedure(TestCase):
         run_assertions(p)
         assert p.data is not None
         assert isinstance(p.data.index, DatetimeIndex)
-        assert min(p.data.index).isoformat() == '2000-01-01T00:00:00'
+        assert min(p.data.index).isoformat()[0:10] == '2000-01-01'
 
     def test_from_series_no_datetimeindex(self):
 
@@ -317,7 +317,7 @@ class Test_Procedure(TestCase):
         run_assertions(p)
         assert p.data is not None
         assert isinstance(p.data.index, DatetimeIndex)
-        assert min(p.data.index).isoformat() == '2000-01-01T00:00:00'
+        assert min(p.data.index).isoformat()[0:10] == '2000-01-01'
 
     def test_from_series_timestart_time_interval(self):
 

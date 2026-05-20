@@ -7,7 +7,9 @@ from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
 from pydrodelta.util import tryParseAndLocalizeDate
-from typing import Union, List, Tuple, Optional
+from typing import Union, List, Tuple, Optional, TypedDict
+from typing_extensions import Unpack
+from ..types.procedure_init_kwargs import ProcedureInitKwargs
 from pandas import DataFrame, concat, DatetimeIndex
 from matplotlib import pyplot as plt
 from datetime import datetime
@@ -18,6 +20,26 @@ from pydrodelta.procedures.analogy import CreaVariablesTemporales, month2Date
 from ..types import ExecInput
 from pathlib import Path
 from a5client.util_types import Dateable
+
+class PersistenceParsDict(TypedDict, total=False):
+    search_length : int
+    """search_length : longitud de la serie para buscar Analogas. Default: 6"""
+    forecast_length : int
+    """forecast_length : longitud del pronostico. Default: 4"""
+    time_window : str
+    """time_window : ventana temporal. Default: 'month'"""
+
+class PersistenceExtraParsDict(TypedDict, total=False):
+    add_error_band : bool
+    """add_error_band : si se agrega banda de error al pronóstico"""
+    skip_first_years : int
+    """skip_first_years : cantidad de años a eliminar del cálculo de error (hindcast)"""
+    only_last_years : int
+    """only_last_years : cantidad de años a usar desde el final para el cálculo de error (hindcast)"""
+    vent_resamp_range : Tuple[int,int]
+    """vent_resamp_range : rango de meses a usar para el cálculo de error (hindcast). Si no se proporciona, se usará un rango definido por error_forecast_date_window"""
+    error_forecast_date_window : int
+    """error_forecast_date_window : cantidad de meses antes y después del mes del forecast date a usar para el cálculo de error (hindcast). Si no se proporciona, se usará todo el rango"""
 
 class PersistenceProcedure(Procedure):
     """Persistence forecast procedure"""
@@ -52,9 +74,9 @@ class PersistenceProcedure(Procedure):
         return self.parameters["time_window"] if "time_window" in self.parameters else "month"
 
     @property
-    def parameters_with_defaults(self) -> dict:
+    def parameters_with_defaults(self) -> PersistenceParsDict:
         return {
-            "search_.ength": self.search_length,
+            "search_length": self.search_length,
             "forecast_length": self.forecast_length,
             "time_window": self.time_window
         }
@@ -76,10 +98,11 @@ class PersistenceProcedure(Procedure):
 
     def __init__(
         self,
-        parameters : dict,
-        **kwargs
+        parameters : Union[List[float], PersistenceParsDict],
+        extra_pars : Optional[PersistenceExtraParsDict] = None,
+        **kwargs : Unpack[ProcedureInitKwargs]
         ):
-        """_summary_
+        """Persistence Procedure
 
         Arguments:
         ----------
@@ -103,8 +126,7 @@ class PersistenceProcedure(Procedure):
         
         **kwargs : see ..procedure_function.ProcedureFunction
         """
-        super().__init__(parameters = parameters, **kwargs)
-        # getSchemaAndValidate(dict(kwargs, type = "Persistence", parameters = parameters),"PersistenceProcedureFunction")
+        super().__init__(parameters = parameters, extra_pars = extra_pars, **kwargs)
         self.errores = None
         self.df_prono = None
         self.data_ = None

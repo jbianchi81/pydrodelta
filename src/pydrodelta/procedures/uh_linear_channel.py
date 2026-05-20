@@ -5,6 +5,7 @@ from ..types.procedure_init_kwargs import ProcedureInitKwargs
 
 class UHParameters(TypedDict):
     u: list
+    """u: distribution function"""
 
 class UHExtraPars(TypedDict):
     dt: Optional[float]
@@ -71,11 +72,6 @@ class UHLinearChannelProcedure(GenericLinearChannelProcedure):
 
         super().__init__(
             parameters = parameters, 
+            initial_states = [],
             extra_pars = extra_pars, 
             **kwargs)
-        # getSchemaAndValidate(
-        #     dict(
-        #         kwargs, 
-        #         parameters = parameters, 
-        #         extra_pars = extra_pars),
-        #     "UHLinearChannelProcedure")

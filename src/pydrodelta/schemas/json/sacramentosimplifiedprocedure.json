@@ -6,7 +6,7 @@
     "description": "Simplified (10-parameter) Sacramento for precipitation - discharge transformation",
     "allOf": [
         {
-            "$ref": "procedure.json"
+            "$ref": "pqprocedure.json"
         },
         {
             "properties": {
