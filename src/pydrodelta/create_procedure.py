@@ -106,7 +106,7 @@ def createProcedure(
         **kwargs: Any
     ) -> Procedure:
     if procedure_type not in PROCEDURES:
-        raise ValueError(f"Invalid procedure_type='{procedure_type}'. Valid values: {",".join(["'%s'" % k for k in PROCEDURES.keys()])}")
+        raise ValueError(f"Invalid procedure_type='{procedure_type}'. Valid values: {','.join(['%s' % k for k in PROCEDURES.keys()])}")
     cls = PROCEDURES[procedure_type]
     return cls(**kwargs)
 

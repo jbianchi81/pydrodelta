@@ -295,7 +295,7 @@ class LinearCombinationProcedure(Procedure):
         self,
         input : ExecInput = None,
         calibration_period : Optional[Tuple[datetime, datetime]] = None
-        ) -> tuple[LinearCombinationParametersDict, DataFrame, List[ResultStatistics]]:
+        ) -> Tuple[LinearCombinationParametersDict, DataFrame, List[ResultStatistics]]:
         """
         Fit linear regression coefficients
         

@@ -3,9 +3,11 @@ from pydrodelta.procedures.hosh4p1luh import HOSH4P1LUHProcedure
 
 class HOSH4P1LTest(TestCase):
 
-    def test_hosh4p1l(self):
+    procedure : HOSH4P1LUHProcedure
 
-        procedure = HOSH4P1LUHProcedure(
+    @classmethod
+    def setUpClass(cls):
+        cls.procedure = HOSH4P1LUHProcedure(
           boundaries= [
               [0,80,0,0,0,0,40,0,0,0,0,0,0,0,0,0],
               [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -37,13 +39,15 @@ class HOSH4P1LTest(TestCase):
             }
         )
 
-        procedure.run()
-        assert len(procedure.outputs)
-        assert procedure.data is not None
-        assert len(procedure.data.q_sim.dropna()) == 16
-        # control balance #
-        initial_storage = procedure.engine.SoilStorage[0] + procedure.engine.SurfaceStorage[0]
-        final_storage = procedure.engine.SoilStorage[-1] + procedure.engine.SurfaceStorage[-1]
-        gain = sum(procedure.engine.Precipitation)
-        loss = sum(procedure.engine.EVR1) + sum(procedure.engine.EVR2) + sum(procedure.engine.Q)
+    def test_01_hosh4p1l(self):
+        self.procedure.run()
+        assert len(self.procedure.outputs)
+        assert self.procedure.data is not None
+        assert len(self.procedure.data.q_sim.dropna()) == 16
+
+    def test_02_control_balance(self):
+        initial_storage = self.procedure.engine.SoilStorage[0] + self.procedure.engine.SurfaceStorage[0]
+        final_storage = self.procedure.engine.SoilStorage[-1] + self.procedure.engine.SurfaceStorage[-1]
+        gain = sum(self.procedure.engine.Precipitation)
+        loss = sum(self.procedure.engine.EVR1) + sum(self.procedure.engine.EVR2) + sum(self.procedure.engine.Q)
         self.assertAlmostEqual(initial_storage + gain - loss, final_storage,2)

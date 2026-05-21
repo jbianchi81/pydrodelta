@@ -279,7 +279,7 @@ class Procedure(Base):
                 outputs_ = cast(List[ProcedureBoundaryDict],outputs)
             elif not any(isdict):
                 outputs_no_dict = cast(
-                    Union[list[TVPList],List[DataFrame],List[Series],List[List[float]]],
+                    Union[List[TVPList],List[DataFrame],List[Series],List[List[float]]],
                     outputs
                 )
                 outputs_ = [self.tvpListToBoundaryDict(b, i,is_output=True) for (i, b) in enumerate(outputs_no_dict)]
