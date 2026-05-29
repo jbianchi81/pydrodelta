@@ -143,6 +143,17 @@ class NodeSerieProno(NodeSerie):
         self.tail = tail
         self.sim_range = sim_range
 
+    def __repr__(self) -> str:
+        return (
+            f"NodeSerie(\n"
+            f"  type={self.type},\n"
+            f"  series_id={self.series_id},\n"
+            f"  cal_id={self.cal_id},\n"
+            f"  count={len(self.data) if self.data is not None else 0}\n"
+            ")\n"
+        )
+
+
     def loadData(
         self,
         timestart : Dateable,

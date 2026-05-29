@@ -44,6 +44,7 @@ from .types.save_variable_params import SaveVariableParams
 from .types.api_config_dict import ApiConfigDict
 from .node_serie import NodeSerie
 from .derived_node_serie import DerivedNodeSerie
+from textwrap import indent
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -381,8 +382,16 @@ class Topology(Base):
         self.output_graph = self.resolve_path(output_graph)
     
     def __repr__(self):
-        nodes_str = ", ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
-        return "Topology(timestart: %s, timeend: %s, nodes: [%s])" % (self.timestart.isoformat(), self.timeend.isoformat(), nodes_str)
+        # nodes_str = ",\n    ".join(["%i: Node(id: %i, name: %s)" % (self.nodes.index(n), n.id, n.name) for n in self.nodes])
+        nodes_str = ",\n    ".join(["%i:\n%s" % (n.id, indent(repr(n),"      ")) for n in self.nodes])
+        return (
+            f"Topology(\n"
+            f"  timestart={self.timestart.isoformat()},\n"
+            f"  timeend={self.timeend.isoformat()},\n"
+            f"  nodes={{\n"
+            f"    {nodes_str}}}\n"
+            f")"
+        )
 
     def __getitem__(self, key : int):
         return self.getNode(key)

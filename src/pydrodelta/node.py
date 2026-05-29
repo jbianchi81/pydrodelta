@@ -250,8 +250,17 @@ class Node:
         return resolve_path(path, self.base_path) if path is not None else None
     
     def __repr__(self):
-        variables_repr = ", ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
-        return "Node(id: %i, name: %s, variables: {%s})" % (self.id, self.name, variables_repr)
+        variables_repr = ",\n    ".join([ "%i: Variable(id: %i, name: %s)" % (k,self.variables[k].id, self.variables[k].metadata["nombre"] if self.variables[k].metadata is not None else None) for k in self.variables.keys() ])
+        return (
+            f"Node(\n"
+            f"  id={self.id},\n"
+            f"  name={self.name},\n"
+            f"  node_type={self.node_type},\n"
+            f"  variables={{\n"
+            f"    {variables_repr}\n"
+            f"  }}\n"
+            f")"
+        )
     
     def __getitem__(self, key : int) -> NodeVariable:
         return self.getVariable(key)

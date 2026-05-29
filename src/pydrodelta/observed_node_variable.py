@@ -410,5 +410,17 @@ class ObservedNodeVariable(NodeVariable):
         self.saveSeriesSeparately()
 
     def __repr__(self):
-        series_str = ", ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series]) if self.series is not None else "None"
-        return "Variable(id: %i, name: %s, count: %i, series: [%s])" % (self.id, self.metadata["nombre"] if self.metadata is not None else None, len(self.data) if self.data is not None else 0, series_str)
+        series_str = "[\n    " + ",\n    ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series]) + "]" if self.series is not None else "None"
+        series_prono_str = "[\n    " + ",\n    ".join(["SeriesProno(type: %s, id: %i, cal_id: %i)" % (s.type, s.series_id, s.cal_id) for s in self.series_prono]) + "]" if self.series_prono is not None else "None"
+        series_sim_str = "[\n    " + ",\n    ".join(["SeriesSim(type: %s, id: %i)" % (s.type, s.series_id) + "]" for s in self.series_sim]) if self.series_sim is not None else "None"
+        return (
+            f"Variable(\n"
+            f"  id={self.id},\n"
+            f"  name={self.metadata["nombre"] if self.metadata is not None else "None"},\n"
+            f"  count={len(self.data) if self.data is not None else 0},\n"
+            f"  series={series_str}\n"
+            f"  series_prono={series_prono_str}\n"
+            f"  series_sim={series_sim_str}\n"
+            f")"
+
+        )

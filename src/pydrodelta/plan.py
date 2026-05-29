@@ -31,6 +31,7 @@ from .types.save_variable_sim_dict import SaveVariableSimDict
 from a5client.util_types import CorridaDict, Dateable, CorridaNoIdSerializableDict
 from .node import Node
 from .create_procedure import createProcedure
+from textwrap import indent
 
 from pydrodelta.config import config
 
@@ -264,6 +265,23 @@ class Plan(Base):
         self.save_variable_sim = save_variable_sim
         self.output_graph = self.resolve_path(output_graph)
         self.procedures = procedures
+
+    def __repr__(self) -> str:
+        procedures_repr = "\n    ".join([f"    {i} - {p.__repr__()}" for i, p in enumerate(self.procedures)])
+        topology_repr = indent(repr(self.topology), "    ")
+        return (
+            f"Plan(\n"
+            f"  name={self.name},\n"
+            f"  id={self.id},\n"
+            f"  time_interval={str(self.time_interval) if self.time_interval is not None else "None"},\n"
+            f"  forecast_date={self.forecast_date.isoformat()},\n"
+            f"  topology=\n"
+            f"{topology_repr},\n"
+            f"  procedures=[\n"
+            f"{procedures_repr}\n"
+            f"  ]\n"
+            f")"
+        )
 
     def getProcedure(self,id : Union[str,int]) -> Procedure:
         """get procedure by id"""

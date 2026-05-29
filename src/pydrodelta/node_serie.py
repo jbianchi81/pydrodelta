@@ -236,8 +236,14 @@ class NodeSerie(Base):
         self.agg_func = agg_func
         self.id = id if id is not None else series_id
     
-    def __repr__(self):
-        return "NodeSerie(type: %s, series_id: %i, count: %i)" % (self.type, self.series_id, len(self.data) if self.data is not None else 0)
+    def __repr__(self) -> str:
+        return (
+            f"NodeSerie(\n"
+            f"  type={self.type},\n"
+            f"  series_id={self.series_id},\n"
+            f"  count={len(self.data) if self.data is not None else 0}\n"
+            ")\n"
+        )
     
     def raiseValueError(self, message : str) -> None:
         if self._variable is not None:
