@@ -1176,8 +1176,8 @@ class Topology(Base):
     def plotVariable(
         self,
         var_id : int,
-        timestart : Optional[datetime] = None,
-        timeend : Optional[datetime] = None,
+        timestart : Optional[Dateable] = None,
+        timeend : Optional[Dateable] = None,
         output : Optional[Union[Path,str]] = None,
         extra_sim_columns : bool = True,
         table : bool = True,
@@ -1190,10 +1190,10 @@ class Topology(Base):
         var_id : int
             Variable identifier
 
-        timestart : datetime or None
+        timestart : Dateable or None
             If not None, start time of the plot
 
-        timeend : datetime or None
+        timeend : Dateable or None
             If not None, end time of the plot
           
         output : str or None
@@ -1205,6 +1205,8 @@ class Topology(Base):
         table : bool = True
             Add table
         """
+        timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else None
+        timeend = tryParseAndLocalizeDate(timeend) if timeend is not None else None
         color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
         if output is not None:
             matplotlib.use('pdf')
@@ -1232,10 +1234,12 @@ class Topology(Base):
                 data = data[data["timestart"] >= timestart]
             if timeend is not None:
                 data = data[data["timestart"] <= timeend]
-            fig, ax = plt.subplots(ncols=2,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1]})
+            
+            fig, ax = plt.subplots(ncols=2 if table else 1,figsize=(20,8),gridspec_kw={'width_ratios': [2, 1] if table else [1]})
+            plot_ax = ax[0] if table else ax
             grouped = data.groupby('tag')
             for key, group in grouped:
-                group.plot(ax=ax[0],kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[str(key)])
+                group.plot(ax=plot_ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[str(key)])
             if not isinstance(nodevariable.original_data, DataFrame):
                 raise Exception("Missing original data")
             original_data = nodevariable.original_data.reset_index().rename(columns={"index":"timestart"})
@@ -1247,9 +1251,17 @@ class Topology(Base):
                     original_data = original_data[original_data["timestart"] >= timestart]
                 if timeend is not None:
                     original_data = original_data[original_data["timestart"] <= timeend]
-                ax[0].plot(
-                    original_data["timestart"],
-                    original_data["valor"],
+                # plot_ax.plot(
+                #     original_data["timestart"],
+                #     original_data["valor"],
+                #     label="analysis",
+                #     color=color_map["analysis"]
+                # )
+                original_data.plot(
+                    ax=plot_ax,
+                    kind='line',
+                    x='timestart', 
+                    y='valor', 
                     label="analysis",
                     color=color_map["analysis"]
                 )
@@ -1269,9 +1281,17 @@ class Topology(Base):
                         if timeend is not None:
                             data_sim = data_sim[data_sim["timestart"] <= timeend]
                         label = "sim_%i" % serie_sim.series_id
-                        ax[0].plot(
-                            data_sim["timestart"],
-                            data_sim["valor"],
+                        # plot_ax.plot(
+                        #     data_sim["timestart"],
+                        #     data_sim["valor"],
+                        #     label=label,
+                        #     color=sim_colors[i].get_hex()
+                        # )
+                        data_sim.plot(
+                            ax=plot_ax,
+                            kind='line',
+                            x='timestart', 
+                            y='valor', 
                             label=label,
                             color=sim_colors[i].get_hex()
                         )
@@ -1283,9 +1303,19 @@ class Topology(Base):
                                 data_sim[c] = pandas.to_numeric(data_sim[c], errors="coerce")
                                 label = "sim_%i_%s" % (serie_sim.series_id, c)
                                 logging.debug("Add series sim column %s, label %s" % (c,label))
-                                ax[0].plot(
-                                    data_sim["timestart"],
-                                    data_sim[c],
+                                # plot_ax.plot(
+                                #     data_sim["timestart"],
+                                #     data_sim[c],
+                                #     label=label,
+                                #     color=getRandColor(),
+                                #     linestyle="--",
+                                #     alpha=0.5
+                                # )
+                                data_sim.plot(
+                                    ax=plot_ax,
+                                    kind='line',
+                                    x='timestart', 
+                                    y=c, 
                                     label=label,
                                     color=getRandColor(),
                                     linestyle="--",
@@ -1295,8 +1325,10 @@ class Topology(Base):
                                 data_table[label] = data_table[label].round(2)
             if hasattr(nodevariable,"max_obs_date") and nodevariable.max_obs_date is not None:
                 plt.axvline(nodevariable.max_obs_date, color='k', linestyle='--') # type: ignore[arg-type]
+            if self._plan is not None:
+                plt.axvline(self._plan.forecast_date, color='gray', linestyle='--') # type: ignore[arg-type]
             if table:
-                ax[1].axis('off')  # Hide axes
+                ax[1].axis('off')  # Hide axes of subplot 2
                 data_table = data_table.reset_index()
                 data_table["timestart"] = data_table["timestart"].dt.strftime('%Y-%m-%d' if node.time_interval is not None and datetime(2000, 1, 1) + node.time_interval >= datetime(2000, 1, 1) + relativedelta(days=1) else '%Y-%m-%d %H:%M')
                 table = ax[1].table(cellText=[[s[-9:] for s in data_table.columns.tolist()]] + data_table.tail(40).round(round_to).values.tolist(), loc='center')
