@@ -237,13 +237,19 @@ class NodeSerie(Base):
         self.id = id if id is not None else series_id
     
     def __repr__(self) -> str:
-        return (
-            f"NodeSerie(\n"
-            f"  type={self.type},\n"
-            f"  series_id={self.series_id},\n"
-            f"  count={len(self.data) if self.data is not None else 0}\n"
-            ")\n"
-        )
+        lines = [
+            "NodeSerie(",
+            f"  type={self.type},",
+            f"  series_id={self.series_id},"
+        ]
+        if self.data is not None:
+            lines.extend([
+                f"  count={len(self.data)}",
+                # f"  timestart={self.data.index.min()},",
+                # f"  timeend={self.data.index.max()},"
+            ])
+        lines.append(")")
+        return "\n".join(lines)
     
     def raiseValueError(self, message : str) -> None:
         if self._variable is not None:

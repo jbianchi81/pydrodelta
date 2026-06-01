@@ -418,9 +418,12 @@ class ObservedNodeVariable(NodeVariable):
             f"  id={self.id},\n"
             f"  name={self.metadata["nombre"] if self.metadata is not None else "None"},\n"
             f"  count={len(self.data) if self.data is not None else 0},\n"
-            f"  series={series_str}\n"
-            f"  series_prono={series_prono_str}\n"
-            f"  series_sim={series_sim_str}\n"
+            f"  series={series_str},\n"
+            f"  series_prono={series_prono_str},\n"
+            f"  series_sim={series_sim_str},\n"
+            f"  timestart={self.timestart.isoformat()},\n"
+            f"  timeend={self.timeend.isoformat()},\n"
+            f"  time_interval={self.time_interval}\n"
             f")"
 
         )
