@@ -413,17 +413,43 @@ class ObservedNodeVariable(NodeVariable):
         series_str = "[\n    " + ",\n    ".join(["Series(type: %s, id: %i)" % (s.type, s.series_id) for s in self.series]) + "]" if self.series is not None else "None"
         series_prono_str = "[\n    " + ",\n    ".join(["SeriesProno(type: %s, id: %i, cal_id: %i)" % (s.type, s.series_id, s.cal_id) for s in self.series_prono]) + "]" if self.series_prono is not None else "None"
         series_sim_str = "[\n    " + ",\n    ".join(["SeriesSim(type: %s, id: %i)" % (s.type, s.series_id) + "]" for s in self.series_sim]) if self.series_sim is not None else "None"
-        return (
-            f"Variable(\n"
-            f"  id={self.id},\n"
-            f"  name={self.metadata["nombre"] if self.metadata is not None else "None"},\n"
-            f"  count={len(self.data) if self.data is not None else 0},\n"
-            f"  series={series_str},\n"
-            f"  series_prono={series_prono_str},\n"
-            f"  series_sim={series_sim_str},\n"
-            f"  timestart={self.timestart.isoformat()},\n"
-            f"  timeend={self.timeend.isoformat()},\n"
-            f"  time_interval={self.time_interval}\n"
-            f")"
+        lines = [
+            f"Variable(",
+            f"  id={self.id},",
+            f"  name={self.metadata["nombre"] if self.metadata is not None else "None"},",
+            f"  series={series_str},",
+            f"  series_prono={series_prono_str},",
+            f"  series_sim={series_sim_str},",
+            f"  timestart={self.timestart},",
+            f"  timeend={self.timeend},",
+            f"  time_interval={self.time_interval},"
+        ]
+        if self.data is not None:
+            lines.extend([
+            f"  count={len(self.data)},",
+            f"  na_count={self.na_count},",
+            f"  min_date={self.data.dropna().index.min()},",
+            f"  max_date={self.data.dropna().index.max()},"
+            ])
+            assert self.na_count is not None
+            if self.na_count > 0:
+                assert self.na_dates is not None
+                lines.append(f"  first_na_date={self.na_dates[0]}")
 
-        )
+        lines.append(f")")
+        return "\n".join(lines)
+    
+    @property
+    def na_count(self):
+        if self.data is None:
+            return None
+        return len(self.data) - len(self.data.dropna())
+    
+    @property
+    def na_dates(self):
+        if self.data is None:
+            return None
+        return self.data.index[self.data["valor"].isna()]
+
+
+        

@@ -244,12 +244,29 @@ class NodeSerie(Base):
         ]
         if self.data is not None:
             lines.extend([
-                f"  count={len(self.data)}",
-                # f"  timestart={self.data.index.min()},",
-                # f"  timeend={self.data.index.max()},"
+                f"  count={len(self.data)},",
+                f"  na_count={self.na_count},",
+                f"  min_date={self.data.dropna().index.min()},",
+                f"  max_date={self.data.dropna().index.max()},"
             ])
+            assert self.na_count is not None
+            if self.na_count > 0:
+                assert self.na_dates is not None
+                lines.append(f"  first_na_date={self.na_dates[0]}")
         lines.append(")")
         return "\n".join(lines)
+    
+    @property
+    def na_count(self):
+        if self.data is None:
+            return None
+        return len(self.data) - len(self.data.dropna())
+    
+    @property
+    def na_dates(self):
+        if self.data is None:
+            return None
+        return self.data.index[self.data["valor"].isna()]
     
     def raiseValueError(self, message : str) -> None:
         if self._variable is not None:

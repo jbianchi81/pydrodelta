@@ -144,14 +144,28 @@ class NodeSerieProno(NodeSerie):
         self.sim_range = sim_range
 
     def __repr__(self) -> str:
-        return (
-            f"NodeSerie(\n"
-            f"  type={self.type},\n"
-            f"  series_id={self.series_id},\n"
-            f"  cal_id={self.cal_id},\n"
-            f"  count={len(self.data) if self.data is not None else 0}\n"
-            ")\n"
-        )
+        lines = [
+            f"NodeSerie(",
+            f"  type={self.type},",
+            f"  series_id={self.series_id},",
+            f"  cal_id={self.cal_id},"
+        ]
+        if self.data is not None:
+            lines.extend([
+                f"  count={len(self.data.dropna())},",
+                f"  na_count={len(self.data) - len(self.data.dropna())}",
+                f"  min_date={self.data.dropna().index.min()},",
+                f"  max_date={self.data.dropna().index.max()},"
+            ])
+            assert self.na_count is not None
+            if self.na_count > 0:
+                assert self.na_dates is not None
+                lines.append(f"  first_na_date={self.na_dates[0]}")
+        lines.append(")")
+        return "\n".join(lines)
+    
+    
+        
 
 
     def loadData(
