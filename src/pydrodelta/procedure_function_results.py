@@ -6,8 +6,9 @@ import logging
 from typing import Optional, Union, List, TypedDict, Mapping, Any
 import os
 import json
-from .util import createParent, make_serializable
+from .util import createParent, make_serializable, get_df_repr, get_df_or_list_repr
 from pathlib import Path
+from textwrap import indent
 
 class AdjustResultsDict(TypedDict):
     method : Optional[str]
@@ -156,6 +157,21 @@ class ProcedureFunctionResults:
             "data": make_serializable(self.data).to_dict("records") if type(self.data) == DataFrame else [make_serializable(df).to_dict("records") for df in self.data] if isinstance(self.data, list) else [make_serializable(self.data).to_dict("records")] if self.data is not None else None,
             "adjust_results": self.adjust_results_dict
         }
+    
+    def __repr__(self) -> str:
+        return "\n".join([
+            f"ProcedureFunctionResults(",
+            f"  border_conditions={get_df_repr(self.border_conditions)},",
+            f"  initial_states={self.initial_states},",
+            f"  states={get_df_or_list_repr(self.states)},",
+            f"  parameters={self.parameters},",
+            f"  extra_pars={self.extra_pars},",
+            f"  statistics=[{','.join(['\n' + indent(x.__repr__(),'    ') for x in self.statistics]) if self.statistics is not None else ''}],",
+            f"  statistics_val=[{'\n'.join([x.__repr__() for x in self.statistics_val]) if self.statistics_val is not None else ''}],",
+            f"  data={get_df_repr(self.data)},",
+            f"  adjust_results={self.adjust_results_dict}"
+            f")"
+        ])
 
     def setAdjustResults(self, adjust_results : dict):
         self.adjust_results = adjust_results

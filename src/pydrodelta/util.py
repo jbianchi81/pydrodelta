@@ -1540,3 +1540,9 @@ def ensure_datetime_index(
     )
 
     return result
+
+def get_df_repr(data : Optional[Union[pd.DataFrame, List[pd.DataFrame]]]) -> str:
+    return "[\n    " + ",\n    ".join(["DataFrame(count: %i, na_count: %i, min_date: %s, max_date: %s)" % (len(d), len(d) - len(d.dropna()), d.index.min(), d.index.max()) for d in data]) + "]" if isinstance(data, list) else "DataFrame(count: %i, na_count: %i, min_date: %s, max_date: %s)" % (len(data), len(data) - len(data.dropna()), data.index.dropna().min(), data.index.dropna().max()) if isinstance(data, DataFrame) else "None"
+
+def get_df_or_list_repr(data : Optional[Union[pd.DataFrame, List[float]]]) -> str:
+    return "DataFrame(count: %i, na_count: %i, min_date: %s, max_date: %s)" % (len(data), len(data) - len(data.dropna()), data.index.dropna().min(), data.index.dropna().max()) if isinstance(data, DataFrame) else "list(count: %i)" % (len(data)) if isinstance(data, (np.ndarray, list)) else "None"

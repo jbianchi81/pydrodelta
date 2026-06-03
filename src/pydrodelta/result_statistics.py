@@ -199,3 +199,10 @@ class ResultStatistics:
             "oneminusr": self.oneminusr,
             "kge": self.kge
         }
+    
+    def __repr__(self) -> str:
+        return ("\n".join([
+            f"ResultStatistics(",
+            *[f"    {key}={val}," for (key, val) in self.toShortDict().items()],
+            f")"
+        ]))

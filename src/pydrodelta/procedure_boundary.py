@@ -137,6 +137,44 @@ class ProcedureBoundary():
             "compute_statistics": self.compute_statistics,
             "data": make_serializable(self.data).to_dict("records") if self.data is not None else None
         }
+    
+    def __repr__(self) -> str:
+        lines = [
+            f"optional={self.optional},",
+            f"node_id={self.node_id},",
+            f"var_id={self.var_id},",
+            f"name={self.name},",
+            f"warmup_only={self.warmup_only},",
+            f"compute_statistics={self.compute_statistics},",
+        ]
+        if self.data is not None:
+            lines.extend([
+                f"count={self.data},",
+                f"na_count={self.na_count},",
+                f"min_date={self.data.dropna().index.min()},",
+                f"max_date={self.data.dropna().index.max()},"
+            ])
+            assert self.na_count is not None
+            if self.na_count > 0:
+                assert self.na_dates is not None
+                lines.extend([
+                    f"first_na_date={self.na_dates[0]}"
+                ])
+        return "\n".join(lines)
+
+    @property
+    def na_count(self):
+        if self.data is None:
+            return None
+        return len(self.data) - len(self.data.dropna())
+    
+    @property
+    def na_dates(self):
+        if self.data is None:
+            return None
+        return self.data.index[self.data["valor"].isna()]
+
+
     def setNodeVariable(self,plan : "Plan") -> None:
         """
         Search for node id=self.node_id, variable id=self.var_id in plan.topology and set self._node and self._variable

@@ -585,6 +585,52 @@ class Procedure(Base):
             'overwrite_original': self.overwrite_original, 
             'calibration': self.calibration.toDict() if self.calibration is not None else None
         }
+    
+    def __repr__(self) -> str:
+        boundaries_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.boundaries]) + "]"
+        outputs_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.outputs]) + "]"
+        procedure_function_results_str = (
+            f"ProcedureFunctionResults(\n"
+            f"    statistics=[{",".join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n) , str(rs.r)) for rs in self.procedure_function_results.statistics]) if self.procedure_function_results.statistics is not None else ""}],\n"
+            f"    statistics_val=[{",".join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n), str(rs.r)) for rs in self.procedure_function_results.statistics_val]) if self.procedure_function_results.statistics_val is not None else ""}],\n"
+            f"  )"
+        ) if self.procedure_function_results is not None else "None"
+        lines = [
+            f"{type(self).__name__}(",
+            f"  id={self.id},", 
+            f"  initial_states={self.initial_states},", 
+            f"  parameters={self.parameters},",
+            f"  boundaries={boundaries_str},",
+            f"  outputs={outputs_str},",
+            f"  extra_pars={self.extra_pars},", 
+            f"  time_interval={util.relativedelta_to_iso(self.time_interval) if self.time_interval is not None else None},", 
+            f"  time_offset={util.relativedelta_to_iso(self.time_offset) if self.time_offset is not None else None},", 
+            f"  input={util.get_df_repr(self.input)},", 
+            f"  output={util.get_df_repr(self.output)},",
+            f"  output_obs={util.get_df_repr(self.output_obs)},",
+            f"  states={util.get_df_or_list_repr(self.states)},",
+            f"  procedure_function_results={procedure_function_results_str},",
+            f"  save_results={str(self.save_results) if self.save_results is not None else None},", 
+            f"  overwrite={self.overwrite},", 
+            f"  overwrite_original={self.overwrite_original},", 
+            f"  calibration={self.calibration.__repr__() if self.calibration is not None else None}",
+            f")"
+        ]
+        return "\n".join(lines)
+    
+    def _repr_short(self) -> str:
+        boundaries_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.boundaries]) + "]"
+        outputs_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.outputs]) + "]"
+        lines = [
+            f"{type(self).__name__}(",
+            f"  id={self.id},", 
+            f"  initial_states={self.initial_states},", 
+            f"  parameters={self.parameters},",
+            f"  boundaries={boundaries_str},",
+            f"  outputs={outputs_str},",
+            f")"
+        ]
+        return "\n".join(lines)
 
     def loadInputDefault(self) -> None:
         """Loads input with default behaviour according to the procedure function"""
@@ -807,7 +853,9 @@ class Procedure(Base):
                     data_.append(output.data[["valor"]].dropna())
                 else:
                     if output._variable is None:
-                        raise Exception("Variable is not set")
+                        raise RuntimeError("Variable is not set")
+                    if output._variable.data is None:
+                        raise RuntimeError("Variable data not set")
                     data_.append(output._variable.data[["valor"]].dropna())
             if inplace:
                 self.output_obs = data_

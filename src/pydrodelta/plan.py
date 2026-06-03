@@ -267,7 +267,7 @@ class Plan(Base):
         self.procedures = procedures
 
     def __repr__(self) -> str:
-        procedures_repr = "\n    ".join([f"    {i} - {p.__repr__()}" for i, p in enumerate(self.procedures)])
+        procedures_repr = ",\n".join([f"    {i}:\n{indent(p._repr_short(),"    ")}" for i, p in enumerate(self.procedures)])
         topology_repr = indent(repr(self.topology), "    ")
         return (
             f"Plan(\n"
