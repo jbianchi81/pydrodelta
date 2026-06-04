@@ -131,6 +131,19 @@ class Calibration:
                 logging.error("calibration['%s'] is not JSON serializable" % key)
                 raise(e)
         return cal_dict
+
+    def __repr__(self) -> str:
+        lines = [
+            f"Calibration(",
+            f"  calibrate={self.calibrate},",
+            f"  result_index={self.result_index},",
+            f"  objective_function={self.objective_function},",
+            f"  save_result={self.save_result},",
+            f"  calibration_period={[x.isoformat() for x in self.calibration_period] if self.calibration_period is not None else None},",
+            f"  calibration_result={self.calibration_result},",
+            f")"
+        ]
+        return "\n".join(lines)
     
     def parseCalibrationPeriod(
         self, 

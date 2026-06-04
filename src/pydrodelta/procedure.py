@@ -39,6 +39,7 @@ from a5client.util_types import TVPList, Dateable, Intervaleable
 from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
 from pydrodelta.validation import getSchemaAndValidate
 from .custom_errors import DuplicateKeyError
+from textwrap import indent
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -613,7 +614,7 @@ class Procedure(Base):
             f"  save_results={str(self.save_results) if self.save_results is not None else None},", 
             f"  overwrite={self.overwrite},", 
             f"  overwrite_original={self.overwrite_original},", 
-            f"  calibration={self.calibration.__repr__() if self.calibration is not None else None}",
+            f"  calibration={indent(self.calibration.__repr__(),"  ") if self.calibration is not None else None}",
             f")"
         ]
         return "\n".join(lines)

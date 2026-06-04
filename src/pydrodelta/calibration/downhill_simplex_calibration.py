@@ -182,6 +182,29 @@ class DownhillSimplexCalibration(Calibration):
                 raise(e)
         return cal_dict
     
+    def __repr__(self) -> str:
+        lines = [
+            f"DownhillSimplexCalibration("
+            f"  calibrate={self.calibrate},",
+            f"  result_index={self.result_index},",
+            f"  objective_function={self.objective_function},",
+            f"  save_result={self.save_result},",
+            f"  calibration_period={[x.isoformat() for x in self.calibration_period] if self.calibration_period is not None else None},",
+            f"  calibration_result={self.calibration_result},",
+            f"  limit={self.limit},",
+            f"  sigma={self.sigma},",
+            f"  ranges={self.ranges},",
+            f"  no_improve_thr={self.no_improve_thr},",
+            f"  max_stagnations={self.max_stagnations},",
+            f"  max_iter={self.max_iter},",
+            f"  iters={self._downhill_simplex.iters if self._downhill_simplex is not None else None},",
+            f"  limits={self._downhill_simplex.limits if self._downhill_simplex is not None else None},",
+            f"  initial_simplex={self._downhill_simplex.initial_points_list if self._downhill_simplex is not None else None},",
+            f"  final_simplex={self._downhill_simplex.current_points_list if self._downhill_simplex is not None else None},",
+            f")"
+        ]
+        return "\n".join(lines)
+
     def makeSimplex(
         self,
         inplace : bool = True, 
