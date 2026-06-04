@@ -590,10 +590,12 @@ class Procedure(Base):
     def __repr__(self) -> str:
         boundaries_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.boundaries]) + "]"
         outputs_str = "[\n    " + ",\n    ".join(["Boundary(name: %s, node_id: %i, var_id: %i)" % (b.name, b.node_id, b.var_id) for b in self.outputs]) + "]"
+        statistics = ','.join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n) , str(rs.r)) for rs in self.procedure_function_results.statistics]) if self.procedure_function_results.statistics is not None else ''
+        statistics_val = ','.join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n), str(rs.r)) for rs in self.procedure_function_results.statistics_val]) if self.procedure_function_results.statistics_val is not None else ''
         procedure_function_results_str = (
             f"ProcedureFunctionResults(\n"
-            f"    statistics=[{",".join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n) , str(rs.r)) for rs in self.procedure_function_results.statistics]) if self.procedure_function_results.statistics is not None else ""}],\n"
-            f"    statistics_val=[{",".join(['\n      ResultStatistics(n=%s, r=%s)' % (str(rs.n), str(rs.r)) for rs in self.procedure_function_results.statistics_val]) if self.procedure_function_results.statistics_val is not None else ""}],\n"
+            f"    statistics=[{statistics}],\n"
+            f"    statistics_val=[{statistics_val}],\n"
             f"  )"
         ) if self.procedure_function_results is not None else "None"
         lines = [
@@ -614,7 +616,7 @@ class Procedure(Base):
             f"  save_results={str(self.save_results) if self.save_results is not None else None},", 
             f"  overwrite={self.overwrite},", 
             f"  overwrite_original={self.overwrite_original},", 
-            f"  calibration={indent(self.calibration.__repr__(),"  ") if self.calibration is not None else None}",
+            f"  calibration={indent(self.calibration.__repr__(),'  ') if self.calibration is not None else None}",
             f")"
         ]
         return "\n".join(lines)

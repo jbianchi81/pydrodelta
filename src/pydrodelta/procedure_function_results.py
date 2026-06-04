@@ -159,6 +159,8 @@ class ProcedureFunctionResults:
         }
     
     def __repr__(self) -> str:
+        statistics = ','.join(['\n' + indent(x.__repr__(),'    ') for x in self.statistics]) if self.statistics is not None else ''
+        statistics_val = '\n'.join([x.__repr__() for x in self.statistics_val]) if self.statistics_val is not None else ''
         return "\n".join([
             f"ProcedureFunctionResults(",
             f"  border_conditions={get_df_repr(self.border_conditions)},",
@@ -166,8 +168,8 @@ class ProcedureFunctionResults:
             f"  states={get_df_or_list_repr(self.states)},",
             f"  parameters={self.parameters},",
             f"  extra_pars={self.extra_pars},",
-            f"  statistics=[{','.join(['\n' + indent(x.__repr__(),'    ') for x in self.statistics]) if self.statistics is not None else ''}],",
-            f"  statistics_val=[{'\n'.join([x.__repr__() for x in self.statistics_val]) if self.statistics_val is not None else ''}],",
+            f"  statistics=[{statistics}],",
+            f"  statistics_val=[{statistics_val}],",
             f"  data={get_df_repr(self.data)},",
             f"  adjust_results={self.adjust_results_dict}"
             f")"

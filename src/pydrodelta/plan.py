@@ -267,13 +267,13 @@ class Plan(Base):
         self.procedures = procedures
 
     def __repr__(self) -> str:
-        procedures_repr = ",\n".join([f"    {i}:\n{indent(p._repr_short(),"    ")}" for i, p in enumerate(self.procedures)])
+        procedures_repr = ",\n".join([f"    {i}:\n{indent(p._repr_short(),'    ')}" for i, p in enumerate(self.procedures)])
         topology_repr = indent(repr(self.topology), "    ")
         return (
             f"Plan(\n"
             f"  name={self.name},\n"
             f"  id={self.id},\n"
-            f"  time_interval={str(self.time_interval) if self.time_interval is not None else "None"},\n"
+            f"  time_interval={str(self.time_interval) if self.time_interval is not None else 'None'},\n"
             f"  forecast_date={self.forecast_date.isoformat()},\n"
             f"  topology=\n"
             f"{topology_repr},\n"

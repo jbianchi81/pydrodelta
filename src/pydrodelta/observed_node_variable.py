@@ -416,7 +416,7 @@ class ObservedNodeVariable(NodeVariable):
         lines = [
             f"Variable(",
             f"  id={self.id},",
-            f"  name={self.metadata["nombre"] if self.metadata is not None else "None"},",
+            f"  name={self.metadata['nombre'] if self.metadata is not None else 'None'},",
             f"  series={series_str},",
             f"  series_prono={series_prono_str},",
             f"  series_sim={series_sim_str},",
