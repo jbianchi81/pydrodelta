@@ -123,6 +123,9 @@ class NodeSerie(Base):
     agg_func = StringDescriptor()
     """"Aggregate observations using this aggregate function. If set, interpolation is not performed"""
 
+    output_series_id : Optional[int]
+    """Use this id when printing or uploading this series"""
+
     def __init__(
         self,
         series_id : int,
@@ -146,6 +149,7 @@ class NodeSerie(Base):
         agg_func : Optional[str] = None,
         id : Optional[int] = None,
         scale : float = 1,
+        output_series_id : Optional[int] = None,
         **kwargs
         ):
         """
@@ -208,6 +212,9 @@ class NodeSerie(Base):
         id : int = None
             unique idenifier. If not set, copies series_id
 
+        output_series_id : Optional[int]
+            Use this id when printing or uploading this series
+
         """
         super().__init__(**kwargs)
         self.series_id = series_id
@@ -235,6 +242,7 @@ class NodeSerie(Base):
         self.required = required
         self.agg_func = agg_func
         self.id = id if id is not None else series_id
+        self.output_series_id = output_series_id
     
     def __repr__(self) -> str:
         lines = [
@@ -648,7 +656,7 @@ class NodeSerie(Base):
         data["timestart"] = [x.isoformat() for x in data["timestart"]]
         data["timeend"] = [x.isoformat() for x in data["timeend"]]
         if include_series_id:
-            data["series_id"] = self.series_id
+            data["series_id"] = self.output_series_id or self.series_id
         main_obs = []
         qualifier_obs = []
         for obs in data.to_dict(orient="records"):
@@ -664,7 +672,7 @@ class NodeSerie(Base):
                             "qualifier": qualifier
                         }
                         if include_series_id:
-                            new_obs["series_id"] = self.series_id
+                            new_obs["series_id"] = self.output_series_id or self.series_id
                         qualifier_obs.append(new_obs)
                     else:
                         logging.debug("Qualifier %s not found in %s" % (qualifier, obs["timestart"]))
@@ -676,10 +684,13 @@ class NodeSerie(Base):
                     "valor":  obs["valor"]
                 }
                 if include_series_id:
-                    obs["series_id"] = self.series_id
+                    obs["series_id"] = self.output_series_id or self.series_id
             if qualifiers is not None:
-                obs["qualifier"] = "main"
-            main_obs.append(obs)
+                if 'main' not in qualifiers:
+                    obs["qualifier"] = "main"
+                    main_obs.append(obs)
+            else:
+                main_obs.append(obs)
         all_obs = [*main_obs, *qualifier_obs]
         if remove_nulls:
             all_obs = [x for x in all_obs if x["valor"] is not None] # remove nulls
@@ -745,13 +756,13 @@ class NodeSerie(Base):
         series_table = self.getSeriesTable()
         if as_prono:
             return {
-                "series_id": self.series_id, 
+                "series_id": self.output_series_id or self.series_id, 
                 "series_table": series_table, 
                 "pronosticos": obs_list
             }
         else:
             return {
-                "series_id": self.series_id, 
+                "series_id": self.output_series_id or self.series_id, 
                 "series_table": series_table, 
                 "observaciones": obs_list
             }

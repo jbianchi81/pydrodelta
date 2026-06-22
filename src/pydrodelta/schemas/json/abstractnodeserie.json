@@ -129,6 +129,10 @@
         "mad"
       ],
       "description": "When regularizing, aggregate observations using agg_func function. If set, interpolation is not performed"
+    },
+    "output_series_id": {
+      "type": "number",
+      "description" : "Use this id when printing or uploading this series"
     }
   },
   "required": [
