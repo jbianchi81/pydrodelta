@@ -25,6 +25,10 @@
       "description": "time of day where first timestep starts",
       "$ref": "dateorinterval.json"
     },
+    "time_offset_end": {
+      "description": "time of day where last timestep ends. Defaults to timeend.hour",
+      "$ref": "dateorinterval.json"
+    },            
     "nodes": {
       "description": "information nodes of the topology",
       "type": "array",
