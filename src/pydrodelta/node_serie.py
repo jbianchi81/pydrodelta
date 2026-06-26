@@ -664,18 +664,34 @@ class NodeSerie(Base):
             obs["tag"] = None if "tag" not in obs else None if isna(obs["tag"]) else obs["tag"]
             if qualifiers is not None:
                 for qualifier in qualifiers:
-                    if qualifier in obs and not isna(obs[qualifier]):
-                        new_obs = {
-                            "timestart": obs["timestart"],
-                            "timeend": obs["timeend"],
-                            "valor":  obs[qualifier],
-                            "qualifier": qualifier
-                        }
-                        if include_series_id:
-                            new_obs["series_id"] = self.output_series_id or self.series_id
-                        qualifier_obs.append(new_obs)
+                    if qualifier in obs:
+                        if not isna(obs[qualifier]):
+                            new_obs = {
+                                "timestart": obs["timestart"],
+                                "timeend": obs["timeend"],
+                                "valor":  obs[qualifier],
+                                "qualifier": qualifier
+                            }
+                            if include_series_id:
+                                new_obs["series_id"] = self.output_series_id or self.series_id
+                            qualifier_obs.append(new_obs)
+                        else:
+                            logging.warning(f"Qualifier {qualifier} is NaN in series_id {self.series_id}, {obs["timestart"]}")
+                    elif qualifier == "main":
+                        if not isna(obs["valor"]):
+                            new_obs = {
+                                "timestart": obs["timestart"],
+                                "timeend": obs["timeend"],
+                                "valor":  obs["valor"],
+                                "qualifier": "main"
+                            }
+                            if include_series_id:
+                                new_obs["series_id"] = self.output_series_id or self.series_id
+                            qualifier_obs.append(new_obs)
+                        else:
+                            logging.warning(f"Main qualifier is NaN in series_id {self.series_id}, {obs["timestart"]}")
                     else:
-                        logging.debug("Qualifier %s not found in %s" % (qualifier, obs["timestart"]))
+                        logging.debug(f"Qualifier {qualifier} not found in series_id {self.series_id}, {obs["timestart"]}")
             obs["valor"] = obs[value_key]
             if strict_properties:
                 obs = {
