@@ -676,7 +676,7 @@ class NodeSerie(Base):
                                 new_obs["series_id"] = self.output_series_id or self.series_id
                             qualifier_obs.append(new_obs)
                         else:
-                            logging.warning(f"Qualifier {qualifier} is NaN in series_id {self.series_id}, {obs["timestart"]}")
+                            logging.warning(f"Qualifier {qualifier} is NaN in series_id {self.series_id}, {obs['timestart']}")
                     elif qualifier == "main":
                         if not isna(obs["valor"]):
                             new_obs = {
@@ -689,9 +689,9 @@ class NodeSerie(Base):
                                 new_obs["series_id"] = self.output_series_id or self.series_id
                             qualifier_obs.append(new_obs)
                         else:
-                            logging.warning(f"Main qualifier is NaN in series_id {self.series_id}, {obs["timestart"]}")
+                            logging.warning(f"Main qualifier is NaN in series_id {self.series_id}, {obs['timestart']}")
                     else:
-                        logging.debug(f"Qualifier {qualifier} not found in series_id {self.series_id}, {obs["timestart"]}")
+                        logging.debug(f"Qualifier {qualifier} not found in series_id {self.series_id}, {obs['timestart']}")
             obs["valor"] = obs[value_key]
             if strict_properties:
                 obs = {
