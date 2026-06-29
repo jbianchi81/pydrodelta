@@ -1,7 +1,7 @@
 from pydrodelta.procedure import Procedure
 from pydrodelta.procedures import UHLinearChannelProcedure
 from unittest import TestCase
-from pandas import DataFrame, read_csv, to_datetime, DatetimeIndex
+from pandas import DataFrame, read_csv, to_datetime, DatetimeIndex, Series
 from pydrodelta.create_procedure import createProcedure, loadProcedure
 from numpy.typing import NDArray
 from numpy import array
@@ -386,6 +386,53 @@ class Test_Procedure(TestCase):
         assert min(p.data.index).isoformat()[0:19] == '2026-05-01T00:00:00'
         assert max(p.data.index).isoformat()[0:19] == '2026-05-01T07:00:00'
 
+    def test_bias_correction(self):
+
+        data = read_csv("tests/data/csv/inputoutput.csv")
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= array([data.input.tolist()]),
+            outputs= array([data.output.tolist()]),
+            timestart="2026-05-01",
+            time_interval="1h",
+            bias_correction=True
+        )
+        assert p.bias_correction is True
+        p.run(load_output_obs=True)
+
+    def test_bias_correction_(self):
+
+        data = read_csv("tests/data/csv/inputoutput.csv")
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= array([data.input.tolist()]),
+            outputs= array([data.output.tolist()]),
+            timestart="2026-05-01",
+            time_interval="1h",
+            bias_correction=False
+        )
+        assert p.bias_correction is False
+        p.run(load_output_obs=True)
+        assert p.output_obs is not None
+        obs = p.output_obs[0]["valor"]
+        assert isinstance(obs, Series)
+        assert p.output is not None
+        sim = p.output[0]["valor"]
+        assert isinstance(sim, Series)
+        meandif_before = obs.mean() - sim.mean()
+        p.run_bias_correction()
+        sim_after = p.output[0]["valor"]
+        assert isinstance(sim_after, Series)
+        meandif_after = obs.mean() - sim_after.mean()
+        assert meandif_after < meandif_before
+        self.assertAlmostEqual(meandif_after, 0, 4)
+
 
 def run_assertions(p):
     assert p.output_obs is not None
@@ -405,3 +452,4 @@ def run_assertions(p):
     assert "input" in p.data.columns
     assert "output" in p.data.columns
     assert "output_obs" in p.data.columns
+

@@ -148,6 +148,11 @@
       ],
       "description": "Calibration parameters"
     },
+    "bias_correction": {
+      "type": "boolean",
+      "description": "Perform bias correction. Adjustment is performed after statistics computation",
+      "default": false
+    },
     "adjust": {
       "type": "boolean",
       "description": "Adjust output series using observations. Adjustment is performed after statistics computation",

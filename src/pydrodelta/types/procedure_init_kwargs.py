@@ -102,3 +102,5 @@ class ProcedureInitKwargs(TypedDict, total=False):
     timestart: Optional[Dateable]
 
     timeend: Optional[Dateable]
+
+    bias_correction: Optional[bool]

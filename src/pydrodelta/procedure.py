@@ -4,7 +4,7 @@ from . import util
 from a5client import createEmptyObsDataFrame
 from .result_statistics import ResultStatistics, ResultStatisticsDict, ResultStatisticsShortDict
 from .procedure_function_results import ProcedureFunctionResults
-from .pydrology import testPlot
+from .pydrology import testPlot, SimonovKhristoforov
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from .calibration.linear_regression_calibration import LinearRegressionCalibration
 from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, cast
@@ -120,6 +120,9 @@ class Procedure(Base):
             """Configuration for calibration"""
         else:
             self._calibration = None
+
+    bias_correction = BoolDescriptor()
+    """Perform bias correction using observations. Adjustment is performed after statistics computation"""
 
     adjust = BoolDescriptor()
     """Adjust output series using observations. Adjustment is performed after statistics computation"""
@@ -395,6 +398,7 @@ class Procedure(Base):
         parameters_for_calibration : Optional[List[ModelParameter]] = None,
         timestart : Optional[Dateable] = None,
         timeend : Optional[Dateable] = None,
+        bias_correction : Optional[bool] = False,
         **kwargs
         ):
         """
@@ -452,6 +456,8 @@ class Procedure(Base):
 
         parameters_for_calibration : Optional[List[ModelParameter]], default=None
             Parameter definitions for calibration.
+
+        bias_correction : Optional[bool]
 
         """
         if "type" in kwargs:
@@ -551,6 +557,7 @@ class Procedure(Base):
         self.adjust_method = adjust_method
         self.save_dict = self.resolve_path(save_dict)
         self.drop_warmup = drop_warmup
+        self.bias_correction = bias_correction
     
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
@@ -1038,7 +1045,8 @@ class Procedure(Base):
         tail_steps : Optional[int] = None,
         error_band : Optional[bool] = None,
         save_dict : Optional[Union[str,Path]] = None,
-        drop_warmup : Optional[bool] = None
+        drop_warmup : Optional[bool] = None,
+        bias_correction : Optional[bool] = None
         ) -> Union[List[DataFrame], DataFrame, None]:
         """
         Run self.exec()
@@ -1070,6 +1078,8 @@ class Procedure(Base):
             Save results as dict to this file
         drop_warmup : bool = None
             Eliminate warmup steps from adjusted output 
+        bias_correction : bool = None
+            Perform bias correction
             
         Returns
         -------
@@ -1084,6 +1094,7 @@ class Procedure(Base):
         tail_steps = tail_steps if tail_steps is not None else self.tail_steps
         error_band = util.coalesce(error_band,self.error_band,True)
         drop_warmup = drop_warmup if drop_warmup is not None else self.drop_warmup
+        bias_correction = bias_correction if bias_correction is not None else self.bias_correction
         
         # loads input inplace
         if load_input:
@@ -1138,6 +1149,10 @@ class Procedure(Base):
         else:
             if inplace:
                 self.output = output
+
+        # bias correction
+        if bias_correction:
+            self.run_bias_correction()
         
         # adjust
         if adjust:
@@ -1622,3 +1637,18 @@ class Procedure(Base):
         else:
             raise ValueError("Bad number of dimensions of arr : NDArray")
         return boundaries
+    
+    def run_bias_correction(
+            self
+    ) -> None:
+        if self.output_obs is None:
+            raise Exception("Can't adjust: missing observed outputs at procedure %s" % str(self.id))
+        if self.output is None:
+            raise Exception("Can't adjust: missing simulated outputs at procedure %s" % str(self.id))
+        for i, o in enumerate(self.output):
+            o = cast(DataFrame, o)
+            if len(self.output_obs) < i + 1:
+                raise Exception("Can't adjust: missing observed output at index %i of procedure %s" % (i, str(self.id)))
+            oo = self.output_obs[i]
+            adjusted = SimonovKhristoforov(array(o["valor"]), array(oo["valor"]))
+            o["valor"] = adjusted
