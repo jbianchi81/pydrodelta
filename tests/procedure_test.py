@@ -433,6 +433,71 @@ class Test_Procedure(TestCase):
         assert meandif_after < meandif_before
         self.assertAlmostEqual(meandif_after, 0, 4)
 
+    def test_bias_correction_warmup(self): 
+
+        data = read_csv("tests/data/csv/inputoutput.csv")
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= array([data.input.tolist()]),
+            outputs= array([data.output.tolist()]),
+            timestart="2026-05-01",
+            time_interval="1h",
+            bias_correction=False,
+            warmup_steps=2
+        )
+        assert p.bias_correction is False
+        p.run(load_output_obs=True)
+        assert p.output_obs is not None
+        obs = p.output_obs[0]["valor"]
+        assert isinstance(obs, Series)
+        assert p.output is not None
+        sim = p.output[0]["valor"]
+        assert isinstance(sim, Series)
+        meandif_before = obs.mean() - sim.mean()
+        p.run_bias_correction()
+        sim_after = p.output[0]["valor"]
+        assert len(sim_after) == 8
+        assert isinstance(sim_after, Series)
+        meandif_after = obs.mean() - sim_after.mean()
+        assert meandif_after < meandif_before
+        assert meandif_after > 0.001
+
+    def test_bias_correction_tail(self): 
+
+        data = read_csv("tests/data/csv/inputoutput.csv")
+        p = UHLinearChannelProcedure(
+            id="uh_test",
+            parameters={
+                    "u": [0.13,0.28,0.18,0.16,0.12,0.07,0.05,0.01]
+            },
+            boundaries= array([data.input.tolist()]),
+            outputs= array([data.output.tolist()]),
+            timestart="2026-05-01",
+            time_interval="1h",
+            bias_correction=False,
+            tail_steps=6
+        )
+        assert p.bias_correction is False
+        p.run(load_output_obs=True)
+        assert p.output_obs is not None
+        obs = p.output_obs[0]["valor"]
+        assert isinstance(obs, Series)
+        assert p.output is not None
+        sim = p.output[0]["valor"]
+        assert isinstance(sim, Series)
+        meandif_before = obs.mean() - sim.mean()
+        p.run_bias_correction()
+        sim_after = p.output[0]["valor"]
+        assert len(sim_after) == 8
+        assert isinstance(sim_after, Series)
+        meandif_after = obs.mean() - sim_after.mean()
+        assert meandif_after < meandif_before
+        assert meandif_after > 0.001
+
+
 
 def run_assertions(p):
     assert p.output_obs is not None

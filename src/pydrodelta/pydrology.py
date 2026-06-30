@@ -362,7 +362,12 @@ def curveNumberRunoff(NetRainfall : float,MaxStorage : float,Storage : float) ->
     return NetRainfall**2/(MaxStorage-Storage+NetRainfall)
 
 
-def SimonovKhristoforov(sim : NDArray[np.float64],obs : NDArray[np.float64]) -> NDArray[np.float64]: 
+def SimonovKhristoforov(
+        sim : NDArray[np.float64],
+        obs : NDArray[np.float64],
+        warmup : Optional[int]=None,
+        tail : Optional[int]=None
+        ) -> NDArray[np.float64]: 
     """   
     Realiza correción de sesgo por simple updating (método propuesto por el Servicio Ruso)
     Args:
@@ -373,14 +378,24 @@ def SimonovKhristoforov(sim : NDArray[np.float64],obs : NDArray[np.float64]) -> 
         obs: NDArray[np.float64]
             Serie observada
 
+        warmup : Optional[int]
+            Descarta los primeros n valores para el cálculo de los coeficientes
+        
+        tail : Optional[int]
+            Utiliza sólo los últimos n valores para el cálculo de los coeficientes
+
         Returns: NDArray[np.float64]
             Devuelve serie simulada con correción de sesgo
     """
-    uObs=np.mean(obs)
-    uSim=np.mean(sim)
-    df=np.array([[0]*2]*len(sim),dtype='float')
-    df[:,0]=sim
-    df[:,1]=obs
+    obs_ = obs[warmup:].copy() if warmup is not None else obs
+    obs_ = obs_[-tail:] if tail is not None else obs_
+    sim_ = sim[warmup:].copy() if warmup is not None else sim
+    sim_ = sim_[-tail:] if tail is not None else sim_
+    uObs=np.mean(obs_)
+    uSim=np.mean(sim_)
+    df=np.array([[0]*2]*len(sim_),dtype='float')
+    df[:,0]=sim_
+    df[:,1]=obs_
     df=pd.DataFrame(data=df)
     r=df.corr()[0][1]
     sSim=np.std(df[0])

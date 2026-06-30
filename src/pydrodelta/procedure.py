@@ -1639,16 +1639,28 @@ class Procedure(Base):
         return boundaries
     
     def run_bias_correction(
-            self
+            self,
+            warmup : Optional[int]=None,
+            tail : Optional[int]=None
     ) -> None:
+        warmup = warmup if warmup is not None else self.warmup_steps
+        tail = tail if tail is not None else self.tail_steps
         if self.output_obs is None:
             raise Exception("Can't adjust: missing observed outputs at procedure %s" % str(self.id))
         if self.output is None:
             raise Exception("Can't adjust: missing simulated outputs at procedure %s" % str(self.id))
         for i, o in enumerate(self.output):
             o = cast(DataFrame, o)
+            # o = cast(DataFrame, o).iloc[warmup:].copy() if warmup is not None else cast(DataFrame, o)
+            # o = cast(DataFrame,o.tail(tail)) if tail is not None else cast(DataFrame,o)
             if len(self.output_obs) < i + 1:
                 raise Exception("Can't adjust: missing observed output at index %i of procedure %s" % (i, str(self.id)))
             oo = self.output_obs[i]
-            adjusted = SimonovKhristoforov(array(o["valor"]), array(oo["valor"]))
+            # oo = oo.iloc[warmup:].copy() if warmup is not None else oo
+            # oo = cast(DataFrame,oo.tail(tail)) if tail is not None else cast(DataFrame,oo)
+            adjusted = SimonovKhristoforov(
+                array(o["valor"]), 
+                array(oo["valor"]),
+                warmup=warmup,
+                tail=tail)
             o["valor"] = adjusted
