@@ -1643,6 +1643,16 @@ class Procedure(Base):
             warmup : Optional[int]=None,
             tail : Optional[int]=None
     ) -> None:
+        """
+        Realiza corrección de sesgo por simple updating (método propuesto por el Servicio Ruso)
+        Args:
+        
+        warmup : Optional[int]
+            Descarta los primeros n valores para el cálculo de los coeficientes
+        
+        tail : Optional[int]
+            Utiliza sólo los últimos n valores para el cálculo de los coeficientes
+        """
         warmup = warmup if warmup is not None else self.warmup_steps
         tail = tail if tail is not None else self.tail_steps
         if self.output_obs is None:
@@ -1655,12 +1665,13 @@ class Procedure(Base):
             # o = cast(DataFrame,o.tail(tail)) if tail is not None else cast(DataFrame,o)
             if len(self.output_obs) < i + 1:
                 raise Exception("Can't adjust: missing observed output at index %i of procedure %s" % (i, str(self.id)))
-            oo = self.output_obs[i]
+            joined = cast(DataFrame, self.output_obs[i]).rename(columns={"valor":"obs"}).join(o.rename(columns={"valor":"sim"}))
             # oo = oo.iloc[warmup:].copy() if warmup is not None else oo
             # oo = cast(DataFrame,oo.tail(tail)) if tail is not None else cast(DataFrame,oo)
-            adjusted = SimonovKhristoforov(
-                array(o["valor"]), 
-                array(oo["valor"]),
-                warmup=warmup,
-                tail=tail)
-            o["valor"] = adjusted
+            joined = joined[warmup:] if warmup is not None else joined
+            joined = joined[-tail:] if tail is not None else joined
+
+            adjusted, coefficients = SimonovKhristoforov(
+                array(joined["sim"]), 
+                array(joined["obs"]))
+            o["valor"] = coefficients["intercept"] + o["valor"] * coefficients["coefficient"]

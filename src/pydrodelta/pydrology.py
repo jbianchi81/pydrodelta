@@ -1,7 +1,7 @@
 #/usr/bin/python3
 #Librería de métodos para modelación hidrológica SSIyAH-INA, 2022 (modelación dinámica)
 import math
-from typing import Optional, Union, List, Tuple, cast, Any, overload, Literal
+from typing import Optional, Union, List, Tuple, cast, Any, overload, Literal, TypedDict
 from sys import maxsize
 from zlib import MAX_WBITS
 from .pydrology_procedure_interface import PydrologyProcedureInterface
@@ -361,15 +361,17 @@ def curveNumberRunoff(NetRainfall : float,MaxStorage : float,Storage : float) ->
     """
     return NetRainfall**2/(MaxStorage-Storage+NetRainfall)
 
+class LinearCoefficientsDict(TypedDict):
+    intercept : float
+    coefficient : float
 
 def SimonovKhristoforov(
         sim : NDArray[np.float64],
         obs : NDArray[np.float64],
-        warmup : Optional[int]=None,
-        tail : Optional[int]=None
-        ) -> NDArray[np.float64]: 
+        reject_if_nans : bool=False
+        ) -> Tuple[NDArray[np.float64], LinearCoefficientsDict]: 
     """   
-    Realiza correción de sesgo por simple updating (método propuesto por el Servicio Ruso)
+    Realiza corrección de sesgo por simple updating (método propuesto por el Servicio Ruso)
     Args:
 
         sim: NDArray[np.float64]
@@ -378,30 +380,36 @@ def SimonovKhristoforov(
         obs: NDArray[np.float64]
             Serie observada
 
-        warmup : Optional[int]
-            Descarta los primeros n valores para el cálculo de los coeficientes
-        
-        tail : Optional[int]
-            Utiliza sólo los últimos n valores para el cálculo de los coeficientes
-
-        Returns: NDArray[np.float64]
-            Devuelve serie simulada con correción de sesgo
+        Returns: Tuple[NDArray[np.float64], LinearCoefficientsDict]
+            Devuelve serie simulada con correción de sesgo y diccionario con los coeficientes
     """
-    obs_ = obs[warmup:].copy() if warmup is not None else obs
-    obs_ = obs_[-tail:] if tail is not None else obs_
-    sim_ = sim[warmup:].copy() if warmup is not None else sim
-    sim_ = sim_[-tail:] if tail is not None else sim_
-    uObs=np.mean(obs_)
-    uSim=np.mean(sim_)
-    df=np.array([[0]*2]*len(sim_),dtype='float')
-    df[:,0]=sim_
-    df[:,1]=obs_
-    df=pd.DataFrame(data=df)
-    r=df.corr()[0][1]
-    sSim=np.std(df[0])
-    sObs=np.std(df[1])
-    anomaly=sim-uSim
-    return(uObs+r*sObs/sSim*anomaly)
+    if sim.shape != obs.shape:
+        raise ValueError("sim and obs must have the same shape")
+    
+    mask = np.isfinite(sim) & np.isfinite(obs)
+    if reject_if_nans and not mask.all():
+        raise ValueError("Data contain NaNs or infinites")
+    sim = sim[mask]
+    obs = obs[mask]
+
+    uObs=np.mean(obs)
+    uSim=np.mean(sim)
+    r = np.corrcoef(sim, obs)[0, 1]
+    sSim = np.std(sim, ddof=1)
+    sObs = np.std(obs, ddof=1)
+    
+    if sSim == 0:
+        raise ValueError("sim has zero variance")
+
+    intercept = uObs  - r * sObs/sSim * uSim
+    coefficient = r*sObs/sSim
+    return (
+        intercept + coefficient * sim, 
+        {
+            "intercept": float(intercept), 
+            "coefficient": float(coefficient)
+        }
+    )
 
 #1. Proceso P-Q: Componentes de Función Producción de Escorrentía 
 
