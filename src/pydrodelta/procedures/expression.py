@@ -6,6 +6,7 @@ from pandas import DataFrame
 import math
 from ..types.procedure_full_init_kwargs import ProcedureFullInitKwargs
 from typing_extensions import Unpack
+import logging
 
 class ExpressionProcedure(Procedure):
     """Procedure function that evaluates an arbitrary expression where 'value' is replaced with the values of input"""
@@ -87,11 +88,19 @@ class ExpressionProcedure(Procedure):
         for in_df in input:
             out_df = in_df.copy()
             if hasattr(out_df, "map"):
-                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).map(lambda value: eval(self.expression))
+                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).map(self.evaluate)
             else:
-                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).applymap(lambda value: eval(self.expression))
+                out_df[out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).columns] = out_df.select_dtypes(include=["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float16", "float32", "float64", "complex64", "complex128", "Int64"]).applymap(self.evaluate)
             output.append(out_df)
         return (
             output, 
             ProcedureFunctionResults()
         )
+    
+    def evaluate(self, value : float) -> float:
+        try:
+            return eval(self.expression)
+        except Exception as e:
+            logging.error(f"Error evaluating expression for value={value}")
+            logging.error(f"Expression: {self.expression}")
+            raise ValueError(e)

@@ -577,7 +577,8 @@ class Node:
 
     def pivotSimData(
         self,
-        variables : Optional[List[int]] = None
+        variables : Optional[List[int]] = None,
+        qualifiers : Optional[List[str]] = None
         ) -> Optional[DataFrame]:
         """Join selected variables' sim data into a single pivoted DataFrame
         
@@ -593,7 +594,7 @@ class Node:
             if variables is not None and var_id not in variables:
                 # skip variables
                 continue
-            var_data = variable.pivotSimData()
+            var_data = variable.pivotSimData(qualifiers)
             if var_data is not None:
                 if data is None:
                     data = var_data

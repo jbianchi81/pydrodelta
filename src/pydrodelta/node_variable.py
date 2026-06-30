@@ -857,7 +857,8 @@ class NodeVariable:
         return data
 
     def pivotSimData(
-        self
+        self,
+        qualifiers : Optional[List[str]]=None
         ) -> Optional[pandas.DataFrame]:
         """Joins all series in series_sim into a single pivoted DataFrame
                    
@@ -867,12 +868,18 @@ class NodeVariable:
         if self.series_sim is None:
             return None
         data = None
-        for serie in self.series_sim:
+        for i, serie in enumerate(self.series_sim):
             if serie.data is not None and len(serie.data):
                 if data is None:
                     data = serie.data[["valor"]].rename(columns={"valor": serie.series_id})
                 else:
                     data = data.join(serie.data[["valor"]].rename(columns={"valor": serie.series_id}),how='outer',sort=True) # rsuffix="_%s" % serie.series_id
+                if qualifiers is not None:
+                    for qualifier in qualifiers:
+                        if qualifier not in serie.data.columns:
+                            logging.warning(f"Column {qualifier} not found in node {self.node_id} var {self.id} series_sim {serie.series_id}. Skipping")
+                            continue
+                        data = data.join(serie.data[[qualifier]].rename(columns={qualifier: f"{serie.series_id}_{qualifier}"}),how='outer',sort=True)
         return data
     
     def seriesToDataFrame(

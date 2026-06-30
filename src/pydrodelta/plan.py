@@ -374,7 +374,7 @@ class Plan(Base):
                 del kwargs["var_id"]
                 self.topology.saveData(**kwargs)
         if self.output_sim_csv:
-            sim_data = self.topology.pivotSimData()
+            sim_data = self.topology.pivotSimData(qualifiers=self.qualifiers)
             if sim_data is None:
                 logging.warning("sim data not found. Not writing.")
             else:
@@ -383,7 +383,7 @@ class Plan(Base):
                     sim_data.to_csv(outfile)
         if self.save_variable_sim is not None:
             for v in self.save_variable_sim:
-                sim_data = self.topology.pivotSimData(variables=[v["var_id"]])
+                sim_data = self.topology.pivotSimData(variables=[v["var_id"]],qualifiers=self.qualifiers)
                 sim_data = sim_data if sim_data is not None else createEmptyObsDataFrame()
                 util.createParent(v["output"])
                 with open(v["output"],"w",encoding='utf-8') as outfile:

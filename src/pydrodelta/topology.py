@@ -1153,7 +1153,8 @@ class Topology(Base):
     def pivotSimData(
         self,
         nodes : Optional[List[int]] = None,
-        variables : Optional[List[int]] = None
+        variables : Optional[List[int]] = None,
+        qualifiers : Optional[List[str]] = None
         ) -> Optional[DataFrame]:
         """Pivot data of all series_sim of selected variables of selected nodes into columns of a single DataFrame
 
@@ -1172,7 +1173,7 @@ class Topology(Base):
             if nodes is not None and node.id not in nodes:
                 # skip node
                 continue
-            node_data = node.pivotSimData(variables=variables)
+            node_data = node.pivotSimData(variables=variables,qualifiers=qualifiers)
             if node_data is not None:
                 if data is None:
                     data = node_data
