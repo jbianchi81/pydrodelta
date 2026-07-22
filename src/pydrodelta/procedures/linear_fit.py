@@ -157,6 +157,9 @@ class LinearFitProcedure(Procedure):
         self.linear_model = stats
         output_data["inferior"] = output_serie - self.linear_model["quant_Err"][0.950]
         output_data["superior"] = output_serie + self.linear_model["quant_Err"][0.950]
+        # drop covariables
+        if len(covariables) > 1:
+            output_data = output_data.drop(columns=covariables[1:])
         return (
             [output_data],
             ProcedureFunctionResults(
