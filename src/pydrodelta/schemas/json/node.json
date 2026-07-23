@@ -103,6 +103,38 @@
           "description": "api authorization token"
         }
       }
+    },    
+    "station_pars": {
+      "description": "Station parameters. For nodes of type = 'station'. If id is set but geom is none, station metadata is retrieved from input api and missing metadata is completed with retrieved values",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "station identifier"
+        },
+        "geom":  {
+            "type": "object",
+            "description": "point geometry",
+            "properties": {
+              "coordinates": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minLength": 2
+              }
+            },
+            "required": ["coordinates"]
+        },
+        "nombre": {
+            "type": "string",
+            "description": "station name"
+        },
+        "tabla": {
+            "type": "string",
+            "description": "network/source identifier"
+        }
+      }
     }
   },
   "required": [

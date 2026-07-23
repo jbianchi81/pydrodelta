@@ -20,9 +20,11 @@ import logging
 from .types.observed_node_variable_dict import ObservedNodeVariableDict
 from .types.derived_node_variable_dict import DerivedNodeVariableDict
 from .types.node_variable_dict import NodeVariableDict
+from .types.station_pars_dict import StationParsDict
 from a5client.util_types import ApiConfigDict, SeriesDict, TVP, Dateable, Intervaleable, TVPserializable, VariableDict, SeriesSerializableDict
 import traceback
 from pathlib import Path
+from .station import Station
 
 if TYPE_CHECKING:
     from .topology import Topology
@@ -123,6 +125,8 @@ class Node:
     _crud : Crud
     """Input api client"""
 
+    station : Optional[Station]
+
     @property
     def base_path(self) -> Optional[Path]:
         """Base path. Used to resolve input/output relative paths"""
@@ -149,7 +153,8 @@ class Node:
             description : Optional[str] = None,
             basin_pars : Optional[dict] = None,
             api_config : Optional[ApiConfigDict] = None,
-            base_path : Union[str,Path,None] = None
+            base_path : Union[str,Path,None] = None,
+            station_pars : Optional[StationParsDict] = None
         ):
         """Nodes represent stations and basins. These nodes are identified with a node_id and must contain one or many variables each, which represent the hydrologic observed/simulated properties at that node (such as discharge, precipitation, etc.). They are identified with a variable_id and may contain one or many ordered series, which contain the timestamped values. If series are missing from a variable, it is assumed that observations are not available for said variable at said node. Additionally, series_prono may be defined to represent timeseries of said variable at said node that are originated by an external modelling procedure. If series are available, said series_prono may be automatically fitted to the observed data by means of a linear regression. Such a procedure may be useful to extend the temporal extent of the variable into the forecast horizon so as to cover the full time domain of the plan. Finally, one or many series_sim may be added and it is where simulated data (as a result of a procedure) will be stored. All series have a series_id identifier which is used to read/write data from data source whether it be an alerta5DBIO instance or a csv file.
         
@@ -205,6 +210,9 @@ class Node:
 
         base_path : Optional[Path]
         Base path. Used to resolve input/output relative paths
+
+        station_pars: StationParsDict = None
+            Station parameters (geom : Geometry, nombre? : str, tabla? : str). For nodes of type= 'station'
         """
         # if "id" not in params:
         #     raise ValueError("id of node must be defined")
@@ -233,19 +241,41 @@ class Node:
         self.variables = variables
         self.node_type = node_type
         self.description = description
-        self.basin_pars = basin_pars if self.node_type == 'basin' else None
-        if self.basin_pars is not None and "area_id" in self.basin_pars and self.basin_pars["area_id"] is not None:
-            logging.debug("Retrieving area metadata, id: %i " % self.basin_pars["area_id"])
-            area = self._crud.readArea(
-                area_id = self.basin_pars["area_id"],
-                no_geom = True)
-            for key in ["area","ae","rho","wp"]:
-                if key not in self.basin_pars:
-                    if key not in area:
-                        logging.error("key '%s' missing in area retrieval api response" % key)
-                        continue
-                    self.basin_pars[key] = area[key]     
-    
+        if self.node_type == 'basin':
+            self.basin_pars = basin_pars
+            if self.basin_pars is not None and "area_id" in self.basin_pars and self.basin_pars["area_id"] is not None:
+                logging.debug("Retrieving area metadata, id: %i " % self.basin_pars["area_id"])
+                area = self._crud.readArea(
+                    area_id = self.basin_pars["area_id"],
+                    no_geom = True)
+                for key in ["area","ae","rho","wp"]:
+                    if key not in self.basin_pars:
+                        if key not in area:
+                            logging.error("key '%s' missing in area retrieval api response" % key)
+                            continue
+                        self.basin_pars[key] = area[key]     
+            self.station = None
+        else:
+            self.basin_pars = None
+            self.station = Station(**station_pars) if station_pars is not None else None
+            if self.station is None:
+                self.station = Station(id=self.id)
+
+            if self.station.geom is None:
+                logging.debug("Retrieving station metadata, id: %i " % self.station.id)
+                estacion = self._crud.readEstaciones(
+                    id = self.station.id,
+                )
+                if not len(estacion):
+                    logging.error("No metadata found for station estacion_id=%d" % self.station.id)
+                else:
+                    estacion = estacion[0]
+                    self.station = Station(
+                        id=estacion["id"],
+                        geom=estacion["geom"],
+                        nombre=estacion["nombre"],
+                        tabla=estacion["tabla"]
+                    )
     def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
     
