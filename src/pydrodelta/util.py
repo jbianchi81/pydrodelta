@@ -21,7 +21,7 @@ import os.path
 from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
 from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList, TVPAllowNone
 from .types.linear_combination_dict import LinearCombinationDict
-from a5client import observacionesListToDataFrame
+from a5client import observacionesListToDataFrame, createEmptyObsDataFrame
 
 import random
 DataFrame = pandas.DataFrame
@@ -1546,3 +1546,19 @@ def get_df_repr(data : Optional[Union[pd.DataFrame, List[pd.DataFrame]]]) -> str
 
 def get_df_or_list_repr(data : Optional[Union[pd.DataFrame, List[float]]]) -> str:
     return "DataFrame(count: %i, na_count: %i, min_date: %s, max_date: %s)" % (len(data), len(data) - len(data.dropna()), data.index.dropna().min(), data.index.dropna().max()) if isinstance(data, DataFrame) else "list(count: %i)" % (len(data)) if isinstance(data, (np.ndarray, list)) else "None"
+
+def pivot_data(input : List[pandas.DataFrame], output_columns : List[str], input_column : str="valor") -> pandas.DataFrame:
+    data : pandas.DataFrame = createEmptyObsDataFrame()
+    del data["valor"]
+    for index, output_column in enumerate(output_columns):
+        if len(input) <= index or input[index] is None:
+            raise ValueError("Missing input for index %d, column %s" % (index, output_column))
+        data = data.join(
+            input[index][[input_column]][input[index][input_column].notnull()].rename(
+                columns={
+                    input_column: output_column
+                }
+            ),
+            how='outer',
+            sort=True)
+    return data

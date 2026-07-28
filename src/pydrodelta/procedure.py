@@ -33,7 +33,7 @@ from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .types.any_calibration_dict import AnyCalibrationDict
 from .function_boundary import FunctionBoundary
-from .util import getInputListFromDataFrame, tvpListToDataFrame
+from .util import getInputListFromDataFrame, tvpListToDataFrame, pivot_data
 from .model_parameter import ModelParameter
 from a5client.util_types import TVPList, Dateable, Intervaleable
 from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
@@ -1675,3 +1675,11 @@ class Procedure(Base):
                 array(joined["sim"]), 
                 array(joined["obs"]))
             o["valor"] = coefficients["intercept"] + o["valor"] * coefficients["coefficient"]
+
+    def pivot_input(self, data : List[DataFrame]) -> DataFrame:
+        return pivot_data(data, [b.name for b in self.boundaries], "valor")
+
+    def pivot_output(self, data : List[DataFrame]) -> DataFrame:
+        return pivot_data(data, [o.name for o in self.outputs], "valor")
+
+
