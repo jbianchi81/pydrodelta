@@ -23,7 +23,8 @@ dependencies = [
     "colour",
     "statsmodels",
     "click",
-    "typing-extensions"
+    "typing-extensions",
+    "pyproj"
 ]
 
 [project.scripts]

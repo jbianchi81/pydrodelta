@@ -250,6 +250,14 @@
                 }
               },
               "$ref": "persistenceprocedure.json"
+            },
+            {
+              "properties": {
+                "type": {
+                  "enum": ["SpatiallyVaryingCoefficientProcedure"]
+                }
+              },
+              "$ref": "spatiallyvaryingcoefficientprocedure.json"
             }
           ]
         }

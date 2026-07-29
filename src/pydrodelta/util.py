@@ -663,12 +663,12 @@ def adjustSeries(
     truth_warm = truth_df.iloc[warmup:].copy() if warmup is not None else truth_df
     truth_warm = truth_warm.tail(tail) if tail is not None else truth_warm
     data = truth_warm.join(sim_df[covariables],how="outer" if method == "arima" else "left",rsuffix="_sim")
-    covariables_sim = ["%s_sim" % x if x == "valor" else x for x in covariables]
+    covariables_sim = ["%s_sim" % x if x == covariables[0] else x for x in covariables]
     if sim_range is not None:
         data = data.loc[(data[covariables_sim[0]] >= sim_range[0]) & (data[covariables_sim[0]] <= sim_range[1])].copy()
     if method == "lfit":
         try:
-            lr, quant_Err, r2, coef, intercept, train, mse, rse =  ModelRL(data,"valor",covariables_sim)
+            lr, quant_Err, r2, coef, intercept, train, mse, rse =  ModelRL(data,covariables[0],covariables_sim)
         except ValueError as e:
             raise ValueError("Linear regression error: %s" % str(e))
         # logging.info(quant_Err)
@@ -676,9 +676,9 @@ def adjustSeries(
         aux_df = sim_df.copy().dropna()
         predict = lr.predict(aux_df[covariables].values)
         aux_df["adj"] = predict
-        a_cols = [c for c in ["valor","tag","adj"] if c in aux_df]
-        t_cols = [c for c in ["valor","tag"] if c in truth_warm]
-        aux_df = aux_df[a_cols].rename(columns={"valor":"valor_sim","tag":"tag_sim"}).join(truth_warm[t_cols].rename(columns={"valor":"valor_obs","tag":"tag_obs"}),how='outer')
+        a_cols = [c for c in [covariables[0],"tag","adj"] if c in aux_df]
+        t_cols = [c for c in [covariables[0],"tag"] if c in truth_warm]
+        aux_df = aux_df[a_cols].rename(columns={covariables[0]:"valor_sim","tag":"tag_sim"}).join(truth_warm[t_cols].rename(columns={covariables[0]:"valor_obs","tag":"tag_obs"}),how='outer')
         figtext = "r2: %.04f, coef: %s, intercept: %.04f" % (r2,",".join(["%.04f" % x for x in coef]), intercept)
         plot_columns = [c for c in ["valor_obs","valor_sim","adj"] if c in aux_df.columns]
         fitted_model = {
@@ -701,7 +701,7 @@ def adjustSeries(
             arima_model["ma.L1"],
             arima_model["sigma2"]
         )
-        plot_columns = [c for c in ["valor","valor_sim","adj","lower","upper"] if c in aux_df.columns]
+        plot_columns = [c for c in [covariables[0],"valor_sim","adj","lower","upper"] if c in aux_df.columns]
         fitted_model = arima_model
         result_columns = ["adj", "lower", "upper"]
     else:

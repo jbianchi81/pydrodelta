@@ -318,6 +318,18 @@ class Procedure(Base):
         """Read-only property. Specifies if the run method of the procedure function requires a pivoted input"""
         return self._pivot_input
 
+    _pivot_output_obs : bool = False
+    """Set to True if the run method requires a pivoted output_obs"""
+
+    @property
+    def pivot_output_obs(self) -> bool:
+        """Read-only property. Specifies if the run method of the procedure function requires a pivoted output_obs"""
+        return self._pivot_output_obs
+
+    _read_original_data : bool = False
+
+    _use_boundary_name : bool = False
+
     _no_sim : bool = False
     """Set to True if procedure function produces only forecast (no simulation)"""
 
@@ -798,30 +810,40 @@ class Procedure(Base):
     def loadOutputObs(
         self,
         inplace : Literal[False],
-        pivot : Literal[True]
+        pivot : Literal[True],
+        original_data : bool = False,
+        use_boundary_name : bool = False
     ) -> DataFrame: ...
     @overload
     def loadOutputObs(
         self,
         inplace : Literal[True],
-        pivot : Literal[False] = False
+        pivot : Literal[False] = False,
+        original_data : bool = False,
+        use_boundary_name : bool = False
     ) -> None: ...
     @overload
     def loadOutputObs(
         self,
         inplace : Literal[False] = False,
-        pivot : Literal[False] = False
+        pivot : Literal[False] = False,
+        original_data : bool = False,
+        use_boundary_name : bool = False
     ) -> List[DataFrame]: ...
     @overload
     def loadOutputObs(
         self,
         inplace : Literal[True],
-        pivot : Literal[True]
+        pivot : Literal[True],
+        original_data : bool = False,
+        use_boundary_name : bool = False
     ) -> None: ...
     def loadOutputObs(
         self,
         inplace : bool = True,
-        pivot : bool = False
+        pivot : bool = False,
+        original_data : bool = False,
+        use_boundary_name : bool = False
         ) -> Union[DataFrame,List[DataFrame],None]:
         """
         Load observed values of output variables defined in self.outputs. Used in error calculation.
@@ -834,18 +856,30 @@ class Procedure(Base):
         
         pivot: bool
             If true, joins all variables into a single DataFrame
+
+        original_data: bool
+            If true, reads original data (not updated by procedures)
+        
+        use_boundary_name : bool = False
+            Together with pivot=True, use boundary names as column names instead of valor_%i % index
+
         """
         if pivot:
             data : DataFrame = createEmptyObsDataFrame()
             for i, output in enumerate(self.outputs):
-                if output.data is not None:
-                    colname = "valor_%i" % (i + 1) 
+                colname = output.name if use_boundary_name else "valor_%i" % (i + 1) 
+                if original_data:
+                    if output._variable is None:
+                        raise Exception("Variable is not set")
+                    if output._variable.original_data is None:
+                        raise RuntimeError("original data not set")
+                    data = data.join(output._variable.original_data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
+                elif output.data is not None:
                     data = data.join(output.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                 else:
                     if output._variable is None:
                         raise Exception("Variable is not set")
                     if output._variable.data is not None and len(output._variable.data):
-                        colname = "valor_%i" % (i + 1) 
                         data = data.join(output._variable.data[["valor"]].rename(columns={"valor": colname}).dropna(),how='outer',sort=True)
                     else:
                         logging.warning("loadOutputObs: Procedure: %s, output: %i, with no data. Skipped." % (self.id,i))
@@ -859,7 +893,13 @@ class Procedure(Base):
         else:
             data_ : List[DataFrame] = []
             for output in self.outputs:
-                if output.data is not None:
+                if original_data:
+                    if output._variable is None:
+                        raise RuntimeError("Variable is not set")
+                    if output._variable.original_data is None:
+                        raise RuntimeError("original data not set")
+                    data_.append(output._variable.original_data[["valor"]].dropna())
+                elif output.data is not None:
                     data_.append(output.data[["valor"]].dropna())
                 else:
                     if output._variable is None:
@@ -899,12 +939,12 @@ class Procedure(Base):
         -------
         (calibration_results, validation_results) : 2-length tuple of lists of ResultStatistics. The length of the lists equals that of obs 
         """
-        obs = obs if obs is not None else [self.output_obs] if isinstance(self.output_obs, DataFrame) else self.output_obs
+        obs = obs if obs is not None else [self.output_obs] if isinstance(self.output_obs, DataFrame) and "valor" in self.output_obs.columns else self.output_obs
         if obs is None:
             raise Exception("obs (self.output_obs) is not set") 
         sim = sim if sim is not None else self.output
         if sim is None:
-            raise Exception("Sim (self.output) is not set") 
+            raise Exception("Sim (self.output) is not set")
         tail = tail if tail is not None else self.tail_steps
         warmup = warmup if warmup is not None else self.warmup_steps
         result = list()
@@ -916,9 +956,13 @@ class Procedure(Base):
                 raise Exception("List of sim outputs is shorter than .outputs (%i < %i" % (len(sim), len(self.outputs)))
             if len(obs) < i + 1:
                 raise Exception("List of obs outputs is smaller than .outputs (%i < %i" % (len(obs), len(self.outputs)))
-            df_obs = obs[i].iloc[warmup:].copy() if warmup is not None else obs[i]
+            df_obs = obs[i] if isinstance(obs, list) else obs if "valor" in obs.columns else obs[[o.name]].rename(columns={o.name: "valor"})
+            df_obs = df_obs.iloc[warmup:].copy() if warmup is not None else df_obs
             df_obs = cast(DataFrame,df_obs.tail(tail)) if tail is not None else cast(DataFrame,df_obs)
-            df_sim = sim[i].iloc[warmup:].copy() if warmup is not None else sim[i]
+            df_sim = sim[i] if isinstance(sim, list) else sim if "valor" in sim.columns else sim[[o.name]].rename(columns={o.name: "valor"}) if o.name in sim.columns else None
+            if df_sim is None:
+                raise RuntimeError("output %s not found in sim DataFrame" % o.name)
+            df_sim = df_sim.iloc[warmup:].copy() if warmup is not None else df_sim
             df_sim = cast(DataFrame,df_sim.tail(tail)) if tail is not None else cast(DataFrame,df_sim)
             inner_join = df_sim[["valor"]].rename(mapper={"valor":"sim"},axis=1).join(df_obs[["valor"]].rename(mapper={"valor":"obs"},axis=1),how="inner").dropna()
             if calibration_period is not None:
@@ -1104,7 +1148,8 @@ class Procedure(Base):
                     inplace=inplace,
                     pivot=True,
                     use_boundary_name=True,
-                    tag_column=False)
+                    tag_column=False,
+                    read_sim=self.read_sim)
             else:
                 input = self.loadInput(inplace)
         else:
@@ -1114,7 +1159,12 @@ class Procedure(Base):
         # loads observed outputs
         if load_output_obs:
             # logging.debug("Loading output obs")
-            output_obs = self.loadOutputObs(inplace)
+            output_obs = self.loadOutputObs(
+                inplace=inplace,
+                pivot=self.pivot_output_obs,
+                original_data=self._read_original_data,
+                use_boundary_name=self._use_boundary_name
+            )
         else:
             # logging.debug("Output obs already loaded")
             output_obs = self.output_obs
@@ -1264,16 +1314,18 @@ class Procedure(Base):
                 continue
             if o.node is None:
                 raise RuntimeError("node not set")
-            output_data = self.setIndexOfDataFrame(self.output if isinstance(self.output, DataFrame) else self.output[index],time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
+            output_data = self.setIndexOfDataFrame(
+                self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"}),
+                time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
-                data = self.output if isinstance(self.output, DataFrame) else self.output[index]
+                data = self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"})
                 if not isinstance(data, DataFrame):
                     raise RuntimeError("output item is not DataFrame")
                 o._variable.concatenateOriginal(data,overwrite=overwrite_original)
             for serie in o._variable.series_sim:
                 # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
-                serie.setData(data=self.output[index]) # self.getOutputNodeData(o.node_id,o.var_id))
+                serie.setData(data=self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"})) # self.getOutputNodeData(o.node_id,o.var_id))
                 serie.applyOffset()
                 # serie.metadata = {
                 #     "procedure_id": self.id
@@ -1676,10 +1728,10 @@ class Procedure(Base):
                 array(joined["obs"]))
             o["valor"] = coefficients["intercept"] + o["valor"] * coefficients["coefficient"]
 
-    def pivot_input(self, data : List[DataFrame]) -> DataFrame:
+    def pivot_input_data(self, data : List[DataFrame]) -> DataFrame:
         return pivot_data(data, [b.name for b in self.boundaries], "valor")
 
-    def pivot_output(self, data : List[DataFrame]) -> DataFrame:
+    def pivot_output_data(self, data : List[DataFrame]) -> DataFrame:
         return pivot_data(data, [o.name for o in self.outputs], "valor")
 
 

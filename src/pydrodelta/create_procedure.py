@@ -35,7 +35,7 @@ from pydrodelta.procedures.hidrosat import HIDROSATProcedure
 from pydrodelta.procedures.analogy import AnalogyProcedure
 from pydrodelta.procedures.persistence import PersistenceProcedure
 from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedure
-
+from pydrodelta.procedures.spatiallyvaryingcoefficient import SpatiallyVaryingCoefficientProcedure
 PROCEDURES : Dict[str, Type[Procedure]]  = {
     "AbstractProcedure": AbstractProcedure,
     "HecRas": HecRasProcedure,
@@ -98,7 +98,8 @@ PROCEDURES : Dict[str, Type[Procedure]]  = {
     "Analogy": AnalogyProcedure,
     "AnalogyProcedure": AnalogyProcedure,
     "Persistence": PersistenceProcedure,
-    "PersistenceProcedure": PersistenceProcedure
+    "PersistenceProcedure": PersistenceProcedure,
+    "SpatiallyVaryingCoefficientProcedure": SpatiallyVaryingCoefficientProcedure
 }
 
 def createProcedure(

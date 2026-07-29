@@ -18,6 +18,7 @@ class AdjustResultsDict(TypedDict):
     intercept : Optional[float]
     train : Optional[List[List[Union[str, float]]]]
     coefficients : Optional[List[float]]
+    name : Optional[str]
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -31,7 +32,7 @@ class ProcedureFunctionResults:
         statistics_val : Optional[list] = None,
         data : Optional[DataFrame] = None,
         extra_pars : Optional[dict] = None,
-        adjust_results : Optional[dict] = None
+        adjust_results : Optional[Union[dict, List[dict]]] = None
         ):
         """
         border_conditions : Union[List[DataFrame],DataFrame] = None
@@ -179,17 +180,22 @@ class ProcedureFunctionResults:
         self.adjust_results = adjust_results
 
     @property
-    def adjust_results_dict(self) -> Optional[AdjustResultsDict]:
+    def adjust_results_dict(self) -> Optional[Union[AdjustResultsDict,List[AdjustResultsDict]]]:
         if self.adjust_results is not None:
-            return {
-                "method": self.adjust_results["method"] if "method" in self.adjust_results else None,
-                "r2": self.adjust_results["r2"] if "r2" in self.adjust_results else None,
-                "coef": self.adjust_results["coef"].tolist() if "coef" in self.adjust_results else None,
-                "quant_Err": self.adjust_results["quant_Err"].to_list() if "quant_Err" in self.adjust_results else None,
-                "intercept": self.adjust_results["intercept"] if "intercept" in self.adjust_results else None,
-                "train": [ [ r[0].isoformat(), *r[1:]] for r in self.adjust_results["train"].reset_index().values] if "train" in self.adjust_results else None,
-                "coefficients": self.adjust_results["coefficients"] if "coefficients" in self.adjust_results else None
-            }
+            if isinstance(self.adjust_results, list):
+                return [serialize_adjust_results(x) for x in self.adjust_results]
+            return serialize_adjust_results(self.adjust_results)
         else:
             return None
 
+def serialize_adjust_results(adjust_results : dict) -> AdjustResultsDict:
+    return {
+        "method": adjust_results["method"] if "method" in adjust_results else None,
+        "r2": adjust_results["r2"] if "r2" in adjust_results else None,
+        "coef": adjust_results["coef"].tolist() if "coef" in adjust_results else None,
+        "quant_Err": adjust_results["quant_Err"].to_list() if "quant_Err" in adjust_results else None,
+        "intercept": adjust_results["intercept"] if "intercept" in adjust_results else None,
+        "train": [ [ r[0].isoformat(), *r[1:]] for r in adjust_results["train"].reset_index().values] if "train" in adjust_results else None,
+        "coefficients": adjust_results["coefficients"] if "coefficients" in adjust_results else None,
+        "name": adjust_results["name"] if "name" in adjust_results else None
+    }
