@@ -1394,6 +1394,9 @@ def make_serializable(df: pandas.DataFrame) -> pandas.DataFrame:
     df = df.replace({np.nan:None})
     for col in df.select_dtypes(include=["datetime64[ns]", "datetimetz"]):
         df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+    # flatten column index
+    if isinstance(df.columns,pandas.MultiIndex):
+        df.columns = [f"{a}.{b}" for a, b in df.columns]
     return df
 
 class StatsDict(TypedDict):

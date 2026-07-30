@@ -1,6 +1,6 @@
 from pydrodelta.result_statistics import ResultStatistics
 from pydrodelta.config import config
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import numpy as np
 import logging
 from typing import Optional, Union, List, TypedDict, Mapping, Any
@@ -9,6 +9,7 @@ import json
 from .util import createParent, make_serializable, get_df_repr, get_df_or_list_repr
 from pathlib import Path
 from textwrap import indent
+from typing_extensions import cast
 
 class AdjustResultsDict(TypedDict):
     method : Optional[str]
@@ -147,8 +148,14 @@ class ProcedureFunctionResults:
         #     "data": self.data.replace({np.nan:None}).to_dict("records") if self.data is not None and type(self.data) == DataFrame else [df.replace({np.nan:None}).to_dict("records") for df in self.data] if self.data is not None else None
         #     # .apply(lambda c: list(c) if isinstance(c[0], np.ndarray) else c)
         # })
+        if isinstance(self.border_conditions, DataFrame) :
+            bc_serializable = make_serializable(self.border_conditions).to_dict("records")
+        elif isinstance(self.border_conditions, list):
+            bc_serializable = [make_serializable(df).to_dict("records") if type(df) == DataFrame else df for df in self.border_conditions]
+        else:
+            bc_serializable = self.border_conditions
         return {
-            "border_conditions": self.border_conditions.replace({np.nan:None}).to_dict("records") if self.border_conditions is not None and type(self.border_conditions) == DataFrame else [df.replace({np.nan:None}).to_dict("records") if type(df) == DataFrame else df for df in self.border_conditions] if self.border_conditions is not None and type(self.border_conditions) == list else self.border_conditions,
+            "border_conditions": bc_serializable,
             "initial_states": self.initial_states,
             "states": self.states.replace({np.nan:None}).to_dict("records") if self.states is not None and type(self.states) == DataFrame else self.states,
             "parameters": self.parameters, # if type(self.parameters) == dict or type(self.parameters) == list else self.parameters.toDict() if self.parameters is not None else None,
@@ -189,13 +196,27 @@ class ProcedureFunctionResults:
             return None
 
 def serialize_adjust_results(adjust_results : dict) -> AdjustResultsDict:
-    return {
-        "method": adjust_results["method"] if "method" in adjust_results else None,
-        "r2": adjust_results["r2"] if "r2" in adjust_results else None,
-        "coef": adjust_results["coef"].tolist() if "coef" in adjust_results else None,
-        "quant_Err": adjust_results["quant_Err"].to_list() if "quant_Err" in adjust_results else None,
-        "intercept": adjust_results["intercept"] if "intercept" in adjust_results else None,
-        "train": [ [ r[0].isoformat(), *r[1:]] for r in adjust_results["train"].reset_index().values] if "train" in adjust_results else None,
-        "coefficients": adjust_results["coefficients"] if "coefficients" in adjust_results else None,
-        "name": adjust_results["name"] if "name" in adjust_results else None
-    }
+    if "quant_Err" not in adjust_results:
+        quant_Err = None
+    elif type(adjust_results["quant_Err"]) == float:
+        if np.isnan(adjust_results["quant_Err"]):
+            quant_Err = None
+        else:
+            quant_Err = [adjust_results["quant_Err"]]
+    elif isinstance(adjust_results["quant_Err"], Series):
+        quant_Err = [float(x) for x in adjust_results["quant_Err"].to_list() if not np.isnan(x)]
+    else:
+        raise TypeError("Invalid type for quant_Err, must be list of float")
+    try:
+        return {
+            "method": adjust_results["method"] if "method" in adjust_results else None,
+            "r2": adjust_results["r2"] if "r2" in adjust_results and not np.isnan(adjust_results["r2"]) else None,
+            "coef": adjust_results["coef"].tolist() if "coef" in adjust_results else None,
+            "quant_Err": quant_Err,
+            "intercept": adjust_results["intercept"] if "intercept" in adjust_results else None,
+            "train": [ [ r[0].isoformat(), *r[1:]] for r in adjust_results["train"].reset_index().values] if "train" in adjust_results else None,
+            "coefficients": adjust_results["coefficients"] if "coefficients" in adjust_results else None,
+            "name": adjust_results["name"] if "name" in adjust_results else None
+        }
+    except AttributeError as e:
+        raise e

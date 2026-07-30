@@ -8,7 +8,7 @@ from ..descriptors.dict_descriptor import DictDescriptor
 from ..descriptors.bool_descriptor import BoolDescriptor
 from ..descriptors.string_descriptor import StringDescriptor
 from typing import Tuple, Optional, List, Union, TypedDict, Any
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Series, concat, MultiIndex
 from datetime import datetime
 import logging
 from typing_extensions import Unpack, cast
@@ -189,17 +189,18 @@ class SpatiallyVaryingCoefficientProcedure(Procedure):
         if isinstance(output_obs, list):
             output_obs = self.pivot_input_data(output_obs)
 
-        fit_result = self.fit(input, output_obs)
+        fit_result = self.fit(input, output_obs, error_band=True)
 
         self.coefficients = fit_result.coefficients
         self.adj_data = fit_result.data
 
-        pattern = re.compile('^adj_input')
-        adj_columns = [c for c in fit_result.data.columns if pattern.match(c)]
         rename_colmap = {}
-        for c in adj_columns:
-            rename_colmap[c] = c.replace("adj_input","output")
-        result_data = fit_result.data[adj_columns].rename(columns=rename_colmap)
+        for c in fit_result.data.columns.get_level_values("boundary_id"):
+            rename_colmap[c] = c.replace("input","output")
+        result_data = fit_result.data.loc[
+            :,
+            ~fit_result.data.columns.get_level_values("qualifier").isin(["obs","sim"])
+        ].rename(columns=rename_colmap)
 
         return (
             result_data,
@@ -214,14 +215,15 @@ class SpatiallyVaryingCoefficientProcedure(Procedure):
     def fit(
         self,
         sim : DataFrame,
-        obs : DataFrame
+        obs : DataFrame,
+        error_band : bool=True
     ) -> FitResult:
         pattern = re.compile('^output_')
         obs_columns = [c for c in obs.columns if pattern.match(c)]
         rename_colmap = {}
         for c in obs_columns:
             rename_colmap[c] = c.replace("output","input")
-        return fitSpatiallyVaryingCoefficient(sim, obs.rename(columns=rename_colmap), self.coordinates, self.nonspatial, self.power)
+        return fitSpatiallyVaryingCoefficient(sim, obs.rename(columns=rename_colmap), self.coordinates, self.nonspatial, self.power, error_band=error_band)
         
 def fitSpatiallyVaryingCoefficient(
         sim : DataFrame, 
@@ -232,7 +234,8 @@ def fitSpatiallyVaryingCoefficient(
         warmup_steps : Optional[int]=None,
         tail_steps : Optional[int]=None,
         sim_range : Optional[Tuple[float, float]]=None,
-        drop_warmup : bool=False) -> FitResult:
+        drop_warmup : bool=False,
+        error_band : bool=True) -> FitResult:
     """sim and obs must have the same column names
 
     Args:
@@ -254,8 +257,19 @@ def fitSpatiallyVaryingCoefficient(
     Returns:
         FitResult: _description_
     """
-    data = sim.join(obs, rsuffix="_obs")
-    # no_obs : List[str] = []
+    # to multiindex
+    sim.columns = MultiIndex.from_product(
+        [sim.columns, ["sim"]],
+        names=["boundary_id", "qualifier"],
+    )
+    obs.columns = MultiIndex.from_product(
+        [obs.columns, ["obs"]],
+        names=["boundary_id", "qualifier"],
+    )
+
+    # join
+    data = concat([sim, obs], axis=1).sort_index(axis=1) # sim.join(obs, rsuffix="_obs")
+
     coefficients = DataFrame({
         "name": Series(dtype="str"),
         "x": Series(dtype="float"),
@@ -268,22 +282,21 @@ def fitSpatiallyVaryingCoefficient(
     })
 
     # fit points with obs
-    for index, c in enumerate(sim.columns):
+    for index, c in enumerate(sim.columns.get_level_values(0).unique().tolist()):
 
         # if nonspatial, skip
         if c in nonspatial:
-            data["adj_%s" % c] = np.nan
+            data.loc[:,(c,"main")] = np.nan
             continue
 
         if len(coordinates) <= index:
             raise ValueError("Missing coordinates for index %d, column %s" % (index, c))
 
-        obs_column = "%s_obs" % c
-        if obs_column not in data:
+        if (c, "obs") not in data:
             raise RuntimeError("Column %s not found in obs" % c)
 
         # if no obs, skip
-        if not len(data[obs_column].dropna()):
+        if not len(data[(c,"obs")].dropna()):
             coefficients.loc[len(coefficients)] = {
                 "name": c,
                 "has_obs": False,
@@ -292,15 +305,21 @@ def fitSpatiallyVaryingCoefficient(
             }
             continue
 
+        # subset covariables
+        covariables = [(c, "sim"), *[(x, "obs") for x in nonspatial]]
+        data_cov = data[covariables]
+        data_cov.columns = data_cov.columns.get_level_values(0)
+        # subset truth
+        data_truth = data[[(c, "obs")]]
+        data_truth.columns = data_truth.columns.get_level_values(0)
         # fit
-        covariables = [c, *nonspatial]
         (adjusted,none,fitted_model) = adjustSeries(
-            data[covariables],
-            data[[obs_column]].rename(columns={obs_column: obs_column.replace("_obs","")}),
+            data_cov,
+            data_truth,
             warmup=warmup_steps,
             tail=tail_steps,
             sim_range=sim_range,
-            covariables=covariables,
+            covariables=[x[0] for x in covariables],
             drop_warmup=drop_warmup
         )
 
@@ -315,15 +334,19 @@ def fitSpatiallyVaryingCoefficient(
             "r2": fitted_model["r2"]
         }
 
-        data["adj_%s" % c] = adjusted
+        data[(c, "main")] = adjusted
+        if error_band:
+            data[(c, "inferior")] = adjusted - fitted_model["quant_Err"][0.950]
+            data[(c, "superior")] = adjusted + fitted_model["quant_Err"][0.950]
 
     fitted_points = coefficients[coefficients["has_obs"] == True]
     if not len(fitted_points): # coefficients["has_obs"].any():
         raise ValueError("No obs data found for fit procedure")
 
 
-    # interpolate coefficients
     geod = Geod(ellps="WGS84")
+
+    # interpolate coefficients
     for index, point in coefficients[coefficients["has_obs"] == False].iterrows():
 
         fp = fitted_points.copy()
@@ -344,14 +367,20 @@ def fitSpatiallyVaryingCoefficient(
         point["coefficients"] = fp["w_coefficients"].sum() / fp["weight"].sum()
 
         # interpolate values
-        covariables = [point["name"], *nonspatial]
-        data["adj_%s" % point["name"]] = data.apply(lambda row: point["intercept"] + np.array(point["coefficients"] * np.array(row[covariables])).sum() , axis=1)
+        covariables = [(point["name"], "sim"), *[(x, "obs") for x in nonspatial]]
+        coeffs = np.asarray(point["coefficients"])
+        X = data[covariables].to_numpy()
+        data[(point["name"], "main")] = point["intercept"] + X @ coeffs # data.apply(lambda row: point["intercept"] + np.array(point["coefficients"] * np.array(row[covariables])).sum() , axis=1)
+
+        # persist changes
+        point["coefficients"] = point["coefficients"].tolist()
+        coefficients.loc[index] = point
     
     return FitResult(
         data,
         coefficients
     )
-    
+
 def parse_float_pair(value: Any) -> tuple[float, float]:
     if not isinstance(value, (list, tuple)):
         raise TypeError("Expected a list or tuple")

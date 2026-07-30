@@ -40,6 +40,7 @@ from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
 from pydrodelta.validation import getSchemaAndValidate
 from .custom_errors import DuplicateKeyError
 from textwrap import indent
+import re
 
 if TYPE_CHECKING:
     from .plan import Plan
@@ -952,16 +953,25 @@ class Procedure(Base):
         # if len(obs) < len(sim):
         #     raise Exception("length of obs must be equal than length of sim")
         for i, o in enumerate(self.outputs):
-            if len(sim) < i + 1:
-                raise Exception("List of sim outputs is shorter than .outputs (%i < %i" % (len(sim), len(self.outputs)))
-            if len(obs) < i + 1:
-                raise Exception("List of obs outputs is smaller than .outputs (%i < %i" % (len(obs), len(self.outputs)))
-            df_obs = obs[i] if isinstance(obs, list) else obs if "valor" in obs.columns else obs[[o.name]].rename(columns={o.name: "valor"})
+            if isinstance(sim, DataFrame):
+                df_sim = sim if "valor" in sim.columns else sim[[o.name]].rename(columns={o.name: "valor"}) if o.name in sim.columns else None
+                if df_sim is None:
+                    raise RuntimeError("output %s not found in sim DataFrame" % o.name)
+                if isinstance(df_sim["valor"], DataFrame):
+                    # multiindex to regular index (rename main to valor, other qualifiers ignored downstream)
+                    df_sim = cast(DataFrame, df_sim["valor"]).rename(columns={"main": "valor"})
+            else:
+                if len(sim) < i + 1:
+                    raise Exception("List of sim outputs is shorter than .outputs (%i < %i" % (len(sim), len(self.outputs)))
+                df_sim = sim[i]
+            if isinstance(obs, DataFrame):
+                df_obs = obs if "valor" in obs.columns else obs[[o.name]].rename(columns={o.name: "valor"})
+            else:
+                if len(obs) < i + 1:
+                    raise Exception("List of obs outputs is smaller than .outputs (%i < %i" % (len(obs), len(self.outputs)))
+                df_obs = obs[i]
             df_obs = df_obs.iloc[warmup:].copy() if warmup is not None else df_obs
             df_obs = cast(DataFrame,df_obs.tail(tail)) if tail is not None else cast(DataFrame,df_obs)
-            df_sim = sim[i] if isinstance(sim, list) else sim if "valor" in sim.columns else sim[[o.name]].rename(columns={o.name: "valor"}) if o.name in sim.columns else None
-            if df_sim is None:
-                raise RuntimeError("output %s not found in sim DataFrame" % o.name)
             df_sim = df_sim.iloc[warmup:].copy() if warmup is not None else df_sim
             df_sim = cast(DataFrame,df_sim.tail(tail)) if tail is not None else cast(DataFrame,df_sim)
             inner_join = df_sim[["valor"]].rename(mapper={"valor":"sim"},axis=1).join(df_obs[["valor"]].rename(mapper={"valor":"obs"},axis=1),how="inner").dropna()
@@ -1309,27 +1319,41 @@ class Procedure(Base):
             if o._variable.series_sim is None:
                 # logging.warning("series_sim not defined for output %s" % o.name)
                 continue
-            if index + 1 > len(self.output):
-                logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
-                continue
+
+            if isinstance(self.output, DataFrame):
+                if "valor" in self.output.columns:
+                    data = self.output
+                else:
+                    # pivot output
+                    if o.name not in self.output.columns:
+                        raise ValueError("Missing boundary id %s from procedure output" % o.name)
+                    # multiindex to index
+                    if isinstance(self.output[o.name], DataFrame):
+                        # may include qualifiers
+                        data = cast(DataFrame, self.output[o.name]).rename(columns={"main": "valor"})
+                    else:
+                        # only main
+                        data = self.output[[o.name]].rename(columns={o.name: "valor"})
+            else:
+                if index + 1 > len(self.output):
+                    logging.error("Procedure output for node %s variable %i not found in self.output. Skipping" % (str(o.node_id),o.var_id))
+                    continue
+                data = self.output[index]
+
             if o.node is None:
                 raise RuntimeError("node not set")
+            
             output_data = self.setIndexOfDataFrame(
-                self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"}),
+                data,
                 time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
-                data = self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"})
                 if not isinstance(data, DataFrame):
                     raise RuntimeError("output item is not DataFrame")
                 o._variable.concatenateOriginal(data,overwrite=overwrite_original)
             for serie in o._variable.series_sim:
-                # logging.debug("output serie %i, data: %s" % (index, str(self.output[index])))
-                serie.setData(data=self.output[index] if isinstance(self.output, list) else self.output if "valor" in self.output.columns else self.output[[o.name]].rename(columns={o.name: "valor"})) # self.getOutputNodeData(o.node_id,o.var_id))
+                serie.setData(data=data)
                 serie.applyOffset()
-                # serie.metadata = {
-                #     "procedure_id": self.id
-                # }
             index = index + 1
     
     def setIndexOfDataFrame(
