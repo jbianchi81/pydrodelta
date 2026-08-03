@@ -1,7 +1,7 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
-from ..util import adjustSeries
+from ..util import adjustSeries, get_best_lag
 import math
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.dict_descriptor import DictDescriptor
@@ -96,6 +96,11 @@ class SpatiallyVaryingCoefficientProcedure(Procedure):
 
     type = StringDescriptor()
 
+    @property
+    def max_lag(self) -> int:
+        """Max lag (time steps) to adjust time shift between sim and obs"""
+        return int(self.extra_pars["max_lag"]) if "max_lag" in self.extra_pars else 24
+
     def __init__(
         self,
         extra_pars : Optional[SpatialVaryingCoefficientParsDict] = None,
@@ -189,7 +194,11 @@ class SpatiallyVaryingCoefficientProcedure(Procedure):
         if isinstance(output_obs, list):
             output_obs = self.pivot_input_data(output_obs)
 
-        fit_result = self.fit(input, output_obs, error_band=True)
+        fit_result = self.fit(
+            input, 
+            output_obs, 
+            error_band=True,
+            max_lag=self.max_lag)
 
         self.coefficients = fit_result.coefficients
         self.adj_data = fit_result.data
@@ -216,14 +225,22 @@ class SpatiallyVaryingCoefficientProcedure(Procedure):
         self,
         sim : DataFrame,
         obs : DataFrame,
-        error_band : bool=True
+        error_band : bool=True,
+        max_lag : int=24
     ) -> FitResult:
         pattern = re.compile('^output_')
         obs_columns = [c for c in obs.columns if pattern.match(c)]
         rename_colmap = {}
         for c in obs_columns:
             rename_colmap[c] = c.replace("output","input")
-        return fitSpatiallyVaryingCoefficient(sim, obs.rename(columns=rename_colmap), self.coordinates, self.nonspatial, self.power, error_band=error_band)
+        return fitSpatiallyVaryingCoefficient(
+            sim, 
+            obs.rename(columns=rename_colmap), 
+            self.coordinates, 
+            self.nonspatial, 
+            self.power, 
+            error_band=error_band,
+            max_lag=max_lag)
         
 def fitSpatiallyVaryingCoefficient(
         sim : DataFrame, 
@@ -235,7 +252,8 @@ def fitSpatiallyVaryingCoefficient(
         tail_steps : Optional[int]=None,
         sim_range : Optional[Tuple[float, float]]=None,
         drop_warmup : bool=False,
-        error_band : bool=True) -> FitResult:
+        error_band : bool=True,
+        max_lag : int=24) -> FitResult:
     """sim and obs must have the same column names
 
     Args:
@@ -248,6 +266,8 @@ def fitSpatiallyVaryingCoefficient(
         tail_steps (Optional[int], optional): _description_. Defaults to None.
         sim_range (Optional[Tuple[float, float]], optional): _description_. Defaults to None.
         drop_warmup (bool, optional): _description_. Defaults to False.
+        error_band
+        max_lag
 
     Raises:
         ValueError: _description_
@@ -278,7 +298,8 @@ def fitSpatiallyVaryingCoefficient(
         "intercept": Series(dtype="float"),
         "coefficients": Series(dtype="object"),
         "quant_Err": Series(dtype="float"),
-        "r2": Series(dtype="float")
+        "r2": Series(dtype="float"),
+        "lag": Series(dtype="int")
     })
 
     # fit points with obs
@@ -307,11 +328,21 @@ def fitSpatiallyVaryingCoefficient(
 
         # subset covariables
         covariables = [(c, "sim"), *[(x, "obs") for x in nonspatial]]
-        data_cov = data[covariables]
+        data_cov = data[covariables].copy()
         data_cov.columns = data_cov.columns.get_level_values(0)
+
         # subset truth
         data_truth = data[[(c, "obs")]]
         data_truth.columns = data_truth.columns.get_level_values(0)
+
+        # get lag
+        if max_lag > 0:
+            best_lag, best_lag_corr = get_best_lag(data_truth[c], data_cov[c], max_lag)
+            if best_lag != 0:
+                data_cov[c] = data_cov[c].shift(best_lag)
+        else:
+            best_lag = 0
+
         # fit
         (adjusted,none,fitted_model) = adjustSeries(
             data_cov,
@@ -331,7 +362,8 @@ def fitSpatiallyVaryingCoefficient(
             "intercept": fitted_model["intercept"],
             "coefficients": fitted_model["coefficients"],
             "quant_Err": fitted_model["quant_Err"],
-            "r2": fitted_model["r2"]
+            "r2": fitted_model["r2"],
+            "lag": best_lag
         }
 
         data[(c, "main")] = adjusted
@@ -359,17 +391,26 @@ def fitSpatiallyVaryingCoefficient(
         )
         # IDW weights
         fp["weight"] = fp.apply(lambda row : 1 if row.distance == 0 else (1 / row.distance) ** power, axis=1)
+
         # intercept
         fp["w_intercept"] = fp.apply(lambda row : row.intercept * row.weight, axis=1)
         point["intercept"] = fp["w_intercept"].sum() / fp["weight"].sum()
+
         # coefficients
         fp["w_coefficients"] = fp.apply(lambda row : np.array(row.coefficients) * row.weight, axis=1)
         point["coefficients"] = fp["w_coefficients"].sum() / fp["weight"].sum()
 
+        # lag
+        fp["w_lag"] = fp.apply(lambda row : row.lag * row.weight, axis=1)
+        point["lag"] = round(fp["w_lag"].sum() / fp["weight"].sum())
+
         # interpolate values
         covariables = [(point["name"], "sim"), *[(x, "obs") for x in nonspatial]]
+        x_ = data[covariables].copy()
+        if point["lag"] != 0:
+            x_[(point["name"], "sim")] = x_[(point["name"], "sim")].shift(point["lag"])
+        X = x_.to_numpy()
         coeffs = np.asarray(point["coefficients"])
-        X = data[covariables].to_numpy()
         data[(point["name"], "main")] = point["intercept"] + X @ coeffs # data.apply(lambda row: point["intercept"] + np.array(point["coefficients"] * np.array(row[covariables])).sum() , axis=1)
 
         # persist changes

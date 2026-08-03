@@ -20,6 +20,7 @@ class AdjustResultsDict(TypedDict):
     train : Optional[List[List[Union[str, float]]]]
     coefficients : Optional[List[float]]
     name : Optional[str]
+    lag : Optional[int]
 
 class ProcedureFunctionResults:
     """The results of a ProcedureFunction run"""
@@ -216,7 +217,8 @@ def serialize_adjust_results(adjust_results : dict) -> AdjustResultsDict:
             "intercept": adjust_results["intercept"] if "intercept" in adjust_results else None,
             "train": [ [ r[0].isoformat(), *r[1:]] for r in adjust_results["train"].reset_index().values] if "train" in adjust_results else None,
             "coefficients": adjust_results["coefficients"] if "coefficients" in adjust_results else None,
-            "name": adjust_results["name"] if "name" in adjust_results else None
+            "name": adjust_results["name"] if "name" in adjust_results else None,
+            "lag": adjust_results["lag"] if "lag" in adjust_results else None
         }
     except AttributeError as e:
         raise e

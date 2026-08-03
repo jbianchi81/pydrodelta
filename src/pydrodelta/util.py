@@ -1565,3 +1565,14 @@ def pivot_data(input : List[pandas.DataFrame], output_columns : List[str], input
             how='outer',
             sort=True)
     return data
+
+def get_best_lag(x : pandas.Series, y : pandas.Series, max_lag : int=24) -> Tuple[int, float]:
+    # x and y are aligned Series
+    corrs = {
+        lag: c
+        for lag in range(-max_lag, max_lag + 1)
+        if (c := x.corr(y.shift(lag))) is not None
+    }
+
+    best_lag = max(corrs, key=lambda k: corrs[k])
+    return best_lag, corrs[best_lag]

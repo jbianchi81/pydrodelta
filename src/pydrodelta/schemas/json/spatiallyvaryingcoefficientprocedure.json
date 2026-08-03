@@ -50,6 +50,10 @@
                 "power": {
                     "type": "number",
                     "description": "The power parameter for IDW. Default=2"
+                },
+                "max_lag": {
+                    "type": "number",
+                    "description": "Max lag (time steps) to adjust time shift between sim and obs. Set to 0 to not apply lag"
                 }
             },
             "description": "Additional parameters"
