@@ -422,7 +422,7 @@ def fitSpatiallyVaryingCoefficient(
         coefficients
     )
 
-def parse_float_pair(value: Any) -> tuple[float, float]:
+def parse_float_pair(value: Any) -> Tuple[float, float]:
     if not isinstance(value, (list, tuple)):
         raise TypeError("Expected a list or tuple")
 
