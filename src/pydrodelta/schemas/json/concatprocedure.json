@@ -1,9 +1,9 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "junctionprocedure.json",
-    "title": "junctionProcedure",
+    "$id": "concatprocedure.json",
+    "title": "concatProcedure",
     "type": "object",
-    "description": "Junction addition. Adds input variables into the output.",
+    "description": "Concatenation. Concatenates variables into the output.",
     "allOf": [
         {
             "$ref": "procedure.json"
@@ -13,20 +13,26 @@
         "type": {
             "type": "string",
             "enum": [
-                "Junction",
-                "JunctionProcedure",
-                "Difference",
-                "DifferenceProcedure",
-                "JunctionAllowNaN",
-                "JunctionAllowNaNProcedure"
+                "Concat",
+                "ConcatProcedure",
+                "Concatenate",
+                "ConcatenateProcedure"
             ]
         },
         "extra_pars": {
             "type": "object",
             "properties": {
-                "truncate_negative": {
-                    "type": "boolean",
-                    "description": "Option to replace negative values with zero"
+                "fill_value": {
+                    "type": "number"
+                },
+                "shift_by": {
+                    "type": "number"
+                },
+                "bias": {
+                    "type": "number"
+                },
+                "extend": {
+                    "type": "boolean"
                 }
             }
         },

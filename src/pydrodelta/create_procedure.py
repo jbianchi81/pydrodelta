@@ -36,6 +36,9 @@ from pydrodelta.procedures.analogy import AnalogyProcedure
 from pydrodelta.procedures.persistence import PersistenceProcedure
 from pydrodelta.procedures.lag_and_route_net import LagAndRouteNetProcedure
 from pydrodelta.procedures.spatiallyvaryingcoefficient import SpatiallyVaryingCoefficientProcedure
+from pydrodelta.procedures.concat import ConcatProcedure
+from pydrodelta.procedures.junction_allow_nan import JunctionAllowNaNProcedure
+
 PROCEDURES : Dict[str, Type[Procedure]]  = {
     "AbstractProcedure": AbstractProcedure,
     "HecRas": HecRasProcedure,
@@ -65,6 +68,8 @@ PROCEDURES : Dict[str, Type[Procedure]]  = {
     "SacEnKFProcedure": SacEnkfProcedure,
     "Junction": JunctionProcedure,
     "JunctionProcedure": JunctionProcedure,
+    "JunctionAllowNaN": JunctionAllowNaNProcedure,
+    "JunctionAllowNaNProcedure": JunctionAllowNaNProcedure,
     "LinearChannel": LinearChannelProcedure,
     "LinearChannelProcedure": LinearChannelProcedure,
     "UHLinearChannel": UHLinearChannelProcedure,
@@ -99,7 +104,11 @@ PROCEDURES : Dict[str, Type[Procedure]]  = {
     "AnalogyProcedure": AnalogyProcedure,
     "Persistence": PersistenceProcedure,
     "PersistenceProcedure": PersistenceProcedure,
-    "SpatiallyVaryingCoefficientProcedure": SpatiallyVaryingCoefficientProcedure
+    "SpatiallyVaryingCoefficientProcedure": SpatiallyVaryingCoefficientProcedure,
+    "ConcatProcedure": ConcatProcedure,
+    "Concat": ConcatProcedure,
+    "ConcatenateProcedure": ConcatProcedure,
+    "Concatenate": ConcatProcedure
 }
 
 def createProcedure(
