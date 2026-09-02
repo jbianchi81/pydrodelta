@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from .base import Base
 from pathlib import Path
-from typing import Any, TypedDict, Literal, Union, Optional, Dict
+from typing import Any, TypedDict, Literal, Union, Optional, Dict, List
 from .analysis import run_analysis_from_file
 from .simulation import run_plan_from_file
 import click
@@ -90,7 +90,7 @@ def parse_task(cfg : BaseTaskDict, base_path : Optional[Union[Path, str]]=None) 
 class Workflow(Base):
     def __init__(
             self, 
-            tasks: Union[Task, list[Task], BaseTaskDict, list[BaseTaskDict]], 
+            tasks: Union[Task, List[Task], BaseTaskDict, List[BaseTaskDict]], 
             name: Optional[str]="Workflow", 
             base_path: Optional[Union[str,Path]]=None,
             on_exception_continue: Optional[bool]=None
