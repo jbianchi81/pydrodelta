@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from .base import Base
 from pathlib import Path
-from typing import Any, TypedDict, Literal, Union, Optional
+from typing import Any, TypedDict, Literal, Union, Optional, Dict
 from .analysis import run_analysis_from_file
 from .simulation import run_plan_from_file
 import click
@@ -11,7 +11,7 @@ class Task(Base):
     def __init__(
             self, 
             config_file: Union[str, Path],
-            options: Optional[dict[str, Any]] = None,
+            options: Optional[Dict[str, Any]] = None,
             base_path: Optional[Union[str, Path]] = None
         ):
         super().__init__(base_path=base_path)
