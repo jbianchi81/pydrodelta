@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "genericfitprocedure.json",
+    "$id": "abstractprocedure.json",
     "title": "AbstractProcedure",
     "type": "object",
     "description": "Abstract class for test purposes",
