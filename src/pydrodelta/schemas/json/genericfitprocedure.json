@@ -32,6 +32,11 @@
                     "type": "boolean",
                     "description": "Eliminate warmup steps from output",
                     "default": false
+                },
+                "max_lag": {
+                    "type": "integer",
+                    "description": "Maximum lag in time steps between inputs and response. Defaults to 0 (no lag)",
+                    "default": 0
                 }
             },
             "description": "Additional parameters"

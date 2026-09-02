@@ -1,7 +1,7 @@
 from ..procedure_function_results import ProcedureFunctionResults
 from ..procedure import Procedure
 from ..function_boundary import FunctionBoundary
-from ..util import adjustSeries
+from ..util import adjustSeries, get_best_lag
 import math
 from ..descriptors.int_descriptor import IntDescriptor
 from ..descriptors.dict_descriptor import DictDescriptor
@@ -23,6 +23,8 @@ class LinearFitExtraParsDict(TypedDict, total=False):
     """Use only this number of final steps for fit procedure"""
     use_forecast_range: bool
     """Fit using only pairs where sim is within forecasted range of values"""
+    max_lag: int
+    """Maximum lag in time steps between input and output. Defaults to 0 (no lag)"""
 
 class LinearFitProcedure(Procedure):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
@@ -61,6 +63,8 @@ class LinearFitProcedure(Procedure):
 
     type = StringDescriptor()
 
+    extra_pars : LinearFitExtraParsDict
+
     def __init__(
         self,
         extra_pars : Optional[LinearFitExtraParsDict] = None,
@@ -90,6 +94,8 @@ class LinearFitProcedure(Procedure):
         self._sim_range = None
 
         self.type = "linear"
+
+        self.max_lag = self.extra_pars["max_lag"] if "max_lag" in self.extra_pars else 0
 
     def exec(
         self,
@@ -139,6 +145,15 @@ class LinearFitProcedure(Procedure):
         else:
             sim_range = self.sim_range
         response_data = output_obs[0].copy()
+
+        # get lag
+        if self.max_lag > 0:
+            for c in covariables:
+                best_lag, best_lag_corr = get_best_lag(response_data["valor"], input_data[c], self.max_lag)
+                if best_lag != 0:
+                    logging.info(f"lagged input column {c} by {best_lag}, r:{best_lag_corr}")
+                    input_data[c] = input_data[c].shift(best_lag)        
+
         try:
             (output_serie,output_tag_serie,stats) = adjustSeries(
                 DataFrame(input_data),
