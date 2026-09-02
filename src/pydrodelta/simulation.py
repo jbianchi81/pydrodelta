@@ -8,6 +8,7 @@ from .config import config
 from json import dump as json_dump 
 from .util import ParseApiConfig, resolve_path
 from pathlib import Path
+from typing import Optional, Union, Tuple, List
 
 logging.basicConfig(
     filename = os.path.join(
@@ -92,6 +93,35 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
     
     config_file: location of plan config file (.json or .yml)
     """
+    run_plan_from_file(config_file,csv,json,graph_file,export_corrida_json,export_corrida_csv,pivot,upload,include_prono,verbose,output_stats,output_results,plot_var,pretty,output_analysis,quiet,upload_prono, save_upload_response,input_api,output_api,save_calibration_result)
+
+def run_plan_from_file(
+        config_file : Union[str, Path],
+        csv : Optional[str]=None,
+        json : Optional[str]=None,
+        graph_file : Optional[str]=None,
+        export_corrida_json : Optional[str]=None,
+        export_corrida_csv : Optional[str]=None,
+        pivot : bool=False,
+        upload : bool=False,
+        include_prono : Optional[bool]=None,
+        verbose : bool=False,
+        output_stats : Optional[str]=None,
+        output_results : Optional[str]=None,
+        plot_var : Optional[List[Tuple[int, str]]]=None,
+        pretty: bool=False,
+        output_analysis : Optional[str]=None,
+        quiet : bool=False,
+        upload_prono : bool=False, 
+        save_upload_response : Optional[str]=None,
+        input_api : Optional[str]=None,
+        output_api : Optional[str]=None,
+        save_calibration_result : Optional[str]=None):
+    """
+    run plan from plan config file
+    
+    config_file: location of plan config file (.json or .yml)
+    """
     if verbose:
         str_handler.setLevel(logging.DEBUG)
         # root = logging.getLogger()
@@ -141,7 +171,7 @@ def run_plan(self,config_file,csv,json,graph_file,export_corrida_json,export_cor
     if upload:
         if plan.topology is None:
             raise RuntimeError("topology not set")
-        created = plan.topology.uploadData(include_prono, api_config = output_api_config)
+        created = plan.topology.uploadData(include_prono if include_prono is not None else False, api_config = output_api_config)
         if save_upload_response is not None:
             json_dump(created,open(save_upload_response,"w"))
             logging.info("Analysis upload response saved to %s" % save_upload_response)

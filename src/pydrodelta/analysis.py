@@ -4,6 +4,8 @@ import sys
 import click
 from .config import config
 from .util import ParseApiConfig
+from typing import Optional, Union, Tuple, List
+from pathlib import Path
 
 logging.basicConfig(
     filename = os.path.join(
@@ -40,6 +42,28 @@ from pydrodelta.topology import Topology
 @click.option("--input-api",help="Override config.input_api. sintax: token@url. Token and url of the service from where to load data", type=str)
 @click.option("--output-api",help="Override config.output_api. sintax: token@url. Token and url of the service where to upload analysis output", type=str)
 def run_analysis(self,config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono,plot_var,pretty,input_api,output_api):
+    """
+    run analysis of border conditions from topology file
+    
+    config_file: location of config file (.json or .yml)
+    """
+    run_analysis_from_file(config_file,csv,json,graph_file,pivot,upload,include_prono,verbose,upload_series_prono,upload_series_output_as_prono,plot_var,pretty,input_api,output_api)
+
+def run_analysis_from_file(
+        config_file : Union[str, Path],
+        csv : Optional[str]=None,
+        json : Optional[str]=None,
+        graph_file : Optional[str]=None,
+        pivot : bool=False,
+        upload : bool=False,
+        include_prono : bool=False,
+        verbose : bool=False,
+        upload_series_prono : bool=False,
+        upload_series_output_as_prono : bool=False,
+        plot_var : Optional[List[Tuple[int, str]]]=None,
+        pretty : bool=False,
+        input_api : Optional[str]=None,
+        output_api : Optional[str]=None):
     """
     run analysis of border conditions from topology file
     

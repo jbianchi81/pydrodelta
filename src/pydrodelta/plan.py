@@ -292,8 +292,8 @@ class Plan(Base):
     
     def execute(
         self,
-        include_prono : bool = True,
-        upload : bool = True,
+        include_prono : Optional[bool] = True,
+        upload : Optional[bool] = True,
         pretty : bool = False,
         input_api_config : Optional[ApiConfigDict] = None,
         output_api_config : Optional[ApiConfigDict] = None):
@@ -333,6 +333,8 @@ class Plan(Base):
         
         None
         """
+        include_prono = include_prono if include_prono is not None else True
+        upload = upload if upload is not None else True
         if self.topology is None:
             raise Exception("topology is not set")
         self.topology.batchProcessInput(include_prono=include_prono,input_api_config=input_api_config)

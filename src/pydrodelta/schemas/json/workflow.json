@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workflow.json",
+  "title": "Workflow",
+  "type": "object",
+  "required": ["tasks"],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "on_exception_continue": {
+      "type": "boolean",
+      "description": "If a task fails, continue with the next. If False (default), it breaks the loop."
+    }
+  },
+  "$defs": {
+    "task": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/simulationTask"
+        },
+        {
+          "$ref": "#/$defs/analysisTask"
+        }
+      ]
+    },
+
+    "baseTask": {
+      "type": "object",
+      "required": [
+        "type",
+        "config_file",
+        "options"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "config_file": {
+          "type": "string"
+        }
+      }
+    },
+
+    "simulationTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseTask"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "simulation"
+            },
+            "options": {
+              "$ref": "#/$defs/simulationOptions"
+            }
+          }
+        }
+      ]
+    },
+
+    "analysisTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseTask"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "analysis"
+            },
+            "options": {
+              "$ref": "#/$defs/analysisOptions"
+            }
+          }
+        }
+      ]
+    },
+
+    "simulationOptions": {
+      "type": "object",
+      "properties": {
+        "csv": {
+          "type": "string"
+        },
+        "json": {
+          "type": "string"
+        },
+        "graph_file": {
+          "type": "string"
+        },
+        "export_corrida_json": {
+          "type": "string"
+        },
+        "export_corrida_csv": {
+          "type": "string"
+        },
+        "pivot": {
+          "type": "boolean",
+          "default": false
+        },
+        "upload": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_prono": {
+          "type": ["boolean", "null"]
+        },
+        "verbose": {
+          "type": "boolean",
+          "default": false
+        },
+        "output_stats": {
+          "type": "string"
+        },
+        "output_results": {
+          "type": "string"
+        },
+        "plot_var": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "pretty": {
+          "type": "boolean",
+          "default": false
+        },
+        "output_analysis": {
+          "type": "string"
+        },
+        "quiet": {
+          "type": "boolean",
+          "default": false
+        },
+        "upload_prono": {
+          "type": "boolean",
+          "default": false
+        },
+        "save_upload_response": {
+          "type": "string"
+        },
+        "input_api": {
+          "type": "string"
+        },
+        "output_api": {
+          "type": "string"
+        },
+        "save_calibration_result": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "analysisOptions": {
+      "type": "object",
+      "properties": {
+        "csv": {
+          "type": "string"
+        },
+        "json": {
+          "type": "string"
+        },
+        "graph_file": {
+          "type": "string"
+        },
+        "pivot": {
+          "type": "boolean",
+          "default": false
+        },
+        "upload": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_prono": {
+          "type": ["boolean", "null"]
+        },
+        "verbose": {
+          "type": "boolean",
+          "default": false
+        },
+        "upload_series_prono": {
+          "type": "boolean",
+          "default": false
+        },
+        "upload_series_output_as_prono": {
+          "type": "boolean",
+          "default": false
+        },
+        "plot_var": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "pretty": {
+          "type": "boolean",
+          "default": false
+        },
+        "input_api": {
+          "type": "string"
+        },
+        "output_api": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
