@@ -30,7 +30,7 @@ class LinearFitProcedure(Procedure):
     """Procedure function that fits a linear function between an independent variable (input) and a response and then applies the resulting function to the input values to produce the output"""
 
     _boundaries = [
-        FunctionBoundary({"name": "input_1", "optional":False})
+        FunctionBoundary({"name": "input_1", "optional":True})
     ]
     """input: independent (explanatory) variable"""
 
