@@ -36,6 +36,8 @@ class LinearFitProcedure(Procedure):
 
     _additional_boundaries = True
 
+    _boundaries_optional = True
+
     _outputs = [
         FunctionBoundary({"name": "output"})
     ]

@@ -173,6 +173,9 @@ class Procedure(Base):
     
     _additional_boundaries = False
     """ set to true to allow for additional boundaries """
+
+    _boundaries_optional = False
+    """ set to true to allow nulls in additional boundaries """
     
     _additional_outputs = False
     """ set to true to allow for additional outputs"""
@@ -254,7 +257,8 @@ class Procedure(Base):
             valid_items_list=[b.__dict__() for b in self.__class__._boundaries],
             allow_additional_ids=self.__class__._additional_boundaries,
             allow_missing=False,
-            plan = self._plan
+            plan = self._plan,
+            optional = self._boundaries_optional
         )
     @property
     def outputs(self) -> EnhancedTypedList[ProcedureBoundary]:

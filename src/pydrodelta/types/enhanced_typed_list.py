@@ -52,7 +52,7 @@ class EnhancedTypedList(MutableSequence, Generic[T]):
         else:
             try:
                 if isinstance(v,dict):
-                    value = self.oktype(**v,**self._fixed_kwargs)
+                    value = self.oktype(**{**self._fixed_kwargs, **v})
                 elif isinstance(v,(list,tuple)):
                     value = self.oktype(*v,**self._fixed_kwargs)
                 else:
