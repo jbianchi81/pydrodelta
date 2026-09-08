@@ -1217,7 +1217,7 @@ class Topology(Base):
         """
         timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else None
         timeend = tryParseAndLocalizeDate(timeend) if timeend is not None else None
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue", "mean": "blue"}
         if output is not None:
             matplotlib.use('pdf')
             createParent(output)

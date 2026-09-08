@@ -22,6 +22,7 @@ from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, 
 from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList, TVPAllowNone
 from .types.linear_combination_dict import LinearCombinationDict
 from a5client import observacionesListToDataFrame, createEmptyObsDataFrame
+from packaging.version import Version
 
 import random
 DataFrame = pandas.DataFrame
@@ -264,7 +265,8 @@ def relativedelta_to_freq(rd: relativedelta) -> str:
     if rd.years:
         return f"{rd.years}Y"
     if rd.months:
-        return f"{rd.months}M"
+        freq= "ME" if Version(pd.__version__) >= Version("2.2") else "M"
+        return f"{rd.months}{freq}"
     if rd.days:
         return f"{rd.days}D"
     if rd.hours:
