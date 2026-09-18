@@ -207,9 +207,9 @@ class ObservedNodeVariable(NodeVariable):
                 if serie.data is None:
                     raise Exception("Data not loaded. Load data before running regularize")
                 if self.forecast_timeend is not None:
-                    serie.regularize(self.timestart,self.forecast_timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
+                    serie.regularize(self.timestart,self.forecast_timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate, all_columns=True)
                 else:
-                    serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate)
+                    serie.regularize(self.timestart,self.timeend,self.time_interval,self.time_offset,self.interpolation_limit,interpolate=interpolate, all_columns=True)
     
     @overload
     def fillNulls(

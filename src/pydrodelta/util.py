@@ -384,14 +384,15 @@ def serieRegular(
     timestart : Optional[datetime]  = None, 
     timeend : Optional[datetime] = None, 
     time_offset : Optional[relativedelta] = None, 
-    column : str = "valor", 
+    column : Union[str,List[str]] = "valor", 
     interpolate : bool = True, 
     interpolation_limit : Optional[Union[int,timedelta,relativedelta]] = 1,
     tag_column : Optional[str] = None, 
     extrapolate : bool = False,
     agg_func : Optional[str] = None,
     extrapolate_function : "str" = "linear",
-    extrapolate_train_length : int = 5
+    extrapolate_train_length : int = 5,
+    all_columns : bool=False
     ) -> pandas.DataFrame:
     """
     genera serie regular y rellena nulos interpolando
@@ -420,18 +421,33 @@ def serieRegular(
         interpolation_limit = 1
     df_regular = DataFrame(index = createDatetimeSequence(cast(pandas.DatetimeIndex, data.index), time_interval, timestart, timeend, time_offset))
     df_regular.index.rename('timestart', inplace=True)
+    column = [c for c in data.columns if c != tag_column] if all_columns else column
     if agg_func is not None:
-        agg_serie = aggregateByTimestep(
-            data,
-            cast(pandas.DatetimeIndex, df_regular.index),
-            time_interval,
-            column = column,
-            agg_func = agg_func
-        )
-        df_regular[column] = agg_serie
-        if tag_column:
-            df_regular[tag_column] = agg_func
-        return df_regular
+        if isinstance(column, list):
+            for c in column:
+                agg_serie = aggregateByTimestep(
+                    data,
+                    cast(pandas.DatetimeIndex, df_regular.index),
+                    time_interval,
+                    column = c,
+                    agg_func = agg_func
+                )
+                df_regular[c] = agg_serie
+            if tag_column:
+                df_regular[tag_column] = agg_func
+            return df_regular
+        else:
+            agg_serie = aggregateByTimestep(
+                data,
+                cast(pandas.DatetimeIndex, df_regular.index),
+                time_interval,
+                column = column,
+                agg_func = agg_func
+            )
+            df_regular[column] = agg_serie
+            if tag_column:
+                df_regular[tag_column] = agg_func
+            return df_regular
     if not len(data):
         df_regular[column] = None
         if tag_column is not None:
@@ -441,41 +457,75 @@ def serieRegular(
     df_join.index.name = "timestart"
     if interpolate:
         # Interpola
-        min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
-        extrapolated = None
-        if isinstance(interpolation_limit, timedelta):
-            df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
-        elif isinstance(interpolation_limit, relativedelta):
-            df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+        if isinstance(column, list):
+            for c in column:
+                min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[c])].index.min(),df_join[~pandas.isna(df_join[c])].index.max())
+                extrapolated = None
+                if isinstance(interpolation_limit, timedelta):
+                    df_join["interpolated"] = interpolate_or_copy_closest(df_join[c], interpolation_limit)
+                elif isinstance(interpolation_limit, relativedelta):
+                    df_join["interpolated"] = interpolate_or_copy_closest(df_join[c], interpolation_limit)
+                else:
+                    # extrapolate before so that only noninterpolated points are used in regression
+                    if extrapolate and extrapolate_function == "linear":
+                        extrapolated = extrapolate_linear(df_join, c, extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
+                    df_join["interpolated"] = df_join[c].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+                if extrapolate and extrapolate_function == "linear" and extrapolated is not None:
+                    # fill interpolated nans with extrapolated
+                    df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated[c])
+                if tag_column is not None:
+                    # print("columns: " + df_join.columns)
+                    df_join[tag_column] = [x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[c]) else x[tag_column] for (i, x) in df_join.iterrows()]
+                df_join[c] = df_join["interpolated"]
+                del df_join["interpolated"]
+                # for co in df_join.columns:
+                #     if c == co:
+                #         continue
+                #     if tag_column is not None and co == tag_column:
+                #         continue
+                #     df_join[co] = df_join[co].interpolate(method='time',limit=interpolation_limit if isinstance(interpolation_limit, int) else getNSteps(time_interval, interpolation_limit),limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+            df_regular = df_regular.join(df_join, how = 'left')
+
         else:
-            # extrapolate before so that only noninterpolated points are used in regression
-            if extrapolate and extrapolate_function == "linear":
-                extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
-            df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
-        if extrapolate and extrapolate_function == "linear" and extrapolated is not None:
-            # fill interpolated nans with extrapolated
-            df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
-        if tag_column is not None:
-            # print("columns: " + df_join.columns)
-            df_join[tag_column] = [x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[column]) else x[tag_column] for (i, x) in df_join.iterrows()]
-        df_join[column] = df_join["interpolated"]
-        del df_join["interpolated"]
-        for c in df_join.columns:
-            if c == column:
-                continue
-            if tag_column is not None and c == tag_column:
-                continue
-            df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit if isinstance(interpolation_limit, int) else getNSteps(time_interval, interpolation_limit),limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
-        df_regular = df_regular.join(df_join, how = 'left')
+            min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
+            extrapolated = None
+            if isinstance(interpolation_limit, timedelta):
+                df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+            elif isinstance(interpolation_limit, relativedelta):
+                df_join["interpolated"] = interpolate_or_copy_closest(df_join[column], interpolation_limit)
+            else:
+                # extrapolate before so that only noninterpolated points are used in regression
+                if extrapolate and extrapolate_function == "linear":
+                    extrapolated = extrapolate_linear(df_join, "valor", extrapolation_limit=interpolation_limit, train_length = extrapolate_train_length)
+                df_join["interpolated"] = df_join[column].interpolate(method='time',limit=interpolation_limit,limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+            if extrapolate and extrapolate_function == "linear" and extrapolated is not None:
+                # fill interpolated nans with extrapolated
+                df_join["interpolated"] = df_join["interpolated"].fillna(extrapolated["valor"])
+            if tag_column is not None:
+                # print("columns: " + df_join.columns)
+                df_join[tag_column] = [x[tag_column] if pandas.isna(x["interpolated"]) else "extrapolated" if i < min_obs_date or i > max_obs_date else "interpolated" if pandas.isna(x[column]) else x[tag_column] for (i, x) in df_join.iterrows()]
+            df_join[column] = df_join["interpolated"]
+            del df_join["interpolated"]
+            for c in df_join.columns:
+                if c == column:
+                    continue
+                if tag_column is not None and c == tag_column:
+                    continue
+                df_join[c] = df_join[c].interpolate(method='time',limit=interpolation_limit if isinstance(interpolation_limit, int) else getNSteps(time_interval, interpolation_limit),limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
+            df_regular = df_regular.join(df_join, how = 'left')
     else:
         timedelta_threshold = relativedelta_to_timedelta(time_interval) * 0.5 # takes half time interval as maximum time distance for interpolation
-        df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
-        for c in df_join.columns:
-            if c == column:
-                continue
-            if tag_column is not None and c == tag_column:
-                continue
-            df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
+        if isinstance(column, list):
+            for c in column:
+                df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
+        else:
+            df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
+            for c in df_join.columns:
+                if c == column:
+                    continue
+                if tag_column is not None and c == tag_column:
+                    continue
+                df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
     return df_regular
 
 def regularizeColumn(

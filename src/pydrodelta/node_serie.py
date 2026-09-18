@@ -515,7 +515,8 @@ class NodeSerie(Base):
         interpolation_limit : Optional[Union[int,relativedelta]]=None,
         inline : bool = True,
         interpolate : bool = False,
-        agg_func : Optional[str] = None
+        agg_func : Optional[str] = None,
+        all_columns : bool = False
         ) -> Union[None,DataFrame]:
         """Regularize the time step of the timeseries
         
@@ -548,7 +549,7 @@ class NodeSerie(Base):
         # interpolation_limit = int(util.relativedeltaToSeconds(interpolation_limit) / util.relativedeltaToSeconds(time_interval)) if isinstance(interpolation_limit,relativedelta) else interpolation_limit 
         if self.data is None:
             raise Exception("data is not set")
-        data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func)
+        data = util.serieRegular(self.data,time_interval,timestart,timeend,time_offset,interpolation_limit=interpolation_limit,tag_column="tag",interpolate=interpolate, agg_func = agg_func, all_columns=all_columns)
         if inline:
             self.data = data
         else:
