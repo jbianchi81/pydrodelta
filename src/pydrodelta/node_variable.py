@@ -124,6 +124,9 @@ class NodeVariable:
     use_filled_truth = BoolDescriptor()
     """When adjusting series_prono, use filled series as truth (instead of first series)"""
 
+    include_members : bool
+    """Concatenate and add forecast members"""
+
     @property
     def node_id(self) -> Union[int,str]:
         return self._node.id if self._node is not None else "unknown"
@@ -190,7 +193,8 @@ class NodeVariable:
         use_filled_truth : Optional[bool] = False,
         base_path : Optional[Path] = None,
         series : Union[List[Union[SeriesDict,NodeSerie]],None] = None,
-        series_prono : Union[List[Union[dict,NodeSerieProno]],None] = None
+        series_prono : Union[List[Union[dict,NodeSerieProno]],None] = None,
+        include_members : Optional[bool] = None
         ):
         """
         Parameters:
@@ -293,6 +297,7 @@ class NodeVariable:
         self.use_filled_truth = use_filled_truth
         self.series = series
         self.series_prono = series_prono
+        self.include_members = include_members if include_members is not None else False
     
     def resolve_path(self, path : Union[str,Path,None]) -> Optional[Path]:
         return resolve_path(path, self.base_path) if path is not None else None
@@ -1131,7 +1136,8 @@ class NodeVariable:
     def concatenateProno(
         self,
         inline : bool = True,
-        ignore_warmup : bool = True
+        ignore_warmup : bool = True,
+        include_members : Optional[bool] = None
         ) -> Optional[pandas.DataFrame]:
         """
         Fills nulls of data with prono 
@@ -1141,8 +1147,11 @@ class NodeVariable:
         inline : bool = True
             Save into self.data. If False return concatenated dataframe
 
-        ignore_warmup : bool = ture
+        ignore_warmup : bool = True
             Ignore prono before last observation
+
+        include_members : bool = False
+            Concatenate and add forecast members to self.data
         
         Returns:
         --------
@@ -1150,15 +1159,30 @@ class NodeVariable:
         """
         if self.data is None:
             raise Exception("data not set")
+        include_members = include_members if include_members is not None else self.include_members
         if self.series_prono is not None and len(self.series_prono) and len(self.series_prono[0].data):
             data = self.data.copy()
-            for i, serie_prono in enumerate(self.series_prono):
-                prono_data = serie_prono.data[["valor","tag"]]
-                self.setMaxObsDate()
-                logging.debug("max_obs_date: %s" % self.max_obs_date)
-                if ignore_warmup and self.max_obs_date is not None: #self.forecast_timeend is not None and ignore_warmup:
-                    prono_data = prono_data[prono_data.index > self.max_obs_date]
-                data = serieFillNulls(data,prono_data,extend=True,tag_column="tag")
+            if include_members:
+                obs_data = data.copy()
+                for i, serie_prono in enumerate(self.series_prono):
+                    for member in serie_prono.data.columns:
+                        if member == "tag":
+                            continue
+                        prono_data = serie_prono.data[[member]]
+                        # self.setMaxObsDate()
+                        # logging.debug("max_obs_date: %s" % self.max_obs_date)
+                        # if ignore_warmup and self.max_obs_date is not None:
+                        #     prono_data = prono_data[prono_data.index > self.max_obs_date]
+                        filled_data = serieFillNulls(obs_data,prono_data,extend=True, other_column=member)
+                        data.loc[:, member] = filled_data["valor"]
+            else:
+                for i, serie_prono in enumerate(self.series_prono):
+                    prono_data = serie_prono.data[["valor","tag"]]
+                    self.setMaxObsDate()
+                    logging.debug("max_obs_date: %s" % self.max_obs_date)
+                    if ignore_warmup and self.max_obs_date is not None: #self.forecast_timeend is not None and ignore_warmup:
+                        prono_data = prono_data[prono_data.index > self.max_obs_date]
+                    data = serieFillNulls(data,prono_data,extend=True,tag_column="tag")
             if inline:
                 self.data = data
             else:
