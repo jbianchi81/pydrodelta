@@ -7,7 +7,7 @@ from .procedure_function_results import ProcedureFunctionResults
 from .pydrology import testPlot, SimonovKhristoforov
 from .calibration.downhill_simplex_calibration import DownhillSimplexCalibration
 from .calibration.linear_regression_calibration import LinearRegressionCalibration
-from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, cast
+from typing import Optional, Union, List, Tuple, Literal, overload, TypedDict, cast, Set
 from pandas import DataFrame, read_csv
 from .descriptors.int_descriptor import IntDescriptor
 from .descriptors.bool_descriptor import BoolDescriptor
@@ -33,7 +33,7 @@ from .types.typed_list import TypedList
 from .types.enhanced_typed_list import EnhancedTypedList
 from .types.any_calibration_dict import AnyCalibrationDict
 from .function_boundary import FunctionBoundary
-from .util import getInputListFromDataFrame, tvpListToDataFrame, pivot_data
+from .util import getInputListFromDataFrame, tvpListToDataFrame, pivot_data, permute_sets
 from .model_parameter import ModelParameter
 from a5client.util_types import TVPList, Dateable, Intervaleable
 from a5client.util import tryParseAndLocalizeDate, interval2relativedelta
@@ -53,6 +53,10 @@ class StatsDict(TypedDict):
 
 class ExtraParsDict(TypedDict):
     pass
+
+class EnsembleModeConfig(TypedDict):
+    perturbed_boundaries : Optional[List[int]]
+    qualifiers : Optional[List[str]]
 
 class Procedure(Base):
     """
@@ -387,6 +391,8 @@ class Procedure(Base):
     def time_interval(self, value : Optional[Intervaleable]) -> None:
         self._time_interval = interval2relativedelta(value) if value is not None else None
 
+    ensemble_mode : Optional[EnsembleModeConfig]
+
     def __init__(
         self,
         id : Union[int, str] = 0,
@@ -416,6 +422,7 @@ class Procedure(Base):
         timestart : Optional[Dateable] = None,
         timeend : Optional[Dateable] = None,
         bias_correction : Optional[bool] = False,
+        ensemble_mode : Optional[EnsembleModeConfig] = None,
         **kwargs
         ):
         """
@@ -475,6 +482,8 @@ class Procedure(Base):
             Parameter definitions for calibration.
 
         bias_correction : Optional[bool]
+
+        ensemble_mode : EnsembleModeConfig
 
         """
         if "type" in kwargs:
@@ -575,6 +584,7 @@ class Procedure(Base):
         self.save_dict = self.resolve_path(save_dict)
         self.drop_warmup = drop_warmup
         self.bias_correction = bias_correction
+        self.ensemble_mode = ensemble_mode
     
     def getCalibrationPeriod(self) -> Union[tuple,None]:
         """Read the calibration period from the calibration configuration"""
@@ -679,7 +689,8 @@ class Procedure(Base):
         use_boundary_name : bool = False,
         tag_column : bool = True,
         read_sim : Optional[bool] = None,
-        sim_index : Optional[int] = None
+        sim_index : Optional[int] = None,
+        qualifiers : Optional[List[str]] = None
         ) -> None: ...
     @overload
     def loadInput(
@@ -689,7 +700,8 @@ class Procedure(Base):
         use_boundary_name : bool = False,
         tag_column : bool = True,
         read_sim : Optional[bool] = None,
-        sim_index : Optional[int] = None
+        sim_index : Optional[int] = None,
+        qualifiers : Optional[List[str]] = None
         ) -> List[DataFrame]: ...
     @overload
     def loadInput(
@@ -700,7 +712,8 @@ class Procedure(Base):
         use_boundary_name : bool = False,
         tag_column : bool = True,
         read_sim : Optional[bool] = None,
-        sim_index : Optional[int] = None
+        sim_index : Optional[int] = None,
+        qualifiers : Optional[List[str]] = None
         ) -> DataFrame: ...
     def loadInput(
         self,
@@ -709,7 +722,8 @@ class Procedure(Base):
         use_boundary_name : bool = False,
         tag_column : bool = True,
         read_sim : Optional[bool] = None,
-        sim_index : Optional[int] = None
+        sim_index : Optional[int] = None,
+        qualifiers : Optional[List[str]] = None        
         ) -> Union[List[DataFrame],DataFrame,None]:
         """
         Loads the boundary variables defined in self.boundaries. Takes .data from each element of self.boundaries and returns a list. If pivot=True, joins all variables into a single DataFrame
@@ -734,13 +748,20 @@ class Procedure(Base):
         
         sim_index : int = 0
             read this series_sim index of boundary node variables (with read_sim) 
+
+        qualifiers : Optional[List[str]] = None
+            read only this columns from boundary data (one for each boundary)
         """
         read_sim = read_sim if read_sim is not None else self.read_sim
         sim_index = sim_index if sim_index is not None else self.sim_index
         if pivot:
             data : DataFrame = createEmptyObsDataFrame(extra_columns={"tag":str}) if tag_column else createEmptyObsDataFrame()
             columns = ["valor","tag"] if tag_column else ["valor"] 
-            for boundary in self.boundaries:
+            for i, boundary in enumerate(self.boundaries):
+                if qualifiers is not None:
+                    if len(qualifiers) - 1  < i:
+                        raise ValueError("qualifier missing for boundary %i" % i)
+                    columns[0] = qualifiers[i]
                 boundary_data : DataFrame
                 if boundary.data is not None:
                     use_boundary_name = True
@@ -759,7 +780,7 @@ class Procedure(Base):
                     data = data.join(
                         boundary_data[columns][boundary_data.valor.notnull()].rename(
                             columns={
-                                "valor": boundary.name, 
+                                columns[0]: boundary.name, 
                                 "tag": "tag_%s" % boundary.name
                             }
                         ),
@@ -769,12 +790,14 @@ class Procedure(Base):
                 else:
                     rsuffix = "_%s_%i" % (str(boundary.node_id), boundary.var_id)
                     data = data.join(
-                        boundary_data[columns][boundary_data.valor.notnull()],
+                        boundary_data[columns][boundary_data[columns[0]].notnull()].rename(columns={columns[0]: "valor"}),
                         how='outer',
                         rsuffix=rsuffix,
                         sort=True)
-            for column in columns:
-                del data[column]
+            # for col in columns:
+            del data["valor"]
+            if tag_column:
+                del data["tag"]
             # data = data.replace({np.nan:None})
             if inplace:
                 self.input = data
@@ -782,17 +805,26 @@ class Procedure(Base):
                 return data
         else:
             data_ : List[DataFrame]= []
-            for boundary in self.boundaries:
+            for i, boundary in enumerate(self.boundaries):
                 logging.debug("loading boundary: %s: node %i, variable %i, optional: %s, warmup_only: %s" % (boundary.name, boundary.node_id,boundary.var_id, str(boundary.optional), str(boundary.warmup_only)))
+                if qualifiers is not None:
+                    if len(qualifiers) - 1  < i:
+                        raise ValueError("qualifier missing for boundary %i" % i)
+                    column = qualifiers[i]
+                else:
+                    column = None
                 if boundary.data is not None:
-                    data_.append(boundary.data.copy())
+                    if column is not None:
+                        data_.append(boundary.data[[column]].copy())
+                    else:
+                        data_.append(boundary.data.copy())
                 else:
                     if boundary._variable is None:
                         raise Exception("variable not set")
                     if not boundary.optional:
                         try:
                             warmup_only = boundary.warmup_only if boundary.warmup_only else False
-                            boundary.assertNoNaN(warmup_only, read_sim, 0, boundary.warmup_steps)
+                            boundary.assertNoNaN(warmup_only, read_sim, 0, boundary.warmup_steps, column)
                         except AssertionError as e:
                             raise Exception("load input error at procedure %s, node %i, variable, %i: %s" % (self.id, boundary.node_id, boundary.var_id, str(e)))
                     if read_sim:
@@ -800,9 +832,15 @@ class Procedure(Base):
                             raise RuntimeError("series_sim not set")
                         if boundary._variable.series_sim[sim_index].data is None:
                             raise Exception("load input error at procedure %s, node %i, variable %i: series_sim[%i].data is None" % (self.id, boundary.node_id, boundary.var_id, sim_index))
-                        data_.append(boundary._variable.series_sim[sim_index].data.copy())
+                        if column is not None:
+                            data_.append(boundary._variable.series_sim[sim_index].data[[column]].copy())
+                        else:
+                            data_.append(boundary._variable.series_sim[sim_index].data.copy())
                     else:
-                        data_.append(boundary._variable.data.copy())
+                        if column is not None:
+                            data_.append(boundary._variable.data[[column]].copy())
+                        else:
+                            data_.append(boundary._variable.data.copy())
             if inplace:
                 self.input = data_
             else:
@@ -1088,6 +1126,150 @@ class Procedure(Base):
         except IOError as e:
             # logging.ERROR(f"Couldn't write to file ({e})")
             raise e
+
+    @overload
+    def run_ensemble_mode(
+        self,
+        inplace : Literal[True],
+        save_results : Optional[Union[str,Path]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None,
+        perturbed_boundaries : Optional[List[int]] = None,
+        qualifiers : Optional[List[str]] = None,
+        adjust : Optional[bool] = None,
+        adjust_method : Optional[Literal['lfit', 'arima']] = None,
+        warmup_steps : Optional[int] = None,
+        tail_steps : Optional[int] = None,
+        error_band : Optional[bool] = None,
+        save_dict : Optional[Union[str,Path]] = None,
+        drop_warmup : Optional[bool] = None,
+        bias_correction : Optional[bool] = None
+    ) -> None: ...
+    @overload
+    def run_ensemble_mode(
+        self,
+        inplace : Literal[False],
+        save_results : Optional[Union[str,Path]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None,
+        perturbed_boundaries : Optional[List[int]] = None,
+        qualifiers : Optional[List[str]] = None,
+        adjust : Optional[bool] = None,
+        adjust_method : Optional[Literal['lfit', 'arima']] = None,
+        warmup_steps : Optional[int] = None,
+        tail_steps : Optional[int] = None,
+        error_band : Optional[bool] = None,
+        save_dict : Optional[Union[str,Path]] = None,
+        drop_warmup : Optional[bool] = None,
+        bias_correction : Optional[bool] = None
+    ) -> Union[List[DataFrame], DataFrame]: ...
+    def run_ensemble_mode(
+        self,
+        inplace : bool = True,
+        save_results : Optional[Union[str,Path]] = None,
+        parameters : Optional[Union[list,tuple]] = None, 
+        initial_states : Optional[Union[list,tuple]] = None,
+        perturbed_boundaries : Optional[List[int]] = None,
+        qualifiers : Optional[List[str]] = None,
+        adjust : Optional[bool] = None,
+        adjust_method : Optional[Literal['lfit', 'arima']] = None,
+        warmup_steps : Optional[int] = None,
+        tail_steps : Optional[int] = None,
+        error_band : Optional[bool] = None,
+        save_dict : Optional[Union[str,Path]] = None,
+        drop_warmup : Optional[bool] = None,
+        bias_correction : Optional[bool] = None
+    ) -> Union[List[DataFrame], DataFrame, None]:
+        
+        perturbed_boundaries = perturbed_boundaries if perturbed_boundaries is not None else self.ensemble_mode["perturbed_boundaries"] if self.ensemble_mode is not None and "perturbed_boundaries" in self.ensemble_mode and self.ensemble_mode["perturbed_boundaries"] is not None else None # list(range(0,len(self.boundaries)))
+        qualifiers = qualifiers if qualifiers is not None else self.ensemble_mode["qualifiers"] if self.ensemble_mode is not None and "qualifiers" in self.ensemble_mode and self.ensemble_mode["qualifiers"] is not None else None
+
+        boundary_qualifiers : List[Set[str]]= []
+        for i, boundary in enumerate(self.boundaries):
+            if perturbed_boundaries is not None and i not in perturbed_boundaries:
+                boundary_qualifiers.append(set(["valor"]))
+            else:
+                this_boundary_qualifiers : Set[str] = set(["valor"])
+                for j, qualifier in enumerate(boundary.variable.data.columns):
+                    if qualifier == "tag":
+                        continue
+                    if qualifiers is not None and qualifier not in qualifiers:
+                        continue
+                    this_boundary_qualifiers.add(qualifier)
+                boundary_qualifiers.append(this_boundary_qualifiers)
+        # permute boundary qualifiers
+        permutations = permute_sets(boundary_qualifiers)
+        output_df : Union[DataFrame,None] = None
+        output_list : Union[List[DataFrame], None] = None
+        # load output obs
+        output_obs = self.loadOutputObs(
+            inplace=inplace,
+            pivot=self.pivot_output_obs,
+            original_data=self._read_original_data,
+            use_boundary_name=self._use_boundary_name
+        )
+        for i, permutation in enumerate(permutations):
+            permutation_id = ".".join([x for x in permutation if x != "valor"])
+            # load input
+            if self.pivot_input:
+                input = self.loadInput(
+                    inplace=False,
+                    pivot=True,
+                    use_boundary_name=True,
+                    tag_column=False,
+                    read_sim=self.read_sim,
+                    qualifiers=permutation)
+            else:
+                input = self.loadInput(inplace=False, qualifiers=permutation)
+            
+            this_output = self.run_one(
+                parameters,
+                initial_states,
+                input,
+                output_obs,
+                False,
+                save_results,
+                adjust,
+                adjust_method,
+                warmup_steps,
+                tail_steps,
+                error_band,
+                save_dict,
+                drop_warmup,
+                bias_correction
+            )
+            if isinstance(this_output, DataFrame):
+                rename_columns = {colname: "%s_%s" % (colname, permutation_id) for colname in this_output.columns}
+                if output_df is None:
+                    output_df = this_output.rename(columns=rename_columns)
+                else:
+                    output_df = output_df.join(this_output.rename(columns=rename_columns))
+            elif isinstance(this_output, list):
+                if len(this_output) > len(self.outputs):
+                    logging.warning("Procedure has more outputs (%i) than expected (%i)" % (len(this_output), len(self.outputs)))
+                if output_list is None:
+                    output_list = []
+                for i, item in enumerate(self.outputs):
+                    if len(this_output) - 1 < i:
+                        raise Exception("Missing index %i from procedure output" % i)
+                    if len(output_list) < i + 1:
+                        output_list.append(this_output[i].rename(columns={"valor": "valor_%s" % permutation_id if permutation_id != "" else "valor"}))
+                    else:
+                        output_list[i] = output_list[i].join(this_output[i].rename(columns={"valor": "valor_%s" % permutation_id if permutation_id != "" else "valor"}))
+            else:
+                raise TypeError("procedure output is of an invalid type")
+        if output_df is not None:
+            if inplace:
+                self.output = output_df
+            else:
+                return output_df    
+        elif output_list is not None:
+            if inplace:
+                self.output = output_list
+            else:
+                return output_list
+        else:
+            raise Exception("No output of procedure")
     
     def run(
         self,
@@ -1143,17 +1325,7 @@ class Procedure(Base):
         -------
         None if inplace=True, else
         list of DataFrames
-        """
-        save_results = save_results if save_results is not None else self.save_results
-        save_dict = save_dict if save_dict is not None else self.save_dict
-        adjust = adjust if adjust is not None else self.adjust
-        adjust_method = adjust_method if adjust_method is not None else self.adjust_method
-        warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
-        tail_steps = tail_steps if tail_steps is not None else self.tail_steps
-        error_band = util.coalesce(error_band,self.error_band,True)
-        drop_warmup = drop_warmup if drop_warmup is not None else self.drop_warmup
-        bias_correction = bias_correction if bias_correction is not None else self.bias_correction
-        
+        """        
         # loads input inplace
         if load_input:
             # logging.debug("Loading input")
@@ -1182,6 +1354,88 @@ class Procedure(Base):
         else:
             # logging.debug("Output obs already loaded")
             output_obs = self.output_obs
+
+        return self.run_one(
+            parameters, 
+            initial_states, 
+            input, 
+            output_obs, 
+            inplace,
+            save_results,
+            adjust,
+            adjust_method,
+            warmup_steps,
+            tail_steps,
+            error_band,
+            save_dict,
+            drop_warmup,
+            bias_correction
+        )
+
+    @overload
+    def run_one(
+            self,
+            parameters : Optional[Union[list,tuple]],
+            initial_states : Optional[Union[list,tuple]],
+            input : Optional[Union[DataFrame,List[DataFrame]]],
+            output_obs : Optional[Union[DataFrame,List[DataFrame]]],
+            inplace : Literal[True],
+            save_results : Optional[Union[str,Path]] = None,
+            adjust : Optional[bool] = None,
+            adjust_method : Optional[Literal['lfit', 'arima']] = None,
+            warmup_steps : Optional[int] = None,
+            tail_steps : Optional[int] = None,
+            error_band : Optional[bool] = None,
+            save_dict : Optional[Union[str,Path]] = None,
+            drop_warmup : Optional[bool] = None,
+            bias_correction : Optional[bool] = None
+        ) -> None: ...
+    @overload
+    def run_one(
+            self,
+            parameters : Optional[Union[list,tuple]],
+            initial_states : Optional[Union[list,tuple]],
+            input : Optional[Union[DataFrame,List[DataFrame]]],
+            output_obs : Optional[Union[DataFrame,List[DataFrame]]],
+            inplace : Literal[False],
+            save_results : Optional[Union[str,Path]] = None,
+            adjust : Optional[bool] = None,
+            adjust_method : Optional[Literal['lfit', 'arima']] = None,
+            warmup_steps : Optional[int] = None,
+            tail_steps : Optional[int] = None,
+            error_band : Optional[bool] = None,
+            save_dict : Optional[Union[str,Path]] = None,
+            drop_warmup : Optional[bool] = None,
+            bias_correction : Optional[bool] = None
+        ) -> Union[List[DataFrame],DataFrame]: ...
+    def run_one(
+            self,
+            parameters : Optional[Union[list,tuple]] = None,
+            initial_states : Optional[Union[list,tuple]] = None,
+            input : Optional[Union[DataFrame,List[DataFrame]]] = None,
+            output_obs : Optional[Union[DataFrame,List[DataFrame]]] = None,
+            inplace : bool = True,
+            save_results : Optional[Union[str,Path]] = None,
+            adjust : Optional[bool] = None,
+            adjust_method : Optional[Literal['lfit', 'arima']] = None,
+            warmup_steps : Optional[int] = None,
+            tail_steps : Optional[int] = None,
+            error_band : Optional[bool] = None,
+            save_dict : Optional[Union[str,Path]] = None,
+            drop_warmup : Optional[bool] = None,
+            bias_correction : Optional[bool] = None
+    ) -> Union[List[DataFrame],DataFrame,None]:
+
+        # coalesces params
+        save_results = save_results if save_results is not None else self.save_results
+        save_dict = save_dict if save_dict is not None else self.save_dict
+        adjust = adjust if adjust is not None else self.adjust
+        adjust_method = adjust_method if adjust_method is not None else self.adjust_method
+        warmup_steps = warmup_steps if warmup_steps is not None else self.warmup_steps
+        tail_steps = tail_steps if tail_steps is not None else self.tail_steps
+        error_band = util.coalesce(error_band,self.error_band,True)
+        drop_warmup = drop_warmup if drop_warmup is not None else self.drop_warmup
+        bias_correction = bias_correction if bias_correction is not None else self.bias_correction
         
         # runs procedure
         if parameters is not None:
@@ -1349,7 +1603,8 @@ class Procedure(Base):
             
             output_data = self.setIndexOfDataFrame(
                 data,
-                time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval)
+                time_interval = util.decimal_days_to_relativedelta(o.node.time_interval) if isinstance(o.node.time_interval,int) else o.node.time_interval,
+                all_columns = True)
             o._variable.concatenate(output_data,overwrite=overwrite,extend=True)
             if overwrite_original:
                 if not isinstance(data, DataFrame):
@@ -1364,6 +1619,7 @@ class Procedure(Base):
         self,
         data : DataFrame,
         time_interval : relativedelta,
+        all_columns : bool = False
     ) -> DataFrame:
         """Set index of data frame from topology begin and end dates and time_interval"""
         if self._plan is None:
@@ -1378,7 +1634,8 @@ class Procedure(Base):
             time_offset = self._plan.topology.time_offset_start,
             interpolation_limit=0,
             interpolate=False,
-            tag_column = "tag" if "tag" in data else None)
+            tag_column = "tag" if "tag" in data else None,
+            all_columns=all_columns)
         return data
     def testPlot(
         self,

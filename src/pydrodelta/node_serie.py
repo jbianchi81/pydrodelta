@@ -499,12 +499,17 @@ class NodeSerie(Base):
             self.data.index = DatetimeIndex(self.data.apply(lambda row: row.name + self.x_offset, axis=1)) # self.applyTimedeltaOffset(row,self.x_offset), axis=1) # for x in self.data.index]
             self.data.index.rename("timestart",inplace=True)
         elif self.x_offset != 0:
-            self.data["valor"] = self.data["valor"].shift(self.x_offset, axis = 0) 
-            self.data["tag"] = self.data["tag"].shift(self.x_offset, axis = 0) 
+            # self.data["valor"] = self.data["valor"].shift(self.x_offset, axis = 0) 
+            # self.data["tag"] = self.data["tag"].shift(self.x_offset, axis = 0) 
+            self.data = self.data.shift(self.x_offset, axis = 0)
         if self.scale != 1:
-            self.data["valor"] = self.data["valor"] * self.scale
+            target_cols = self.data.columns.drop("tag")
+            self.data[target_cols] = self.data[target_cols] * self.scale
+            # self.data["valor"] = self.data["valor"] * self.scale
         if self.y_offset != 0:
-            self.data["valor"] = self.data["valor"] + self.y_offset
+            target_cols = self.data.columns.drop("tag")
+            self.data[target_cols] = self.data[target_cols] + self.y_offset
+            # self.data["valor"] = self.data["valor"] + self.y_offset
     
     def regularize(
         self,

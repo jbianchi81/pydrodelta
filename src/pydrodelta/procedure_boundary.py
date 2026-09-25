@@ -201,7 +201,8 @@ class ProcedureBoundary():
         warmup_only : bool = False,
         read_sim : bool = False,
         sim_index : int = 0,
-        warmup_steps : Optional[int] = None
+        warmup_steps : Optional[int] = None,
+        column : Optional[str] = "valor"
         ) -> None:
         """
         Assert if the are missing values in the boundary
@@ -219,6 +220,9 @@ class ProcedureBoundary():
         
         warmup_length : int = None
             If not None, chek only period from this number of steps before forecast date
+
+        column : str = "valor"
+            name of column of data to check
         
         Raises:
         -------
@@ -228,6 +232,7 @@ class ProcedureBoundary():
 
         AssertionError procedure boundary variable data has NaN values
         """
+        column = column if column is not None else "valor"
         if self._variable is None:
             raise AssertionError("procedure boundary variable is None")
         if read_sim:
@@ -246,14 +251,14 @@ class ProcedureBoundary():
             if self._plan is None:
                 raise RuntimeError("plan is not set")
             if warmup_steps is not None:
-                data_filtered = data[data.index <= self._plan.forecast_date]["valor"].tail(warmup_steps)
+                data_filtered = data[data.index <= self._plan.forecast_date][column].tail(warmup_steps)
             else:
-                data_filtered = data[data.index <= self._plan.forecast_date]["valor"]
+                data_filtered = data[data.index <= self._plan.forecast_date][column]
         else:
             if warmup_steps is not None:
-                data_filtered = data["valor"].tail(warmup_steps)
+                data_filtered = data[column].tail(warmup_steps)
             else:
-                data_filtered = data["valor"]
+                data_filtered = data[column]
 
         na_count = data_filtered.isna().sum()
         if na_count > 0:

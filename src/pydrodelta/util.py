@@ -18,7 +18,7 @@ from matplotlib.dates import DateFormatter
 from matplotlib.transforms import Bbox
 import csv
 import os.path
-from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any
+from typing import Union, Tuple, List, Literal, Optional, cast, Any, TypedDict, IO, overload, Mapping, Any, Set
 from a5client.util_types import Intervaleable, ApiConfigDict, TVP, Dateable, TVPdateable, TVPList, TVPAllowNone
 from .types.linear_combination_dict import LinearCombinationDict
 from a5client import observacionesListToDataFrame, createEmptyObsDataFrame
@@ -33,6 +33,10 @@ import statistics
 from a5client.util import tryParseAndLocalizeDate, freq_to_relativedelta
 from os import PathLike
 import sys
+from itertools import product
+
+def permute_sets(input_list: List[Set[str]]) -> List[List[str]]:
+    return [list(combo) for combo in product(*input_list)]
 
 localtz : tzinfo = pytz.timezone('America/Argentina/Buenos_Aires')
 

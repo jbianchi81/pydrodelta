@@ -189,6 +189,28 @@
       "type": "number",
       "description": "read this series_sim index of boundary node variables (with read_sim) ",
       "default": 0
+    },
+    "ensemble_mode": {
+      "type": "object",
+      "description": "ensemble mode configuration",
+      "properties": {
+        "perturbed_boundaries": {
+          "type": "array",
+          "description": "index(es) of boundaries to be included in permutation to generate ensemble members. If missing, all boundaries are included",
+          "items": {
+            "type": "number"
+          },
+          "minLength": 1
+        },
+        "qualifiers": {
+          "type": "array",
+          "description": "qualifiers to include in permutation to generate ensemble members. If missing, all qualifiers are included.",
+          "items": {
+            "type": "string"
+          },
+          "minLength": 1
+        }
+      }
     }
   },
   "required": [

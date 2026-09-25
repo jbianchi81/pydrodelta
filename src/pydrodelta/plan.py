@@ -348,6 +348,8 @@ class Plan(Base):
         for procedure in self.procedures:
             if procedure.calibration is not None and procedure.calibration.calibrate:
                 procedure.calibration.run()
+            elif procedure.ensemble_mode is not None:
+                procedure.run_ensemble_mode(inplace=True)
             else:
                 procedure.run()
             procedure.outputToNodes()
