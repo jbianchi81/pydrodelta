@@ -1253,9 +1253,9 @@ class Procedure(Base):
                     if len(this_output) - 1 < i:
                         raise Exception("Missing index %i from procedure output" % i)
                     if len(output_list) < i + 1:
-                        output_list.append(this_output[i].rename(columns={"valor": "valor_%s" % permutation_id if permutation_id != "" else "valor"}))
+                        output_list.append(this_output[i].rename(columns={"valor": permutation_id if permutation_id != "" else "valor"}))
                     else:
-                        output_list[i] = output_list[i].join(this_output[i].rename(columns={"valor": "valor_%s" % permutation_id if permutation_id != "" else "valor"}))
+                        output_list[i] = output_list[i].join(this_output[i].rename(columns={"valor": permutation_id if permutation_id != "" else "valor"}))
             else:
                 raise TypeError("procedure output is of an invalid type")
         if output_df is not None:
