@@ -1667,7 +1667,7 @@ class Topology(Base):
                             "outliers": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.outliers_data.itertuples(name=None))] if serie.outliers_data is not None else None,
                             "jumps": [(x[0].isoformat(), x[1], x[2]) for x in list(serie.jumps_data.itertuples(name=None))] if serie.jumps_data is not None else None,
                             "nulls": int(serie.data["valor"].isna().sum()),
-                            "tag_counts": serie.data.groupby("tag").size().to_dict(),
+                            "tag_counts": serie.data.groupby("tag").size().to_dict() if "tag" in serie.data.columns else None,
                             "min_date": serie_notnull.index[0].isoformat() if len(serie_notnull) else None,
                             "max_date": serie_notnull.index[-1].isoformat() if len(serie_notnull) else None,
                             "adjust_results": serie.adjust_result_dict
