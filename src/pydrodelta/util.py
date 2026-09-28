@@ -489,7 +489,6 @@ def serieRegular(
                 #         continue
                 #     df_join[co] = df_join[co].interpolate(method='time',limit=interpolation_limit if isinstance(interpolation_limit, int) else getNSteps(time_interval, interpolation_limit),limit_direction='both',limit_area=None if extrapolate and extrapolate_function == "last" else 'inside')
             df_regular = df_regular.join(df_join, how = 'left')
-
         else:
             min_obs_date, max_obs_date = (df_join[~pandas.isna(df_join[column])].index.min(),df_join[~pandas.isna(df_join[column])].index.max())
             extrapolated = None
@@ -522,6 +521,8 @@ def serieRegular(
         if isinstance(column, list):
             for c in column:
                 df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
+                if tag_column and tag_column not in df_regular:
+                    df_regular[tag_column] = "regularized"
         else:
             df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold, column, tag_column)
             for c in df_join.columns:
