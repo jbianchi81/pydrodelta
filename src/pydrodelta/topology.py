@@ -1217,7 +1217,7 @@ class Topology(Base):
         """
         timestart = tryParseAndLocalizeDate(timestart) if timestart is not None else None
         timeend = tryParseAndLocalizeDate(timeend) if timeend is not None else None
-        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue", "mean": "blue"}
+        color_map = {"obs": "blue", "sim": "red","interpolated": "yellow","extrapolated": "orange","analysis": "green", "prono": "purple", "sum": "yellow","filled":"gray", "moving_average": "blue", "mean": "blue", "regularized": "green"}
         if output is not None:
             matplotlib.use('pdf')
             createParent(output)
@@ -1249,7 +1249,8 @@ class Topology(Base):
             plot_ax = ax[0] if table else ax
             grouped = data.groupby('tag')
             for key, group in grouped:
-                group.plot(ax=plot_ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color_map[str(key)])
+                color = color_map[str(key)] if str(key) in color_map else "black"
+                group.plot(ax=plot_ax,kind='scatter', x='timestart', y='valor', label=key,title=node.name, figsize=(20,8),grid=True, color=color)
             if not isinstance(nodevariable.original_data, DataFrame):
                 raise Exception("Missing original data")
             original_data = nodevariable.original_data.reset_index().rename(columns={"index":"timestart"})
