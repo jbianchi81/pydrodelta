@@ -520,7 +520,7 @@ def serieRegular(
         timedelta_threshold = relativedelta_to_timedelta(time_interval) * 0.5 # takes half time interval as maximum time distance for interpolation
         if isinstance(column, list):
             for c in column:
-                df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c)
+                df_regular = regularizeColumn(df_regular,df_join,timedelta_threshold,c, tag_column=tag_column)
                 if tag_column and tag_column not in df_regular:
                     df_regular[tag_column] = "regularized"
         else:
