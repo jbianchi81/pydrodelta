@@ -553,7 +553,7 @@ def regularizeColumn(
     # df_join["interpolated_final"] = df_join.apply(lambda row: f3(row,column,timedelta_threshold),axis=1) #[x.interpolated_backward_filtered if pandas.isna(x.interpolated_forward_filtered) else x.interpolated_forward_filtered for (i,x) in df.iterrows()]
     df_ = df_join.copy()
     df_["interpolated_final"] = interpolate_or_copy_closest(df_[column], timedelta_threshold)
-    if tag_column is not None:
+    if tag_column is not None and tag_column not in df_regular:
         df_["new_tag"] = df_.apply(lambda row: f4(row,column,tag_column),axis=1) #[x[tag_column] if pandas.isna(x.interpolated_final) else "interpolated" if pandas.isna(x.valor) else x[tag_column] for (i,x) in df_join.iterrows()]
         df_regular = df_regular.join(df_[["interpolated_final","new_tag"]].rename(columns={"interpolated_final":column,"new_tag":tag_column}), how = 'left')
     else:
